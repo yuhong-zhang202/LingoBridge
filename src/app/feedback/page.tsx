@@ -34,19 +34,6 @@ export default function FeedbackPage() {
       />
       <StepBar currentStep="feedback" />
 
-      {/* 卡片进度条：橙→绿渐变 */}
-      <div className="relative z-10">
-        <div className="h-[2px] bg-[#EEEEEE]">
-          <div
-            className="h-full rounded-sm transition-all duration-500"
-            style={{
-              width: `${(CURRENT / TOTAL) * 100}%`,
-              background: 'linear-gradient(to right, #D4875A, #7BA699)',
-            }}
-          />
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 relative z-10">
 
         {/* 卡片堆叠 */}
@@ -70,13 +57,18 @@ export default function FeedbackPage() {
               </span>
             </div>
 
-            <div className="flex overflow-hidden rounded-[10px] mb-4" style={{ backgroundColor: '#ECEAE6' }}>
-              <div className="w-[3px] flex-shrink-0 self-stretch" style={{ backgroundColor: '#D4875A' }} />
-              <div className="flex-1 px-4 py-3">
-                <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6 }}>
-                  I went to park yesterday, very happy.
-                </p>
-              </div>
+            <div
+              className="mb-4"
+              style={{
+                background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
+                border: '1.5px solid transparent',
+                borderRadius: 12,
+                padding: '12px 16px',
+              }}
+            >
+              <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6 }}>
+                I went to park yesterday, very happy.
+              </p>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
@@ -85,30 +77,32 @@ export default function FeedbackPage() {
               <div className="flex-1 h-px bg-black/[0.06]" />
             </div>
 
-            {/* AI 优化区：渐变左竖线 + 极淡绿背景 */}
-            <div className="rounded-[14px] mb-4 overflow-hidden flex">
-              <div
-                className="w-[2.5px] flex-shrink-0"
-                style={{ background: 'linear-gradient(to bottom, #D4875A, #7BA699)' }}
-              />
-              <div className="flex-1 px-3.5 py-3" style={{ backgroundColor: '#F4FAF7' }}>
-                <p className="text-[14px] text-[#222] leading-relaxed">
-                  I visited a local park yesterday, which left me feeling genuinely refreshed.
-                </p>
-              </div>
+            {/* AI 优化区：白色底 + 渐变描边 */}
+            <div
+              className="mb-4"
+              style={{
+                background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
+                border: '1.5px solid transparent',
+                borderRadius: 12,
+                padding: '12px 16px',
+              }}
+            >
+              <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6 }}>
+                I visited a local park yesterday, which left me feeling genuinely refreshed.
+              </p>
             </div>
 
-            {/* 播放按钮：渐变描边 */}
+            {/* 播放按钮：灰色描边 */}
             <div className="flex gap-2">
               <button
-                className="flex-1 h-[34px] rounded-full text-[12px] text-[#555] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
-                style={GRADIENT_BORDER_STYLE}
+                className="flex-1 h-[38px] rounded-full text-[12px] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
+                style={{ border: '1px solid #DDDDDD', backgroundColor: '#FFFFFF', color: '#555555' }}
               >
                 ▶ 听原句
               </button>
               <button
-                className="flex-1 h-[34px] rounded-full text-[12px] text-[#555] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
-                style={GRADIENT_BORDER_STYLE}
+                className="flex-1 h-[38px] rounded-full text-[12px] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
+                style={{ border: '1px solid #DDDDDD', backgroundColor: '#FFFFFF', color: '#555555' }}
               >
                 ▶ 听优化句
               </button>

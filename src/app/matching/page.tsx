@@ -40,7 +40,9 @@ const GRADIENT_BORDER_STYLE = {
 export default function MatchingPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'全部' | 'Part 1' | 'Part 2' | 'Part 3'>('全部')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(
+    QUESTIONS.length > 0 ? QUESTIONS[0].id : null
+  )
 
   const filteredQuestions = QUESTIONS.filter(q =>
     activeTab === '全部' ? true : q.part === activeTab
@@ -48,7 +50,8 @@ export default function MatchingPage() {
 
   const handleTabChange = (p: typeof activeTab) => {
     setActiveTab(p)
-    setSelectedId(null)
+    const filtered = p === '全部' ? QUESTIONS : QUESTIONS.filter(q => q.part === p)
+    setSelectedId(filtered.length > 0 ? filtered[0].id : null)
   }
 
   return (
