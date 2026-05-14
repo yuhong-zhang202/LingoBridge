@@ -1,51 +1,17 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
-import GlowOrb from '@/components/GlowOrb'
+import Orb from '@/components/Orb'
 
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
-  const [audioLevel, setAudioLevel] = useState(0)
-  const animFrameRef = useRef<number>()
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
     return () => clearInterval(t)
-  }, [])
-
-  useEffect(() => {
-    let stream: MediaStream | null = null
-
-    const startAnalysis = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        const audioCtx = new AudioContext()
-        const source = audioCtx.createMediaStreamSource(stream)
-        const analyser = audioCtx.createAnalyser()
-        analyser.fftSize = 256
-        source.connect(analyser)
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount)
-        const tick = () => {
-          analyser.getByteFrequencyData(dataArray)
-          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
-          setAudioLevel(avg / 255)
-          animFrameRef.current = requestAnimationFrame(tick)
-        }
-        tick()
-      } catch {
-        // no mic — static glow
-      }
-    }
-
-    startAnalysis()
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
-      stream?.getTracks().forEach(t => t.stop())
-    }
   }, [])
 
   const fmt = (s: number) =>
@@ -70,8 +36,7 @@ export default function RecordingPage() {
       {/* 中心内容 */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
 
-        {/* 光晕 */}
-        <GlowOrb audioLevel={audioLevel} size={260} />
+        <Orb size={220} pulse />
 
         <div className="flex flex-col items-center gap-2.5">
           <Waveform active />
@@ -90,7 +55,6 @@ export default function RecordingPage() {
           {fmt(seconds)}
         </span>
 
-        {/* 引导提示 */}
         <p className="text-[12px] text-[#CCCCCC] text-center px-8 leading-relaxed">
           建议说 30–60 秒，说得越具体效果越好 ✨
         </p>
