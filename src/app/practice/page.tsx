@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Volume2, FileText, ChevronDown, SkipForward, Mic2 } from 'lucide-react'
+import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 
@@ -115,8 +115,8 @@ export default function PracticePage() {
         }}
       >
         <button className="flex items-center gap-1.5 text-[12px] text-[#CCCCCC]">
-          <SkipForward size={14} />
-          跳过
+          <RotateCcw size={14} />
+          重录
         </button>
 
         <button
