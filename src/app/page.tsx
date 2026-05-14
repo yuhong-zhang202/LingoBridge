@@ -87,10 +87,10 @@ export default function HomePage() {
                 <button
                   disabled={textStory.trim().length < 10}
                   onClick={() => router.push('/article')}
-                  className={`px-5 py-2 rounded-[50px] text-[14px] font-medium transition-all duration-200 ${
+                  className={`px-5 py-2 text-[14px] font-medium transition-all duration-200 ${
                     textStory.trim().length >= 10
-                      ? 'bg-[#D4875A] text-white'
-                      : 'bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
+                      ? 'btn-gradient'
+                      : 'rounded-[50px] bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
                   }`}
                 >
                   开始生成 →
