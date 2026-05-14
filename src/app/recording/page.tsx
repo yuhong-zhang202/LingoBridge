@@ -4,46 +4,34 @@ import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 
-const PARTICLES: { angle: number; baseDist: number; size: number; color: string }[] = [
-  { angle: 0,   baseDist: 118, size: 8,  color: '#D4875A' },
-  { angle: 12,  baseDist: 122, size: 5,  color: '#7BA699' },
-  { angle: 25,  baseDist: 115, size: 10, color: '#E8C9A8' },
-  { angle: 38,  baseDist: 120, size: 6,  color: '#D4875A' },
-  { angle: 50,  baseDist: 118, size: 4,  color: '#A8C8C0' },
-  { angle: 62,  baseDist: 124, size: 9,  color: '#7BA699' },
-  { angle: 75,  baseDist: 116, size: 5,  color: '#D4875A' },
-  { angle: 88,  baseDist: 120, size: 12, color: '#E8C9A8' },
-  { angle: 100, baseDist: 118, size: 6,  color: '#7BA699' },
-  { angle: 112, baseDist: 115, size: 4,  color: '#D4875A' },
-  { angle: 124, baseDist: 122, size: 8,  color: '#A8C8C0' },
-  { angle: 136, baseDist: 118, size: 5,  color: '#E8C9A8' },
-  { angle: 148, baseDist: 120, size: 10, color: '#7BA699' },
-  { angle: 160, baseDist: 116, size: 6,  color: '#D4875A' },
-  { angle: 172, baseDist: 124, size: 4,  color: '#A8C8C0' },
-  { angle: 184, baseDist: 118, size: 9,  color: '#7BA699' },
-  { angle: 196, baseDist: 120, size: 5,  color: '#D4875A' },
-  { angle: 208, baseDist: 115, size: 7,  color: '#E8C9A8' },
-  { angle: 220, baseDist: 122, size: 4,  color: '#7BA699' },
-  { angle: 232, baseDist: 118, size: 11, color: '#D4875A' },
-  { angle: 244, baseDist: 120, size: 6,  color: '#A8C8C0' },
-  { angle: 256, baseDist: 116, size: 5,  color: '#E8C9A8' },
-  { angle: 268, baseDist: 124, size: 8,  color: '#7BA699' },
-  { angle: 280, baseDist: 118, size: 4,  color: '#D4875A' },
-  { angle: 292, baseDist: 120, size: 10, color: '#A8C8C0' },
-  { angle: 304, baseDist: 115, size: 6,  color: '#7BA699' },
-  { angle: 316, baseDist: 122, size: 5,  color: '#D4875A' },
-  { angle: 328, baseDist: 118, size: 9,  color: '#E8C9A8' },
-  { angle: 340, baseDist: 120, size: 4,  color: '#7BA699' },
-  { angle: 352, baseDist: 116, size: 7,  color: '#D4875A' },
+const DOTS = [
+  { top: '8%',  left: '48%', size: 12, color: '#c6d7c8' },
+  { top: '10%', left: '60%', size: 8,  color: '#d6d9c5' },
+  { top: '12%', left: '38%', size: 6,  color: '#f3c7a7' },
+  { top: '15%', left: '68%', size: 10, color: '#c8d9d8' },
+  { top: '18%', left: '27%', size: 14, color: '#dce2c7' },
+  { top: '22%', left: '78%', size: 12, color: '#b9d6d4' },
+  { top: '28%', left: '18%', size: 10, color: '#f5d0b4' },
+  { top: '35%', left: '12%', size: 16, color: '#d8e3ca' },
+  { top: '45%', left: '10%', size: 12, color: '#c9dddd' },
+  { top: '58%', left: '12%', size: 9,  color: '#f4cfbb' },
+  { top: '70%', left: '18%', size: 11, color: '#dfe6cb' },
+  { top: '80%', left: '28%', size: 13, color: '#c3d8d7' },
+  { top: '88%', left: '42%', size: 15, color: '#b7d1d3' },
+  { top: '90%', left: '58%', size: 10, color: '#dce1c8' },
+  { top: '84%', left: '72%', size: 14, color: '#f2c7ab' },
+  { top: '72%', left: '84%', size: 18, color: '#c4d7d8' },
+  { top: '58%', left: '88%', size: 8,  color: '#f5c8ae' },
+  { top: '45%', left: '90%', size: 16, color: '#f3d0b5' },
+  { top: '30%', left: '85%', size: 11, color: '#dce5cb' },
+  { top: '18%', left: '78%', size: 13, color: '#c6dada' },
 ]
 
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
   const [audioLevel, setAudioLevel] = useState(0)
-  const [orbRotation, setOrbRotation] = useState(0)
   const animFrameRef = useRef<number>()
-  const rotationRef = useRef(0)
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
@@ -67,19 +55,11 @@ export default function RecordingPage() {
           analyser.getByteFrequencyData(dataArray)
           const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
           setAudioLevel(avg / 255)
-          rotationRef.current += 0.3 + (avg / 255) * 0.8
-          setOrbRotation(rotationRef.current)
           animFrameRef.current = requestAnimationFrame(tick)
         }
         tick()
       } catch {
-        // no mic — rotation only
-        const tick = () => {
-          rotationRef.current += 0.3
-          setOrbRotation(rotationRef.current)
-          animFrameRef.current = requestAnimationFrame(tick)
-        }
-        tick()
+        // no mic — static glow
       }
     }
 
@@ -93,9 +73,8 @@ export default function RecordingPage() {
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
-  const ORB_BASE = 160
-  const orbSize = ORB_BASE + audioLevel * 24
-  const particleExpand = audioLevel * 12
+  // subtle scale pulse driven by audio
+  const orbScale = 1 + audioLevel * 0.08
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -116,77 +95,63 @@ export default function RecordingPage() {
       {/* 中心内容 */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
 
-        {/* 光球 + 粒子环 */}
-        <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
+        {/* 光晕 */}
+        <div
+          className="relative w-[250px] h-[250px] flex items-center justify-center"
+          style={{
+            transform: `scale(${orbScale})`,
+            transition: 'transform 0.1s ease',
+          }}
+        >
+          {/* 外围浮动圆点 */}
+          {DOTS.map((dot, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                top: dot.top,
+                left: dot.left,
+                width: dot.size,
+                height: dot.size,
+                background: dot.color,
+                opacity: 0.9 + audioLevel * 0.1,
+                filter: 'blur(0.4px)',
+              }}
+            />
+          ))}
 
-          {/* 外围粒子 */}
-          {PARTICLES.map((p, i) => {
-            const rad = ((p.angle - 90) * Math.PI) / 180
-            const dist = p.baseDist + particleExpand
-            const cx = 130 + dist * Math.cos(rad)
-            const cy = 130 + dist * Math.sin(rad)
-            return (
-              <div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: p.size,
-                  height: p.size,
-                  backgroundColor: p.color,
-                  left: cx - p.size / 2,
-                  top: cy - p.size / 2,
-                  opacity: 0.75 + audioLevel * 0.25,
-                  transform: `scale(${1 + audioLevel * 0.3})`,
-                  transition: 'transform 0.1s ease, opacity 0.1s ease',
-                }}
-              />
-            )
-          })}
-
-          {/* 中央 conic-gradient 光球 */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: orbSize,
-              height: orbSize,
-              borderRadius: '50%',
-              background: `conic-gradient(
-                from ${orbRotation}deg,
-                #7BA699 0deg,
-                #C8DDD9 60deg,
-                #E8C9A8 120deg,
-                #D4875A 180deg,
-                #E8C9A8 240deg,
-                #A8C8C0 300deg,
-                #7BA699 360deg
-              )`,
-              filter: 'blur(18px)',
-              opacity: 0.88 + audioLevel * 0.12,
-              boxShadow: `0 0 ${40 + audioLevel * 30}px rgba(123,166,153,${0.2 + audioLevel * 0.25})`,
-              transition: 'width 0.08s ease, height 0.08s ease, opacity 0.08s ease',
-            }}
-          />
-
-          {/* 内层中心高亮 */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '45%',
-              transform: 'translate(-50%, -50%)',
-              width: orbSize * 0.45,
-              height: orbSize * 0.45,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(240,220,200,0.9) 0%, transparent 70%)',
-              filter: 'blur(8px)',
-              opacity: 0.6 + audioLevel * 0.3,
-              pointerEvents: 'none',
-              transition: 'opacity 0.08s ease',
-            }}
-          />
+          {/* 主光球 */}
+          <div className="relative w-[170px] h-[170px]">
+            {/* 左侧绿 */}
+            <div
+              className="absolute left-[8px] top-[18px] w-[90px] h-[120px] rounded-full"
+              style={{ background: 'rgba(210,224,148,0.95)', filter: 'blur(32px)' }}
+            />
+            {/* 底部暖橙 */}
+            <div
+              className="absolute left-[28px] bottom-[6px] w-[95px] h-[72px] rounded-full"
+              style={{ background: 'rgba(248,199,150,0.95)', filter: 'blur(30px)' }}
+            />
+            {/* 右侧蓝青 */}
+            <div
+              className="absolute right-[10px] top-[40px] w-[62px] h-[105px] rounded-full"
+              style={{ background: 'rgba(164,219,235,0.95)', filter: 'blur(28px)' }}
+            />
+            {/* 顶部亮绿 */}
+            <div
+              className="absolute top-[0px] left-[78px] w-[58px] h-[55px] rounded-full"
+              style={{ background: 'rgba(182,218,118,0.95)', filter: 'blur(26px)' }}
+            />
+            {/* 白色雾化层 */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.72) 70%, rgba(255,255,255,0.95) 100%)',
+                filter: 'blur(12px)',
+              }}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col items-center gap-2.5">
