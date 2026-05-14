@@ -28,7 +28,7 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col items-center px-7 relative z-10 pt-6">
 
         {/* 光晕球 */}
-        <Orb size={200} pulse={false} className="mt-4" />
+        <Orb size={300} pulse={false} className="mt-4" />
 
         {/* 波形 + 提示 */}
         <div className="flex flex-col items-center gap-2 mt-5">
