@@ -108,9 +108,9 @@ export default function RecordingPage() {
 
         <button
           onClick={() => router.push('/article')}
-          className="w-full h-[56px] border border-[#D4875A] rounded-[50px] flex items-center justify-center gap-2 text-[#D4875A] text-[17px] font-medium active:opacity-75 transition-opacity"
+          className="btn-gradient w-full h-[56px] text-[16px] font-semibold"
         >
-          <div className="w-[16px] h-[16px] bg-[#D4875A] rounded-[3px]" />
+          <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
           完成录音
         </button>
       </div>

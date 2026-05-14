@@ -70,7 +70,7 @@ export default function PracticePage() {
           <div className="w-8 h-8 rounded-full bg-[#E8C9A8] flex items-center justify-center flex-shrink-0 text-[13px] font-semibold text-[#D4875A]">
             你
           </div>
-          <div className="rounded-[16px] rounded-tr-[4px] px-4 py-3" style={{ backgroundColor: '#F0EDEA' }}>
+          <div className="surface rounded-[16px] rounded-tr-[4px] px-4 py-3">
             <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
               I remember I went to a park last weekend...
             </p>

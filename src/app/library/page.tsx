@@ -383,6 +383,7 @@ export default function LibraryPage() {
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+      <div className="ambient-light" />
 
       {/* 顶部 */}
       <div className="flex items-center justify-between h-[52px] px-6 bg-bg-page relative z-10">
