@@ -18,6 +18,12 @@ const GRADIENT_BORDER_STYLE = {
   border: '1.5px solid transparent',
 } as React.CSSProperties
 
+const TAG_STYLES: Record<string, { bg: string; color: string }> = {
+  '词汇升级': { bg: '#FEF0E6', color: '#C9905A' },
+  '句式优化': { bg: '#EEF5F8', color: '#5A8EA0' },
+  '时态修正': { bg: '#EEF7F3', color: '#5A9E8A' },
+}
+
 export default function FeedbackPage() {
   const router = useRouter()
   const [saved, setSaved] = useState(false)
@@ -35,12 +41,15 @@ export default function FeedbackPage() {
       />
       <StepBar currentStep="feedback" />
 
-      {/* 卡片进度条 */}
+      {/* 卡片进度条：橙→绿渐变 */}
       <div className="relative z-10">
         <div className="h-[2px] bg-[#EEEEEE]">
           <div
-            className="h-full bg-[#D4875A] rounded-sm transition-all duration-500"
-            style={{ width: `${(CURRENT / TOTAL) * 100}%` }}
+            className="h-full rounded-sm transition-all duration-500"
+            style={{
+              width: `${(CURRENT / TOTAL) * 100}%`,
+              background: 'linear-gradient(to right, #D4875A, #7BA699)',
+            }}
           />
         </div>
       </div>
@@ -80,25 +89,47 @@ export default function FeedbackPage() {
               <div className="flex-1 h-px bg-black/[0.06]" />
             </div>
 
-            <div className="bg-[#FAFAFA] rounded-[14px] px-3.5 py-3 mb-4 border-l-[2.5px] border-l-[rgba(168,210,196,0.70)]">
-              <p className="text-[14px] text-[#222] leading-relaxed">
-                I visited a local park yesterday, which left me feeling genuinely refreshed.
-              </p>
+            {/* AI 优化区：渐变左竖线 + 极淡绿背景 */}
+            <div className="rounded-[14px] mb-4 overflow-hidden flex">
+              <div
+                className="w-[2.5px] flex-shrink-0"
+                style={{ background: 'linear-gradient(to bottom, #D4875A, #7BA699)' }}
+              />
+              <div className="flex-1 px-3.5 py-3" style={{ backgroundColor: '#F4FAF7' }}>
+                <p className="text-[14px] text-[#222] leading-relaxed">
+                  I visited a local park yesterday, which left me feeling genuinely refreshed.
+                </p>
+              </div>
             </div>
 
+            {/* 优化标签：各自彩色底色 */}
             <div className="flex gap-1.5 flex-wrap mb-4">
-              {TAGS.map(tag => (
-                <span key={tag} className="text-[11px] text-[#888] bg-[#F4F4F4] px-2.5 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
+              {TAGS.map(tag => {
+                const style = TAG_STYLES[tag] ?? { bg: '#F4F4F4', color: '#888' }
+                return (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                    style={{ backgroundColor: style.bg, color: style.color }}
+                  >
+                    {tag}
+                  </span>
+                )
+              })}
             </div>
 
+            {/* 播放按钮：渐变描边 */}
             <div className="flex gap-2">
-              <button className="btn-ghost flex-1 h-[34px] text-[12px]">
+              <button
+                className="flex-1 h-[34px] rounded-full text-[12px] text-[#555] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
+                style={GRADIENT_BORDER_STYLE}
+              >
                 ▶ 听原句
               </button>
-              <button className="btn-ghost flex-1 h-[34px] text-[12px]">
+              <button
+                className="flex-1 h-[34px] rounded-full text-[12px] text-[#555] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
+                style={GRADIENT_BORDER_STYLE}
+              >
                 ▶ 听优化句
               </button>
             </div>
@@ -116,13 +147,13 @@ export default function FeedbackPage() {
         <div className="flex gap-3 mb-4">
           <button
             onClick={() => router.push('/')}
-            className="btn-ghost flex-1 h-[48px]"
+            className="btn-ghost flex-1 h-[48px] active:scale-[0.97] transition-transform duration-150"
           >
             <X size={15} className="text-[#CCCCCC]" />
           </button>
           <button
             onClick={() => setSaved(!saved)}
-            className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full"
+            className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full active:scale-[0.97] transition-transform duration-150"
             style={GRADIENT_BORDER_STYLE}
           >
             <Heart

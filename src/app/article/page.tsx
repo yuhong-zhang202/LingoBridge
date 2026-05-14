@@ -19,7 +19,7 @@ const BAND_MAP: Record<string, string> = {
   '7.0': '地道表达，接近母语',
 }
 
-const ARTICLE_WORDS = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`.split(' ')
+const ARTICLE_TEXT = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`
 
 const GRADIENT_BORDER = {
   background: [
@@ -35,6 +35,8 @@ export default function ArticlePage() {
   const [bandOpen, setBandOpen] = useState(false)
   const [generated, setGenerated] = useState(true)
   const [showOriginal, setShowOriginal] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(ARTICLE_TEXT)
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -163,28 +165,47 @@ export default function ArticlePage() {
                 >
                   Band {selected}
                 </span>
-                <button className="w-[30px] h-[30px] rounded-full bg-[#F4F4F4] flex items-center justify-center">
-                  <Volume2 size={13} className="text-[#888]" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button className="w-[30px] h-[30px] rounded-full bg-[#F4F4F4] flex items-center justify-center">
+                    <Volume2 size={13} className="text-[#888]" />
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-[10px] text-[13px] active:scale-[0.97] transition-transform duration-150"
+                    style={{ backgroundColor: '#F0EDE9', color: '#C9905A' }}
+                  >
+                    {isEditing ? '✓ 保存' : '✎ 编辑'}
+                  </button>
+                </div>
               </div>
 
               {/* 文章正文 */}
-              <p className="text-[17px] text-[#111] leading-[1.9] mb-4">
-                {ARTICLE_WORDS.map((word, i) =>
-                  word === 'genuinely' ? (
-                    <span key={i} className="relative inline-block">
-                      <span className="bg-[rgba(168,210,196,0.22)] rounded px-[2px]">
-                        {word}{' '}
+              {isEditing ? (
+                <textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  className="w-full text-[17px] text-[#111] leading-[1.9] bg-transparent outline-none resize-none mb-4"
+                  style={{ minHeight: 140 }}
+                  autoFocus
+                />
+              ) : (
+                <p className="text-[17px] text-[#111] leading-[1.9] mb-4">
+                  {editContent.split(' ').map((word, i) =>
+                    word === 'genuinely' ? (
+                      <span key={i} className="relative inline-block">
+                        <span className="bg-[rgba(168,210,196,0.22)] rounded px-[2px]">
+                          {word}{' '}
+                        </span>
+                        <span className="absolute left-0 top-full mt-1 bg-white rounded-xl px-2.5 py-1.5 z-10 text-[11px] text-[#666] shadow-md whitespace-nowrap border border-black/[0.05]">
+                          /ˈdʒenjuɪnli/ · 真正地
+                        </span>
                       </span>
-                      <span className="absolute left-0 top-full mt-1 bg-white rounded-xl px-2.5 py-1.5 z-10 text-[11px] text-[#666] shadow-md whitespace-nowrap border border-black/[0.05]">
-                        /ˈdʒenjuɪnli/ · 真正地
-                      </span>
-                    </span>
-                  ) : (
-                    <span key={i}>{word} </span>
-                  )
-                )}
-              </p>
+                    ) : (
+                      <span key={i}>{word} </span>
+                    )
+                  )}
+                </p>
+              )}
 
               {/* 查看原始故事 */}
               <button

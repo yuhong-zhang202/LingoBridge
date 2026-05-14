@@ -210,7 +210,7 @@ function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
               {/* 操作行 */}
               <div className="flex gap-2">
                 <button
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); router.push('/article-view') }}
                   className="flex-1 h-[36px] rounded-full border border-black/[0.10] text-[12px] font-medium text-[#666] flex items-center justify-center gap-1"
                 >
                   查看文章
@@ -435,19 +435,24 @@ export default function LibraryPage() {
       {/* 概况数据 */}
       <div className="px-6 pb-4 relative z-10">
         <div className="flex gap-3">
-          <div className="flex-1 bg-white rounded-[14px] p-3.5 border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
-            <p className="text-[24px] font-bold text-[#111]">
-              {totalStories}
-            </p>
-            <p className="text-[11px] text-[#AAAAAA] mt-0.5">
-              个故事素材
-            </p>
+          {/* 渐变描边容器 */}
+          <div className="flex-1" style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))', borderRadius: 16, padding: 1.5 }}>
+            <div className="bg-white rounded-[14px] p-3.5">
+              <p className="text-[24px] font-bold" style={{ color: '#C9905A' }}>
+                {totalStories}
+              </p>
+              <p className="text-[11px] text-[#AAAAAA] mt-0.5">
+                个故事素材
+              </p>
+            </div>
           </div>
-          <div className="flex-1 bg-white rounded-[14px] p-3.5 border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
-            <p className="text-[24px] font-bold text-[#111]">9</p>
-            <p className="text-[11px] text-[#AAAAAA] mt-0.5">
-              道题已练习
-            </p>
+          <div className="flex-1" style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))', borderRadius: 16, padding: 1.5 }}>
+            <div className="bg-white rounded-[14px] p-3.5">
+              <p className="text-[24px] font-bold" style={{ color: '#7BA699' }}>9</p>
+              <p className="text-[11px] text-[#AAAAAA] mt-0.5">
+                道题已练习
+              </p>
+            </div>
           </div>
         </div>
       </div>
