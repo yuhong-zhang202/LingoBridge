@@ -3,29 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
-
-const DOTS = [
-  { top: '8%',  left: '48%', size: 12, color: '#c6d7c8' },
-  { top: '10%', left: '60%', size: 8,  color: '#d6d9c5' },
-  { top: '12%', left: '38%', size: 6,  color: '#f3c7a7' },
-  { top: '15%', left: '68%', size: 10, color: '#c8d9d8' },
-  { top: '18%', left: '27%', size: 14, color: '#dce2c7' },
-  { top: '22%', left: '78%', size: 12, color: '#b9d6d4' },
-  { top: '28%', left: '18%', size: 10, color: '#f5d0b4' },
-  { top: '35%', left: '12%', size: 16, color: '#d8e3ca' },
-  { top: '45%', left: '10%', size: 12, color: '#c9dddd' },
-  { top: '58%', left: '12%', size: 9,  color: '#f4cfbb' },
-  { top: '70%', left: '18%', size: 11, color: '#dfe6cb' },
-  { top: '80%', left: '28%', size: 13, color: '#c3d8d7' },
-  { top: '88%', left: '42%', size: 15, color: '#b7d1d3' },
-  { top: '90%', left: '58%', size: 10, color: '#dce1c8' },
-  { top: '84%', left: '72%', size: 14, color: '#f2c7ab' },
-  { top: '72%', left: '84%', size: 18, color: '#c4d7d8' },
-  { top: '58%', left: '88%', size: 8,  color: '#f5c8ae' },
-  { top: '45%', left: '90%', size: 16, color: '#f3d0b5' },
-  { top: '30%', left: '85%', size: 11, color: '#dce5cb' },
-  { top: '18%', left: '78%', size: 13, color: '#c6dada' },
-]
+import GlowOrb from '@/components/GlowOrb'
 
 export default function RecordingPage() {
   const router = useRouter()
@@ -73,9 +51,6 @@ export default function RecordingPage() {
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
-  // subtle scale pulse driven by audio
-  const orbScale = 1 + audioLevel * 0.08
-
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <div className="ambient-light" />
@@ -96,63 +71,7 @@ export default function RecordingPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
 
         {/* 光晕 */}
-        <div
-          className="relative w-[250px] h-[250px] flex items-center justify-center"
-          style={{
-            transform: `scale(${orbScale})`,
-            transition: 'transform 0.1s ease',
-          }}
-        >
-          {/* 外围浮动圆点 */}
-          {DOTS.map((dot, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                top: dot.top,
-                left: dot.left,
-                width: dot.size,
-                height: dot.size,
-                background: dot.color,
-                opacity: 0.9 + audioLevel * 0.1,
-                filter: 'blur(0.4px)',
-              }}
-            />
-          ))}
-
-          {/* 主光球 */}
-          <div className="relative w-[170px] h-[170px]">
-            {/* 左侧绿 */}
-            <div
-              className="absolute left-[8px] top-[18px] w-[90px] h-[120px] rounded-full"
-              style={{ background: 'rgba(210,224,148,0.95)', filter: 'blur(32px)' }}
-            />
-            {/* 底部暖橙 */}
-            <div
-              className="absolute left-[28px] bottom-[6px] w-[95px] h-[72px] rounded-full"
-              style={{ background: 'rgba(248,199,150,0.95)', filter: 'blur(30px)' }}
-            />
-            {/* 右侧蓝青 */}
-            <div
-              className="absolute right-[10px] top-[40px] w-[62px] h-[105px] rounded-full"
-              style={{ background: 'rgba(164,219,235,0.95)', filter: 'blur(28px)' }}
-            />
-            {/* 顶部亮绿 */}
-            <div
-              className="absolute top-[0px] left-[78px] w-[58px] h-[55px] rounded-full"
-              style={{ background: 'rgba(182,218,118,0.95)', filter: 'blur(26px)' }}
-            />
-            {/* 白色雾化层 */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background:
-                  'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.72) 70%, rgba(255,255,255,0.95) 100%)',
-                filter: 'blur(12px)',
-              }}
-            />
-          </div>
-        </div>
+        <GlowOrb audioLevel={audioLevel} size={260} />
 
         <div className="flex flex-col items-center gap-2.5">
           <Waveform active />
