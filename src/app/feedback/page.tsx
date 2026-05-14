@@ -7,7 +7,6 @@ import { StepBar } from '@/components/StepBar'
 
 const TOTAL = 8
 const CURRENT = 3
-const TAGS = ['词汇升级', '句式优化', '时态修正']
 const userName = 'YZ'
 
 const GRADIENT_BORDER_STYLE = {
@@ -17,12 +16,6 @@ const GRADIENT_BORDER_STYLE = {
   ].join(','),
   border: '1.5px solid transparent',
 } as React.CSSProperties
-
-const TAG_STYLES: Record<string, { bg: string; color: string }> = {
-  '词汇升级': { bg: '#FEF0E6', color: '#C9905A' },
-  '句式优化': { bg: '#EEF5F8', color: '#5A8EA0' },
-  '时态修正': { bg: '#EEF7F3', color: '#5A9E8A' },
-}
 
 export default function FeedbackPage() {
   const router = useRouter()
@@ -77,10 +70,13 @@ export default function FeedbackPage() {
               </span>
             </div>
 
-            <div className="surface px-3.5 py-3 mb-4">
-              <p className="text-[14px] text-[#555] leading-relaxed">
-                I went to park yesterday, very happy.
-              </p>
+            <div className="flex overflow-hidden rounded-[10px] mb-4" style={{ backgroundColor: '#ECEAE6' }}>
+              <div className="w-[3px] flex-shrink-0 self-stretch" style={{ backgroundColor: '#D4875A' }} />
+              <div className="flex-1 px-4 py-3">
+                <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6 }}>
+                  I went to park yesterday, very happy.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
@@ -100,22 +96,6 @@ export default function FeedbackPage() {
                   I visited a local park yesterday, which left me feeling genuinely refreshed.
                 </p>
               </div>
-            </div>
-
-            {/* 优化标签：各自彩色底色 */}
-            <div className="flex gap-1.5 flex-wrap mb-4">
-              {TAGS.map(tag => {
-                const style = TAG_STYLES[tag] ?? { bg: '#F4F4F4', color: '#888' }
-                return (
-                  <span
-                    key={tag}
-                    className="text-[11px] px-2.5 py-1 rounded-full font-medium"
-                    style={{ backgroundColor: style.bg, color: style.color }}
-                  >
-                    {tag}
-                  </span>
-                )
-              })}
             </div>
 
             {/* 播放按钮：渐变描边 */}

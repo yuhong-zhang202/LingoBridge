@@ -121,7 +121,7 @@ const GRADIENT_BORDER_STYLE = {
 // ── 子组件：我的素材 Tab ──
 
 function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(MY_STORIES[0]?.id ?? null)
 
   if (MY_STORIES.length === 0) {
     return (
@@ -245,6 +245,9 @@ function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
 
 function QuestionBankTab({ router }: { router: ReturnType<typeof useRouter> }) {
   const [openParts, setOpenParts] = useState<string[]>(['Part 1'])
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
+    QUESTIONS_BY_PART['Part 1'][0]?.id ?? null
+  )
 
   const togglePart = (part: string) => {
     setOpenParts(prev =>
@@ -311,73 +314,87 @@ function QuestionBankTab({ router }: { router: ReturnType<typeof useRouter> }) {
             {/* 题目列表 */}
             {isOpen && (
               <div className="px-6 flex flex-col gap-2 pb-3 animate-fade-up">
-                {questions.map(q => (
-                  <div
-                    key={q.id}
-                    className={`
-                      bg-white rounded-[16px] p-4
-                      border border-black/[0.05]
-                      shadow-[0_1px_6px_rgba(0,0,0,0.04)]
-                      border-l-[3px]
-                      ${q.hasStory
-                        ? 'border-l-[rgba(168,210,196,0.70)]'
-                        : 'border-l-transparent'
-                      }
-                    `}
-                  >
-                    {/* 有无素材指示 */}
-                    <div className="flex items-center gap-1.5 mb-2">
-                      {q.hasStory ? (
-                        <>
-                          <CheckCircle size={12} className="text-[#7BA699]" />
-                          <span className="text-[11px] text-[#7BA699] font-medium">
-                            已有素材
-                          </span>
-                          {q.storyTitle && (
-                            <span className="text-[11px] text-[#AAAAAA]">
-                              · {q.storyTitle}
-                            </span>
+                {questions.map(q => {
+                  const isTopicSelected = selectedTopicId === q.id
+                  return (
+                    <div
+                      key={q.id}
+                      onClick={() => setSelectedTopicId(isTopicSelected ? null : q.id)}
+                      className="bg-white rounded-[16px] overflow-hidden border border-black/[0.05] flex cursor-pointer transition-shadow duration-200"
+                      style={{
+                        boxShadow: isTopicSelected
+                          ? '0 2px 16px rgba(212,135,90,0.12)'
+                          : '0 1px 6px rgba(0,0,0,0.04)',
+                      }}
+                    >
+                      {/* 左侧竖条：选中渐变，未选中透明 */}
+                      <div className="w-[4px] flex-shrink-0 self-stretch">
+                        {isTopicSelected ? (
+                          <div
+                            className="w-full h-full"
+                            style={{ background: 'linear-gradient(to bottom, rgba(212,135,90,0.45), rgba(119,166,153,0.45))' }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-transparent" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 p-4">
+                        {/* 有无素材指示 */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          {q.hasStory ? (
+                            <>
+                              <CheckCircle size={12} className="text-[#7BA699]" />
+                              <span className="text-[11px] text-[#7BA699] font-medium">
+                                已有素材
+                              </span>
+                              {q.storyTitle && (
+                                <span className="text-[11px] text-[#AAAAAA]">
+                                  · {q.storyTitle}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <Circle size={12} className="text-[#CCCCCC]" />
+                              <span className="text-[11px] text-[#CCCCCC]">
+                                暂无素材
+                              </span>
+                            </>
                           )}
-                        </>
-                      ) : (
-                        <>
-                          <Circle size={12} className="text-[#CCCCCC]" />
-                          <span className="text-[11px] text-[#CCCCCC]">
-                            暂无素材
-                          </span>
-                        </>
-                      )}
+                        </div>
+
+                        {/* 题目正文 */}
+                        <p className="text-[14px] font-bold text-[#111] leading-snug mb-1">
+                          {q.en}
+                        </p>
+                        <p className="text-[12px] text-[#AAAAAA] mb-3">
+                          {q.zh}
+                        </p>
+
+                        {/* 操作 */}
+                        {q.hasStory ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push('/practice') }}
+                            className="h-[34px] px-4 rounded-full text-[12px] font-semibold text-[#444] flex items-center gap-1"
+                            style={GRADIENT_BORDER_STYLE}
+                          >
+                            用素材练习
+                            <ChevronRight size={12} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push('/recording') }}
+                            className="h-[34px] px-4 rounded-full border border-black/[0.10] text-[12px] font-medium text-[#888] flex items-center gap-1"
+                          >
+                            <Plus size={12} />
+                            去录一个素材
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                    {/* 题目正文 */}
-                    <p className="text-[14px] font-bold text-[#111] leading-snug mb-1">
-                      {q.en}
-                    </p>
-                    <p className="text-[12px] text-[#AAAAAA] mb-3">
-                      {q.zh}
-                    </p>
-
-                    {/* 操作 */}
-                    {q.hasStory ? (
-                      <button
-                        onClick={() => router.push('/practice')}
-                        className="h-[34px] px-4 rounded-full text-[12px] font-semibold text-[#444] flex items-center gap-1"
-                        style={GRADIENT_BORDER_STYLE}
-                      >
-                        用素材练习
-                        <ChevronRight size={12} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => router.push('/recording')}
-                        className="h-[34px] px-4 rounded-full border border-black/[0.10] text-[12px] font-medium text-[#888] flex items-center gap-1"
-                      >
-                        <Plus size={12} />
-                        去录一个素材
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -448,9 +465,9 @@ export default function LibraryPage() {
           </div>
           <div className="flex-1" style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))', borderRadius: 16, padding: 1.5 }}>
             <div className="bg-white rounded-[14px] p-3.5">
-              <p className="text-[24px] font-bold" style={{ color: '#7BA699' }}>9</p>
+              <p className="text-[24px] font-bold" style={{ color: '#7BA699' }}>{totalWithStory}</p>
               <p className="text-[11px] text-[#AAAAAA] mt-0.5">
-                道题已练习
+                已覆盖题目
               </p>
             </div>
           </div>

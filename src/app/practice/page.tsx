@@ -162,19 +162,29 @@ export default function PracticePage() {
         <>
           {/* 背景遮罩 */}
           <div
-            className="fixed inset-0 z-40"
-            style={{ backgroundColor: 'rgba(0,0,0,0.30)' }}
+            style={{
+              position: 'fixed',
+              top: 0, right: 0, bottom: 0, left: 0,
+              backgroundColor: 'rgba(0,0,0,0.30)',
+              zIndex: 40,
+            }}
           />
 
           {/* 半圆底栏 */}
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 sheet-enter"
+            className="sheet-enter"
             style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              width: '100%',
               height: 320,
               background: '#FFFFFF',
               borderTopLeftRadius: '50% 60px',
               borderTopRightRadius: '50% 60px',
               paddingTop: 32,
+              zIndex: 50,
             }}
           >
             {/* 录音波形 */}
