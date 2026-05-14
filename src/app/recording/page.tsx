@@ -1,21 +1,59 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
-import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'
 
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
+  const [audioLevel, setAudioLevel] = useState(0)
+  const animFrameRef = useRef<number>()
+  const analyserRef = useRef<AnalyserNode>()
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
+  useEffect(() => {
+    let stream: MediaStream
+
+    const startAudioAnalysis = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const audioCtx = new AudioContext()
+        const source = audioCtx.createMediaStreamSource(stream)
+        const analyser = audioCtx.createAnalyser()
+        analyser.fftSize = 256
+        source.connect(analyser)
+        analyserRef.current = analyser
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount)
+        const tick = () => {
+          analyser.getByteFrequencyData(dataArray)
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
+          setAudioLevel(avg / 255)
+          animFrameRef.current = requestAnimationFrame(tick)
+        }
+        tick()
+      } catch {
+        // mic not available — fall back to static glow
+      }
+    }
+
+    startAudioAnalysis()
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      stream?.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
+  const glowScale = 1 + audioLevel * 0.25
+  const glowOpacity = 0.7 + audioLevel * 0.3
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -37,7 +75,33 @@ export default function RecordingPage() {
 
       {/* 中心内容 */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
-        <Orb size={250} pulse />
+
+        {/* 动态音量光晕球 */}
+        <div className="relative flex items-center justify-center" style={{ width: 250, height: 250 }}>
+          {/* 外层光晕 — 随音量缩放 */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 250,
+              height: 250,
+              background: 'radial-gradient(circle, rgba(200,221,217,0.55) 0%, rgba(232,201,168,0.35) 45%, transparent 72%)',
+              filter: 'blur(28px)',
+              transform: `scale(${glowScale})`,
+              opacity: glowOpacity,
+              transition: 'transform 75ms linear, opacity 75ms linear',
+            }}
+          />
+          {/* 核心球 — 固定大小，渐变色 */}
+          <div
+            className="relative rounded-full z-10"
+            style={{
+              width: 160,
+              height: 160,
+              background: 'radial-gradient(circle at 38% 38%, rgba(200,221,217,0.90) 0%, rgba(232,201,168,0.70) 55%, rgba(188,210,168,0.50) 100%)',
+              boxShadow: '0 8px 32px rgba(200,221,217,0.30)',
+            }}
+          />
+        </div>
 
         <div className="flex flex-col items-center gap-2.5">
           <Waveform active />
@@ -79,7 +143,6 @@ export default function RecordingPage() {
           </button>
         </div>
 
-        {/* 完成录音按钮 */}
         <button
           onClick={() => router.push('/article')}
           className="w-full h-[56px] border border-[#D4875A] rounded-[50px] flex items-center justify-center gap-2 text-[#D4875A] text-[17px] font-medium active:opacity-75 transition-opacity"

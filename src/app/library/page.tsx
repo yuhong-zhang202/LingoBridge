@@ -154,8 +154,16 @@ function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
       {MY_STORIES.map(story => (
         <div
           key={story.id}
-          className="bg-white rounded-[18px] p-4 border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.05)]"
+          className="bg-white rounded-[18px] overflow-hidden flex border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.05)]"
         >
+          {/* 左侧 Band 竖色条 */}
+          <div className={`w-[4px] flex-shrink-0 ${
+            story.band === '6.0' ? 'bg-[#7BA699]' :
+            story.band === '6.5' ? 'bg-[#D4875A]' :
+            story.band === '7.0' ? 'bg-[#6B9EC7]' :
+            'bg-[#C9A84C]'
+          }`} />
+          <div className="flex-1 p-4">
           {/* 头部行 */}
           <div className="flex items-start justify-between mb-2">
             <p className="text-[15px] font-semibold text-[#111]">
@@ -197,6 +205,7 @@ function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
               开始练习
               <ChevronRight size={12} />
             </button>
+          </div>
           </div>
         </div>
       ))}
@@ -415,17 +424,9 @@ export default function LibraryPage() {
             </p>
           </div>
           <div className="flex-1 bg-white rounded-[14px] p-3.5 border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
-            <p className="text-[24px] font-bold text-[#111]">
-              {totalWithStory}
-              <span className="text-[13px] font-normal text-[#AAAAAA] ml-1">
-                / {Object.values(QUESTIONS_BY_PART).flat().length}
-              </span>
-            </p>
+            <p className="text-[24px] font-bold text-[#111]">9</p>
             <p className="text-[11px] text-[#AAAAAA] mt-0.5">
-              当季真题已备
-            </p>
-            <p className="text-[10px] text-[#BBBBBB] mt-0.5">
-              基于 2026 年 1-4 月当季题目
+              道题已练习
             </p>
           </div>
         </div>

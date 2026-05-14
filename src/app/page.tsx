@@ -1,4 +1,6 @@
 'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Mic2 } from 'lucide-react'
 import Orb from '@/components/Orb'
@@ -6,6 +8,10 @@ import Waveform from '@/components/Waveform'
 import TabBar from '@/components/TabBar'
 
 export default function HomePage() {
+  const router = useRouter()
+  const [showTextInput, setShowTextInput] = useState(false)
+  const [textStory, setTextStory] = useState('')
+
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
       <div className="ambient-light" />
@@ -53,19 +59,42 @@ export default function HomePage() {
             </button>
           </Link>
 
-          {/* 文字链接 */}
-          <Link href="/article">
-            <p className="text-center text-[13px] text-[#AAAAAA] mt-4 cursor-pointer">
-              或用文字输入
-            </p>
-          </Link>
+          {/* 文字输入入口 */}
+          <button
+            onClick={() => setShowTextInput(!showTextInput)}
+            className="w-full text-center text-[13px] text-[#AAAAAA] mt-4 cursor-pointer"
+          >
+            或用文字输入
+          </button>
 
-          {/* Dev: v2 对比入口 */}
-          <Link href="/v2">
-            <p className="text-center text-[11px] text-[#CCCCCC] mt-8 cursor-pointer border border-dashed border-[#E5E5E5] rounded-full px-4 py-1.5">
-              ✦ 体验 v2.0 新版设计
-            </p>
-          </Link>
+          {/* 展开的文本输入框 */}
+          {showTextInput && (
+            <div className="w-full mt-4 animate-fade-up">
+              <textarea
+                value={textStory}
+                onChange={e => setTextStory(e.target.value)}
+                placeholder="用中文写下你的故事，比如：今天去了附近的公园，空气很好，心情也轻松了很多..."
+                className="w-full min-h-[120px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-[#D4875A] transition-colors"
+                autoFocus
+              />
+              <div className="flex justify-between items-center mt-2 px-1">
+                <span className="text-[12px] text-[#CCCCCC]">
+                  {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上，越具体越好'}
+                </span>
+                <button
+                  disabled={textStory.trim().length < 10}
+                  onClick={() => router.push('/article')}
+                  className={`px-5 py-2 rounded-[50px] text-[14px] font-medium transition-all duration-200 ${
+                    textStory.trim().length >= 10
+                      ? 'bg-[#D4875A] text-white'
+                      : 'bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
+                  }`}
+                >
+                  开始生成 →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

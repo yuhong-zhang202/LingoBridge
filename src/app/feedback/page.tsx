@@ -8,6 +8,7 @@ import { StepBar } from '@/components/StepBar'
 const TOTAL = 8
 const CURRENT = 3
 const TAGS = ['词汇升级', '句式优化', '时态修正']
+const userName = 'YZ'
 
 const GRADIENT_BORDER_STYLE = {
   background: [
@@ -63,7 +64,7 @@ export default function FeedbackPage() {
 
             <div className="flex items-center justify-between mb-4">
               <span className="text-[11px] font-medium text-[#AAAAAA] bg-[#F4F4F4] px-3 py-1 rounded-full">
-                你说的
+                {userName || '你说的'}
               </span>
               <button className="w-[30px] h-[30px] rounded-full bg-[#F4F4F4] flex items-center justify-center">
                 <Volume2 size={13} className="text-[#AAAAAA]" />

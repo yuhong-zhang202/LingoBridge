@@ -215,16 +215,7 @@ export default function ArticlePage() {
               开始练习 →
             </button>
 
-            {/* 层级2：次操作 - 换个等级 */}
-            <button
-              onClick={() => setBandOpen(true)}
-              className="w-full flex items-center justify-center gap-1.5 text-[13px] text-[#888888] mt-3 py-1"
-            >
-              <ChevronUp size={13} className="text-[#AAAAAA]" />
-              换个等级
-            </button>
-
-            {/* 层级3：弱操作 - 重新生成 */}
+            {/* 层级2：弱操作 - 重新生成 */}
             <button className="w-full text-center text-[12px] text-[#CCCCCC] mt-1 py-1">
               重新生成
             </button>
