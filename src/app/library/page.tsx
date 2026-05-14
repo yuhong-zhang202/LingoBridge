@@ -279,7 +279,7 @@ function QuestionBankTab({ router }: { router: ReturnType<typeof useRouter> }) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[rgba(168,210,196,0.15)] text-[#5A8A7B]">
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#F4F4F4] text-[#888]">
                   {partCounts[part]} 题
                 </span>
                 <ChevronDown
@@ -310,8 +310,8 @@ function QuestionBankTab({ router }: { router: ReturnType<typeof useRouter> }) {
                     <div className="flex items-center gap-1.5 mb-2">
                       {q.hasStory ? (
                         <>
-                          <CheckCircle size={12} className="text-[#5BA08A]" />
-                          <span className="text-[11px] text-[#5BA08A] font-medium">
+                          <CheckCircle size={12} className="text-[#7BA699]" />
+                          <span className="text-[11px] text-[#7BA699] font-medium">
                             已有素材
                           </span>
                           {q.storyTitle && (

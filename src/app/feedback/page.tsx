@@ -39,7 +39,7 @@ export default function FeedbackPage() {
       <div className="relative z-10">
         <div className="h-[2px] bg-[#EEEEEE]">
           <div
-            className="h-full bg-[#AAAAAA] rounded-sm transition-all duration-500"
+            className="h-full bg-[#D4875A] rounded-sm transition-all duration-500"
             style={{ width: `${(CURRENT / TOTAL) * 100}%` }}
           />
         </div>
@@ -51,7 +51,7 @@ export default function FeedbackPage() {
         <div className="relative mb-5">
           {/* 背景装饰卡 */}
           <div
-            className="absolute inset-0 bg-white rounded-[28px] shadow-sm"
+            className="absolute inset-0 bg-white rounded-[20px] shadow-sm"
             style={{
               transform: 'rotate(2.5deg) scale(0.96) translateY(8px)',
               opacity: 0.5,
@@ -60,7 +60,7 @@ export default function FeedbackPage() {
           />
 
           {/* 主卡片 */}
-          <div className="relative bg-white rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.08)] p-[22px] z-10 border border-black/[0.04]">
+          <div className="relative bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-[22px] z-10 border border-black/[0.05]">
 
             <div className="flex items-center mb-4">
               <span className="text-[11px] font-medium text-[#AAAAAA] bg-[#F4F4F4] px-3 py-1 rounded-full">
