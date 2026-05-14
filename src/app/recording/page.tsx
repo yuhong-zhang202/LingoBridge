@@ -4,12 +4,46 @@ import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 
+const PARTICLES: { angle: number; baseDist: number; size: number; color: string }[] = [
+  { angle: 0,   baseDist: 118, size: 8,  color: '#D4875A' },
+  { angle: 12,  baseDist: 122, size: 5,  color: '#7BA699' },
+  { angle: 25,  baseDist: 115, size: 10, color: '#E8C9A8' },
+  { angle: 38,  baseDist: 120, size: 6,  color: '#D4875A' },
+  { angle: 50,  baseDist: 118, size: 4,  color: '#A8C8C0' },
+  { angle: 62,  baseDist: 124, size: 9,  color: '#7BA699' },
+  { angle: 75,  baseDist: 116, size: 5,  color: '#D4875A' },
+  { angle: 88,  baseDist: 120, size: 12, color: '#E8C9A8' },
+  { angle: 100, baseDist: 118, size: 6,  color: '#7BA699' },
+  { angle: 112, baseDist: 115, size: 4,  color: '#D4875A' },
+  { angle: 124, baseDist: 122, size: 8,  color: '#A8C8C0' },
+  { angle: 136, baseDist: 118, size: 5,  color: '#E8C9A8' },
+  { angle: 148, baseDist: 120, size: 10, color: '#7BA699' },
+  { angle: 160, baseDist: 116, size: 6,  color: '#D4875A' },
+  { angle: 172, baseDist: 124, size: 4,  color: '#A8C8C0' },
+  { angle: 184, baseDist: 118, size: 9,  color: '#7BA699' },
+  { angle: 196, baseDist: 120, size: 5,  color: '#D4875A' },
+  { angle: 208, baseDist: 115, size: 7,  color: '#E8C9A8' },
+  { angle: 220, baseDist: 122, size: 4,  color: '#7BA699' },
+  { angle: 232, baseDist: 118, size: 11, color: '#D4875A' },
+  { angle: 244, baseDist: 120, size: 6,  color: '#A8C8C0' },
+  { angle: 256, baseDist: 116, size: 5,  color: '#E8C9A8' },
+  { angle: 268, baseDist: 124, size: 8,  color: '#7BA699' },
+  { angle: 280, baseDist: 118, size: 4,  color: '#D4875A' },
+  { angle: 292, baseDist: 120, size: 10, color: '#A8C8C0' },
+  { angle: 304, baseDist: 115, size: 6,  color: '#7BA699' },
+  { angle: 316, baseDist: 122, size: 5,  color: '#D4875A' },
+  { angle: 328, baseDist: 118, size: 9,  color: '#E8C9A8' },
+  { angle: 340, baseDist: 120, size: 4,  color: '#7BA699' },
+  { angle: 352, baseDist: 116, size: 7,  color: '#D4875A' },
+]
+
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
   const [audioLevel, setAudioLevel] = useState(0)
+  const [orbRotation, setOrbRotation] = useState(0)
   const animFrameRef = useRef<number>()
-  const analyserRef = useRef<AnalyserNode>()
+  const rotationRef = useRef(0)
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
@@ -17,9 +51,9 @@ export default function RecordingPage() {
   }, [])
 
   useEffect(() => {
-    let stream: MediaStream
+    let stream: MediaStream | null = null
 
-    const startAudioAnalysis = async () => {
+    const startAnalysis = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         const audioCtx = new AudioContext()
@@ -27,22 +61,29 @@ export default function RecordingPage() {
         const analyser = audioCtx.createAnalyser()
         analyser.fftSize = 256
         source.connect(analyser)
-        analyserRef.current = analyser
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount)
         const tick = () => {
           analyser.getByteFrequencyData(dataArray)
           const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length
           setAudioLevel(avg / 255)
+          rotationRef.current += 0.3 + (avg / 255) * 0.8
+          setOrbRotation(rotationRef.current)
           animFrameRef.current = requestAnimationFrame(tick)
         }
         tick()
       } catch {
-        // mic not available — fall back to static glow
+        // no mic — rotation only
+        const tick = () => {
+          rotationRef.current += 0.3
+          setOrbRotation(rotationRef.current)
+          animFrameRef.current = requestAnimationFrame(tick)
+        }
+        tick()
       }
     }
 
-    startAudioAnalysis()
+    startAnalysis()
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
       stream?.getTracks().forEach(t => t.stop())
@@ -52,8 +93,9 @@ export default function RecordingPage() {
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
-  const glowScale = 1 + audioLevel * 0.25
-  const glowOpacity = 0.7 + audioLevel * 0.3
+  const ORB_BASE = 160
+  const orbSize = ORB_BASE + audioLevel * 24
+  const particleExpand = audioLevel * 12
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -67,71 +109,89 @@ export default function RecordingPage() {
         >
           <X size={14} className="text-[#333]" />
         </button>
-        <span className="text-[15px] font-semibold text-[#111]">
-          正在录音
-        </span>
+        <span className="text-[15px] font-semibold text-[#111]">正在录音</span>
         <div className="w-[30px]" />
       </div>
 
       {/* 中心内容 */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
 
-        {/* 动态音量光球 + 环绕小圆点 */}
-        <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
-          {/* 外围环绕小圆点 */}
-          {([
-            { angle: 0,   dist: 105, size: 8,  color: '#D4875A' },
-            { angle: 20,  dist: 110, size: 6,  color: '#7BA699' },
-            { angle: 40,  dist: 108, size: 10, color: '#E8C9A8' },
-            { angle: 60,  dist: 105, size: 7,  color: '#7BA699' },
-            { angle: 80,  dist: 112, size: 5,  color: '#D4875A' },
-            { angle: 100, dist: 108, size: 9,  color: '#C8DDD9' },
-            { angle: 120, dist: 105, size: 6,  color: '#D4875A' },
-            { angle: 140, dist: 110, size: 8,  color: '#7BA699' },
-            { angle: 160, dist: 107, size: 5,  color: '#E8C9A8' },
-            { angle: 180, dist: 105, size: 10, color: '#D4875A' },
-            { angle: 200, dist: 112, size: 6,  color: '#7BA699' },
-            { angle: 220, dist: 108, size: 8,  color: '#C8DDD9' },
-            { angle: 240, dist: 105, size: 5,  color: '#D4875A' },
-            { angle: 260, dist: 110, size: 9,  color: '#7BA699' },
-            { angle: 280, dist: 107, size: 6,  color: '#E8C9A8' },
-            { angle: 300, dist: 105, size: 8,  color: '#D4875A' },
-            { angle: 320, dist: 112, size: 5,  color: '#7BA699' },
-            { angle: 340, dist: 108, size: 7,  color: '#C8DDD9' },
-          ] as { angle: number; dist: number; size: number; color: string }[]).map((dot, i) => {
-            const rad = (dot.angle * Math.PI) / 180
-            const x = 110 + dot.dist * Math.cos(rad) - dot.size / 2
-            const y = 110 + dot.dist * Math.sin(rad) - dot.size / 2
+        {/* 光球 + 粒子环 */}
+        <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
+
+          {/* 外围粒子 */}
+          {PARTICLES.map((p, i) => {
+            const rad = ((p.angle - 90) * Math.PI) / 180
+            const dist = p.baseDist + particleExpand
+            const cx = 130 + dist * Math.cos(rad)
+            const cy = 130 + dist * Math.sin(rad)
             return (
               <div
                 key={i}
                 className="absolute rounded-full"
-                style={{ width: dot.size, height: dot.size, backgroundColor: dot.color, left: x, top: y, opacity: 0.7 }}
+                style={{
+                  width: p.size,
+                  height: p.size,
+                  backgroundColor: p.color,
+                  left: cx - p.size / 2,
+                  top: cy - p.size / 2,
+                  opacity: 0.75 + audioLevel * 0.25,
+                  transform: `scale(${1 + audioLevel * 0.3})`,
+                  transition: 'transform 0.1s ease, opacity 0.1s ease',
+                }}
               />
             )
           })}
 
-          {/* 中央实体光球（随音量 scale 波动） */}
+          {/* 中央 conic-gradient 光球 */}
           <div
             style={{
-              width: 160,
-              height: 160,
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: orbSize,
+              height: orbSize,
               borderRadius: '50%',
-              background: 'radial-gradient(circle at 40% 35%, #E8C9A8 0%, #C8DDD9 40%, #7BA699 70%, #D4875A 100%)',
-              transform: `scale(${1 + audioLevel * 0.2})`,
-              opacity: 0.85 + audioLevel * 0.15,
-              boxShadow: `0 0 ${30 + audioLevel * 30}px rgba(212,135,90,${0.15 + audioLevel * 0.2})`,
-              filter: 'blur(2px)',
-              transition: 'transform 75ms linear, opacity 75ms linear, box-shadow 75ms linear',
+              background: `conic-gradient(
+                from ${orbRotation}deg,
+                #7BA699 0deg,
+                #C8DDD9 60deg,
+                #E8C9A8 120deg,
+                #D4875A 180deg,
+                #E8C9A8 240deg,
+                #A8C8C0 300deg,
+                #7BA699 360deg
+              )`,
+              filter: 'blur(18px)',
+              opacity: 0.88 + audioLevel * 0.12,
+              boxShadow: `0 0 ${40 + audioLevel * 30}px rgba(123,166,153,${0.2 + audioLevel * 0.25})`,
+              transition: 'width 0.08s ease, height 0.08s ease, opacity 0.08s ease',
+            }}
+          />
+
+          {/* 内层中心高亮 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '45%',
+              transform: 'translate(-50%, -50%)',
+              width: orbSize * 0.45,
+              height: orbSize * 0.45,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(240,220,200,0.9) 0%, transparent 70%)',
+              filter: 'blur(8px)',
+              opacity: 0.6 + audioLevel * 0.3,
+              pointerEvents: 'none',
+              transition: 'opacity 0.08s ease',
             }}
           />
         </div>
 
         <div className="flex flex-col items-center gap-2.5">
           <Waveform active />
-          <span className="text-[13px] text-[#888] italic">
-            listening...
-          </span>
+          <span className="text-[13px] text-[#888] italic">listening...</span>
         </div>
 
         {/* 实时转写预览 */}
@@ -147,7 +207,7 @@ export default function RecordingPage() {
         </span>
 
         {/* 引导提示 */}
-        <p className="text-[12px] text-[#CCCCCC] text-center mt-2 px-8 leading-relaxed">
+        <p className="text-[12px] text-[#CCCCCC] text-center px-8 leading-relaxed">
           建议说 30–60 秒，说得越具体效果越好 ✨
         </p>
       </div>
