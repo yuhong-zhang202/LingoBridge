@@ -39,7 +39,11 @@ const GRADIENT_BORDER_STYLE = {
 
 export default function MatchingPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('全部')
+  const [activeTab, setActiveTab] = useState<'全部' | 'Part 1' | 'Part 2' | 'Part 3'>('全部')
+
+  const filteredQuestions = QUESTIONS.filter(q =>
+    activeTab === '全部' ? true : q.part === activeTab
+  )
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
@@ -74,7 +78,7 @@ export default function MatchingPage() {
             return (
               <button
                 key={p}
-                onClick={() => setActiveTab(p)}
+                onClick={() => setActiveTab(p as typeof activeTab)}
                 className="px-3.5 py-[5px] rounded-full text-[12px] font-medium transition-all duration-150"
                 style={active ? GRADIENT_BORDER_STYLE : {
                   background: 'transparent',
@@ -90,7 +94,7 @@ export default function MatchingPage() {
 
         {/* 题目卡片 */}
         <div className="flex flex-col gap-3 mb-6">
-          {QUESTIONS.map((item, i) => (
+          {filteredQuestions.map((item, i) => (
             <div key={i} className="card overflow-hidden flex">
               {/* 左侧 Part 竖色条 */}
               <div className={`w-[4px] flex-shrink-0 ${

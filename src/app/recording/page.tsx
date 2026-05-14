@@ -76,29 +76,53 @@ export default function RecordingPage() {
       {/* 中心内容 */}
       <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
 
-        {/* 动态音量光晕球 */}
-        <div className="relative flex items-center justify-center" style={{ width: 250, height: 250 }}>
-          {/* 外层光晕 — 随音量缩放 */}
+        {/* 动态音量光球 + 环绕小圆点 */}
+        <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+          {/* 外围环绕小圆点 */}
+          {([
+            { angle: 0,   dist: 105, size: 8,  color: '#D4875A' },
+            { angle: 20,  dist: 110, size: 6,  color: '#7BA699' },
+            { angle: 40,  dist: 108, size: 10, color: '#E8C9A8' },
+            { angle: 60,  dist: 105, size: 7,  color: '#7BA699' },
+            { angle: 80,  dist: 112, size: 5,  color: '#D4875A' },
+            { angle: 100, dist: 108, size: 9,  color: '#C8DDD9' },
+            { angle: 120, dist: 105, size: 6,  color: '#D4875A' },
+            { angle: 140, dist: 110, size: 8,  color: '#7BA699' },
+            { angle: 160, dist: 107, size: 5,  color: '#E8C9A8' },
+            { angle: 180, dist: 105, size: 10, color: '#D4875A' },
+            { angle: 200, dist: 112, size: 6,  color: '#7BA699' },
+            { angle: 220, dist: 108, size: 8,  color: '#C8DDD9' },
+            { angle: 240, dist: 105, size: 5,  color: '#D4875A' },
+            { angle: 260, dist: 110, size: 9,  color: '#7BA699' },
+            { angle: 280, dist: 107, size: 6,  color: '#E8C9A8' },
+            { angle: 300, dist: 105, size: 8,  color: '#D4875A' },
+            { angle: 320, dist: 112, size: 5,  color: '#7BA699' },
+            { angle: 340, dist: 108, size: 7,  color: '#C8DDD9' },
+          ] as { angle: number; dist: number; size: number; color: string }[]).map((dot, i) => {
+            const rad = (dot.angle * Math.PI) / 180
+            const x = 110 + dot.dist * Math.cos(rad) - dot.size / 2
+            const y = 110 + dot.dist * Math.sin(rad) - dot.size / 2
+            return (
+              <div
+                key={i}
+                className="absolute rounded-full"
+                style={{ width: dot.size, height: dot.size, backgroundColor: dot.color, left: x, top: y, opacity: 0.7 }}
+              />
+            )
+          })}
+
+          {/* 中央实体光球（随音量 scale 波动） */}
           <div
-            className="absolute rounded-full"
-            style={{
-              width: 250,
-              height: 250,
-              background: 'radial-gradient(circle, rgba(200,221,217,0.55) 0%, rgba(232,201,168,0.35) 45%, transparent 72%)',
-              filter: 'blur(28px)',
-              transform: `scale(${glowScale})`,
-              opacity: glowOpacity,
-              transition: 'transform 75ms linear, opacity 75ms linear',
-            }}
-          />
-          {/* 核心球 — 固定大小，渐变色 */}
-          <div
-            className="relative rounded-full z-10"
             style={{
               width: 160,
               height: 160,
-              background: 'radial-gradient(circle at 38% 38%, rgba(200,221,217,0.90) 0%, rgba(232,201,168,0.70) 55%, rgba(188,210,168,0.50) 100%)',
-              boxShadow: '0 8px 32px rgba(200,221,217,0.30)',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle at 40% 35%, #E8C9A8 0%, #C8DDD9 40%, #7BA699 70%, #D4875A 100%)',
+              transform: `scale(${1 + audioLevel * 0.2})`,
+              opacity: 0.85 + audioLevel * 0.15,
+              boxShadow: `0 0 ${30 + audioLevel * 30}px rgba(212,135,90,${0.15 + audioLevel * 0.2})`,
+              filter: 'blur(2px)',
+              transition: 'transform 75ms linear, opacity 75ms linear, box-shadow 75ms linear',
             }}
           />
         </div>

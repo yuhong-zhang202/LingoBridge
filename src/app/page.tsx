@@ -51,25 +51,28 @@ export default function HomePage() {
         {/* 操作区 */}
         <div className="w-full mt-9">
 
-          {/* 主按钮：开始录音 */}
-          <Link href="/recording" className="block">
-            <button className="btn-gradient w-full h-[50px]">
-              <Mic2 size={16} className="text-[#555]" />
-              开始录音
-            </button>
-          </Link>
+          {!showTextInput && (
+            <>
+              {/* 主按钮：开始录音 */}
+              <Link href="/recording" className="block">
+                <button className="btn-gradient w-full h-[50px]">
+                  <Mic2 size={16} className="text-[#555]" />
+                  开始录音
+                </button>
+              </Link>
 
-          {/* 文字输入入口 */}
-          <button
-            onClick={() => setShowTextInput(!showTextInput)}
-            className="w-full text-center text-[13px] text-[#AAAAAA] mt-4 cursor-pointer"
-          >
-            或用文字输入
-          </button>
+              {/* 文字输入入口 */}
+              <button
+                onClick={() => setShowTextInput(true)}
+                className="w-full text-center text-[13px] text-[#AAAAAA] mt-4 cursor-pointer"
+              >
+                或用文字输入
+              </button>
+            </>
+          )}
 
-          {/* 展开的文本输入框 */}
           {showTextInput && (
-            <div className="w-full mt-4 animate-fade-up">
+            <div className="w-full animate-fade-up">
               <textarea
                 value={textStory}
                 onChange={e => setTextStory(e.target.value)}
@@ -93,6 +96,12 @@ export default function HomePage() {
                   开始生成 →
                 </button>
               </div>
+              <button
+                onClick={() => setShowTextInput(false)}
+                className="mt-3 text-[13px] text-[#AAAAAA] flex items-center gap-1 mx-auto"
+              >
+                ← 改用录音
+              </button>
             </div>
           )}
         </div>

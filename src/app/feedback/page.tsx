@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Volume2, X, Heart } from 'lucide-react'
+import { X, Heart } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 
@@ -62,13 +62,10 @@ export default function FeedbackPage() {
           {/* 主卡片 */}
           <div className="relative bg-white rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.08)] p-[22px] z-10 border border-black/[0.04]">
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center mb-4">
               <span className="text-[11px] font-medium text-[#AAAAAA] bg-[#F4F4F4] px-3 py-1 rounded-full">
                 {userName || '你说的'}
               </span>
-              <button className="w-[30px] h-[30px] rounded-full bg-[#F4F4F4] flex items-center justify-center">
-                <Volume2 size={13} className="text-[#AAAAAA]" />
-              </button>
             </div>
 
             <div className="surface px-3.5 py-3 mb-4">
