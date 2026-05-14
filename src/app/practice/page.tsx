@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -15,6 +15,8 @@ export default function PracticePage() {
   const router = useRouter()
   const [hintOpen, setHintOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isLongPressing, setIsLongPressing] = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const total = QUESTIONS.length
   const current = QUESTIONS[currentIndex]
@@ -29,6 +31,17 @@ export default function PracticePage() {
   }
 
   const handleEnd = () => router.push('/feedback')
+
+  const handlePressStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressing(true)
+      if (navigator.vibrate) navigator.vibrate(30)
+    }, 300)
+  }
+
+  const handlePressEnd = () => {
+    clearTimeout(longPressTimer.current)
+  }
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -70,7 +83,8 @@ export default function PracticePage() {
           <div className="w-8 h-8 rounded-full bg-[#E8C9A8] flex items-center justify-center flex-shrink-0 text-[13px] font-semibold text-[#D4875A]">
             你
           </div>
-          <div className="surface rounded-[16px] rounded-tr-[4px] px-4 py-3">
+          {/* 修改一：#E8D5C0 暖米橙色气泡 */}
+          <div className="rounded-[16px] rounded-tr-[4px] px-4 py-3" style={{ backgroundColor: '#E8D5C0' }}>
             <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
               I remember I went to a park last weekend...
             </p>
@@ -119,9 +133,15 @@ export default function PracticePage() {
           重录
         </button>
 
+        {/* 修改二：长按触发底栏 */}
         <button
           className="btn-gradient-circle"
           style={{ width: 56, height: 56 }}
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
         >
           <Mic2 size={20} className="text-[#333]" />
         </button>
@@ -136,6 +156,114 @@ export default function PracticePage() {
           <span className="text-[10px] text-[#CCCCCC]">{currentIndex + 1} / {total}</span>
         </button>
       </div>
+
+      {/* 长按录音底栏 */}
+      {isLongPressing && (
+        <>
+          {/* 背景遮罩 */}
+          <div
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: 'rgba(0,0,0,0.30)' }}
+          />
+
+          {/* 半圆底栏 */}
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 sheet-enter"
+            style={{
+              height: 320,
+              background: '#FFFFFF',
+              borderTopLeftRadius: '50% 60px',
+              borderTopRightRadius: '50% 60px',
+              paddingTop: 32,
+            }}
+          >
+            {/* 录音波形 */}
+            <div className="flex items-center justify-center gap-[5px] mb-2">
+              {[4, 8, 14, 20, 28, 20, 14, 8, 4].map((h, i) => (
+                <div
+                  key={i}
+                  className="rounded-full animate-pulse"
+                  style={{
+                    width: 5,
+                    height: h,
+                    animationDelay: `${i * 0.08}s`,
+                    animationDuration: '0.6s',
+                    background: `linear-gradient(to top,
+                      rgb(212,135,90),
+                      rgb(${Math.round(212 + (119 - 212) * i / 8)},${Math.round(135 + (166 - 135) * i / 8)},${Math.round(90 + (153 - 90) * i / 8)})
+                    )`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <p className="text-center text-[13px] text-[#AAAAAA] mb-8">
+              正在录音...
+            </p>
+
+            {/* 三个操作按钮 */}
+            <div className="flex items-end justify-between px-12">
+
+              {/* 取消 */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={() => setIsLongPressing(false)}
+                  className="w-[64px] h-[64px] rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#F0EDE9' }}
+                >
+                  <span className="text-[22px]">✕</span>
+                </button>
+                <span className="text-[13px] text-[#888888]">取消</span>
+              </div>
+
+              {/* 发送语音（中，最大） */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={() => setIsLongPressing(false)}
+                  className="w-[80px] h-[80px] rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #D4875A, #7BA699)',
+                    padding: 2,
+                  }}
+                >
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: '#FAFAFA' }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="#D4875A"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="12" y1="19" x2="12" y2="23" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="8" y1="23" x2="16" y2="23" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                </button>
+                <span className="text-[13px] font-medium" style={{ color: '#D4875A' }}>
+                  发送语音
+                </span>
+              </div>
+
+              {/* 转文字 */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={() => setIsLongPressing(false)}
+                  className="w-[64px] h-[64px] rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: '#EAF4F1' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 6h16M4 12h10M4 18h7" stroke="#7BA699" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
+                <span className="text-[13px]" style={{ color: '#7BA699' }}>转文字</span>
+              </div>
+            </div>
+
+            <p className="text-center text-[12px] text-[#BBBBBB] mt-6">
+              松开发送，上滑取消
+            </p>
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -123,6 +123,15 @@
     z-index: 0;
   }
 
+  /* 半圆底栏滑入动效 */
+  @keyframes slide-up-half {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .sheet-enter {
+    animation: slide-up-half 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+
   /* Accordion 动效 */
   @keyframes accordionDown {
     from { opacity: 0; transform: translateY(-6px); }

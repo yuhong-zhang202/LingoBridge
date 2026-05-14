@@ -121,6 +121,8 @@ const GRADIENT_BORDER_STYLE = {
 // ── 子组件：我的素材 Tab ──
 
 function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
   if (MY_STORIES.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
@@ -151,64 +153,81 @@ function MyStoriesTab({ router }: { router: ReturnType<typeof useRouter> }) {
 
   return (
     <div className="flex flex-col gap-3 px-6 pb-8">
-      {MY_STORIES.map(story => (
-        <div
-          key={story.id}
-          className="bg-white rounded-[18px] overflow-hidden flex border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.05)]"
-        >
-          {/* 左侧 Band 竖色条 */}
-          <div className={`w-[4px] flex-shrink-0 ${
-            story.band === '6.0' ? 'bg-[#7BA699]' :
-            story.band === '6.5' ? 'bg-[#D4875A]' :
-            story.band === '7.0' ? 'bg-[#6B9EC7]' :
-            'bg-[#C9A84C]'
-          }`} />
-          <div className="flex-1 p-4">
-          {/* 头部行 */}
-          <div className="flex items-start justify-between mb-2">
-            <p className="text-[15px] font-semibold text-[#111]">
-              {story.title}
-            </p>
-            <span className="text-[11px] text-[#BBBBBB] ml-2 mt-0.5 flex-shrink-0">
-              {story.date}
-            </span>
-          </div>
+      {MY_STORIES.map(story => {
+        const isSelected = selectedId === story.id
+        return (
+          <div
+            key={story.id}
+            onClick={() => setSelectedId(isSelected ? null : story.id)}
+            className="bg-white rounded-[18px] overflow-hidden flex border border-black/[0.05] cursor-pointer transition-shadow duration-200"
+            style={{
+              boxShadow: isSelected
+                ? '0 2px 16px rgba(212,135,90,0.12)'
+                : '0 1px 8px rgba(0,0,0,0.05)',
+            }}
+          >
+            {/* 左侧竖条：选中渐变，未选中透明 */}
+            <div className="w-[4px] flex-shrink-0 self-stretch">
+              {isSelected ? (
+                <div
+                  className="w-full h-full"
+                  style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
+                />
+              ) : (
+                <div className="w-full h-full bg-transparent" />
+              )}
+            </div>
 
-          {/* 预览文字 */}
-          <p className="text-[13px] text-[#888] leading-relaxed mb-3 line-clamp-1">
-            {story.preview}
-          </p>
+            <div className="flex-1 p-4">
+              {/* 头部行 */}
+              <div className="flex items-start justify-between mb-2">
+                <p className="text-[15px] font-semibold text-[#111]">
+                  {story.title}
+                </p>
+                <span className="text-[11px] text-[#BBBBBB] ml-2 mt-0.5 flex-shrink-0">
+                  {story.date}
+                </span>
+              </div>
 
-          {/* 元信息行 */}
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="text-[11px] font-semibold text-[#444] px-2 py-0.5 rounded-full"
-              style={GRADIENT_BORDER_STYLE}
-            >
-              Band {story.band}
-            </span>
-            <span className="text-[11px] text-[#AAAAAA]">
-              匹配了 {story.matchCount} 道题
-            </span>
-          </div>
+              {/* 预览文字 */}
+              <p className="text-[13px] text-[#888] leading-relaxed mb-3 line-clamp-1">
+                {story.preview}
+              </p>
 
-          {/* 操作行 */}
-          <div className="flex gap-2">
-            <button className="flex-1 h-[36px] rounded-full border border-black/[0.10] text-[12px] font-medium text-[#666] flex items-center justify-center gap-1">
-              查看文章
-            </button>
-            <button
-              onClick={() => router.push('/practice')}
-              className="flex-1 h-[36px] rounded-full text-[12px] font-semibold text-[#444] flex items-center justify-center gap-1"
-              style={GRADIENT_BORDER_STYLE}
-            >
-              开始练习
-              <ChevronRight size={12} />
-            </button>
+              {/* 元信息行 */}
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className="text-[11px] font-semibold text-[#444] px-2 py-0.5 rounded-full"
+                  style={GRADIENT_BORDER_STYLE}
+                >
+                  Band {story.band}
+                </span>
+                <span className="text-[11px] text-[#AAAAAA]">
+                  匹配了 {story.matchCount} 道题
+                </span>
+              </div>
+
+              {/* 操作行 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={e => e.stopPropagation()}
+                  className="flex-1 h-[36px] rounded-full border border-black/[0.10] text-[12px] font-medium text-[#666] flex items-center justify-center gap-1"
+                >
+                  查看文章
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); router.push('/practice') }}
+                  className="flex-1 h-[36px] rounded-full text-[12px] font-semibold text-[#444] flex items-center justify-center gap-1"
+                  style={GRADIENT_BORDER_STYLE}
+                >
+                  开始练习
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            </div>
           </div>
-          </div>
-        </div>
-      ))}
+        )
+      })}
 
       {/* 新增素材入口 */}
       <button
