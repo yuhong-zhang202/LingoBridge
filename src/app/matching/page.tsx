@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Star, ArrowRight, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
-import FlowDots from '@/components/FlowDots'
+import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
 
 const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3']
@@ -45,7 +45,7 @@ export default function MatchingPage() {
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
       <div className="ambient-light" />
       <TopBar title="题目匹配" />
-      <FlowDots total={5} current={1} />
+      <StepBar currentStep="topic" />
 
       <div className="flex-1 overflow-y-auto px-6 relative z-10">
 
@@ -91,7 +91,14 @@ export default function MatchingPage() {
         {/* 题目卡片 */}
         <div className="flex flex-col gap-3 mb-6">
           {QUESTIONS.map((item, i) => (
-            <div key={i} className="card p-4">
+            <div key={i} className="card overflow-hidden flex">
+              {/* 左侧 Part 竖色条 */}
+              <div className={`w-[4px] flex-shrink-0 ${
+                item.part === 'Part 1' ? 'bg-[#7BA699]'
+                : item.part === 'Part 2' ? 'bg-[#D4875A]'
+                : 'bg-[#6B9EC7]'
+              }`} />
+              <div className="flex-1 p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-[11px] font-medium text-[#888] bg-[#F4F4F4] px-2.5 py-1 rounded-full">
                   {item.part}
@@ -128,6 +135,7 @@ export default function MatchingPage() {
                   练习
                   <ArrowRight size={12} />
                 </button>
+              </div>
               </div>
             </div>
           ))}

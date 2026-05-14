@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Volume2, X, Heart } from 'lucide-react'
 import TopBar from '@/components/TopBar'
-import FlowDots from '@/components/FlowDots'
+import { StepBar } from '@/components/StepBar'
 
 const TOTAL = 8
 const CURRENT = 3
@@ -32,7 +32,7 @@ export default function FeedbackPage() {
           </span>
         }
       />
-      <FlowDots total={5} current={3} />
+      <StepBar currentStep="feedback" />
 
       {/* 卡片进度条 */}
       <div className="relative z-10">

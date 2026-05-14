@@ -417,9 +417,15 @@ export default function LibraryPage() {
           <div className="flex-1 bg-white rounded-[14px] p-3.5 border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
             <p className="text-[24px] font-bold text-[#111]">
               {totalWithStory}
+              <span className="text-[13px] font-normal text-[#AAAAAA] ml-1">
+                / {Object.values(QUESTIONS_BY_PART).flat().length}
+              </span>
             </p>
             <p className="text-[11px] text-[#AAAAAA] mt-0.5">
-              道题有素材
+              当季真题已备
+            </p>
+            <p className="text-[10px] text-[#BBBBBB] mt-0.5">
+              基于 2026 年 1-4 月当季题目
             </p>
           </div>
         </div>

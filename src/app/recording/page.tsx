@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, RotateCcw, CheckCircle } from 'lucide-react'
+import { X, RotateCcw } from 'lucide-react'
 import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'
 
@@ -66,32 +66,26 @@ export default function RecordingPage() {
 
       {/* 底部控制 */}
       <div
-        className="flex items-center justify-between px-8 relative z-10"
+        className="px-8 relative z-10"
         style={{
           paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
           paddingTop: 20,
         }}
       >
-        <button className="flex items-center gap-1.5 text-[12px] font-medium text-[#AAAAAA]">
-          <RotateCcw size={15} />
-          重录
-        </button>
+        <div className="flex justify-start mb-4">
+          <button className="flex items-center gap-1.5 text-[12px] font-medium text-[#AAAAAA]">
+            <RotateCcw size={15} />
+            重录
+          </button>
+        </div>
 
-        {/* 停止按钮 */}
+        {/* 完成录音按钮 */}
         <button
           onClick={() => router.push('/article')}
-          className="btn-gradient-circle"
-          style={{ width: 64, height: 64 }}
+          className="w-full h-[56px] border border-[#D4875A] rounded-[50px] flex items-center justify-center gap-2 text-[#D4875A] text-[17px] font-medium active:opacity-75 transition-opacity"
         >
-          <div className="w-[18px] h-[18px] rounded-[4px] bg-[#333]" />
-        </button>
-
-        <button
-          onClick={() => router.push('/article')}
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-[#333]"
-        >
-          <CheckCircle size={15} />
-          完成
+          <div className="w-[16px] h-[16px] bg-[#D4875A] rounded-[3px]" />
+          完成录音
         </button>
       </div>
     </div>

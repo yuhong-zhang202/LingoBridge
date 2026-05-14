@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Volume2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
-import FlowDots from '@/components/FlowDots'
+import { StepBar } from '@/components/StepBar'
 
 const BANDS = [
   { value: '5.5', label: '简单流畅，日常表达' },
@@ -40,7 +40,7 @@ export default function ArticlePage() {
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <div className="ambient-light" />
       <TopBar title="生成口语文章" />
-      <FlowDots total={5} current={0} />
+      <StepBar currentStep="article" />
 
       <div className="flex-1 overflow-y-auto px-6 pb-8 relative z-10">
 
