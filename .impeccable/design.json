@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-08T00:00:00Z",
+  "title": "Design System: LingoBridge",
+  "extensions": {
+    "colorMeta": {
+      "warm-ash-cream": {
+        "role": "neutral",
+        "displayName": "Warm Ash Cream",
+        "canonical": "oklch(97.5% 0.006 78)",
+        "tonalRamp": [
+          "oklch(20% 0.006 78)",
+          "oklch(32% 0.006 78)",
+          "oklch(45% 0.005 78)",
+          "oklch(58% 0.005 78)",
+          "oklch(70% 0.005 78)",
+          "oklch(82% 0.006 78)",
+          "oklch(91% 0.006 78)",
+          "oklch(97.5% 0.006 78)"
+        ]
+      },
+      "deep-warm-bark": {
+        "role": "neutral",
+        "displayName": "Deep Warm Bark",
+        "canonical": "oklch(20% 0.058 46)",
+        "tonalRamp": [
+          "oklch(12% 0.040 46)",
+          "oklch(20% 0.058 46)",
+          "oklch(30% 0.058 46)",
+          "oklch(40% 0.055 46)",
+          "oklch(52% 0.050 46)",
+          "oklch(63% 0.040 46)",
+          "oklch(75% 0.028 46)",
+          "oklch(88% 0.015 46)"
+        ]
+      },
+      "faded-celadon": {
+        "role": "secondary",
+        "displayName": "Faded Celadon",
+        "canonical": "oklch(57% 0.062 147)",
+        "tonalRamp": [
+          "oklch(18% 0.035 147)",
+          "oklch(28% 0.052 147)",
+          "oklch(38% 0.062 147)",
+          "oklch(47% 0.062 147)",
+          "oklch(57% 0.062 147)",
+          "oklch(67% 0.058 147)",
+          "oklch(79% 0.040 147)",
+          "oklch(90% 0.018 147)"
+        ]
+      },
+      "ember-glow": {
+        "role": "primary",
+        "displayName": "Ember Glow",
+        "canonical": "oklch(67% 0.138 55)",
+        "tonalRamp": [
+          "oklch(18% 0.070 55)",
+          "oklch(28% 0.100 55)",
+          "oklch(38% 0.130 55)",
+          "oklch(50% 0.138 55)",
+          "oklch(67% 0.138 55)",
+          "oklch(76% 0.115 55)",
+          "oklch(85% 0.075 55)",
+          "oklch(93% 0.030 55)"
+        ]
+      },
+      "muted-dusk": {
+        "role": "neutral",
+        "displayName": "Muted Dusk",
+        "canonical": "oklch(74% 0.025 54)",
+        "tonalRamp": [
+          "oklch(22% 0.015 54)",
+          "oklch(33% 0.020 54)",
+          "oklch(44% 0.025 54)",
+          "oklch(55% 0.025 54)",
+          "oklch(63% 0.025 54)",
+          "oklch(74% 0.025 54)",
+          "oklch(84% 0.018 54)",
+          "oklch(93% 0.010 54)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "大标题",
+        "purpose": "页面的主要陈述。每屏只出现一次，用于页面围绕的问题或状态。"
+      },
+      "eyebrow": {
+        "displayName": "眉批",
+        "purpose": "标题上方的语境标签。始终使用暮色灰粉，始终全大写。在标题开口之前低声铺垫。"
+      },
+      "caption": {
+        "displayName": "说明文字",
+        "purpose": "UI 提示、收听提示、状态信息。暮色灰粉。最安静的层级。"
+      },
+      "nav": {
+        "displayName": "导航标签",
+        "purpose": "底部导航标签。激活时用余烬橙，静止时用暮色灰粉。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-warm-lift",
+        "value": "0 2px 16px rgba(107, 143, 113, 0.12)",
+        "purpose": "仅用于持续悬浮的界面元素：底部导航、弹出面板。绿色色调取自褪色青瓷，光感像从花园内部散出，而不是从上方照下来。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "breathe",
+        "value": "translateY(0px to -5px), 3s ease-in-out infinite",
+        "purpose": "猫咪角色和云团光晕。最慢的动效层级——有机的生命感，不是 UI 反馈。"
+      },
+      {
+        "name": "flip-out",
+        "value": "scaleX(1 to 0.02), 0.34s ease-in forwards",
+        "purpose": "猫咪唤醒：在切换 SVG 内容之前沿水平轴压缩折叠。"
+      },
+      {
+        "name": "flip-in",
+        "value": "scaleX(0.02 to 1), 0.34s ease-out forwards",
+        "purpose": "猫咪唤醒：切换到清醒 SVG 后展开。模拟一个物体在空间中翻转的物理感。"
+      },
+      {
+        "name": "nuzzle",
+        "value": "compound rotate + translateY, 0.72s ease-in-out forwards",
+        "purpose": "猫咪清醒时点击头部触发的蹭蹭动作。好奇心的奖励。"
+      },
+      {
+        "name": "wave-bar",
+        "value": "scaleY(0.2 to 1.0), ~0.7s ease-in-out infinite, staggered 0.055s per bar",
+        "purpose": "激活收听状态下的波形柱动效。11 根柱子，钟形高度分布，错位延迟形成流畅的起伏波浪。"
+      },
+      {
+        "name": "cloud-breathe",
+        "value": "scale(1 to 1.06), 3s ease-in-out infinite",
+        "purpose": "猫咪背后的温暖光晕云团。与猫咪呼吸同步。"
+      }
+    ],
+    "breakpoints": [
+      { "name": "xs", "value": "375px" },
+      { "name": "mobile-max", "value": "448px", "note": "max-w-md 容器上限——App 刻意只针对移动端宽度设计。" }
+    ]
+  },
+  "components": [
+    {
+      "name": "录音按钮",
+      "kind": "button",
+      "refersTo": "record-button",
+      "description": "主要动作。圆形，80px，余烬橙。录音页面上用户做的唯一一件事。",
+      "html": "<button class='ds-record-btn' aria-label='开始录音'><svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='2' width='6' height='11' rx='3'/><path d='M5 10a7 7 0 0014 0'/><line x1='12' y1='17' x2='12' y2='21'/><line x1='9' y1='21' x2='15' y2='21'/></svg></button>",
+      "css": ".ds-record-btn { display: flex; align-items: center; justify-content: center; width: 80px; height: 80px; background: #e8924a; color: #faf9f6; border: none; border-radius: 9999px; cursor: pointer; transition: background 0.2s ease-out, transform 0.15s ease-out; } .ds-record-btn:hover { background: #d97429; transform: scale(1.04); } .ds-record-btn:active { transform: scale(0.97); } .ds-record-btn:focus-visible { outline: 2px solid #e8924a; outline-offset: 4px; }"
+    },
+    {
+      "name": "分段选择器（未选中）",
+      "kind": "chip",
+      "refersTo": "band-chip",
+      "description": "雅思分段选择器，静止状态。褪色青瓷描边，透明填充。",
+      "html": "<button class='ds-chip'>6.0</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; justify-content: center; padding: 6px 16px; border: 1.5px solid #6b8f71; border-radius: 9999px; background: transparent; color: #6b8f71; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; cursor: pointer; transition: background 0.15s ease-out; } .ds-chip:hover { background: rgba(107, 143, 113, 0.08); } .ds-chip:focus-visible { outline: 2px solid #e8924a; outline-offset: 3px; }"
+    },
+    {
+      "name": "分段选择器（已选中）",
+      "kind": "chip",
+      "refersTo": "band-chip-selected",
+      "description": "雅思分段选择器，激活状态。余烬橙填充，暖灰白文字。",
+      "html": "<button class='ds-chip ds-chip--selected'>6.0</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; justify-content: center; padding: 6px 16px; border: 1.5px solid #6b8f71; border-radius: 9999px; background: transparent; color: #6b8f71; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; cursor: pointer; transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out; } .ds-chip--selected { background: #e8924a; border-color: #e8924a; color: #faf9f6; } .ds-chip--selected:hover { background: #d97429; border-color: #d97429; } .ds-chip:focus-visible { outline: 2px solid #e8924a; outline-offset: 3px; }"
+    },
+    {
+      "name": "底部导航栏",
+      "kind": "nav",
+      "refersTo": "bottom-nav",
+      "description": "持续显示的玻璃导航栏。激活项用余烬橙，静止项用暮色灰粉。",
+      "html": "<nav class='ds-bottom-nav'><button class='ds-nav-item ds-nav-item--active'><svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#e8956d' stroke-width='1.65' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12L12 3l9 9'/><path d='M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9'/></svg><span class='ds-nav-label ds-nav-label--active'>首页</span></button><button class='ds-nav-item'><svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#c4b4a8' stroke-width='1.65' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19.5A2.5 2.5 0 016.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z'/></svg><span class='ds-nav-label'>素材</span></button><button class='ds-nav-item'><svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#c4b4a8' stroke-width='1.65' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='2' width='6' height='11' rx='3'/><path d='M5 10a7 7 0 0014 0'/><line x1='12' y1='17' x2='12' y2='21'/><line x1='9' y1='21' x2='15' y2='21'/></svg><span class='ds-nav-label'>练习</span></button><button class='ds-nav-item'><svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#c4b4a8' stroke-width='1.65' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 3.6-7 8-7s8 3 8 7'/></svg><span class='ds-nav-label'>我的</span></button></nav>",
+      "css": ".ds-bottom-nav { display: flex; justify-content: space-around; align-items: center; background: rgba(250, 247, 242, 0.93); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid rgba(232, 200, 180, 0.22); padding: 0.6rem 0; width: 100%; } .ds-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 20px; background: none; border: none; cursor: pointer; transition: opacity 0.15s ease-out; -webkit-tap-highlight-color: transparent; } .ds-nav-item:active { opacity: 0.7; } .ds-nav-label { font-family: Inter, system-ui, sans-serif; font-size: 10px; font-weight: 500; color: #c4b4a8; } .ds-nav-label--active { color: #e8956d; }"
+    },
+    {
+      "name": "眉批 + 大标题",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "标准页面开头组合。暮色灰粉眉批在深暖棕大标题上方。主要动作之前花园的安静之声。",
+      "html": "<div class='ds-heading-block'><p class='ds-eyebrow'>Hi, 今天</p><h1 class='ds-headline'>想聊什么？</h1></div>",
+      "css": ".ds-heading-block { padding: 56px 28px 0; } .ds-eyebrow { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase; color: #c9b2a4; margin: 0 0 4px; } .ds-headline { font-family: Inter, system-ui, sans-serif; font-size: 1.85rem; font-weight: 600; line-height: 1.15; color: #3a2416; margin: 0; }"
+    },
+    {
+      "name": "音频波形条",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "11 根波形柱。静止时暗淡且平铺。激活时以 52% 不透明度执行错位 wave-bar 动效。",
+      "html": "<div class='ds-waveform' data-active='true'><div class='ds-wave-bar' style='--h:3px'></div><div class='ds-wave-bar' style='--h:5px'></div><div class='ds-wave-bar' style='--h:8px'></div><div class='ds-wave-bar' style='--h:13px'></div><div class='ds-wave-bar' style='--h:18px'></div><div class='ds-wave-bar' style='--h:22px'></div><div class='ds-wave-bar' style='--h:18px'></div><div class='ds-wave-bar' style='--h:13px'></div><div class='ds-wave-bar' style='--h:8px'></div><div class='ds-wave-bar' style='--h:5px'></div><div class='ds-wave-bar' style='--h:3px'></div></div>",
+      "css": "@keyframes ds-wave { 0%, 100% { transform: scaleY(0.2); } 50% { transform: scaleY(1); } } .ds-waveform { display: flex; align-items: center; gap: 3px; height: 28px; } .ds-wave-bar { width: 2.5px; height: var(--h, 8px); background: #e8956d; opacity: 0.17; border-radius: 2px; transform-origin: center bottom; transition: height 0.5s ease, opacity 0.5s ease; } .ds-waveform[data-active='true'] .ds-wave-bar { opacity: 0.52; animation: ds-wave 0.7s ease-in-out infinite; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(1) { animation-duration: 0.62s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(2) { animation-duration: 0.62s; animation-delay: 0.055s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(3) { animation-duration: 0.75s; animation-delay: 0.11s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(4) { animation-duration: 0.62s; animation-delay: 0.165s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(5) { animation-duration: 0.75s; animation-delay: 0.22s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(6) { animation-duration: 0.88s; animation-delay: 0.275s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(7) { animation-duration: 0.75s; animation-delay: 0.33s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(8) { animation-duration: 0.62s; animation-delay: 0.385s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(9) { animation-duration: 0.75s; animation-delay: 0.44s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(10) { animation-duration: 0.62s; animation-delay: 0.495s; } .ds-waveform[data-active='true'] .ds-wave-bar:nth-child(11) { animation-duration: 0.62s; animation-delay: 0.55s; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "静园",
+    "overview": "LingoBridge 是雅思备考焦虑的情感解药。其他工具密集、明亮、充满紧迫感——题库成列、连胜成火、积分弹窗——而 LingoBridge 是静止的。「静园」是一个让事物缓慢生长的空间：猫咪在温暖的光晕里呼吸，用户，终于，开口了。\n\n调色盘温暖而不甜腻。暖灰白是每一屏的底色，像台灯下的旧纸张。褪色青瓷是若隐若现的绿色存在，像枝茎的颜色，是品牌的安静信号。余烬橙是行动的唯一声音：每屏只出现一次，像窗里的灯光，告诉用户去哪里。没有什么在争夺注意力。这套设计用克制换来信任，而不是用奖励。\n\n本系统明确拒绝 Duolingo 的游戏化机制、通用雅思题库的信息密度，以及微信式的功能堆砌。那些系统优化的是留存数据，LingoBridge 优化的是学生第一次不卡顿开口的那一刻。",
+    "keyCharacteristics": [
+      "单动作页面：每个视图只有一个主要手势",
+      "永远不会漂白为白色或灰色的暖色中性调",
+      "余烬橙作为唯一行动信号，稀少才有分量",
+      "有机的环境动效：呼吸感，不是弹跳感",
+      "适合移动端的可读字号；中文眉批在标题开口前轻声铺垫"
+    ],
+    "rules": [
+      {
+        "name": "「余烬之声」法则",
+        "body": "余烬橙（#e8924a）是任何页面上唯一的行动之声。它只出现一次，用于主要动作。不作装饰，不重复出现，不用于文本着色。它的稀少正是它的意义：用户看到它，就知道该做什么。",
+        "section": "colors"
+      },
+      {
+        "name": "「禁白」法则",
+        "body": "#ffffff 禁止使用。最亮的表面是暖灰白（#faf9f6）。最深的文字是深暖棕（#3a2416），不是 #000000。这套系统的每一个色调都向温暖倾斜。",
+        "section": "colors"
+      },
+      {
+        "name": "「眉批」法则",
+        "body": "眉批（11px，字距 0.18em，全大写）始终出现在标题之前，始终使用暮色灰粉，始终低语。如果它需要比标题更响亮，说明层级被倒置了——修标题，不修眉批。",
+        "section": "typography"
+      },
+      {
+        "name": "「一屏一句」法则",
+        "body": "每个页面只有一个大标题层级的元素。如果两个元素都在争着做主标题，其中一个还不该出现在这个页面上。",
+        "section": "typography"
+      },
+      {
+        "name": "「默认平铺」法则",
+        "body": "表面静止时是平的。暖提升光晕只出现在悬浮 UI 上（底部导航、弹出面板）。玻璃模糊仅用于导航栏的功能性可读，永远不用作装饰性毛玻璃卡片。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "应当在每个页面上用余烬橙（#e8924a）标记唯一的主要动作——只有那一个。",
+      "应当将暖灰白（#faf9f6）作为通用背景色。不用 #fff，不用任何冷色中性调。",
+      "应当每屏只设一个大标题。一屏、一个问题、一个主要答案。",
+      "应当用褪色青瓷承载品牌存在感：静止图标、选择器描边、次级信号。",
+      "应当用眉批 + 大标题的组合（暮色灰粉标签在深暖棕标题上方）开启每个页面。",
+      "应当保持动效缓动为指数曲线（ease-in-out、ease-out-quart）。缓慢有机，不能有任何突兀感。",
+      "应当给页面充足且有变化的留白。呼吸空间不是浪费——它就是这座花园。"
+    ],
+    "donts": [
+      "禁止添加连胜计数、经验值条、每日提醒或徽章数字。游戏化机制制造的正是 LingoBridge 要消解的焦虑。这不是 Duolingo。",
+      "禁止做题库式列表页面：密集行项、内容全部可见、多 Tab 导航。",
+      "禁止使用灰色中性调、功能堆砌的网格或字小行密的文案。微信的模式明确禁止。",
+      "禁止使用 #ffffff。最亮的底色是暖灰白（#faf9f6）。",
+      "禁止使用 #000000。最深的文字是深暖棕（#3a2416）。",
+      "禁止用超过 1px 的彩色竖线作为卡片或列表项的左右边框装饰。",
+      "禁止在底部导航之外使用玻璃拟态。",
+      "禁止在同一页面放置两个大标题层级的元素。",
+      "禁止使用渐变文字（background-clip: text）。强调依靠字重和字号，不依靠图形效果。"
+    ]
+  }
+}

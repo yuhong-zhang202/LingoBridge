@@ -1,0 +1,47 @@
+'use client'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Home, BookOpen, Mic2 } from 'lucide-react'
+
+const TABS = [
+  { href: '/',         label: '首页',  Icon: Home     },
+  { href: '/library',  label: '素材库', Icon: BookOpen },
+  { href: '/practice', label: '练习',  Icon: Mic2     },
+]
+
+export default function TabBar() {
+  const path = usePathname()
+  return (
+    <div
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-black/[0.06] flex items-center justify-around"
+      style={{
+        height: 56,
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      {TABS.map(({ href, label, Icon }) => {
+        const active = path === href || (href === '/library' && path.startsWith('/library'))
+        return (
+          <Link
+            key={href}
+            href={href}
+            className="flex flex-col items-center gap-[3px] py-2 px-6"
+          >
+            <Icon
+              size={20}
+              className={active ? 'text-[#111]' : 'text-[#BBBBBB]'}
+            />
+            <span className={`text-[10px] font-medium ${
+              active ? 'text-[#111]' : 'text-[#BBBBBB]'
+            }`}>
+              {label}
+            </span>
+            {active && (
+              <div className="w-[3px] h-[3px] rounded-full bg-[#111]" />
+            )}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
