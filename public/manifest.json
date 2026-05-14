@@ -1,0 +1,14 @@
+{
+  "name": "LingoBridge",
+  "short_name": "LingoBridge",
+  "description": "把你的故事变成雅思口语素材",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9F9F9",
+  "theme_color": "#F9F9F9",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
