@@ -120,7 +120,7 @@ export default function MatchingPage() {
                   {isSelected ? (
                     <div
                       className="w-full h-full"
-                      style={{ background: 'linear-gradient(to bottom, #D4875A, #7BA699)' }}
+                      style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
                     />
                   ) : (
                     <div className="w-full h-full bg-transparent" />
