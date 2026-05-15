@@ -44,11 +44,7 @@ export default function FeedbackPage() {
           {/* 主卡片 */}
           <div
             className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-[22px] pt-[16px] pb-[22px] z-10"
-            style={{
-              background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
-              border: '1.5px solid transparent',
-              borderRadius: 20,
-            }}
+            style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 20 }}
           >
 
             <div className="flex items-center mb-4">

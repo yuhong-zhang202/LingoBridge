@@ -13,6 +13,7 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { ARTICLE_TEXT as ARTICLE_CONTENT } from '@/data/article'
 import { useRecording } from '@/hooks/useRecording'
+import type { Question } from '@/lib/types'
 
 interface ConversationTurn {
   topic: string
@@ -25,14 +26,8 @@ const CONVERSATION_TURNS: ConversationTurn[] = [
   { topic: '户外活动', ai: '如果下次再去公园，你会做什么不一样的事吗？' },
 ]
 
-interface QuestionInfo {
-  part: string
-  en: string
-  zh: string
-}
-
 /** 题目 id → 题目信息映射，与 matching/page.tsx 的 QUESTIONS 数据对齐 */
-const QUESTION_MAP: Record<string, QuestionInfo> = {
+const QUESTION_MAP: Record<string, Pick<Question, 'part' | 'en' | 'zh'>> = {
   q1: { part: 'Part 1', en: 'Do you often go to parks or outdoor spaces?', zh: '你经常去公园吗？' },
   q2: { part: 'Part 2', en: 'Describe a place in nature you like to visit.', zh: '描述你喜欢的自然环境中的一个地方。' },
   q3: { part: 'Part 1', en: 'What do you do on weekends?', zh: '你周末都做些什么？' },
@@ -53,7 +48,7 @@ function PracticeContent() {
   } = useRecording()
 
   const questionId = params.get('questionId') ?? ''
-  const selectedQuestion: QuestionInfo | null = QUESTION_MAP[questionId] ?? null
+  const selectedQuestion: Pick<Question, 'part' | 'en' | 'zh'> | null = QUESTION_MAP[questionId] ?? null
 
   const total = CONVERSATION_TURNS.length
   const current = CONVERSATION_TURNS[currentIndex]
