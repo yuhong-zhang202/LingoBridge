@@ -57,29 +57,38 @@ export default function FeedbackPage() {
               </span>
             </div>
 
+            {/* 用户原句：渐变描边 + 右下角播放按钮 */}
             <div
-              className="mb-4"
+              className="relative mb-4"
               style={{
                 background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
                 border: '1.5px solid transparent',
                 borderRadius: 12,
-                padding: '12px 16px',
+                padding: '12px 16px 12px 16px',
               }}
             >
-              <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6 }}>
+              <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6, paddingRight: 36 }}>
                 I went to park yesterday, very happy.
               </p>
+              <button
+                className="absolute bottom-3 right-3 w-[28px] h-[28px] rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#F5F5F5' }}
+              >
+                <span className="text-[11px] text-[#AAAAAA]">▶</span>
+              </button>
             </div>
 
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px bg-black/[0.06]" />
-              <span className="text-[11px] text-[#CCCCCC]">AI 优化</span>
-              <div className="flex-1 h-px bg-black/[0.06]" />
-            </div>
-
-            {/* AI 优化区：白色底 + 渐变描边 */}
+            {/* AI 优化标签 */}
             <div
-              className="mb-4"
+              className="inline-flex items-center px-3 py-1 rounded-[10px] text-[12px] font-medium mb-2"
+              style={{ backgroundColor: '#EEF7F3', color: '#5A9E8A' }}
+            >
+              AI 优化
+            </div>
+
+            {/* AI 优化句：渐变描边 + 右下角播放按钮 */}
+            <div
+              className="relative"
               style={{
                 background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
                 border: '1.5px solid transparent',
@@ -87,24 +96,14 @@ export default function FeedbackPage() {
                 padding: '12px 16px',
               }}
             >
-              <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6 }}>
+              <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6, paddingRight: 36 }}>
                 I visited a local park yesterday, which left me feeling genuinely refreshed.
               </p>
-            </div>
-
-            {/* 播放按钮：灰色描边 */}
-            <div className="flex gap-2">
               <button
-                className="flex-1 h-[38px] rounded-full text-[12px] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
-                style={{ border: '1px solid #DDDDDD', backgroundColor: '#FFFFFF', color: '#555555' }}
+                className="absolute bottom-3 right-3 w-[28px] h-[28px] rounded-full flex items-center justify-center"
+                style={{ backgroundColor: '#EEF7F3' }}
               >
-                ▶ 听原句
-              </button>
-              <button
-                className="flex-1 h-[38px] rounded-full text-[12px] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform duration-150"
-                style={{ border: '1px solid #DDDDDD', backgroundColor: '#FFFFFF', color: '#555555' }}
-              >
-                ▶ 听优化句
+                <span className="text-[11px]" style={{ color: '#5A9E8A' }}>▶</span>
               </button>
             </div>
           </div>

@@ -54,7 +54,10 @@ export default function PracticePage() {
       />
       <StepBar currentStep="practice" />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-[100px] relative z-10">
+      <div
+        className="flex-1 overflow-y-auto px-5 relative z-10"
+        style={{ paddingBottom: hintOpen ? 280 : 160 }}
+      >
 
         {/* 话题提示条 */}
         <div className="flex items-center justify-between bg-[#F4F4F4] rounded-[10px] px-3.5 py-2 mb-4">
@@ -67,14 +70,22 @@ export default function PracticePage() {
           <div className="w-8 h-8 rounded-full bg-[#C8DDD9] flex items-center justify-center flex-shrink-0 text-[14px]">
             🌿
           </div>
-          <div className="bg-white rounded-[16px] rounded-tl-[4px] px-4 py-3 shadow-sm border border-black/[0.05]">
-            <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
-              {current.ai}
-            </p>
-            <button className="flex items-center gap-1 mt-2 text-[12px] text-[#AAAAAA]">
-              <Volume2 size={12} />
-              播放语音
-            </button>
+          <div className="flex-1 rounded-[16px] rounded-tl-[4px] overflow-hidden" style={{ backgroundColor: '#FDFAF6' }}>
+            <div className="flex">
+              <div
+                className="w-[3px] flex-shrink-0 self-stretch"
+                style={{ background: 'linear-gradient(to bottom, #D4875A, #7BA699)' }}
+              />
+              <div className="flex-1 px-4 py-3">
+                <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
+                  {current.ai}
+                </p>
+                <button className="flex items-center gap-1 mt-2 text-[12px] text-[#AAAAAA]">
+                  <Volume2 size={12} />
+                  播放语音
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -83,78 +94,96 @@ export default function PracticePage() {
           <div className="w-8 h-8 rounded-full bg-[#E8C9A8] flex items-center justify-center flex-shrink-0 text-[13px] font-semibold text-[#D4875A]">
             你
           </div>
-          {/* 修改一：#E8D5C0 暖米橙色气泡 */}
-          <div className="rounded-[16px] rounded-tr-[4px] px-4 py-3" style={{ backgroundColor: '#E8D5C0' }}>
-            <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
+          <div
+            className="rounded-[16px] rounded-tr-[4px] px-4 py-3"
+            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E0DDD8' }}
+          >
+            <p style={{ fontSize: 15, color: '#555555', lineHeight: 1.6 }}>
               I remember I went to a park last weekend...
             </p>
           </div>
         </div>
+      </div>
 
-        {/* 口语稿参考 */}
+      {/* 底部固定区域：口语稿折叠栏 + 录音操作栏 */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
+          backgroundColor: '#FFFFFF',
+          borderTop: '1px solid #EEEEEE',
+          zIndex: 20,
+        }}
+      >
+        {/* 口语稿折叠栏 */}
         <button
           onClick={() => setHintOpen(!hintOpen)}
-          className="w-full flex items-center gap-2 bg-white border border-dashed border-black/[0.10] rounded-[14px] px-3.5 py-2.5 mb-1 shadow-sm"
+          className="w-full flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: '1px solid #F0EDE9' }}
         >
-          <FileText size={13} className="text-[#CCCCCC]" />
-          <span className="flex-1 text-left text-[12px] text-[#BBBBBB]">
-            查看口语稿参考
-          </span>
+          <div className="flex items-center gap-2">
+            <FileText size={13} className="text-[#CCCCCC]" />
+            <span className="text-[13px] text-[#AAAAAA]">查看口语稿参考</span>
+          </div>
           <ChevronDown
             size={13}
             className={`text-[#CCCCCC] transition-transform duration-300 ${hintOpen ? 'rotate-180' : ''}`}
           />
         </button>
 
+        {/* 口语稿内容 */}
         {hintOpen && (
-          <div className="bg-white border border-dashed border-black/[0.10] rounded-[14px] px-3.5 py-3.5 mb-3 shadow-sm animate-fade-up">
+          <div
+            className="px-4 py-3 overflow-y-auto"
+            style={{ backgroundColor: '#FAFAF8', borderBottom: '1px solid #F0EDE9', maxHeight: 120 }}
+          >
             <p className="text-[10px] font-medium text-[#CCCCCC] uppercase tracking-wide mb-2">
               你的口语稿
             </p>
-            <p className="text-[13px] text-[#AAAAAA] leading-relaxed line-clamp-3">
-              Last weekend, I spent some time at a local
-              park near my home. It was a genuinely
-              refreshing experience...
+            <p className="text-[13px] text-[#AAAAAA] leading-relaxed">
+              Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience...
             </p>
           </div>
         )}
-      </div>
 
-      {/* 底部操作栏 */}
-      <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] flex items-center justify-between px-8 bg-bg-page border-t border-black/[0.05] z-20"
-        style={{
-          paddingTop: 16,
-          paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
-        }}
-      >
-        <button className="flex items-center gap-1.5 text-[12px] text-[#CCCCCC]">
-          <RotateCcw size={14} />
-          重录
-        </button>
-
-        {/* 修改二：长按触发底栏 */}
-        <button
-          className="btn-gradient-circle"
-          style={{ width: 56, height: 56 }}
-          onMouseDown={handlePressStart}
-          onMouseUp={handlePressEnd}
-          onMouseLeave={handlePressEnd}
-          onTouchStart={handlePressStart}
-          onTouchEnd={handlePressEnd}
+        {/* 录音操作栏 */}
+        <div
+          className="flex items-center justify-between px-8"
+          style={{
+            paddingTop: 16,
+            paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+          }}
         >
-          <Mic2 size={20} className="text-[#333]" />
-        </button>
+          <button className="flex items-center gap-1.5 text-[12px] text-[#CCCCCC]">
+            <RotateCcw size={14} />
+            重录
+          </button>
 
-        <button
-          onClick={handleNext}
-          className="flex flex-col items-center gap-0.5"
-        >
-          <span className="text-[12px] text-[#888]">
-            {currentIndex < total - 1 ? '下一题' : '完成'}
-          </span>
-          <span className="text-[10px] text-[#CCCCCC]">{currentIndex + 1} / {total}</span>
-        </button>
+          <button
+            className="btn-gradient-circle"
+            style={{ width: 56, height: 56 }}
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+          >
+            <Mic2 size={20} className="text-[#333]" />
+          </button>
+
+          <button
+            onClick={handleNext}
+            className="flex flex-col items-center gap-0.5"
+          >
+            <span className="text-[12px] text-[#888]">
+              {currentIndex < total - 1 ? '下一题' : '完成'}
+            </span>
+            <span className="text-[10px] text-[#CCCCCC]">{currentIndex + 1} / {total}</span>
+          </button>
+        </div>
       </div>
 
       {/* 长按录音底栏 */}
