@@ -15,6 +15,8 @@ export type Question = {
   zh: string
   hasStory: boolean
   storyTitle?: string
+  hot?: boolean
+  reason?: string
 }
 
 // ── 文章相关
