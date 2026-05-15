@@ -1,10 +1,11 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { ARTICLE_TEXT as ARTICLE_CONTENT } from '@/data/article'
+import { useRecording } from '@/hooks/useRecording'
 
 const QUESTIONS = [
   { topic: '户外活动 · Part 1', ai: '我们今天来聊聊户外活动这个话题。你还记得上次说的那次公园经历吗？' },
@@ -16,29 +17,14 @@ export default function PracticePage() {
   const router = useRouter()
   const [hintOpen, setHintOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isLongPressing, setIsLongPressing] = useState(false)
-  const longPressTimer = useRef<ReturnType<typeof setTimeout>>()
-  const [sheetBounds, setSheetBounds] = useState<{ left: number; width: number }>({
-    left: 0,
-    width: typeof window !== 'undefined' ? window.innerWidth : 390,
-  })
 
-  const calcSheetBounds = () => {
-    const container = document.getElementById('app-root-container')
-    if (container) {
-      const rect = container.getBoundingClientRect()
-      setSheetBounds({ left: rect.left, width: rect.width })
-    }
-  }
-
-  useEffect(() => {
-    if (isLongPressing) calcSheetBounds()
-  }, [isLongPressing])
-
-  useEffect(() => {
-    window.addEventListener('resize', calcSheetBounds)
-    return () => window.removeEventListener('resize', calcSheetBounds)
-  }, [])
+  const {
+    isLongPressing,
+    sheetBounds,
+    handlePressStart,
+    handlePressEnd,
+    cancelLongPress,
+  } = useRecording()
 
   const total = QUESTIONS.length
   const current = QUESTIONS[currentIndex]
@@ -53,17 +39,6 @@ export default function PracticePage() {
   }
 
   const handleEnd = () => router.push('/feedback')
-
-  const handlePressStart = () => {
-    longPressTimer.current = setTimeout(() => {
-      setIsLongPressing(true)
-      if (navigator.vibrate) navigator.vibrate(30)
-    }, 300)
-  }
-
-  const handlePressEnd = () => {
-    clearTimeout(longPressTimer.current)
-  }
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -205,7 +180,7 @@ export default function PracticePage() {
               backgroundColor: 'rgba(0,0,0,0.30)',
               zIndex: 40,
             }}
-            onClick={() => setIsLongPressing(false)}
+            onClick={cancelLongPress}
           />
 
           {/* 半圆底栏：对齐 App 容器 */}
@@ -254,7 +229,7 @@ export default function PracticePage() {
               {/* 取消 */}
               <div className="flex flex-col items-center gap-2">
                 <button
-                  onClick={() => setIsLongPressing(false)}
+                  onClick={cancelLongPress}
                   className="w-[64px] h-[64px] rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#F0EDE9' }}
                 >
@@ -266,7 +241,7 @@ export default function PracticePage() {
               {/* 发送语音（中，最大） */}
               <div className="flex flex-col items-center gap-2">
                 <button
-                  onClick={() => setIsLongPressing(false)}
+                  onClick={cancelLongPress}
                   className="w-[80px] h-[80px] rounded-full flex items-center justify-center"
                   style={{
                     background: 'linear-gradient(135deg, #D4875A, #7BA699)',
@@ -293,7 +268,7 @@ export default function PracticePage() {
               {/* 转文字 */}
               <div className="flex flex-col items-center gap-2">
                 <button
-                  onClick={() => setIsLongPressing(false)}
+                  onClick={cancelLongPress}
                   className="w-[64px] h-[64px] rounded-full flex items-center justify-center"
                   style={{ backgroundColor: '#EAF4F1' }}
                 >
