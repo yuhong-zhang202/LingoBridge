@@ -1,49 +1,32 @@
+/**
+ * @module   RecordingPage
+ * @desc     录音页 — 实时采集音频并可视化，完成后进入文章生成流程
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
+import { useRecording } from '@/hooks/useRecording'
 
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
-  const [audioLevel, setAudioLevel] = useState(0)
-  const animFrameRef = useRef<number>()
+  const { audioLevel, handlePressStart, cancelLongPress } = useRecording()
 
   useEffect(() => {
     const t = setInterval(() => setSeconds(s => s + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
+  // Start audio analysis immediately on mount; clean up on unmount
   useEffect(() => {
-    let stream: MediaStream | null = null
-    const start = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        const ctx = new AudioContext()
-        const src = ctx.createMediaStreamSource(stream)
-        const analyser = ctx.createAnalyser()
-        analyser.fftSize = 256
-        src.connect(analyser)
-        const data = new Uint8Array(analyser.frequencyBinCount)
-        const tick = () => {
-          analyser.getByteFrequencyData(data)
-          const avg = data.reduce((a, b) => a + b, 0) / data.length
-          setAudioLevel(avg / 255)
-          animFrameRef.current = requestAnimationFrame(tick)
-        }
-        tick()
-      } catch {
-        // 无麦克风权限时静默处理
-      }
-    }
-    start()
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
-      stream?.getTracks().forEach(t => t.stop())
-    }
-  }, [])
+    handlePressStart()
+    return () => cancelLongPress()
+  }, [handlePressStart, cancelLongPress])
 
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
