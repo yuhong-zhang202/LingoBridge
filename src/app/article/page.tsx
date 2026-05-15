@@ -172,7 +172,7 @@ export default function ArticlePage() {
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="flex items-center gap-1 px-3 py-1 rounded-[10px] text-[13px] active:scale-[0.97] transition-transform duration-150"
-                    style={{ backgroundColor: '#F0EDE9', color: '#C9905A' }}
+                    style={{ backgroundColor: '#EEF7F3', color: '#5A9E8A' }}
                   >
                     {isEditing ? '✓ 保存' : '✎ 编辑'}
                   </button>

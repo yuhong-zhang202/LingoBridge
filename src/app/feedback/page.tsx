@@ -49,7 +49,14 @@ export default function FeedbackPage() {
           />
 
           {/* 主卡片 */}
-          <div className="relative bg-white rounded-[20px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-[22px] z-10 border border-black/[0.05]">
+          <div
+            className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-[22px] z-10"
+            style={{
+              background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
+              border: '1.5px solid transparent',
+              borderRadius: 20,
+            }}
+          >
 
             <div className="flex items-center mb-4">
               <span className="text-[11px] font-medium text-[#AAAAAA] bg-[#F4F4F4] px-3 py-1 rounded-full">
@@ -57,14 +64,13 @@ export default function FeedbackPage() {
               </span>
             </div>
 
-            {/* 用户原句：渐变描边 + 右下角播放按钮 */}
+            {/* 用户原句：浅灰底 + 右下角播放按钮 */}
             <div
               className="relative mb-4"
               style={{
-                background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
-                border: '1.5px solid transparent',
-                borderRadius: 12,
-                padding: '12px 16px 12px 16px',
+                backgroundColor: '#F8F7F5',
+                borderRadius: 10,
+                padding: '12px 16px',
               }}
             >
               <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6, paddingRight: 36 }}>
@@ -72,9 +78,9 @@ export default function FeedbackPage() {
               </p>
               <button
                 className="absolute bottom-3 right-3 w-[28px] h-[28px] rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#F5F5F5' }}
+                style={{ backgroundColor: '#EEF7F3' }}
               >
-                <span className="text-[11px] text-[#AAAAAA]">▶</span>
+                <span className="text-[11px]" style={{ color: '#5A9E8A' }}>▶</span>
               </button>
             </div>
 
@@ -86,13 +92,12 @@ export default function FeedbackPage() {
               AI 优化
             </div>
 
-            {/* AI 优化句：渐变描边 + 右下角播放按钮 */}
+            {/* AI 优化句：浅灰底 + 右下角播放按钮 */}
             <div
               className="relative"
               style={{
-                background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
-                border: '1.5px solid transparent',
-                borderRadius: 12,
+                backgroundColor: '#F8F7F5',
+                borderRadius: 10,
                 padding: '12px 16px',
               }}
             >

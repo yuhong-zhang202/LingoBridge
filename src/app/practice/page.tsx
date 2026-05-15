@@ -70,22 +70,14 @@ export default function PracticePage() {
           <div className="w-8 h-8 rounded-full bg-[#C8DDD9] flex items-center justify-center flex-shrink-0 text-[14px]">
             🌿
           </div>
-          <div className="flex-1 rounded-[16px] rounded-tl-[4px] overflow-hidden" style={{ backgroundColor: '#FDFAF6' }}>
-            <div className="flex">
-              <div
-                className="w-[3px] flex-shrink-0 self-stretch"
-                style={{ background: 'linear-gradient(to bottom, #D4875A, #7BA699)' }}
-              />
-              <div className="flex-1 px-4 py-3">
-                <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
-                  {current.ai}
-                </p>
-                <button className="flex items-center gap-1 mt-2 text-[12px] text-[#AAAAAA]">
-                  <Volume2 size={12} />
-                  播放语音
-                </button>
-              </div>
-            </div>
+          <div className="flex-1 rounded-[16px] rounded-tl-[4px] px-4 py-3 shadow-sm border border-black/[0.05]" style={{ backgroundColor: '#FFFFFF' }}>
+            <p className="text-[15px] text-[#1A1A1A] leading-relaxed">
+              {current.ai}
+            </p>
+            <button className="flex items-center gap-1 mt-2 text-[12px] text-[#AAAAAA]">
+              <Volume2 size={12} />
+              播放语音
+            </button>
           </div>
         </div>
 
@@ -96,9 +88,9 @@ export default function PracticePage() {
           </div>
           <div
             className="rounded-[16px] rounded-tr-[4px] px-4 py-3"
-            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E0DDD8' }}
+            style={{ backgroundColor: '#FDFAF6' }}
           >
-            <p style={{ fontSize: 15, color: '#555555', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: '#1A1A1A', lineHeight: 1.6 }}>
               I remember I went to a park last weekend...
             </p>
           </div>
