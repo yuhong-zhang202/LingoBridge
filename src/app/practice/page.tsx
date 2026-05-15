@@ -5,6 +5,8 @@ import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 
+const ARTICLE_CONTENT = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`
+
 const QUESTIONS = [
   { topic: '户外活动 · Part 1', ai: '我们今天来聊聊户外活动这个话题。你还记得上次说的那次公园经历吗？' },
   { topic: '户外活动 · Part 1', ai: '你在公园里做了什么让你感到放松的事情？' },
@@ -115,7 +117,7 @@ export default function PracticePage() {
         >
           <div className="flex items-center gap-2">
             <FileText size={13} className="text-[#CCCCCC]" />
-            <span className="text-[13px] text-[#AAAAAA]">查看口语稿参考</span>
+            <span className="text-[13px] text-[#AAAAAA]">参考示例</span>
           </div>
           <ChevronDown
             size={13}
@@ -129,11 +131,8 @@ export default function PracticePage() {
             className="px-4 py-3 overflow-y-auto"
             style={{ backgroundColor: '#FAFAF8', borderBottom: '1px solid #F0EDE9', maxHeight: 120 }}
           >
-            <p className="text-[10px] font-medium text-[#CCCCCC] uppercase tracking-wide mb-2">
-              你的口语稿
-            </p>
-            <p className="text-[13px] text-[#AAAAAA] leading-relaxed">
-              Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience...
+            <p className="text-[14px] text-[#888888] leading-relaxed">
+              {ARTICLE_CONTENT}
             </p>
           </div>
         )}
@@ -197,6 +196,7 @@ export default function PracticePage() {
               left: 0,
               right: 0,
               width: '100%',
+              boxSizing: 'border-box',
               height: 320,
               background: '#FFFFFF',
               borderTopLeftRadius: '50% 60px',

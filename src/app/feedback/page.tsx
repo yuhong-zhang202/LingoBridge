@@ -50,7 +50,7 @@ export default function FeedbackPage() {
 
           {/* 主卡片 */}
           <div
-            className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-[22px] z-10"
+            className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-[22px] pt-[16px] pb-[22px] z-10"
             style={{
               background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #D4875A, #7BA699) border-box',
               border: '1.5px solid transparent',
@@ -61,7 +61,7 @@ export default function FeedbackPage() {
             <div className="flex items-center mb-4">
               <span
                 className="text-[11px] font-medium text-[#AAAAAA] px-3 py-1 rounded-full"
-                style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #7BA699' }}
+                style={{ backgroundColor: '#EEEEEE' }}
               >
                 {userName || '你说的'}
               </span>
@@ -90,7 +90,7 @@ export default function FeedbackPage() {
             {/* AI 优化标签 */}
             <div
               className="inline-flex items-center px-3 py-1 rounded-[10px] text-[12px] font-medium mb-2"
-              style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #7BA699', color: '#5A9E8A' }}
+              style={{ backgroundColor: '#EEF7F3', color: '#5A9E8A' }}
             >
               AI 优化
             </div>
@@ -101,7 +101,7 @@ export default function FeedbackPage() {
               style={{
                 backgroundColor: '#F8F7F5',
                 borderRadius: 10,
-                padding: '12px 16px',
+                padding: '12px 16px 24px',
               }}
             >
               <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6, paddingRight: 36 }}>
