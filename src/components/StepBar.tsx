@@ -26,15 +26,15 @@ export function StepBar({ currentStep }: StepBarProps) {
               <div
                 className={`
                   w-[8px] h-[8px] rounded-full transition-all duration-300
-                  ${isDone    ? 'bg-[#D4875A]' : ''}
-                  ${isCurrent ? 'bg-[#D4875A] ring-2 ring-[#D4875A]/30 ring-offset-1' : ''}
+                  ${isDone    ? 'bg-brand-primary' : ''}
+                  ${isCurrent ? 'bg-brand-primary ring-2 ring-brand-primary/30 ring-offset-1' : ''}
                   ${!isDone && !isCurrent ? 'bg-[#DDDDDD]' : ''}
                 `}
               />
               <span
                 className={`
                   text-[10px] whitespace-nowrap
-                  ${isCurrent ? 'text-[#D4875A] font-semibold' : isDone ? 'text-[#D4875A]' : 'text-[#BBBBBB]'}
+                  ${isCurrent ? 'text-brand-primary font-semibold' : isDone ? 'text-brand-primary' : 'text-[#BBBBBB]'}
                 `}
               >
                 {step.label}
@@ -44,7 +44,7 @@ export function StepBar({ currentStep }: StepBarProps) {
               <div
                 className={`
                   flex-1 h-[1.5px] mx-1 mb-[14px] rounded-full transition-all duration-300
-                  ${isDone ? 'bg-[#D4875A]' : 'bg-[#EEEEEE]'}
+                  ${isDone ? 'bg-brand-primary' : 'bg-[#EEEEEE]'}
                 `}
               />
             )}

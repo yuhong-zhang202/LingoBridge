@@ -32,5 +32,17 @@ export type WordDef = {
   meaning: string
 }
 
+// ── 反馈相关
+export interface FeedbackCard {
+  id: string
+  questionId: string
+  storyId: string
+  userSentence: string
+  aiSentence: string
+  userAudioUrl?: string
+  aiAudioUrl?: string
+  createdAt: string
+}
+
 // ── 等级相关
 export type BandLevel = '5.5' | '6.0' | '6.5' | '7.0'

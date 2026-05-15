@@ -114,7 +114,7 @@ function PracticeContent() {
 
         {/* 用户气泡 - 右侧 */}
         <div className="flex items-start gap-3 max-w-[85%] ml-auto flex-row-reverse mb-4">
-          <div className="w-8 h-8 rounded-full bg-[#E8C9A8] flex items-center justify-center flex-shrink-0 text-[13px] font-semibold text-[#D4875A]">
+          <div className="w-8 h-8 rounded-full bg-[#E8C9A8] flex items-center justify-center flex-shrink-0 text-[13px] font-semibold text-brand-primary">
             你
           </div>
           <div

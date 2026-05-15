@@ -6,6 +6,8 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { GRADIENT_BORDER_STYLE_FULL as GRADIENT_BORDER } from '@/lib/constants'
 import { ARTICLE_TEXT } from '@/data/article'
+import { generateArticle } from '@/services/article'
+import type { BandLevel } from '@/lib/types'
 
 const BANDS = [
   { value: '5.5', label: '简单流畅，日常表达' },
@@ -26,9 +28,20 @@ export default function ArticlePage() {
   const [selected, setSelected] = useState('6.0')
   const [bandOpen, setBandOpen] = useState(false)
   const [generated, setGenerated] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(ARTICLE_TEXT)
+
+  const storyText = '我今天去了一个公园，感觉非常开心。空气很好，待了挺长时间...'
+
+  const handleGenerate = async () => {
+    setIsGenerating(true)
+    const result = await generateArticle(storyText, selected as BandLevel)
+    setEditContent(result)
+    setGenerated(true)
+    setIsGenerating(false)
+  }
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -130,11 +143,12 @@ export default function ArticlePage() {
 
         {/* 生成按钮 */}
         <button
-          onClick={() => setGenerated(true)}
+          onClick={handleGenerate}
+          disabled={isGenerating}
           className="btn-gradient w-full h-[46px] mb-6 mt-3"
         >
           <Sparkles size={15} className="text-[#555]" />
-          生成我的口语文章
+          {isGenerating ? '生成中...' : '生成我的口语文章'}
         </button>
 
         {/* 文章展示区 */}

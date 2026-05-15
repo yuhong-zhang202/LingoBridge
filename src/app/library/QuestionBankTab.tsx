@@ -109,8 +109,8 @@ export default function QuestionBankTab({ onNavigate }: Props) {
                         <div className="flex items-center gap-1.5 mb-2">
                           {q.hasStory ? (
                             <>
-                              <CheckCircle size={12} className="text-[#7BA699]" />
-                              <span className="text-[11px] text-[#7BA699] font-medium">
+                              <CheckCircle size={12} className="text-brand-accent" />
+                              <span className="text-[11px] text-brand-accent font-medium">
                                 已有素材
                               </span>
                               {q.storyTitle && (

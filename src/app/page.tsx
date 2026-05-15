@@ -77,7 +77,7 @@ export default function HomePage() {
                 value={textStory}
                 onChange={e => setTextStory(e.target.value)}
                 placeholder="用中文写下你的故事，比如：今天去了附近的公园，空气很好，心情也轻松了很多..."
-                className="w-full min-h-[120px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-[#D4875A] transition-colors"
+                className="w-full min-h-[120px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-brand-primary transition-colors"
                 autoFocus
               />
               <div className="flex justify-between items-center mt-2 px-1">

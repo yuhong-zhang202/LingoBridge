@@ -118,7 +118,7 @@ export default function MatchingPage() {
                       {item.part}
                     </span>
                     {item.hot && (
-                      <span className="text-[10px] font-medium bg-[rgba(240,188,160,0.18)] text-[#D4875A] px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-medium bg-[rgba(240,188,160,0.18)] text-brand-primary px-2 py-0.5 rounded-full">
                         当季热题
                       </span>
                     )}
