@@ -7,26 +7,8 @@ import {
   Plus,
 } from 'lucide-react'
 import TabBar from '@/components/TabBar'
-
-// ── 数据类型 ──
-
-type Story = {
-  id: string
-  title: string
-  preview: string
-  date: string
-  band: string
-  matchCount: number
-}
-
-type Question = {
-  id: string
-  part: 'Part 1' | 'Part 2' | 'Part 3'
-  en: string
-  zh: string
-  hasStory: boolean
-  storyTitle?: string
-}
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import type { Story, Question } from '@/lib/types'
 
 // ── 静态数据 ──
 
@@ -109,14 +91,6 @@ const QUESTIONS_BY_PART: Record<string, Question[]> = {
     },
   ],
 }
-
-const GRADIENT_BORDER_STYLE = {
-  background: [
-    'linear-gradient(white, white) padding-box',
-    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80)) border-box',
-  ].join(','),
-  border: '1.5px solid transparent',
-} as React.CSSProperties
 
 // ── 子组件：我的素材 Tab ──
 

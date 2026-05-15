@@ -5,6 +5,7 @@ import { Star, ArrowRight, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3']
 
@@ -28,14 +29,6 @@ const QUESTIONS = [
     reason: '与你的故事相关：周末活动、休闲方式',
   },
 ]
-
-const GRADIENT_BORDER_STYLE = {
-  background: [
-    'linear-gradient(white, white) padding-box',
-    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80)) border-box',
-  ].join(','),
-  border: '1.5px solid transparent',
-} as React.CSSProperties
 
 export default function MatchingPage() {
   const router = useRouter()

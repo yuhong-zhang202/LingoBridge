@@ -4,18 +4,11 @@ import { useRouter } from 'next/navigation'
 import { X, Heart } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
+import { GRADIENT_BORDER_STYLE_FULL as GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 const TOTAL = 8
 const CURRENT = 3
 const userName = 'YZ'
-
-const GRADIENT_BORDER_STYLE = {
-  background: [
-    'linear-gradient(white, white) padding-box',
-    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80), rgba(188,210,168,0.75)) border-box',
-  ].join(','),
-  border: '1.5px solid transparent',
-} as React.CSSProperties
 
 export default function FeedbackPage() {
   const router = useRouter()

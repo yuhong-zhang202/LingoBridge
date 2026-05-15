@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { Volume2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
+import { GRADIENT_BORDER_STYLE_FULL as GRADIENT_BORDER } from '@/lib/constants'
+import { ARTICLE_TEXT } from '@/data/article'
 
 const BANDS = [
   { value: '5.5', label: '简单流畅，日常表达' },
@@ -18,16 +20,6 @@ const BAND_MAP: Record<string, string> = {
   '6.5': '逻辑清晰，词汇丰富',
   '7.0': '地道表达，接近母语',
 }
-
-const ARTICLE_TEXT = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`
-
-const GRADIENT_BORDER = {
-  background: [
-    'linear-gradient(white, white) padding-box',
-    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80), rgba(188,210,168,0.75)) border-box',
-  ].join(','),
-  border: '1.5px solid transparent',
-} as React.CSSProperties
 
 export default function ArticlePage() {
   const router = useRouter()

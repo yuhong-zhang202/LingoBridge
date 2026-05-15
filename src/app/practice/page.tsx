@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
-
-const ARTICLE_CONTENT = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`
+import { ARTICLE_TEXT as ARTICLE_CONTENT } from '@/data/article'
 
 const QUESTIONS = [
   { topic: '户外活动 · Part 1', ai: '我们今天来聊聊户外活动这个话题。你还记得上次说的那次公园经历吗？' },

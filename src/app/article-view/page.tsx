@@ -2,28 +2,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-
-const ARTICLE_TEXT = `Last weekend, I spent some time at a local park near my home. It was a genuinely refreshing experience. The air was clean and peaceful, which made me feel calm and recharged.`
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { ARTICLE_TEXT, WORD_DEFINITIONS as DEFINITIONS } from '@/data/article'
 
 const ORIGINAL_STORY = `上周末我去了附近的公园，空气很好，心情也轻松了很多。待了很长时间，感觉充了电一样。`
-
-interface WordDef { phonetic: string; meaning: string }
-
-const DEFINITIONS: Record<string, WordDef> = {
-  'local':      { phonetic: '/ˈloʊkl/',        meaning: '当地的，本地的' },
-  'genuinely':  { phonetic: '/ˈdʒenjuɪnli/',   meaning: '真正地，确实地' },
-  'refreshing': { phonetic: '/rɪˈfreʃɪŋ/',     meaning: '令人清爽的，振奋的' },
-  'peaceful':   { phonetic: '/ˈpiːsfl/',        meaning: '平静的，安详的' },
-  'recharged':  { phonetic: '/ˌriːˈtʃɑːrdʒd/', meaning: '重新充满活力的' },
-}
-
-const GRADIENT_BORDER_STYLE = {
-  background: [
-    'linear-gradient(white, white) padding-box',
-    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80)) border-box',
-  ].join(','),
-  border: '1.5px solid transparent',
-} as React.CSSProperties
 
 function clean(word: string) {
   return word.replace(/[.,!?;:'"]/g, '').toLowerCase()
