@@ -1,20 +1,46 @@
+/**
+ * @module   PracticePage
+ * @desc     练习对话页 — 基于选中题目进行口语对话练习，题目信息从 URL 参数读取
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { ARTICLE_TEXT as ARTICLE_CONTENT } from '@/data/article'
 import { useRecording } from '@/hooks/useRecording'
 
-const QUESTIONS = [
-  { topic: '户外活动 · Part 1', ai: '我们今天来聊聊户外活动这个话题。你还记得上次说的那次公园经历吗？' },
-  { topic: '户外活动 · Part 1', ai: '你在公园里做了什么让你感到放松的事情？' },
-  { topic: '户外活动 · Part 1', ai: '如果下次再去公园，你会做什么不一样的事吗？' },
+interface ConversationTurn {
+  topic: string
+  ai: string
+}
+
+const CONVERSATION_TURNS: ConversationTurn[] = [
+  { topic: '户外活动', ai: '我们今天来聊聊户外活动这个话题。你还记得上次说的那次公园经历吗？' },
+  { topic: '户外活动', ai: '你在公园里做了什么让你感到放松的事情？' },
+  { topic: '户外活动', ai: '如果下次再去公园，你会做什么不一样的事吗？' },
 ]
 
-export default function PracticePage() {
+interface QuestionInfo {
+  part: string
+  en: string
+  zh: string
+}
+
+/** 题目 id → 题目信息映射，与 matching/page.tsx 的 QUESTIONS 数据对齐 */
+const QUESTION_MAP: Record<string, QuestionInfo> = {
+  q1: { part: 'Part 1', en: 'Do you often go to parks or outdoor spaces?', zh: '你经常去公园吗？' },
+  q2: { part: 'Part 2', en: 'Describe a place in nature you like to visit.', zh: '描述你喜欢的自然环境中的一个地方。' },
+  q3: { part: 'Part 1', en: 'What do you do on weekends?', zh: '你周末都做些什么？' },
+}
+
+function PracticeContent() {
   const router = useRouter()
+  const params = useSearchParams()
   const [hintOpen, setHintOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -26,8 +52,11 @@ export default function PracticePage() {
     cancelLongPress,
   } = useRecording()
 
-  const total = QUESTIONS.length
-  const current = QUESTIONS[currentIndex]
+  const questionId = params.get('questionId') ?? ''
+  const selectedQuestion: QuestionInfo | null = QUESTION_MAP[questionId] ?? null
+
+  const total = CONVERSATION_TURNS.length
+  const current = CONVERSATION_TURNS[currentIndex]
 
   const handleNext = () => {
     if (currentIndex < total - 1) {
@@ -58,9 +87,24 @@ export default function PracticePage() {
 
         {/* 话题提示条 */}
         <div className="flex items-center justify-between bg-[#F4F4F4] rounded-[10px] px-3.5 py-2 mb-4">
-          <span className="text-[11px] text-[#888888]">当前话题：{current.topic}</span>
+          <span className="text-[11px] text-[#888888]">
+            当前话题：{selectedQuestion ? selectedQuestion.part : current.topic}
+          </span>
           <span className="text-[11px] text-[#AAAAAA]">问题 {currentIndex + 1} / {total}</span>
         </div>
+
+        {/* 练习题目：从 URL 参数读取的 IELTS 真题 */}
+        {selectedQuestion && (
+          <div className="surface px-4 py-3 mb-4">
+            <p className="text-[10px] font-medium text-[#AAAAAA] uppercase tracking-wide mb-1">
+              {selectedQuestion.part} · 练习题目
+            </p>
+            <p className="text-[14px] font-semibold text-[#111] leading-snug">
+              {selectedQuestion.en}
+            </p>
+            <p className="text-[12px] text-[#888] mt-0.5">{selectedQuestion.zh}</p>
+          </div>
+        )}
 
         {/* AI 气泡 - 左侧 */}
         <div className="flex items-start gap-3 max-w-[85%] mb-4">
@@ -287,5 +331,13 @@ export default function PracticePage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense>
+      <PracticeContent />
+    </Suspense>
   )
 }

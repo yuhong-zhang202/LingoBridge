@@ -1,3 +1,9 @@
+/**
+ * @module   MatchingPage
+ * @desc     题目匹配页 — 展示与当前故事匹配的雅思真题，选题后跳转练习
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,6 +14,9 @@ import TabBar from '@/components/TabBar'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3']
+
+// Hardcoded until multi-story navigation is implemented
+const STORY_ID = '1'
 
 const QUESTIONS = [
   {
@@ -158,7 +167,7 @@ export default function MatchingPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        router.push('/practice')
+                        router.push(`/practice?questionId=${item.id}&storyId=${STORY_ID}`)
                       }}
                       className="flex items-center gap-1 text-[12px] font-semibold text-[#444] px-3 py-1.5 rounded-full flex-shrink-0"
                       style={GRADIENT_BORDER_STYLE}
