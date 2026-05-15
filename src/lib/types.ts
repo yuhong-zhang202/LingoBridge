@@ -1,3 +1,10 @@
+/**
+ * @module   types
+ * @desc     全局共享类型定义 — 所有业务实体的唯一类型来源
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
+
 // ── 素材库相关
 export type Story = {
   id: string

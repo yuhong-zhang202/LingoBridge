@@ -6,6 +6,7 @@ import TabBar from '@/components/TabBar'
 import MyStoriesTab from './MyStoriesTab'
 import QuestionBankTab from './QuestionBankTab'
 import { MY_STORIES, QUESTIONS_BY_PART } from '@/data/library'
+import { BRAND_COLORS } from '@/lib/constants'
 
 export default function LibraryPage() {
   const router = useRouter()
@@ -63,7 +64,7 @@ export default function LibraryPage() {
           </div>
           <div className="flex-1" style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))', borderRadius: 16, padding: 1.5 }}>
             <div className="bg-white rounded-[14px] p-3.5">
-              <p className="text-[24px] font-bold" style={{ color: '#7BA699' }}>{totalWithStory}</p>
+              <p className="text-[24px] font-bold" style={{ color: BRAND_COLORS.green }}>{totalWithStory}</p>
               <p className="text-[11px] text-[#AAAAAA] mt-0.5">已覆盖题目</p>
             </div>
           </div>

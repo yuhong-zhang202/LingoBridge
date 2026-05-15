@@ -13,6 +13,8 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { ARTICLE_TEXT as ARTICLE_CONTENT } from '@/data/article'
 import { useRecording } from '@/hooks/useRecording'
+import { QUESTIONS } from '@/data/questions'
+import { BRAND_COLORS } from '@/lib/constants'
 import type { Question } from '@/lib/types'
 
 interface ConversationTurn {
@@ -25,13 +27,6 @@ const CONVERSATION_TURNS: ConversationTurn[] = [
   { topic: '户外活动', ai: '你在公园里做了什么让你感到放松的事情？' },
   { topic: '户外活动', ai: '如果下次再去公园，你会做什么不一样的事吗？' },
 ]
-
-/** 题目 id → 题目信息映射，与 matching/page.tsx 的 QUESTIONS 数据对齐 */
-const QUESTION_MAP: Record<string, Pick<Question, 'part' | 'en' | 'zh'>> = {
-  q1: { part: 'Part 1', en: 'Do you often go to parks or outdoor spaces?', zh: '你经常去公园吗？' },
-  q2: { part: 'Part 2', en: 'Describe a place in nature you like to visit.', zh: '描述你喜欢的自然环境中的一个地方。' },
-  q3: { part: 'Part 1', en: 'What do you do on weekends?', zh: '你周末都做些什么？' },
-}
 
 function PracticeContent() {
   const router = useRouter()
@@ -48,7 +43,7 @@ function PracticeContent() {
   } = useRecording()
 
   const questionId = params.get('questionId') ?? ''
-  const selectedQuestion: Pick<Question, 'part' | 'en' | 'zh'> | null = QUESTION_MAP[questionId] ?? null
+  const selectedQuestion: Question | null = QUESTIONS.find(q => q.id === questionId) ?? null
 
   const total = CONVERSATION_TURNS.length
   const current = CONVERSATION_TURNS[currentIndex]
@@ -283,7 +278,7 @@ function PracticeContent() {
                   onClick={cancelLongPress}
                   className="w-[80px] h-[80px] rounded-full flex items-center justify-center"
                   style={{
-                    background: 'linear-gradient(135deg, #D4875A, #7BA699)',
+                    background: `linear-gradient(135deg, ${BRAND_COLORS.orange}, ${BRAND_COLORS.green})`,
                     padding: 2,
                   }}
                 >
@@ -292,14 +287,14 @@ function PracticeContent() {
                     style={{ backgroundColor: '#FAFAFA' }}
                   >
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="#D4875A"/>
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
-                      <line x1="12" y1="19" x2="12" y2="23" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
-                      <line x1="8" y1="23" x2="16" y2="23" stroke="#D4875A" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill={BRAND_COLORS.orange}/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke={BRAND_COLORS.orange} strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="12" y1="19" x2="12" y2="23" stroke={BRAND_COLORS.orange} strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="8" y1="23" x2="16" y2="23" stroke={BRAND_COLORS.orange} strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   </div>
                 </button>
-                <span className="text-[13px] font-medium" style={{ color: '#D4875A' }}>
+                <span className="text-[13px] font-medium" style={{ color: BRAND_COLORS.orange }}>
                   发送语音
                 </span>
               </div>
@@ -312,10 +307,10 @@ function PracticeContent() {
                   style={{ backgroundColor: '#EAF4F1' }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 6h16M4 12h10M4 18h7" stroke="#7BA699" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M4 6h16M4 12h10M4 18h7" stroke={BRAND_COLORS.green} strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                 </button>
-                <span className="text-[13px]" style={{ color: '#7BA699' }}>转文字</span>
+                <span className="text-[13px]" style={{ color: BRAND_COLORS.green }}>转文字</span>
               </div>
             </div>
 
