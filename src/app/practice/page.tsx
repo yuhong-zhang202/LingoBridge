@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Volume2, FileText, ChevronDown, RotateCcw, Mic2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -19,6 +19,27 @@ export default function PracticePage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLongPressing, setIsLongPressing] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>()
+  const [sheetBounds, setSheetBounds] = useState<{ left: number; width: number }>({
+    left: 0,
+    width: typeof window !== 'undefined' ? window.innerWidth : 390,
+  })
+
+  const calcSheetBounds = () => {
+    const container = document.getElementById('app-root-container')
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      setSheetBounds({ left: rect.left, width: rect.width })
+    }
+  }
+
+  useEffect(() => {
+    if (isLongPressing) calcSheetBounds()
+  }, [isLongPressing])
+
+  useEffect(() => {
+    window.addEventListener('resize', calcSheetBounds)
+    return () => window.removeEventListener('resize', calcSheetBounds)
+  }, [])
 
   const total = QUESTIONS.length
   const current = QUESTIONS[currentIndex]
@@ -177,26 +198,25 @@ export default function PracticePage() {
       {/* 长按录音底栏 */}
       {isLongPressing && (
         <>
-          {/* 背景遮罩 */}
+          {/* 背景遮罩：全屏覆盖 */}
           <div
             style={{
               position: 'fixed',
-              top: 0, right: 0, bottom: 0, left: 0,
+              inset: 0,
               backgroundColor: 'rgba(0,0,0,0.30)',
               zIndex: 40,
             }}
+            onClick={() => setIsLongPressing(false)}
           />
 
-          {/* 半圆底栏 */}
+          {/* 半圆底栏：对齐 App 容器 */}
           <div
             className="sheet-enter"
             style={{
               position: 'fixed',
               bottom: 0,
-              left: 0,
-              right: 0,
-              width: '100%',
-              boxSizing: 'border-box',
+              left: sheetBounds.left,
+              width: sheetBounds.width,
               height: 320,
               background: '#FFFFFF',
               borderTopLeftRadius: '50% 60px',

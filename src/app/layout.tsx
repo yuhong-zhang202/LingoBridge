@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="zh">
       <body className="bg-bg-page">
         <div className="min-h-screen w-full flex justify-center bg-bg-page">
-          <div className="relative w-full max-w-[430px] min-h-screen bg-bg-page overflow-hidden">
+          <div id="app-root-container" className="relative w-full max-w-[430px] min-h-screen bg-bg-page overflow-hidden">
             {children}
           </div>
         </div>
