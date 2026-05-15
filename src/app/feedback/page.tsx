@@ -59,7 +59,10 @@ export default function FeedbackPage() {
           >
 
             <div className="flex items-center mb-4">
-              <span className="text-[11px] font-medium text-[#AAAAAA] bg-[#F4F4F4] px-3 py-1 rounded-full">
+              <span
+                className="text-[11px] font-medium text-[#AAAAAA] px-3 py-1 rounded-full"
+                style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #7BA699' }}
+              >
                 {userName || '你说的'}
               </span>
             </div>
@@ -87,7 +90,7 @@ export default function FeedbackPage() {
             {/* AI 优化标签 */}
             <div
               className="inline-flex items-center px-3 py-1 rounded-[10px] text-[12px] font-medium mb-2"
-              style={{ backgroundColor: '#EEF7F3', color: '#5A9E8A' }}
+              style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #7BA699', color: '#5A9E8A' }}
             >
               AI 优化
             </div>

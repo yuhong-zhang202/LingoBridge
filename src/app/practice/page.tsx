@@ -87,7 +87,7 @@ export default function PracticePage() {
             你
           </div>
           <div
-            className="rounded-[16px] rounded-tr-[4px] px-4 py-3"
+            className="rounded-[16px] rounded-tr-[4px] px-4 py-3 shadow-sm border border-black/[0.05]"
             style={{ backgroundColor: '#FDFAF6' }}
           >
             <p style={{ fontSize: 15, color: '#1A1A1A', lineHeight: 1.6 }}>
@@ -99,15 +99,12 @@ export default function PracticePage() {
 
       {/* 底部固定区域：口语稿折叠栏 + 录音操作栏 */}
       <div
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px]"
         style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          width: '100%',
           backgroundColor: '#FFFFFF',
           borderTop: '1px solid #EEEEEE',
           zIndex: 20,
+          boxSizing: 'border-box',
         }}
       >
         {/* 口语稿折叠栏 */}
