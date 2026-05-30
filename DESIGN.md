@@ -1,204 +1,526 @@
----
-name: LingoBridge
-description: 温暖平静的雅思口语陪伴者 —— 在宁静的花园里，焦虑化为表达
-colors:
-  warm-ash-cream: "#faf9f6"
-  deep-warm-bark: "#3a2416"
-  faded-celadon: "#6b8f71"
-  ember-glow: "#e8924a"
-  muted-dusk: "#c9b2a4"
-typography:
-  headline:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1.85rem"
-    fontWeight: 600
-    lineHeight: 1.15
-    letterSpacing: "normal"
-  eyebrow:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: "0.18em"
-  caption:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 400
-    lineHeight: 1.4
-    letterSpacing: "0.05em"
-  nav:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "10px"
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: "normal"
-rounded:
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  xl: "32px"
-  full: "9999px"
-spacing:
-  xs: "8px"
-  sm: "16px"
-  md: "28px"
-  lg: "56px"
-components:
-  record-button:
-    backgroundColor: "{colors.ember-glow}"
-    textColor: "{colors.warm-ash-cream}"
-    rounded: "{rounded.full}"
-    size: "80px"
-  record-button-active:
-    backgroundColor: "#d97429"
-  band-chip:
-    backgroundColor: "transparent"
-    textColor: "{colors.faded-celadon}"
-    rounded: "{rounded.full}"
-    padding: "6px 16px"
-  band-chip-selected:
-    backgroundColor: "{colors.ember-glow}"
-    textColor: "{colors.warm-ash-cream}"
-  bottom-nav:
-    backgroundColor: "rgba(250, 247, 242, 0.93)"
-    textColor: "{colors.muted-dusk}"
-    rounded: "0"
-    padding: "0.6rem 0"
-  bottom-nav-active:
-    textColor: "{colors.ember-glow}"
+# LingoBridge Design System
+
+> 每次新建或修改 UI 页面前必读。与 ENGINEERING.md 配套使用——本文件管理视觉决策，ENGINEERING.md 管理工程规范。
+
 ---
 
-# Design System: LingoBridge
+## ⚠️ 视觉基准页面（强制）
 
-## 1. Overview
+所有新页面的视觉风格必须以下列已完成页面为基准，
+开发新页面前必须先阅读这些文件的源代码：
 
-**创意北极星：「静园」**
+- 主要基准：src/app/article-view/page.tsx（生成口语文章页）
+- 辅助参考：src/app/feedback/page.tsx（反馈卡片页）
 
-LingoBridge 是雅思备考焦虑的情感解药。其他工具密集、明亮、充满紧迫感——题库成列、连胜成火、积分弹窗——而 LingoBridge 是静止的。「静园」是一个让事物缓慢生长的空间：猫咪在温暖的光晕里呼吸，用户，终于，开口了。
+具体要求：
+- 背景色、卡片样式、阴影、边框、按钮必须与基准页面视觉上完全一致
+- 遇到 design.md 文字描述与基准页面实际代码冲突时，以基准页面代码为准
+- 新页面开发前，必须先检索基准页面中同类组件的实现方式，直接复用其 class 组合
+- 禁止自创新的 class 或色值，所有样式从基准页面或 design.md token 中取
 
-调色盘温暖而不甜腻。暖灰白（Warm Ash Cream）是每一屏的底色，像台灯下的旧纸张。褪色青瓷（Faded Celadon）是若隐若现的绿色存在，像枝茎的颜色，是品牌的安静信号。余烬橙（Ember Glow）是行动的唯一声音：每屏只出现一次，像窗里的灯光，告诉用户去哪里。没有什么在争夺注意力。这套设计用克制换来信任，而不是用奖励。
+---
 
-本系统明确拒绝以下风格：Duolingo 的游戏化机制（连胜焦虑、经验值、卡通紧迫感）、通用雅思题库的信息密度（Tab 导航、一屏全塞）、以及微信式的功能堆砌（灰色调、字小行密、纯功能主导无情感温度）。那些系统优化的是留存数据，LingoBridge 优化的是学生第一次不卡顿开口的那一刻。
+## 1. 色彩系统
 
-**核心特征：**
-- 单动作页面：每个视图只有一个主要手势
-- 永远不会漂白为白色或灰色的暖色中性调
-- 余烬橙作为唯一行动信号，稀少才有分量
-- 有机的环境动效：呼吸感，不是弹跳感
-- 适合移动端的可读字号；中文眉批在标题开口前轻声铺垫
+### v2 Token（新页面一律用 v2）
 
-## 2. Colors: 花园调色盘
+| Token | 色值 | 使用场景 |
+|---|---|---|
+| `bg-base` | `#F5F2EE` | v2 页面底层背景（设计稿参考值） |
+| `bg-surface` | `#FFFFFF` | 卡片、面板、输入框表面 |
+| `bg-muted` | `#EEEBE6` | 次级区域、分隔填充、骨架屏 |
+| `brand-primary` | `#D4875A` | 主品牌色（暖橙）：主按钮描边、步骤条激活态、强调文字 |
+| `brand-primary-light` | `#F2D5C0` | 主品牌浅色：tag 背景、卡片点缀 |
+| `brand-primary-dark` | `#B5663A` | 主品牌深色：hover 态、强调标题 |
+| `brand-accent` | `#7BA699` | 副品牌色（绿蓝）：AI 优化标签、辅助图标 |
+| `brand-accent-light` | `#C8DDD9` | 副品牌浅色：辅助背景、AI tag 背景 |
+| `v2-text-primary` | `#2C2420` | 正文主色 |
+| `v2-text-secondary` | `#6B5B52` | 次要文字 |
+| `v2-text-muted` | `#A89990` | 辅助文字、字数统计、时间戳 |
 
-三个刻意划定的角色——底色、品牌信号、行动之声——各司其职。
+### v1 备用 Token（仅旧页面维护，新页面禁用）
 
-### Primary
-- **余烬橙（Ember Glow）** (#e8924a / oklch(67% 0.138 55))：行动的唯一声音。用于录音按钮、激活状态的导航、波形动效，以及任何要求用户立即做某件事的交互元素。它的克制正是它分量的来源。
+| Token | 色值 | 说明 |
+|---|---|---|
+| `bg-page` | `#FEFEFE` | 当前全局页面背景（已更新，见下节） |
+| `bg-card` | `#FFFFFF` | 卡片背景 |
+| `bg-inner` | `#F4F4F4` | 内嵌区域 / `.surface` |
+| `text-1` | `#111111` | 主文字 |
+| `text-2` | `#444444` | 次要文字 |
+| `text-3` | `#888888` | 辅助文字 |
+| `text-4` | `#BBBBBB` | 禁用 / 占位文字 |
+| `success` | `#5BA08A` | 成功态 |
+| `warning` | `#C4965A` | 警告态 |
+| `error` | `#C47A6A` | 错误态 |
 
-### Secondary
-- **褪色青瓷（Faded Celadon）** (#6b8f71 / oklch(57% 0.062 147))：品牌存在感。用于静止状态的图标、次级动作的描边、选择器边框，以及低调的品牌时刻。永远不作为主要行动色。它是花园的绿，不是灯的火。
+### IELTS 分数段色
 
-### Neutral
-- **暖灰白（Warm Ash Cream）** (#faf9f6 / oklch(97.5% 0.006 78))：每一屏的底色。App 背景、底部导航的填充色。不是白色——它内嵌着温度。任何想用 #fff 的时候，用这个。
-- **深暖棕（Deep Warm Bark）** (#3a2416 / oklch(20% 0.058 46))：标题和高强调文本的主色。温暖的深棕，从不冷峻，从不是纯黑。
-- **暮色灰粉（Muted Dusk）** (#c9b2a4 / oklch(74% 0.025 54))：次级文本、安静标签、非激活导航状态、眉批文字。存在，但不索取注意力。
+| Token | 色值 | 场景 |
+|---|---|---|
+| `band-55` | `#AAAAAA` | Band 5.5 |
+| `band-60` | `#7BA699` | Band 6.0（同 brand-accent） |
+| `band-65` | `#D4875A` | Band 6.5（同 brand-primary） |
+| `band-70` | `#9A7DB8` | Band 7.0+ |
 
-### Named Rules
-**「余烬之声」法则。** 余烬橙（#e8924a）是任何页面上唯一的行动之声。它只出现一次，用于主要动作。不作装饰，不重复出现，不用于文本着色。它的稀少正是它的意义：用户看到它，就知道该做什么。
+### 渐变参数
 
-**「禁白」法则。** #ffffff 禁止使用。最亮的表面是暖灰白（#faf9f6）。最深的文字是深暖棕（#3a2416），不是 #000000。这套系统的每一个色调都向温暖倾斜。
+**主 CTA 描边渐变（橙→绿→黄绿）：**
+```css
+linear-gradient(135deg,
+  rgba(240,188,160,0.85) 0%,
+  rgba(168,210,196,0.80) 50%,
+  rgba(188,210,168,0.75) 100%
+)
+```
 
-## 3. Typography
+**顶部氛围光 ambient-light：**
+```css
+radial-gradient(
+  circle,
+  rgba(240,188,160,0.14) 0%,
+  rgba(168,210,196,0.10) 35%,
+  rgba(188,210,168,0.06) 55%,
+  transparent 72%
+)
+filter: blur(60px)
+position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
+```
 
-**正文字体：** Inter（后备：system-ui, sans-serif）
+---
 
-Inter 是为屏幕设计的人文主义无衬线字体：小字号下清晰可读，适合 OLED 屏幕，足够中性，不会与中文文案竞争。全系统使用单一字族——层级来自字重对比和字距，而不是换字体。
+## 核心视觉原则
 
-**气质：** 克制而功能性，只有一个有表情的层级：眉批。标题陈述，眉批低语，说明文字引导。字体从不喊叫。
+> **所有新页面强制遵守，优先级高于各章节具体规范。**
 
-### Hierarchy
-- **大标题（Headline）**（字重 600，1.85rem / 约 30px，行高 1.15）：页面的主要问题或状态。每屏只出现一次。「想聊什么？」「你的练习」「第 5 题」。不重复，不在同一视图的其他位置再出现。
-- **眉批（Eyebrow）**（字重 400，11px，字距 0.18em，全大写）：标题上方的语境标签。始终使用暮色灰粉。铺垫而不竞争。示例：「Hi, 今天」。
-- **说明文字（Caption）**（字重 400，11px，字距 0.05em）：UI 提示、收听提示、状态信息。同为暮色灰粉，最安静的层级。
-- **导航标签（Nav）**（字重 500，10px）：底部导航标签和 Tab 标识。激活时用余烬橙，静止时用暮色灰粉。
+### 背景与卡片层次
 
-### Named Rules
-**「眉批」法则。** 眉批（11px，字距 0.18em，全大写）始终出现在标题之前，始终使用暮色灰粉，始终低语。如果它需要比标题更响亮，说明层级被倒置了——修标题，不修眉批。
+- **页面背景**：`bg-bg-page`（`#FEFEFE`），永远不用有色背景，禁止内联色值
+- **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`），无阴影
+- **强调卡片**（AI 输出内容）：白色背景 + 1px 渐变边框，使用 `GRADIENT_BORDER_STYLE_FULL` 常量
 
-**「一屏一句」法则。** 每个页面只有一个大标题层级的元素。辅助信息使用眉批或说明文字。如果两个元素都在争着做主标题，其中一个还不该出现在这个页面上。
+### 渐变色使用规范
 
-## 4. Elevation
+渐变方向：`brand-primary`（橙 `#D4875A`）→ `brand-accent`（绿 `#7BA699`），对应 `globals.css` 中已定义的渐变参数。
 
-本系统默认平铺。表面与表面之间仅靠色调区分层次（暖灰白调色盘中的深浅变化），没有阴影。唯一的例外：`shadow-warm`，一个淡淡的绿色调漫反射提升感，仅用于持续悬浮在滚动层之上的元素。它读起来更像环境光晕，而不是投影——光从花园内部散出，而不是从上方照下来。
+**允许使用渐变的场景：**
+- 卡片 / 按钮描边（border-box 渐变）
+- 主按钮 `.btn-gradient` 描边
+- StepBar 已完成连线
 
-底部导航使用 `backdrop-filter: blur(14px)` 是为了在内容滚动时保持导航栏可读，这是功能性模糊，不是装饰性玻璃拟态。
+**严禁使用渐变的场景：**
+- 卡片背景、页面背景、大面积色块
 
-### Shadow Vocabulary
-- **暖提升光晕（Ambient Warm Lift）**（`0 2px 16px rgba(107, 143, 113, 0.12)`）：仅用于持续悬浮的界面元素（底部导航、弹出面板）。绿色色调取自褪色青瓷，比中性投影更有温度。
+**渐变边框标准实现方式：**
 
-### Named Rules
-**「默认平铺」法则。** 表面静止时是平的。暖提升光晕只出现在悬浮 UI 上（底部导航、弹出面板）。玻璃模糊仅用于导航栏的功能性可读，永远不用作装饰性毛玻璃卡片。如果一个元素看起来像磨砂面板，它需要一个结构性理由。
+```tsx
+// 外层：渐变背景 + padding 1px 充当边框
+// 内层：白色背景
+<div style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))', borderRadius: 21, padding: 1 }}>
+  <div style={{ background: '#FFFFFF', borderRadius: 20 }}>
+    {/* 内容 */}
+  </div>
+</div>
+```
 
-## 5. Components
+或直接使用 `GRADIENT_BORDER_STYLE_FULL` / `GRADIENT_BORDER_STYLE`（`src/lib/constants.ts`）。
 
-### 录音按钮
-App 的主要动作：一个圆形余烬橙按钮，直径 80px。温暖有质感：悬停时余烬微微加深，按下时轻微压缩。没有文字标签，麦克风图标承载全部含义。录音中状态下，层叠的琥珀光晕向外脉动（余烬橙，8-44% 不透明度，模糊 16-72px，三圈错位 0.8s）。
+### 主按钮规范（强制规范）
 
-- **形状：** 圆形（9999px 圆角）
-- **静止：** 余烬橙（#e8924a）背景，暖灰白图标，80px
-- **悬停：** 背景变为 #d97429（accent-500），scale(1.04)
-- **按下：** scale(0.97)
-- **录音中：** 三圈同心光晕，不透明度 8%、14%、44%，`halo-pulse` 动效错位扩散
+- **正确样式**：白色背景 + 渐变描边 + 渐变文字（或品牌主色文字）
+- **错误样式**：渐变填充背景（严禁）、纯橙 / 纯绿填充（严禁）
 
-### 分段选择器
-用于文章生成页面的雅思分段选择（5.0、5.5、6.0、6.5、7.0+）。胶囊形状，未选中时褪色青瓷描边，选中时余烬橙填充。
+**实现方式**（参考 `src/app/article-view/page.tsx` 中"去练习 →"按钮）：
 
-- **形状：** 全圆角（9999px），约 32px 高，16px 水平内边距
-- **未选中：** 褪色青瓷描边（1.5px），透明填充，青瓷色文字
-- **悬停：** 褪色青瓷 8% 不透明度作为背景
-- **选中：** 余烬橙填充，暖灰白文字，无描边
+```tsx
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
-### 底部导航栏
-每个页面底部的持续玻璃导航栏。四个项目：首页、素材、练习、我的。底部安全区适配 iPhone 底部条。
+<button
+  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
+  style={GRADIENT_BORDER_STYLE}
+>
+  开始匹配题目 →
+</button>
+```
 
-- **背景：** rgba(250, 247, 242, 0.93) + backdrop-filter: blur(14px)
-- **边框：** 顶部仅 1px solid rgba(232, 200, 180, 0.22)
-- **激活项：** 余烬橙（#E8956D）图标描边 + 标签文字
-- **静止项：** 暮色灰粉（#C4B4A8）图标描边 + 标签文字
-- **标签：** 10px / 字重 500
+`GRADIENT_BORDER_STYLE` 使用 CSS `background-clip: padding-box / border-box` 技巧，内层白底，外层渐变边框，无需额外包裹 div。
 
-### 音频波形条
-11 根柱子，振幅呈钟形曲线分布。静止时：全部降至最低高度（3px），17% 不透明度。激活时：每根柱子以错位延迟（0-0.55s）执行 `wave-bar` 关键帧动效，52% 不透明度。全程 ease-in-out，无任何弹跳或回弹。
+| 属性 | 规范值 |
+|---|---|
+| 圆角 | `rounded-full`（全圆角胶囊） |
+| 内边距 | `px-6 py-3`（宽松版）/ `px-5 py-2.5`（紧凑版） |
+| 字重 | `font-medium` |
+| 文字色 | `text-[#444]`（深灰），如需渐变文字另加 `background-clip: text` |
+| 交互 | `active:scale-[0.97] transition-transform duration-150` |
 
-- **柱子：** 宽 2.5px，2px 圆角，余烬橙（#E8956D）
-- **激活：** scaleY(1.0)，不透明度 52%，每根错位 0.055s
-- **静止：** scaleY(0.2)，不透明度 17%，无动效；0.5s ease 过渡恢复
+- **禁止**：自行内联渐变背景替代 `GRADIENT_BORDER_STYLE`，所有页面必须使用同一常量
 
-### 猫咪角色（签名组件）
-主页的情感锚点。不是装饰：猫的状态（熟睡、唤醒中、清醒、蹭蹭）就是 UI 状态。它坐在四层温暖光晕里——同心余烬橙圆形，不透明度 8-44%，模糊 16-72px。所有动效使用 ease-in-out，无弹跳，无回弹。
+### 次要元素规范
 
-- **呼吸（持续）：** translateY 0 到 -5px，3s ease-in-out 循环
-- **唤醒序列：** scaleX 翻转（0.34s ease-in + 0.34s ease-out），打哈欠阶段（1.38s），眨眼阶段（0.66s）
-- **蹭蹭：** 复合旋转 + translateY，0.72s ease-in-out，点击猫咪头部触发
-- **光晕云团：** 4 个同心圆，直径 280/220/160/100px，模糊 72/52/32/16px
+| 元素 | 规范 |
+|---|---|
+| 小标签 / badge | 极浅底色（`brand-accent-light #C8DDD9` 或 `brand-primary-light #F2D5C0`）+ 对应浅边框，文字用对应深色 token |
+| 辅助文字按钮 | `text-v2-text-muted`（`#A89990`），不使用品牌色 |
+| 图标 | 使用 lucide-react outline 风格，`size` 传 px 数值，颜色跟随父元素 |
 
-## 6. Do's and Don'ts
+### 颜色冲突处理原则
 
-### 应当：
-- **应当** 在每个页面上用余烬橙（#e8924a）标记唯一的主要动作——只有那一个。
-- **应当** 将暖灰白（#faf9f6）作为通用背景色。不用 #fff，不用任何冷色中性调。
-- **应当** 每屏只设一个大标题。一屏、一个问题、一个主要答案。
-- **应当** 用褪色青瓷承载品牌存在感：静止图标、选择器描边、次级信号。
-- **应当** 用眉批 + 大标题的组合（暮色灰粉标签在深暖棕标题上方）开启每个页面。
-- **应当** 保持动效缓动为指数曲线（ease-in-out、ease-out-quart）。缓慢有机，不能有任何突兀感。
-- **应当** 给页面充足且有变化的留白。呼吸空间不是浪费——它就是这座花园。
+若新页面 prompt 中指定的颜色值与 design.md 或 tailwind.config.ts 中已定义的 token 冲突，**一律采用项目原有 token，不新增色值**。例如：prompt 写 `#E8883A`，项目 token `brand-primary` 为 `#D4875A`，则使用 `text-brand-primary`，不修改 token 表。
 
-### 禁止：
-- **禁止** 添加连胜计数、经验值条、每日提醒或徽章数字。游戏化机制制造的正是 LingoBridge 要消解的焦虑。这不是 Duolingo。
-- **禁止** 做题库式列表页面：密集行项、内容全部可见、多 Tab 导航。通用雅思 App 的信息密度是明确的反参照。
-- **禁止** 使用灰色中性调、功能堆砌的网格或字小行密的文案。微信的模式——灰色调、小字、纯功能主导无情感温度——明确禁止。
-- **禁止** 使用 #ffffff。最亮的底色是暖灰白（#faf9f6）。
-- **禁止** 使用 #000000。最深的文字是深暖棕（#3a2416）。
-- **禁止** 用超过 1px 的彩色竖线作为卡片或列表项的左右边框装饰。改用全边框或背景色块。
-- **禁止** 在底部导航之外使用玻璃拟态。毛玻璃卡片是装饰性噪音，不是花园的静谧。
-- **禁止** 在同一页面放置两个大标题层级的元素。如果两者竞争，其中一个还不该出现在这里。
-- **禁止** 使用渐变文字（`background-clip: text`）。强调依靠字重和字号，不依靠图形效果。
+---
+
+## 2. 背景色规范
+
+### 全局页面背景
+
+| 位置 | 当前值 | class / token |
+|---|---|---|
+| `html, body`（globals.css） | `#FEFEFE` | 硬编码 |
+| Tailwind `bg-page` token | `#FEFEFE` | `bg-bg-page` |
+| `layout.tsx` themeColor | `#FEFEFE` | viewport meta |
+| TopBar（`TopBar.tsx`） | `#FEFEFE` | `bg-bg-page` |
+| TabBar（`TabBar.tsx`） | `#FEFEFE` | `bg-[#FEFEFE]`（硬编码，需手动同步） |
+| article-view 底部操作栏 | `#FEFEFE` | `bg-[#FEFEFE]`（硬编码，需手动同步） |
+
+> **注意**：TabBar 和 article-view 底栏背景是硬编码的 Tailwind 任意值，修改全局背景时必须同步更新这两处。
+
+### 卡片背景
+
+`#FFFFFF`（`bg-white` / `bg-surface`）——保持纯白，与页面背景形成层次感。
+
+### 组件背景
+
+| 组件 | 背景色 | 说明 |
+|---|---|---|
+| `.surface` 内嵌区域 | `#F4F4F4` | 文本输入框、引用内容、代码块 |
+| `.card` 卡片 | `#FFFFFF` | 带 `border-radius: 20px` 和阴影 |
+| Tab 选中态 | `#F4F4F4` | Tab 切换器激活背景 |
+| 搜索框、统计卡 | `#FFFFFF` | 带细边框 |
+| 用户原句 / AI 优化句区域 | `#F8F7F5` | feedback 页内嵌内容块 |
+| AI 标签背景 | `#EEF7F3` | feedback 页"AI 优化"标签 |
+| 按钮禁用态 | `#EEEEEE` | 不可点击时 |
+| TopBar 返回按钮 | `#FFFFFF` | 圆形 w-30px，shadow-sm |
+
+---
+
+## 3. 字体规范
+
+**字体栈：** `'Plus Jakarta Sans', 'PingFang SC', 'Noto Sans SC', sans-serif`
+**渲染：** `-webkit-font-smoothing: antialiased`
+
+### 字号层级
+
+| 层级 | 用途 | 字号 | 字重 | 颜色参考 |
+|---|---|---|---|---|
+| Display | 首页 Hero 大标题 | 24px | 700 | `#111` |
+| H1 | 页面主标题（素材库） | 18px | 700 | `#111` |
+| H2 | 页面副标题、卡片标题 | 15–16px | 600 | `#111` |
+| Body-lg | 正文（输入框内容） | 15px | 400 | `#1A1A1A` |
+| Body | 正文（卡片、对话） | 14px | 400–500 | `#444` / `#1A1A1A` |
+| Caption | 辅助说明、字数、时间戳 | 12–13px | 400 | `#888` / `#AAAAAA` |
+| Label | tag、步骤条标签 | 10–11px | 500–600 | 视语境 |
+| Timer | 录音计时器 | 22px | 600 | `#111`，tracking `2px` |
+| Button | 主按钮 | 14px | 600 | `#333` |
+| Button-sm | 次按钮 | 13px | 500 | `#666` |
+
+### 行高
+
+- 正文（body）：`leading-relaxed`（约 1.625）
+- 标题：默认（约 1.2–1.3）
+- 辅助文字：默认
+
+---
+
+## 4. 间距与圆角
+
+### 页面边距
+
+| 场景 | 值 |
+|---|---|
+| 标准页面横向内边距 | `px-5`（20px）或 `px-6`（24px） |
+| 首页内容区 | `px-7`（28px） |
+| 录音底部控制区 | `px-8`（32px） |
+| TopBar 高度 | `h-[52px]` |
+| TabBar 高度 | `56px` |
+| 页面底部留白（有 TabBar） | `pb-[56px]` |
+| 页面内容区顶部 | `pt-6`（24px） |
+
+### 组件内边距
+
+| 组件 | 内边距 |
+|---|---|
+| 标准卡片内容区 | `px-[22px] pt-[16px] pb-[22px]` |
+| `.surface` 实时转写区 | `px-4 py-3` |
+| 搜索框 | `px-3 h-[40px]` |
+| 统计小卡片 | `p-3.5` |
+| Tab 切换器 | `p-1`（外层）/ `h-[34px]`（按钮高度） |
+
+### 圆角档位
+
+| 用途 | 值 |
+|---|---|
+| 主按钮 / 胶囊 / 标签 | `rounded-full`（9999px） |
+| 卡片（`.card`） | `rounded-[20px]` |
+| 小卡片 / 搜索框 | `rounded-[12px]` |
+| 统计卡内层 / Tab 按钮 | `rounded-[14px]` / `rounded-[10px]` |
+| `.surface` 内嵌区域 | `rounded-[14px]` |
+| 文本输入框 | `rounded-[16px]` |
+| 返回按钮（圆形） | `rounded-full` |
+| 自定义 xl2 | `24px` |
+| 自定义 xl3 | `32px` |
+
+---
+
+## 5. 组件规范
+
+### 主按钮
+
+所有页面的唯一主操作（继续、确认、开始、完成）统一使用以下样式，不得例外。
+
+```tsx
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+
+<button
+  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
+  style={GRADIENT_BORDER_STYLE}
+>
+  按钮文字
+</button>
+```
+
+```
+形状：rounded-full（9999px 全圆角）
+边框：1.5px 渐变描边，由 GRADIENT_BORDER_STYLE 常量提供
+背景：white padding-box（内部纯白，由常量提供）
+文字：14px / font-medium / text-[#444]
+内边距：px-6 py-3（宽松）/ px-5 py-2.5（紧凑，如底栏内联按钮）
+交互：active:scale-[0.97]，transition-transform duration-150
+```
+
+> `.btn-gradient` CSS class（globals.css）与 `GRADIENT_BORDER_STYLE` 实现原理相同，二者均可用，新页面优先用常量方式，便于 TypeScript 类型推断。见「核心视觉原则 → 主按钮规范」。
+
+### 录音圆形按钮 `.btn-gradient-circle`
+
+```
+形状：圆形（border-radius: 50%）
+边框：2px 渐变描边（橙→绿）
+背景：white padding-box
+交互：active → scale(0.93)，transition 150ms
+```
+
+### 次要按钮 `.btn-ghost`
+
+```
+形状：圆角胶囊
+边框：1px solid rgba(0,0,0,0.11)
+背景：transparent
+文字：13px / 500 / #666666，gap 6px
+交互：active → opacity 0.6
+```
+
+用于：跳过、重录、返回、次要操作。
+
+### 禁用态按钮
+
+```
+背景：#EEEEEE
+文字：#CCCCCC
+cursor-not-allowed
+```
+
+### 文字按钮（无边框）
+
+```
+text-[13px] text-[#AAAAAA]
+无背景、无边框
+用于：「或用文字输入」「← 改用录音」等低优先级入口
+```
+
+### 卡片 `.card`
+
+**普通卡片（信息展示）：**
+```css
+background: #FFFFFF
+border-radius: 20px
+border: 1px solid rgba(0,0,0,0.05)   /* 0.5px 视觉等效 */
+box-shadow: none                       /* 普通卡片不加阴影 */
+```
+
+**强调卡片（AI 输出内容）：**
+```css
+/* 使用 GRADIENT_BORDER_STYLE_FULL 常量，外层渐变 + 内层白底 */
+border-radius: 20px
+```
+
+使用 `GRADIENT_BORDER_STYLE_FULL` 常量（`src/lib/constants.ts`），padding-box + 渐变 border-box，border-radius: 20px。见「核心视觉原则 → 渐变边框标准实现」。
+
+### 内嵌表面 `.surface`
+
+```css
+background: #F4F4F4
+border-radius: 14px
+```
+
+用于：实时转写预览、文本引用块、可编辑区域。
+
+### Tag / Chip 尺寸规范（全局强制）
+
+| 类型 | 用途 | padding | 字号 | 字重 | 圆角 |
+|---|---|---|---|---|---|
+| 信息标签 Tag | 当季热题、语料梳理、AI 优化、Part 标签 | `px-[10px] py-[4px]` | `text-[11px]` | `font-medium` | `rounded-full` |
+| 交互按钮 Chip | 全部/Part筛选、编辑/完成、练习 | `px-[14px] py-[5px]` | `text-[12px]` | `font-medium` | `rounded-full` |
+
+实现：使用 `src/components/Tag.tsx` 和 `src/components/Chip.tsx`，禁止页面内直接手写同类样式。
+
+### 强调标签（全局统一规范）
+
+所有带有强调含义的小标签（包括但不限于：当季热题、语料梳理、AI整理后、热门、推荐等），
+全局统一使用绿色系样式，禁止使用橙色或其他颜色：
+
+| 属性 | 值 | 说明 |
+|---|---|---|
+| 背景 | `bg-[#EDF6EB]` | 无对应 token，使用该色值 |
+| 边框 | `border border-[#C0DDB9]`（0.5px 视觉等效） | 无对应 token，使用该色值 |
+| 文字 | `text-[#3D7A38]` | 无对应 token，使用该色值 |
+| 圆角 | `rounded-full` | — |
+| 字号 | `text-[11px]` | — |
+| 字重 | `font-medium` | — |
+
+若有对应项目 token 则优先使用 token，没有则使用以上色值。
+此规范适用于所有页面，新页面开发时必须遵守。
+
+### StepBar 步骤条
+
+流程步骤：`story → article → topic → practice → feedback`
+
+| 状态 | 圆点样式 | 文字样式 | 连线 |
+|---|---|---|---|
+| 已完成（done） | `bg-brand-primary`（8×8px 实心） | `text-brand-primary`，10px | `bg-brand-primary`，h-1.5px |
+| 当前（current） | `bg-brand-primary` + `ring-2 ring-brand-primary/30 ring-offset-1` | `text-brand-primary font-semibold` | — |
+| 未到达 | `bg-[#DDDDDD]` | `text-[#BBBBBB]` | `bg-[#EEEEEE]` |
+
+容器：`flex items-center px-4 py-3`，连线为 `flex-1 h-[1.5px] mx-1 mb-[14px] rounded-full`。
+
+### TabBar 底部导航
+
+```
+背景：bg-[#FEFEFE]（硬编码，与页面背景一致）
+高度：56px + env(safe-area-inset-bottom)
+边框：border-t border-black/[0.06]
+位置：fixed bottom-0，max-w-[430px]，居中
+图标：20px，激活 text-[#111]，未激活 text-[#BBBBBB]
+文字：10px / 500，激活 #111，未激活 #BBBBBB
+激活指示器：3×3px 圆点 bg-[#111]
+```
+
+页面：首页（/）、素材库（/library）、练习（/practice）
+
+### TopBar 顶部导航
+
+```
+背景：bg-bg-page
+高度：h-[52px]
+内边距：px-5
+返回按钮：30×30px 圆形，bg-white，shadow-sm，chevron-left 15px #333
+标题：16px / 600 / #111
+右侧插槽：支持自定义 ReactNode（进度、操作按钮等）
+```
+
+---
+
+## 6. 动效规范
+
+### Orb 弥散光晕
+
+Orb 是全局核心视觉元素，由 4 层模糊色球 + 42 个粒子组成，支持 `audioLevel` 实时响应。
+
+| 层 | 颜色 | 基础尺寸（300px 参考） | 偏移方向 |
+|---|---|---|---|
+| 绿色 | `rgba(145,200,122,0.95)` | 175px | 左上 |
+| 蓝青 | `rgba(112,182,176,0.95)` | 155px | 右侧 |
+| 橙色 | `rgba(248,168,118,0.95)` | 165px | 下方 |
+| 黄绿 | `rgba(210,226,168,0.80)` | 130px | 左侧 |
+
+音频响应：`audioLevel`（0–1）控制各层尺寸 `+18px`、粒子位移 `+10px`、粒子半径 `×1.12`、透明度 `+0.12`，过渡 `0.08s ease`。
+
+静态动画：
+
+```
+orb-breathe：scale(1.00→1.03)，opacity(0.88→1.00)，3.5s ease-in-out infinite
+orb-pulse：  scale(1.00→1.07)，2.2s ease-in-out infinite
+```
+
+| 页面状态 | 行为 |
+|---|---|
+| 待机 / 首页 | `pulse={false}`，静止展示 |
+| 录音中 | `audioLevel` 实时传入，粒子随声音扩散 |
+
+### 页面过渡
+
+```
+元素淡入上移：animate-fade-up（fadeUp 300ms ease-out，translateY 10px→0）
+```
+
+### 其他动效
+
+```
+波形（录音待机）：wave-1~5，750ms，交错 0/80/160ms
+波形（录音激活）：wave-a1~a5，500ms，交错 0/80/160ms
+底栏滑入：sheet-enter，250ms，cubic-bezier(0.32,0.72,0,1)
+Accordion：accordionDown，200ms ease-out
+按钮点击：active:scale-[0.97]，transition-transform duration-150
+```
+
+---
+
+## 7. 新页面开发规范
+
+### 必用结构模板
+
+```tsx
+<div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+  <div className="ambient-light" />
+  <TopBar title="页面标题" />
+  {/* 可选：<StepBar currentStep="xxx" /> */}
+  <div className="flex-1 overflow-y-auto px-6 relative z-10">
+    {/* 页面内容 */}
+  </div>
+  <TabBar />  {/* 仅主 Tab 页面加 */}
+</div>
+```
+
+### 背景色
+
+- 页面背景：`bg-bg-page`（当前 `#FEFEFE`）
+- 禁止直接写 `bg-white` 作为页面底色
+- 卡片保持 `bg-white`，形成层次感
+
+### 卡片样式参考
+
+- 标准信息卡：参考 `library/MyStoriesTab.tsx`（`bg-white rounded-[18px] border border-black/[0.05]`）
+- 渐变描边主卡：参考 `feedback/page.tsx`（`GRADIENT_BORDER_STYLE_FULL`）
+- 统计数字卡：参考 `library/page.tsx`（渐变外框 + `bg-white rounded-[14px]` 内层）
+
+### 必用组件
+
+| 需求 | 组件 |
+|---|---|
+| 顶部返回 / 标题栏 | `<TopBar />` |
+| 底部主导航 | `<TabBar />`（仅首页、素材库、练习页） |
+| 流程进度 | `<StepBar currentStep="..." />` |
+| AI 陪伴视觉 | `<Orb size={300} audioLevel={...} />` |
+| 录音波形 | `<Waveform active={...} />` |
+
+### 禁止事项
+
+- 禁止内联色值（`style={{ color: '#xxx' }}`）替代 Tailwind token，颜色语义不可追踪
+- 禁止新页面使用 v1 色板（`bg-page`, `text-1~4`, `bg-card`, `bg-inner`）
+- 禁止 `bg-white` 作为页面级背景（只用于卡片）
+- 禁止使用 Inter、Roboto、Arial 等通用字体
+- 禁止自定义渐变色值偏离上方渐变参数（破坏视觉一致性）
+- 禁止将渐变用于卡片背景、页面背景或大面积色块（见「核心视觉原则」）
+- 禁止因 prompt 指定了不同色值而新增 token，冲突时一律用项目原有 token
+- 禁止单文件超过 1000 行（参见 ENGINEERING.md §1）
+
+---
+
+*最后更新：2026-05-28（新增「核心视觉原则」章节；强化主按钮规范，绑定 `GRADIENT_BORDER_STYLE` 实现）*

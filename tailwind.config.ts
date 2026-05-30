@@ -18,7 +18,7 @@ const config: Config = {
         'text-2':   '#444444',
         'text-3':   '#888888',
         'text-4':   '#BBBBBB',
-        'bg-page':  '#F9F9F9',
+        'bg-page':  '#FEFEFE',
         'bg-card':  '#FFFFFF',
         'bg-inner': '#F4F4F4',
         'success':  '#5BA08A',

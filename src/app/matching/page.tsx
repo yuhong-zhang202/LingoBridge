@@ -11,6 +11,8 @@ import { Star, ArrowRight, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
+import PartTag from '@/components/PartTag'
+import Chip from '@/components/Chip'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { QUESTIONS } from '@/data/questions'
 
@@ -37,12 +39,12 @@ export default function MatchingPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+    <div className="relative min-h-screen bg-bg-page flex flex-col">
       <div className="ambient-light" />
       <TopBar title="题目匹配" />
-      <StepBar currentStep="topic" />
+      <StepBar currentStep="matching" />
 
-      <div className="flex-1 overflow-y-auto px-6 relative z-10">
+      <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10">
 
         {/* 故事预览 */}
         <div className="surface px-3.5 py-2.5 mb-5 flex items-center gap-2">
@@ -67,18 +69,14 @@ export default function MatchingPage() {
           {PARTS.map(p => {
             const active = activeTab === p
             return (
-              <button
+              <Chip
                 key={p}
                 onClick={() => handleTabChange(p as typeof activeTab)}
-                className="px-3.5 py-[5px] rounded-full text-[12px] font-medium transition-all duration-150"
-                style={active ? GRADIENT_BORDER_STYLE : {
-                  background: 'transparent',
-                  border: '1px solid #E5E5E5',
-                  color: '#AAAAAA',
-                }}
+                variant="ghost"
+                active={active}
               >
                 {p}
-              </button>
+              </Chip>
             )
           })}
         </div>
@@ -114,11 +112,9 @@ export default function MatchingPage() {
 
                 <div className="flex-1 p-4">
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-[11px] font-medium text-[#888] bg-[#F4F4F4] px-2.5 py-1 rounded-full">
-                      {item.part}
-                    </span>
+                    <PartTag label={item.part} />
                     {item.hot && (
-                      <span className="text-[10px] font-medium bg-[rgba(240,188,160,0.18)] text-brand-primary px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
                         当季热题
                       </span>
                     )}
@@ -147,7 +143,7 @@ export default function MatchingPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        router.push(`/practice?questionId=${item.id}&storyId=${STORY_ID}`)
+                        router.push(`/analysis?questionId=${item.id}&storyId=${STORY_ID}`)
                       }}
                       className="flex items-center gap-1 text-[12px] font-semibold text-[#444] px-3 py-1.5 rounded-full flex-shrink-0"
                       style={GRADIENT_BORDER_STYLE}
@@ -163,7 +159,7 @@ export default function MatchingPage() {
         </div>
       </div>
 
-      <TabBar />
+      <div className="relative z-20 flex-shrink-0"><TabBar /></div>
     </div>
   )
 }

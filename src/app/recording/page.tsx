@@ -28,15 +28,17 @@ export default function RecordingPage() {
     return () => cancelLongPress()
   }, [handlePressStart, cancelLongPress])
 
+  const transcribedText = '我今天去了一个公园...'
+
   const fmt = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       <div className="ambient-light" />
 
       {/* 顶部栏 */}
-      <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
+      <div className="flex-shrink-0 flex items-center justify-between h-[52px] px-5 relative z-10">
         <button
           onClick={() => router.back()}
           className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center"
@@ -48,9 +50,9 @@ export default function RecordingPage() {
       </div>
 
       {/* 中心内容 */}
-      <div className="flex-1 flex flex-col items-center justify-center px-7 relative z-10 gap-6">
+      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-7 relative z-10 gap-4 py-4">
 
-        <Orb size={300} audioLevel={audioLevel} />
+        <Orb size={260} audioLevel={audioLevel} />
 
         <div className="flex flex-col items-center gap-2.5">
           <Waveform active />
@@ -60,7 +62,7 @@ export default function RecordingPage() {
         {/* 实时转写预览 */}
         <div className="surface px-4 py-3 max-w-[260px] text-center">
           <p className="text-[13px] text-[#444] leading-relaxed">
-            我今天去了一个公园...
+            {transcribedText}
           </p>
         </div>
 
@@ -76,26 +78,25 @@ export default function RecordingPage() {
 
       {/* 底部控制 */}
       <div
-        className="px-8 relative z-10"
+        className="flex-shrink-0 px-8 relative z-10"
         style={{
           paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
           paddingTop: 20,
         }}
       >
-        <div className="flex justify-start mb-4">
-          <button className="flex items-center gap-1.5 text-[12px] font-medium text-[#AAAAAA]">
-            <RotateCcw size={15} />
-            重录
-          </button>
-        </div>
-
         <button
-          onClick={() => router.push('/article')}
+          onClick={() => router.push(`/restructure?rawText=${encodeURIComponent(transcribedText)}`)}
           className="btn-gradient w-full h-[56px] text-[16px] font-semibold"
         >
           <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
           完成录音
         </button>
+        <div className="flex justify-center mt-3">
+          <button className="flex items-center gap-1.5 text-[12px] font-medium text-[#AAAAAA]">
+            <RotateCcw size={15} />
+            重录
+          </button>
+        </div>
       </div>
     </div>
   )

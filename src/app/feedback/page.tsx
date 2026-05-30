@@ -1,9 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Heart } from 'lucide-react'
+import { X, Heart, Play } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import PartTag from '@/components/PartTag'
 import { StepBar } from '@/components/StepBar'
+import Tag from '@/components/Tag'
 import { GRADIENT_BORDER_STYLE_FULL as GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 const TOTAL = 8
@@ -13,6 +15,41 @@ const userName = 'YZ'
 export default function FeedbackPage() {
   const router = useRouter()
   const [saved, setSaved] = useState(false)
+
+  // ── 滑动手势状态
+  const [offset, setOffset]   = useState(0)
+  const [animated, setAnimated] = useState(false)
+  const startXRef   = useRef(0)
+  const isDragging  = useRef(false)
+
+  const dragStart = (x: number) => {
+    startXRef.current = x
+    isDragging.current = true
+    setAnimated(false)
+  }
+
+  const dragMove = (x: number) => {
+    if (!isDragging.current) return
+    setOffset(x - startXRef.current)
+  }
+
+  const dragEnd = () => {
+    if (!isDragging.current) return
+    isDragging.current = false
+    setAnimated(true)
+    setOffset(cur => {
+      if (cur > 60) {
+        setTimeout(() => { setSaved(true); setAnimated(false); setOffset(0) }, 200)
+        return 500
+      }
+      if (cur < -60) {
+        setTimeout(() => router.push('/'), 200)
+        return -500
+      }
+      setTimeout(() => setAnimated(false), 200)
+      return 0
+    })
+  }
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -25,12 +62,26 @@ export default function FeedbackPage() {
           </span>
         }
       />
-      <StepBar currentStep="feedback" />
+      <StepBar currentStep="practice" />
 
       <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 relative z-10">
 
-        {/* 卡片堆叠 */}
-        <div className="relative mb-5">
+        {/* 卡片堆叠 — 绑定滑动手势 */}
+        <div
+          className="relative mb-5 select-none"
+          style={{
+            transform: `translateX(${offset}px)`,
+            transition: animated ? 'transform 0.2s ease' : 'none',
+            cursor: 'grab',
+          }}
+          onTouchStart={e => dragStart(e.touches[0].clientX)}
+          onTouchMove={e => dragMove(e.touches[0].clientX)}
+          onTouchEnd={dragEnd}
+          onMouseDown={e => dragStart(e.clientX)}
+          onMouseMove={e => dragMove(e.clientX)}
+          onMouseUp={dragEnd}
+          onMouseLeave={dragEnd}
+        >
           {/* 背景装饰卡 */}
           <div
             className="absolute inset-0 bg-white rounded-[20px] shadow-sm"
@@ -47,61 +98,58 @@ export default function FeedbackPage() {
             style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 20 }}
           >
 
-            <div className="flex items-center mb-4">
-              <span
-                className="text-[11px] font-medium text-[#AAAAAA] px-3 py-1 rounded-full"
-                style={{ backgroundColor: '#EEEEEE' }}
-              >
-                {userName || '你说的'}
-              </span>
+            <div className="flex items-center mb-2 mt-[5px]">
+              <PartTag label={userName || '你说的'} />
             </div>
 
-            {/* 用户原句：浅灰底 + 右下角播放按钮 */}
+            {/* 用户原句：渐变描边 + 右下角播放按钮 */}
             <div
-              className="relative mb-4"
+              className="mb-4"
               style={{
-                backgroundColor: '#F8F7F5',
-                borderRadius: 10,
-                padding: '12px 16px',
+                background: 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))',
+                padding: 1,
+                borderRadius: 14,
               }}
             >
-              <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6, paddingRight: 36 }}>
-                I went to park yesterday, very happy.
-              </p>
-              <button
-                className="absolute bottom-3 right-3 w-[28px] h-[28px] rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#EEF7F3' }}
+              <div
+                className="relative"
+                style={{ background: '#FFFFFF', borderRadius: 13, padding: '12px 16px' }}
               >
-                <span className="text-[11px]" style={{ color: '#5A9E8A' }}>▶</span>
-              </button>
+                <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6, paddingRight: 36 }}>
+                  I went to park yesterday, very happy.
+                </p>
+                <button
+                  className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center bg-gray-100"
+                >
+                  <Play size={11} className="text-gray-400" />
+                </button>
+              </div>
             </div>
 
             {/* AI 优化标签 */}
-            <div
-              className="inline-flex items-center px-3 py-1 rounded-[10px] text-[12px] font-medium mb-2"
-              style={{ backgroundColor: '#EEF7F3', color: '#5A9E8A' }}
-            >
-              AI 优化
-            </div>
+            <Tag label="AI 优化" variant="green" className="mb-2" />
 
-            {/* AI 优化句：浅灰底 + 右下角播放按钮 */}
+            {/* AI 优化句：渐变描边 + 右下角播放按钮 */}
             <div
-              className="relative"
               style={{
-                backgroundColor: '#F8F7F5',
-                borderRadius: 10,
-                padding: '12px 16px 24px',
+                background: 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))',
+                padding: 1,
+                borderRadius: 14,
               }}
             >
-              <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6, paddingRight: 36 }}>
-                I visited a local park yesterday, which left me feeling genuinely refreshed.
-              </p>
-              <button
-                className="absolute bottom-3 right-3 w-[28px] h-[28px] rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#EEF7F3' }}
+              <div
+                className="relative"
+                style={{ background: '#FFFFFF', borderRadius: 13, padding: '12px 16px 24px' }}
               >
-                <span className="text-[11px]" style={{ color: '#5A9E8A' }}>▶</span>
-              </button>
+                <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6, paddingRight: 36 }}>
+                  I visited a local park yesterday, which left me feeling genuinely refreshed.
+                </p>
+                <button
+                  className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center bg-gray-100"
+                >
+                  <Play size={11} className="text-gray-400" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

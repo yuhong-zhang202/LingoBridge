@@ -1,13 +1,13 @@
 interface StepBarProps {
-  currentStep: 'story' | 'article' | 'topic' | 'practice' | 'feedback'
+  currentStep: 'story' | 'restructure' | 'matching' | 'analysis' | 'practice'
 }
 
 const STEPS = [
-  { key: 'story',    label: '故事' },
-  { key: 'article',  label: '文章' },
-  { key: 'topic',    label: '题目' },
-  { key: 'practice', label: '练习' },
-  { key: 'feedback', label: '反馈' },
+  { key: 'story',       label: '故事' },
+  { key: 'restructure', label: '整理' },
+  { key: 'matching',    label: '题目' },
+  { key: 'analysis',    label: '分析' },
+  { key: 'practice',    label: '练习' },
 ]
 
 export function StepBar({ currentStep }: StepBarProps) {

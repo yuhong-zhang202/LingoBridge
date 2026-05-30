@@ -1,4 +1,5 @@
 'use client'
+import { useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 
 interface OrbProps {
@@ -53,79 +54,178 @@ const PARTICLES = [
   { angle: 349.1, dist: 0.863, r: 2.0,  color: '#EDF2D4' },
 ]
 
+// Stable per-particle random animation params — computed once at module load
+const PARTICLE_ANIM = PARTICLES.map(() => ({
+  vx:      (Math.random() - 0.5) * 0.3,
+  vy:      (Math.random() - 0.5) * 0.3,
+  opMin:   0.3 + Math.random() * 0.1,
+  opMax:   0.6 + Math.random() * 0.1,
+  opFreq:  0.2 + Math.random() * 0.3,
+  opPhase: Math.random() * Math.PI * 2,
+}))
+
+// Orb core breathe frequency
+const CORE_FREQ = 0.95
+
 export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
-  const s = size / 300 // scale factor relative to the 300px reference design
-  const cx = size / 2  // center
+  const s  = size / 300
+  const cx = size / 2
+
+  const particleRefs = useRef<(HTMLDivElement | null)[]>([])
+  const orbCoreRef   = useRef<HTMLDivElement | null>(null)
+  const audioRef     = useRef(audioLevel)
+
+  // Keep audioRef current without triggering re-renders
+  useEffect(() => { audioRef.current = audioLevel }, [audioLevel])
+
+  // Main animation loop — rAF, cleaned up on unmount
+  useEffect(() => {
+    const _s  = size / 300
+    const _cx = size / 2
+    const t0  = performance.now()
+    let raf: number
+
+    const state = PARTICLES.map((p, i) => {
+      const rad = (p.angle - 90) * Math.PI / 180
+      const d   = p.dist * 145 * _s
+      return {
+        x:  _cx + d * Math.cos(rad),
+        y:  _cx + d * Math.sin(rad),
+        bx: _cx + d * Math.cos(rad),
+        by: _cx + d * Math.sin(rad),
+        vx: PARTICLE_ANIM[i].vx,
+        vy: PARTICLE_ANIM[i].vy,
+      }
+    })
+
+    const tick = (now: number) => {
+      const t  = (now - t0) / 1000
+      const al = audioRef.current
+
+      const breathe =
+        1
+        + (0.14 + al * 0.10) * Math.sin(t * CORE_FREQ)
+        + 0.04 * Math.sin(t * 2.1 + 0.8)
+        + 0.012 * Math.sin(t * 4.3 + 1.2)
+
+      if (orbCoreRef.current) {
+        orbCoreRef.current.style.transform = `scale(${breathe})`
+      }
+
+      const LEASH = 18 * _s
+
+      PARTICLES.forEach((p, i) => {
+        const el = particleRefs.current[i]
+        if (!el) return
+        const a  = PARTICLE_ANIM[i]
+        const st = state[i]
+
+        st.vx += (Math.random() - 0.5) * 0.06
+        st.vy += (Math.random() - 0.5) * 0.06
+
+        const lx = st.x - st.bx, ly = st.y - st.by
+        const ld = Math.sqrt(lx * lx + ly * ly)
+        if (ld > LEASH) { st.vx -= lx / ld * 0.18; st.vy -= ly / ld * 0.18 }
+
+        const spd = Math.sqrt(st.vx * st.vx + st.vy * st.vy)
+        if (spd > 0.45) { st.vx = st.vx / spd * 0.45; st.vy = st.vy / spd * 0.45 }
+
+        st.x += st.vx
+        st.y += st.vy
+
+        const op = Math.min(0.95,
+          a.opMin + (a.opMax - a.opMin) * (0.5 + 0.5 * Math.sin(t * a.opFreq + a.opPhase))
+          + al * 0.25
+        )
+
+        el.style.transform = `translate(${st.x - p.r * _s}px, ${st.y - p.r * _s}px) scale(${1 + al * 0.12})`
+        el.style.opacity   = String(op)
+      })
+
+      raf = requestAnimationFrame(tick)
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [size])
 
   return (
     <div
       className={cn('relative flex-shrink-0', className)}
       style={{ width: size, height: size }}
     >
-      {/* 绿色 左上 */}
-      <div className="absolute rounded-full" style={{
-        width:  (175 + audioLevel * 18) * s,
-        height: (175 + audioLevel * 18) * s,
-        left: '50%', top: '50%',
-        transform: `translate(calc(-50% - ${28 * s}px), calc(-50% - ${28 * s}px))`,
-        background: 'radial-gradient(circle, rgba(145,200,122,0.95) 0%, rgba(145,200,122,0) 70%)',
-        filter: `blur(${28 * s}px)`,
-        transition: 'width 0.08s ease, height 0.08s ease',
-      }} />
+      {/* 核心光晕层 — 包裹以实现整体脉冲缩放 */}
+      <div
+        ref={orbCoreRef}
+        style={{ position: 'absolute', inset: 0, transformOrigin: 'center' }}
+      >
+        {/* 绿色 左上 */}
+        <div className="absolute rounded-full" style={{
+          width:  (175 + audioLevel * 18) * s,
+          height: (175 + audioLevel * 18) * s,
+          left: '50%', top: '50%',
+          transform: `translate(calc(-50% - ${28 * s}px), calc(-50% - ${28 * s}px))`,
+          background: 'radial-gradient(circle, rgba(145,200,122,0.95) 0%, rgba(145,200,122,0) 70%)',
+          filter: `blur(${28 * s}px)`,
+          transition: 'width 0.08s ease, height 0.08s ease',
+        }} />
 
-      {/* 蓝青 右侧 */}
-      <div className="absolute rounded-full" style={{
-        width:  (155 + audioLevel * 18) * s,
-        height: (155 + audioLevel * 18) * s,
-        left: '50%', top: '50%',
-        transform: `translate(calc(-50% + ${25 * s}px), calc(-50% - ${5 * s}px))`,
-        background: 'radial-gradient(circle, rgba(112,182,176,0.95) 0%, rgba(112,182,176,0) 70%)',
-        filter: `blur(${28 * s}px)`,
-        transition: 'width 0.08s ease, height 0.08s ease',
-      }} />
+        {/* 蓝青 右侧 */}
+        <div className="absolute rounded-full" style={{
+          width:  (155 + audioLevel * 18) * s,
+          height: (155 + audioLevel * 18) * s,
+          left: '50%', top: '50%',
+          transform: `translate(calc(-50% + ${25 * s}px), calc(-50% - ${5 * s}px))`,
+          background: 'radial-gradient(circle, rgba(112,182,176,0.95) 0%, rgba(112,182,176,0) 70%)',
+          filter: `blur(${28 * s}px)`,
+          transition: 'width 0.08s ease, height 0.08s ease',
+        }} />
 
-      {/* 橙色 下方 */}
-      <div className="absolute rounded-full" style={{
-        width:  (165 + audioLevel * 18) * s,
-        height: (165 + audioLevel * 18) * s,
-        left: '50%', top: '50%',
-        transform: `translate(calc(-50% - ${5 * s}px), calc(-50% + ${33 * s}px))`,
-        background: 'radial-gradient(circle, rgba(248,168,118,0.95) 0%, rgba(248,168,118,0) 70%)',
-        filter: `blur(${28 * s}px)`,
-        transition: 'width 0.08s ease, height 0.08s ease',
-      }} />
+        {/* 橙色 下方 */}
+        <div className="absolute rounded-full" style={{
+          width:  (165 + audioLevel * 18) * s,
+          height: (165 + audioLevel * 18) * s,
+          left: '50%', top: '50%',
+          transform: `translate(calc(-50% - ${5 * s}px), calc(-50% + ${33 * s}px))`,
+          background: 'radial-gradient(circle, rgba(248,168,118,0.95) 0%, rgba(248,168,118,0) 70%)',
+          filter: `blur(${28 * s}px)`,
+          transition: 'width 0.08s ease, height 0.08s ease',
+        }} />
 
-      {/* 黄绿 左侧 */}
-      <div className="absolute rounded-full" style={{
-        width:  (130 + audioLevel * 18) * s,
-        height: (130 + audioLevel * 18) * s,
-        left: '50%', top: '50%',
-        transform: `translate(calc(-50% - ${31 * s}px), calc(-50% + ${5 * s}px))`,
-        background: 'radial-gradient(circle, rgba(210,226,168,0.80) 0%, rgba(210,226,168,0) 70%)',
-        filter: `blur(${28 * s}px)`,
-        transition: 'width 0.08s ease, height 0.08s ease',
-      }} />
+        {/* 黄绿 左侧 */}
+        <div className="absolute rounded-full" style={{
+          width:  (130 + audioLevel * 18) * s,
+          height: (130 + audioLevel * 18) * s,
+          left: '50%', top: '50%',
+          transform: `translate(calc(-50% - ${31 * s}px), calc(-50% + ${5 * s}px))`,
+          background: 'radial-gradient(circle, rgba(210,226,168,0.80) 0%, rgba(210,226,168,0) 70%)',
+          filter: `blur(${28 * s}px)`,
+          transition: 'width 0.08s ease, height 0.08s ease',
+        }} />
+      </div>
 
-      {/* 粒子层 */}
+      {/* 粒子层 — 初始位置由 rAF 第一帧覆盖 */}
       {PARTICLES.map((p, i) => {
-        const rad = (p.angle - 90) * Math.PI / 180
-        const dist = p.dist * 145 * s + audioLevel * 10 * s
-        const px = cx + dist * Math.cos(rad)
-        const py = cx + dist * Math.sin(rad)
-        const radius = p.r * s * (1 + audioLevel * 0.12)
+        const rad    = (p.angle - 90) * Math.PI / 180
+        const dist   = p.dist * 145 * s
+        const px     = cx + dist * Math.cos(rad)
+        const py     = cx + dist * Math.sin(rad)
+        const radius = p.r * s
         return (
           <div
             key={i}
+            ref={el => { particleRefs.current[i] = el }}
             className="absolute rounded-full"
             style={{
-              width:  radius * 2,
-              height: radius * 2,
-              left:   px - radius,
-              top:    py - radius,
+              width:           radius * 2,
+              height:          radius * 2,
+              left:            0,
+              top:             0,
+              transform:       `translate(${px - radius}px, ${py - radius}px)`,
               backgroundColor: p.color,
-              opacity: 0.88 + audioLevel * 0.12,
-              transition: 'all 0.08s ease',
-              pointerEvents: 'none',
+              opacity:         0.5,
+              pointerEvents:   'none',
+              willChange:      'transform, opacity',
             }}
           />
         )

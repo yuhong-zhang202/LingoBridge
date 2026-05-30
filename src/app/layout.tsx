@@ -17,7 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#F9F9F9',
+  themeColor: '#FEFEFE',
 }
 
 export default function RootLayout({
@@ -28,8 +28,12 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body className="bg-bg-page">
-        <div className="min-h-screen w-full flex justify-center bg-bg-page">
-          <div id="app-root-container" className="relative w-full max-w-[430px] min-h-screen bg-bg-page overflow-hidden">
+        <div className="h-dvh w-full flex justify-center bg-bg-page overflow-hidden">
+          <div
+            id="app-root-container"
+            className="relative w-full max-w-[430px] h-dvh bg-bg-page overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {children}
           </div>
         </div>
