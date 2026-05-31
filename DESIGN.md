@@ -412,7 +412,9 @@ border-radius: 14px
 激活指示器：3×3px 圆点 bg-[#111]
 ```
 
-页面：首页（/）、素材库（/library）、练习（/practice）
+Tab：首页（/）、素材库（/library）、我的（/profile）
+
+显示原则：用户正在产出内容时（录音中 /recording、练习对话 /practice）不显示 TabBar，其余所有页面均显示。
 
 ### TopBar 顶部导航
 
@@ -484,7 +486,7 @@ Accordion：accordionDown，200ms ease-out
   <div className="flex-1 overflow-y-auto px-6 relative z-10">
     {/* 页面内容 */}
   </div>
-  <TabBar />  {/* 仅主 Tab 页面加 */}
+  <TabBar />  {/* 除 /recording、/practice 外的所有页面均加 */}
 </div>
 ```
 
@@ -505,7 +507,7 @@ Accordion：accordionDown，200ms ease-out
 | 需求 | 组件 |
 |---|---|
 | 顶部返回 / 标题栏 | `<TopBar />` |
-| 底部主导航 | `<TabBar />`（仅首页、素材库、练习页） |
+| 底部主导航 | `<TabBar />`（除 /recording、/practice 外的所有页面） |
 | 流程进度 | `<StepBar currentStep="..." />` |
 | AI 陪伴视觉 | `<Orb size={300} audioLevel={...} />` |
 | 录音波形 | `<Waveform active={...} />` |
@@ -523,4 +525,4 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
-*最后更新：2026-05-28（新增「核心视觉原则」章节；强化主按钮规范，绑定 `GRADIENT_BORDER_STYLE` 实现）*
+*最后更新：2026-05-30（统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页）*

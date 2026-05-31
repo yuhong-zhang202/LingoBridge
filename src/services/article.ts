@@ -13,7 +13,7 @@ import type { BandLevel, FeedbackCard, Question } from '@/lib/types'
  * @param band       目标雅思口语等级
  * @returns          生成的口语文章文本
  */
-export async function generateArticle(storyText: string, band: BandLevel): Promise<string> {
+export async function generateArticle(_storyText: string, _band: BandLevel): Promise<string> {
   return ARTICLE_TEXT
 }
 

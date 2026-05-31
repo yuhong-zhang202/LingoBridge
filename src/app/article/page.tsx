@@ -47,7 +47,7 @@ export default function ArticlePage() {
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <div className="ambient-light" />
       <TopBar title="生成口语文章" />
-      <StepBar currentStep="article" />
+      <StepBar currentStep="story" />
 
       <div className="flex-1 overflow-y-auto px-6 pb-8 relative z-10">
 

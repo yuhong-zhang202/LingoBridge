@@ -1,26 +1,26 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, BookOpen, Mic2 } from 'lucide-react'
+import { Home, BookOpen, User } from 'lucide-react'
 
 const TABS = [
-  { href: '/',         label: '首页',  Icon: Home     },
-  { href: '/library',  label: '素材库', Icon: BookOpen },
-  { href: '/practice', label: '练习',  Icon: Mic2     },
+  { href: '/',        label: '首页',  Icon: Home     },
+  { href: '/library', label: '素材库', Icon: BookOpen },
+  { href: '/profile', label: '我的',  Icon: User     },
 ]
 
 export default function TabBar() {
   const path = usePathname()
   return (
     <div
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[#FEFEFE] border-t border-black/[0.06] flex items-center justify-around"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[#FEFEFE] border-t border-black/[0.06] flex items-center justify-around z-30"
       style={{
         height: 56,
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       {TABS.map(({ href, label, Icon }) => {
-        const active = path === href || (href === '/library' && path.startsWith('/library'))
+        const active = path === href || (href === '/library' && path.startsWith('/library')) || (href === '/profile' && path.startsWith('/profile'))
         return (
           <Link
             key={href}

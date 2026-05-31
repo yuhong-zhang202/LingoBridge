@@ -46,3 +46,34 @@ export interface FeedbackCard {
 
 // ── 等级相关
 export type BandLevel = '5.5' | '6.0' | '6.5' | '7.0'
+
+// ── 素材库 v2
+export interface CollectedCard {
+  id: string
+  questionId: string
+  part: 'Part 1' | 'Part 2' | 'Part 3'
+  topicEn: string
+  originalSentence: string
+  aiOptimized: string
+  collectedAt: string
+  keywords?: string[]
+}
+
+export interface PracticedTopic {
+  id: string
+  questionId: string
+  part: 'Part 1' | 'Part 2' | 'Part 3'
+  topicEn: string
+  practiceCount: number
+  collectedCount: number
+  lastPracticedAt: string
+}
+
+export interface MyStory {
+  id: string
+  inputType: 'voice' | 'text'
+  duration?: string
+  content: string
+  matchedCount: number
+  createdAt: string
+}

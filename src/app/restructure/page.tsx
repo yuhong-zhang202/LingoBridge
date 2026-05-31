@@ -9,6 +9,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Quote, Sparkles, Pencil, Check, RefreshCw } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
@@ -106,7 +107,7 @@ function RestructureContent() {
       {!isLoading && (
         <div
           className="flex-shrink-0 px-5 relative z-10"
-          style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))', paddingTop: 12 }}
+          style={{ paddingBottom: 'max(88px, calc(env(safe-area-inset-bottom) + 56px))', paddingTop: 12 }}
         >
           {/* 主按钮 */}
           <button
@@ -125,6 +126,7 @@ function RestructureContent() {
           </button>
         </div>
       )}
+      <div className="flex-shrink-0"><TabBar /></div>
     </div>
   )
 }

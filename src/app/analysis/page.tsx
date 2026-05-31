@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Target, Type, ChevronDown } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import { MOCK_ANALYSIS } from '@/data/analysis'
 import { QUESTIONS } from '@/data/questions'
@@ -66,12 +67,16 @@ function AnalysisContent() {
   const [showMore, setShowMore] = useState(false)
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div
+      className="relative flex flex-col bg-bg-page overflow-hidden"
+      style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
+    >
       <div className="ambient-light" />
       <TopBar title="题目分析" />
       <StepBar currentStep="analysis" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-2 pb-[88px] relative z-10 flex flex-col gap-4">
+      {/* 唯一滚动区 — min-h-0 是关键，缺了它 overflow-y-auto 不生效 */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4">
 
         {/* 题目卡片 */}
         <div className="card px-[22px] pt-[16px] pb-[22px]">
@@ -131,13 +136,6 @@ function AnalysisContent() {
           </div>
         </GradCard>
 
-      </div>
-
-      {/* 固定底部按钮 */}
-      <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-5 bg-[#FEFEFE] border-t border-black/[0.05] z-20"
-        style={{ paddingTop: 14, paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
-      >
         <button
           className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-[#444] active:scale-[0.97] transition-transform duration-150"
           style={LIGHTER_BORDER}
@@ -145,7 +143,10 @@ function AnalysisContent() {
         >
           开始练习 →
         </button>
+
       </div>
+
+      <TabBar />
     </div>
   )
 }

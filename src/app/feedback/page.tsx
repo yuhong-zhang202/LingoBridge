@@ -1,16 +1,15 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Heart, Play } from 'lucide-react'
+import { X, Heart } from 'lucide-react'
 import TopBar from '@/components/TopBar'
-import PartTag from '@/components/PartTag'
+import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
-import Tag from '@/components/Tag'
-import { GRADIENT_BORDER_STYLE_FULL as GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import FeedbackCard from '@/components/FeedbackCard'
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 const TOTAL = 8
 const CURRENT = 3
-const userName = 'YZ'
 
 export default function FeedbackPage() {
   const router = useRouter()
@@ -52,7 +51,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
       <div className="ambient-light" />
       <TopBar
         title="反馈卡片"
@@ -64,7 +63,7 @@ export default function FeedbackPage() {
       />
       <StepBar currentStep="practice" />
 
-      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 relative z-10">
+      <div className="flex-1 overflow-y-auto px-10 pt-6 pb-10 relative z-10">
 
         {/* 卡片堆叠 — 绑定滑动手势 */}
         <div
@@ -93,65 +92,15 @@ export default function FeedbackPage() {
           />
 
           {/* 主卡片 */}
-          <div
-            className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-[22px] pt-[16px] pb-[22px] z-10"
-            style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 20 }}
-          >
-
-            <div className="flex items-center mb-2 mt-[5px]">
-              <PartTag label={userName || '你说的'} />
-            </div>
-
-            {/* 用户原句：渐变描边 + 右下角播放按钮 */}
-            <div
-              className="mb-4"
-              style={{
-                background: 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))',
-                padding: 1,
-                borderRadius: 14,
-              }}
-            >
-              <div
-                className="relative"
-                style={{ background: '#FFFFFF', borderRadius: 13, padding: '12px 16px' }}
-              >
-                <p style={{ fontSize: 14, color: '#1A1A1A', fontWeight: '500', lineHeight: 1.6, paddingRight: 36 }}>
-                  I went to park yesterday, very happy.
-                </p>
-                <button
-                  className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center bg-gray-100"
-                >
-                  <Play size={11} className="text-gray-400" />
-                </button>
-              </div>
-            </div>
-
-            {/* AI 优化标签 */}
-            <Tag label="AI 优化" variant="green" className="mb-2" />
-
-            {/* AI 优化句：渐变描边 + 右下角播放按钮 */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))',
-                padding: 1,
-                borderRadius: 14,
-              }}
-            >
-              <div
-                className="relative"
-                style={{ background: '#FFFFFF', borderRadius: 13, padding: '12px 16px 24px' }}
-              >
-                <p style={{ fontSize: 14, color: '#1A1A1A', lineHeight: 1.6, paddingRight: 36 }}>
-                  I visited a local park yesterday, which left me feeling genuinely refreshed.
-                </p>
-                <button
-                  className="absolute bottom-3 right-3 w-6 h-6 rounded-full flex items-center justify-center bg-gray-100"
-                >
-                  <Play size={11} className="text-gray-400" />
-                </button>
-              </div>
-            </div>
-          </div>
+          <FeedbackCard
+            part="Part 1"
+            originalSentence="I went to park yesterday, very happy."
+            aiOptimized="I visited a local park yesterday, which left me feeling genuinely refreshed."
+            keywords={['park', 'nature']}
+            date="5/28"
+            compact
+            className="relative shadow-[0_2px_12px_rgba(0,0,0,0.06)] z-10"
+          />
         </div>
 
         {/* 滑动提示 */}
@@ -188,6 +137,7 @@ export default function FeedbackPage() {
           还有 {TOTAL - CURRENT} 张卡片
         </p>
       </div>
+      <div className="flex-shrink-0"><TabBar /></div>
     </div>
   )
 }

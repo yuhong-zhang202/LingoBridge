@@ -10,6 +10,6 @@
  * @param audioBlob  录音数据
  * @returns          转写后的文本
  */
-export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+export async function transcribeAudio(_audioBlob: Blob): Promise<string> {
   return 'I went to a nearby park last weekend and felt really relaxed.'
 }

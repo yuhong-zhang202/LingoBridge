@@ -16,7 +16,7 @@ export default function TopBar({
 }: TopBarProps) {
   const router = useRouter()
   return (
-    <div className="flex items-center justify-between h-[52px] px-5 bg-bg-page relative z-10">
+    <div className="flex items-center justify-between h-[52px] px-5 bg-bg-page sticky top-0 z-30">
       <div className="w-[60px] flex items-center">
         {showBack && (
           <button
