@@ -24,7 +24,6 @@ export default function LibraryPage() {
       className="relative flex flex-col bg-bg-page overflow-hidden"
       style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
-      <div className="ambient-light" />
       <TopBar
         title="素材库"
         right={<Search size={18} className="text-v2-text-muted" />}

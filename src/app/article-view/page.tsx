@@ -21,7 +21,6 @@ export default function ArticleViewPage() {
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <div className="ambient-light" />
 
       {/* 顶部导航 */}
       <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
@@ -144,7 +143,7 @@ export default function ArticleViewPage() {
 
       {/* 固定底部操作栏 */}
       <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] flex items-center justify-between px-6 bg-[#FEFEFE] border-t border-black/[0.05] z-20"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] flex items-center justify-between px-6 bg-bg-page border-t border-black/[0.05] z-20"
         style={{
           paddingTop: 14,
           paddingBottom: 'max(20px, env(safe-area-inset-bottom))',

@@ -71,7 +71,6 @@ function AnalysisContent() {
       className="relative flex flex-col bg-bg-page overflow-hidden"
       style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
-      <div className="ambient-light" />
       <TopBar title="题目分析" />
       <StepBar currentStep="analysis" />
 

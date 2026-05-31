@@ -172,20 +172,40 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ### 全局页面背景
 
-| 位置 | 当前值 | class / token |
-|---|---|---|
-| `html, body`（globals.css） | `#FEFEFE` | 硬编码 |
-| Tailwind `bg-page` token | `#FEFEFE` | `bg-bg-page` |
-| `layout.tsx` themeColor | `#FEFEFE` | viewport meta |
-| TopBar（`TopBar.tsx`） | `#FEFEFE` | `bg-bg-page` |
-| TabBar（`TabBar.tsx`） | `#FEFEFE` | `bg-[#FEFEFE]`（硬编码，需手动同步） |
-| article-view 底部操作栏 | `#FEFEFE` | `bg-[#FEFEFE]`（硬编码，需手动同步） |
+**唯一来源：`bg-bg-page`（Tailwind `bg-page` token，值 `#F5F2EE`）**
 
-> **注意**：TabBar 和 article-view 底栏背景是硬编码的 Tailwind 任意值，修改全局背景时必须同步更新这两处。
+| 位置 | 值 | 写法 |
+|---|---|---|
+| `html, body`（globals.css） | `#F5F2EE` | 硬编码（与 token 同步） |
+| Tailwind `bg-page` token | `#F5F2EE` | `bg-bg-page` |
+| `layout.tsx` themeColor | `#F5F2EE` | viewport meta（与 token 同步） |
+| TopBar（`TopBar.tsx`） | `#F5F2EE` | `bg-bg-page` ✓ |
+| TabBar（`TabBar.tsx`） | `#F5F2EE` | `bg-bg-page` ✓ |
+| 各页底部操作栏 | `#F5F2EE` | `bg-bg-page` ✓ |
+| 所有页面外层容器 | `#F5F2EE` | `bg-bg-page` ✓ |
+
+**强制规则：**
+
+1. **新页面一律用 `bg-bg-page`**，顶栏、底栏、Tab 区、页面容器全部相同
+2. **禁止用 `bg-white` / `bg-[#FEFEFE]` / `bg-[#FFFFFF]` 作为页面级或栏级背景**（只有按钮的圆形底色除外）
+3. **卡片用 `bg-surface`（`#FFFFFF`）保持纯白**——比页面底色 `#F5F2EE` 更白，形成刻意的层次感，不算违规
+
+> **背景色统一原则**：TopBar/TabBar/底部操作栏是实心背景（`z-index ≥ 20`），实心栏叠加任何手工配制的渐变都配不准光晕浓度，会产生正向或反向色差。根治方案：**内页不用 ambient-light**，全页只用单一底色 `#F5F2EE`，彻底消除交界线。
+
+### ambient-light 使用范围
+
+**仅允许**在以下两个页面使用 `<div className="ambient-light" />`：
+
+| 页面 | 路由 | 说明 |
+|---|---|---|
+| 首页 | `/`（`src/app/page.tsx`） | 页面无固定顶栏，光晕可自然穿透 |
+| 录音页 | `/recording`（`src/app/recording/page.tsx`） | 顶栏为 `relative z-10`，光晕可自然穿透 |
+
+**所有其他页面禁止使用 `ambient-light`**。原因：这些页面使用 `TopBar`（`sticky z-30`）或其他实心顶栏，光晕会被遮挡，手工补偿渐变无法精确对齐，必然产生横向色差带。整页单一底色 `#F5F2EE` 是唯一无副作用的方案。
 
 ### 卡片背景
 
-`#FFFFFF`（`bg-white` / `bg-surface`）——保持纯白，与页面背景形成层次感。
+`#FFFFFF`（`bg-surface` / `bg-white`）——纯白，比页面底色 `#F5F2EE` 明显更亮，形成清晰的卡片层次感。
 
 ### 组件背景
 

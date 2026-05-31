@@ -40,7 +40,6 @@ export default function MatchingPage() {
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <div className="ambient-light" />
       <TopBar title="题目匹配" />
       <StepBar currentStep="matching" />
 

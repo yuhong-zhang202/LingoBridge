@@ -52,7 +52,6 @@ export default function FeedbackPage() {
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
-      <div className="ambient-light" />
       <TopBar
         title="反馈卡片"
         right={

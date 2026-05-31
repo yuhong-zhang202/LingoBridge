@@ -64,7 +64,6 @@ function RestructureContent() {
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <div className="ambient-light" />
       <TopBar title="整理确认" />
       <StepBar currentStep="restructure" />
 

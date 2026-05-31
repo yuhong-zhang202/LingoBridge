@@ -9,7 +9,7 @@
   html, body {
     height: 100%;
     overflow: hidden;
-    background: #FEFEFE;
+    background: #F5F2EE;
     color: #111111;
     font-family: 'Plus Jakarta Sans', 'PingFang SC', sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -114,9 +114,9 @@
     border-radius: 50%;
     background: radial-gradient(
       circle,
-      rgba(240,188,160,0.14) 0%,
-      rgba(168,210,196,0.10) 35%,
-      rgba(188,210,168,0.06) 55%,
+      rgba(240,188,160,0.18) 0%,
+      rgba(168,210,196,0.13) 35%,
+      rgba(188,210,168,0.08) 55%,
       transparent 72%
     );
     filter: blur(60px);
