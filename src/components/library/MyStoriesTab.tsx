@@ -47,15 +47,24 @@ export default function MyStoriesTab({ stories }: Props) {
           <p className="text-[14px] text-v2-text-primary leading-[1.6] line-clamp-3 mb-2.5">
             {story.content}
           </p>
-          {story.matchedCount > 0 && (
+          {(story.dimension || story.matchedCount > 0) && (
             <div className="flex items-center gap-2">
-              <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
-              <button
-                onClick={() => router.push(`/matching?storyId=${story.id}`)}
-                className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
-              >
-                查看<ChevronRight size={13} />
-              </button>
+              {story.dimension && (
+                <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
+                  {story.dimension}
+                </span>
+              )}
+              {story.matchedCount > 0 && (
+                <>
+                  <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
+                  <button
+                    onClick={() => router.push(`/matching?storyId=${story.id}`)}
+                    className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
+                  >
+                    查看<ChevronRight size={13} />
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

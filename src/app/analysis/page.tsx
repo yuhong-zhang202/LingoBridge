@@ -5,10 +5,10 @@
  * @created  2026-05-28
  */
 'use client'
-import { Suspense, ReactNode, useState } from 'react'
+import { Suspense, ReactNode } from 'react'
 import type { CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Target, Type, ChevronDown } from 'lucide-react'
+import { Target, Type } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
@@ -64,7 +64,6 @@ function AnalysisContent() {
   const storyId    = params.get('storyId') ?? '1'
   const found: Question = QUESTIONS.find(q => q.id === questionId) ?? QUESTIONS[0]
   const data       = MOCK_ANALYSIS
-  const [showMore, setShowMore] = useState(false)
 
   return (
     <div
@@ -81,6 +80,11 @@ function AnalysisContent() {
         <div className="card px-[22px] pt-[16px] pb-[22px]">
           <div className="flex items-center gap-2 mb-2.5">
             <PartTag label={found.part} />
+            {found.dimension && (
+              <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
+                {found.dimension}
+              </span>
+            )}
             {found.hot && (
               <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
                 当季热题
@@ -93,9 +97,14 @@ function AnalysisContent() {
 
         {/* 答题侧重点 */}
         <GradCard>
-          <div className="flex items-center gap-1.5 mb-3">
-            <Target size={13} className="text-brand-primary" />
-            <span className="text-[13px] font-semibold text-[#444]">答题侧重点</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Target size={13} className="text-brand-primary" />
+              <span className="text-[13px] font-semibold text-[#444]">答题侧重点</span>
+            </div>
+            {data.structureLabel && (
+              <span className="text-[10px] text-v2-text-muted font-medium">{data.structureLabel}</span>
+            )}
           </div>
           <div className="flex flex-col gap-3">
             {data.focusPoints.map((fp, i) => (
@@ -117,7 +126,7 @@ function AnalysisContent() {
             <span className="text-[13px] font-semibold text-[#444]">可用句式框架</span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {(showMore ? data.sentenceFrames : data.sentenceFrames.slice(0, 1)).map((sf, i) => (
+            {data.sentenceFrames.map((sf, i) => (
               <div key={i} className="bg-[#F8F7F5] rounded-[10px] px-4 py-3">
                 <p className="text-[14px] text-[#1A1A1A] leading-[1.6]">
                   <HighlightSentence text={sf.text} />
@@ -125,13 +134,6 @@ function AnalysisContent() {
                 {sf.tip && <p className="text-[12px] text-[#888888] mt-1.5">{sf.tip}</p>}
               </div>
             ))}
-            <button
-              className="flex items-center justify-center gap-1 text-[12px] text-[#888888] py-1 active:opacity-60 transition-opacity"
-              onClick={() => setShowMore(v => !v)}
-            >
-              {showMore ? '收起' : '查看更多句式 ∨'}
-              <ChevronDown size={12} className={`transition-transform duration-200 ${showMore ? 'rotate-180' : ''}`} />
-            </button>
           </div>
         </GradCard>
 

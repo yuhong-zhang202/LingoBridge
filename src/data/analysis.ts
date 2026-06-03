@@ -22,6 +22,9 @@ export type AnalysisData = {
   zh: string
   focusPoints: FocusPoint[]
   sentenceFrames: SentenceFrame[]
+  dimension?: string
+  observationPoint?: string
+  structureLabel?: string
 }
 
 export const MOCK_ANALYSIS: AnalysisData = {
@@ -29,18 +32,25 @@ export const MOCK_ANALYSIS: AnalysisData = {
   part: 'Part 1',
   en: 'Do you often go to parks or outdoor spaces?',
   zh: '你经常去公园或户外场所吗？',
+  dimension: '情绪内核',
+  observationPoint: '一次让你压力大的具体经历',
+  structureLabel: '事件 · 情绪 · 行动 · 感悟',
   focusPoints: [
     {
-      title: '频率 + 场景描述',
-      desc: '考官期待你说明去的频率，并具体描述是什么样的户外场所。',
+      title: '描述发生了什么',
+      desc: '简洁交代事件背景：什么时候、发生了什么、你在哪里。1-2句话，不要展开。',
     },
     {
-      title: '感受 + 原因',
-      desc: '表达你喜欢或不喜欢的原因，用情绪词让回答更生动。',
+      title: '说出当时的感受',
+      desc: '用具体的情绪词描述你的第一反应。避免只说"I was upset"，要说出为什么（e.g. "I panicked because..."）',
     },
     {
-      title: '与个人经历结合',
-      desc: '用最近的真实经历作为例子，使回答更具说服力。',
+      title: '你做了什么',
+      desc: '描述你采取的行动步骤。这里是内容最多的部分，撑起 Part 2 的时长。',
+    },
+    {
+      title: '结果或感悟',
+      desc: '事情如何收尾，或你从中学到什么。一句话点题，给答案一个收口。',
     },
   ],
   sentenceFrames: [

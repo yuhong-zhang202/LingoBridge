@@ -15,6 +15,9 @@ export const QUESTIONS: Question[] = [
     en: 'Do you often go to parks or outdoor spaces?',
     zh: '你经常去公园吗？',
     reason: '与你的故事相关：公园、自然、放松',
+    dimension: '空间感知',
+    observationPoint: '一次具体的户外经历',
+    frequency: 'high',
   },
   {
     id: 'q2',
@@ -24,6 +27,9 @@ export const QUESTIONS: Question[] = [
     en: 'Describe a place in nature you like to visit.',
     zh: '描述你喜欢的自然环境中的一个地方。',
     reason: '与你的故事相关：户外环境、情绪体验',
+    dimension: '空间感知',
+    observationPoint: '一次具体的远行',
+    frequency: 'high',
   },
   {
     id: 'q3',
@@ -33,5 +39,8 @@ export const QUESTIONS: Question[] = [
     en: 'What do you do on weekends?',
     zh: '你周末都做些什么？',
     reason: '与你的故事相关：周末活动、休闲方式',
+    dimension: '情绪内核',
+    observationPoint: '一次让你放松的周末经历',
+    frequency: 'low',
   },
 ]

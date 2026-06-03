@@ -1,6 +1,6 @@
 /**
  * @module   types
- * @desc     全局共享类型定义 — 所有业务实体的唯一类型来源
+ * @desc     全局共享类型定义 — 所有业务实体的唯一类型来源（含数据库实体契约）
  * @author   LingoBridge
  * @created  2026-05-15
  */
@@ -24,6 +24,9 @@ export type Question = {
   storyTitle?: string
   hot?: boolean
   reason?: string
+  dimension?: '情绪内核' | '人际羁绊' | '空间感知' | '精神栖所' | '成长演进' | '价值底色'
+  observationPoint?: string
+  frequency?: 'high' | 'low'
 }
 
 // ── 文章相关
@@ -76,4 +79,131 @@ export interface MyStory {
   content: string
   matchedCount: number
   createdAt: string
+  dimension?: '情绪内核' | '人际羁绊' | '空间感知' | '精神栖所' | '成长演进' | '价值底色'
+}
+
+// ── 题库相关
+/**
+ * 维度的「中文显示标签」联合类型（如 '情绪内核' | '人际羁绊' | ...）。
+ * 仅用于 UI 文案展示，是历史遗留命名。
+ * ⚠️ 与下方数据库实体 Dimension 是两个不同的东西，请勿混用。
+ */
+export type DimensionLabel = '情绪内核' | '人际羁绊' | '空间感知' | '精神栖所' | '成长演进' | '价值底色'
+
+export interface BankQuestion {
+  id: string
+  en: string
+  part: 'Part 1' | 'Part 2' | 'Part 3'
+  dimension: DimensionLabel
+  matched: boolean
+}
+
+export interface DimensionSummary {
+  dimension: DimensionLabel
+  total: number
+  matched: number
+  questions: BankQuestion[]
+}
+
+// ── 数据库实体（应用层契约，camelCase；snake_case ↔ camelCase 转换留在数据层）
+
+export type DimensionId =
+  | 'emotion' | 'relationship' | 'space' | 'spirit' | 'growth' | 'value'
+
+export type ObservationLayer =
+  | 'state' | 'rhythm' | 'fluctuation' | 'mixed' | 'non_event'
+
+/**
+ * 数据库里的「维度」实体（dimensions 表的一行）。
+ * ⚠️ 与上方 DimensionLabel（中文显示标签）不同：这是数据模型，不是 UI 文案。
+ */
+export interface Dimension {
+  id: DimensionId
+  name: string
+  sortOrder: number
+}
+
+export interface ObservationPoint {
+  id: string
+  code: string
+  dimensionId: DimensionId
+  name: string
+  layer: ObservationLayer
+  mappedQuestionCount: number
+  richThreshold: number
+  sortOrder: number
+}
+
+export type CorpusSource = 'voice' | 'text'
+export type CorpusStatus = 'draft' | 'restructured' | 'extracted'
+export type LinkRole = 'primary' | 'secondary'
+
+export interface Corpus {
+  id: string
+  userId: string
+  source: CorpusSource
+  rawText: string
+  cleanedText: string | null
+  audioUrl: string | null
+  status: CorpusStatus
+  createdAt: string   // ISO 时间字符串
+  updatedAt: string
+}
+
+export interface CorpusPointLink {
+  id: string
+  corpusId: string
+  pointId: string
+  role: LinkRole
+  createdAt: string
+}
+
+export type UserPlan = 'free' | 'pro'
+
+export interface Profile {
+  id: string
+  plan: UserPlan
+  displayName: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// ── 题库相关（数据库对齐，列名保持 snake_case 与 DB 一致）
+
+export interface DBQuestion {
+  id: string
+  part: 1 | 2 | 3
+  topic: string
+  question_text: string
+  question_text_zh: string | null
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  is_new: boolean
+  topic_only: boolean
+  parent_card_id: string | null
+  created_at: string
+}
+
+export interface QuestionObservationLink {
+  id: string
+  question_id: string
+  observation_point_id: string
+  is_primary: boolean
+}
+
+/** 前端展示用：题目 + 关联的观察点 code 列表 */
+export interface QuestionWithLinks extends DBQuestion {
+  observation_points: string[]
+}
+
+/** 切换池用：首页随机切换展示的题目 */
+export interface SwitchQuestion {
+  id: string
+  part: 1 | 2
+  question_text: string
+  question_text_zh: string
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  topic_only: boolean
+  observation_points: string[]
 }

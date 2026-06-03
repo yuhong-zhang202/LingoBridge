@@ -7,7 +7,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Star, ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles, Star } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
@@ -110,11 +110,21 @@ export default function MatchingPage() {
                 </div>
 
                 <div className="flex-1 p-4">
-                  <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2 mb-2.5">
                     <PartTag label={item.part} />
-                    {item.hot && (
+                    {item.dimension && (
                       <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
-                        当季热题
+                        {item.dimension}
+                      </span>
+                    )}
+                    {item.frequency === 'high' && (
+                      <span className="text-[10px] font-medium bg-[#FDF3EC] border border-brand-primary-light text-brand-primary-dark px-[8px] py-[3px] rounded-full">
+                        高频
+                      </span>
+                    )}
+                    {item.frequency === 'low' && (
+                      <span className="text-[10px] font-medium bg-[#F5F5F5] border border-[#E0E0E0] text-text-3 px-[8px] py-[3px] rounded-full">
+                        低频
                       </span>
                     )}
                   </div>
@@ -126,19 +136,16 @@ export default function MatchingPage() {
                     {item.zh}
                   </p>
 
-                  {/* 底部操作行：收藏图标 + 原因标签 + 练习按钮 */}
+                  {/* 底部操作行：关键词说明 + 练习按钮 */}
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="p-1"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <Star size={14} className="text-[#CCCCCC]" />
-                      </button>
-                      <span className="text-[11px] text-[#888888]">
-                        {item.reason}
-                      </span>
-                    </div>
+                    {item.reason ? (
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Star size={11} className="text-v2-text-muted flex-shrink-0" />
+                        <span className="text-[11px] text-v2-text-muted truncate">
+                          {item.reason.split('：')[1] ?? item.reason}
+                        </span>
+                      </div>
+                    ) : <div />}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()

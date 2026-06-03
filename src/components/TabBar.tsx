@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, BookOpen, User } from 'lucide-react'
+import { Home, BookOpen, BookMarked, User } from 'lucide-react'
 
 const TABS = [
-  { href: '/',        label: '首页',  Icon: Home     },
-  { href: '/library', label: '素材库', Icon: BookOpen },
-  { href: '/profile', label: '我的',  Icon: User     },
+  { href: '/',               label: '首页',  Icon: Home       },
+  { href: '/question-bank',  label: '题库',  Icon: BookOpen   },
+  { href: '/library',        label: '素材库', Icon: BookMarked },
+  { href: '/profile',        label: '我的',  Icon: User       },
 ]
 
 export default function TabBar() {
@@ -20,12 +21,15 @@ export default function TabBar() {
       }}
     >
       {TABS.map(({ href, label, Icon }) => {
-        const active = path === href || (href === '/library' && path.startsWith('/library')) || (href === '/profile' && path.startsWith('/profile'))
+        const active = path === href
+          || (href === '/question-bank' && path.startsWith('/question-bank'))
+          || (href === '/library' && path.startsWith('/library'))
+          || (href === '/profile' && path.startsWith('/profile'))
         return (
           <Link
             key={href}
             href={href}
-            className="flex flex-col items-center gap-[3px] py-2 px-6"
+            className="flex flex-col items-center gap-[3px] py-2 px-4"
           >
             <Icon
               size={20}

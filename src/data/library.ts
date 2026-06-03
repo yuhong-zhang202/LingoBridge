@@ -132,6 +132,7 @@ export const MY_STORIES_NEW: MyStory[] = [
     content: '上周末我去了附近的公园，空气很好，心情也轻松了很多。待了很长时间，感觉充了电一样。偶尔看到几个孩子在玩耍，让我想起了小时候的时光。',
     matchedCount: 3,
     createdAt: '5/28',
+    dimension: '空间感知',
   },
   {
     id: 's2',
@@ -139,5 +140,6 @@ export const MY_STORIES_NEW: MyStory[] = [
     content: '今天在公司加班到很晚，回家路上看到夜空特别清澈，心情突然就好了。有时候一件小事就能改变一天的心情。',
     matchedCount: 2,
     createdAt: '5/25',
+    dimension: '情绪内核',
   },
 ]
