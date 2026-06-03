@@ -5,18 +5,14 @@ import Link from 'next/link'
 import { Mic2, ChevronLeft, ChevronRight } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
-import { QUESTIONS } from '@/data/questions'
-
-function randomQuestion() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
-}
+import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 
 export default function HomePage() {
   const router = useRouter()
   const [showTextInput, setShowTextInput] = useState(false)
   const [textStory, setTextStory] = useState('')
   const [ieltsMode, setIeltsMode] = useState(false)
-  const [question, setQuestion] = useState(() => randomQuestion())
+  const { question, loading, next } = useSwitchQuestion()
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -55,7 +51,7 @@ export default function HomePage() {
                   <ChevronLeft size={14} color="#A89990" />
                 </button>
                 <button
-                  onClick={() => { setQuestion(randomQuestion()); setIeltsMode(true) }}
+                  onClick={() => { setIeltsMode(true); void next() }}
                   className="w-[26px] h-[26px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.93] transition-all duration-150"
                   style={{ border: '1px solid rgba(0,0,0,0.07)', opacity: ieltsMode ? 0.28 : 1 }}
                   aria-label="切换雅思题目"
@@ -75,8 +71,12 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <h1 className="w-full text-center text-[20px] font-bold text-[#111] tracking-tight leading-snug pl-6">
-                    {question.zh}
+                  <h1 className="w-full text-center text-[20px] font-bold text-[#111] tracking-tight leading-snug pl-6 min-h-[28px]">
+                    {loading
+                      ? '换一题中…'
+                      : question
+                        ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh)
+                        : '点右箭头换一道雅思题'}
                   </h1>
                   <p className="text-[13px] text-[#888] mt-2">
                     聊聊你的看法

@@ -1,10 +1,21 @@
 /**
  * @module   constants
- * @desc     设计系统全局常量 — 品牌色、渐变描边样式
+ * @desc     设计系统全局常量 — 品牌色、渐变描边样式、维度标签映射
  * @author   LingoBridge
  * @created  2026-05-15
  */
 import type { CSSProperties } from 'react'
+import type { DimensionId, DimensionLabel } from '@/lib/types'
+
+/** 维度 id → 中文显示标签 */
+export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
+  emotion: '情绪内核',
+  relationship: '人际羁绊',
+  space: '空间感知',
+  spirit: '精神栖所',
+  growth: '成长演进',
+  value: '价值底色',
+}
 
 export const BRAND_COLORS = {
   orange: '#D4875A',

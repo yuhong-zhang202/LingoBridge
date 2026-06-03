@@ -16,4 +16,8 @@ export const env = {
 
   // Anthropic / Claude —— 服务端专用，切勿加 NEXT_PUBLIC_
   anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? '',
+
+  // 豆包 ASR —— 服务端专用，切勿加 NEXT_PUBLIC_
+  doubaoAsrAppId:       process.env.DOUBAO_ASR_APP_ID ?? '',
+  doubaoAsrAccessToken: process.env.DOUBAO_ASR_ACCESS_TOKEN ?? '',
 }

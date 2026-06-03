@@ -5,7 +5,7 @@
  * @created  2026-05-28
  */
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Quote, Sparkles, Pencil, Check, RefreshCw } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -14,12 +14,10 @@ import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { MOCK_RAW_STORY, MOCK_AI_RESULT } from '@/data/restructure'
+import { MOCK_RAW_STORY } from '@/data/restructure'
 
-// 渐变参数：AI 结果卡 border 用半透明 rgba（与 globals.css 保持一致）
 const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 
-// ── AI 整理结果卡片（读 / 编辑同一组件切换）
 function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
 }) {
@@ -46,21 +44,35 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   )
 }
 
-// ── 页面主体（Suspense 包裹原因：useSearchParams 需要）
 function RestructureContent() {
-  const router    = useRouter()
-  const rawStory  = useSearchParams().get('story') ?? MOCK_RAW_STORY
+  const router   = useRouter()
+  const rawStory = useSearchParams().get('rawText') ?? MOCK_RAW_STORY
   const [isLoading, setIsLoading] = useState(true)
-  const [aiText,    setAiText]    = useState(MOCK_AI_RESULT)
+  const [aiText,    setAiText]    = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
 
-  const startLoading = () => {
+  const runRestructure = useCallback(async () => {
     setIsLoading(true)
     setIsEditing(false)
-    setTimeout(() => setIsLoading(false), 1500)
-  }
+    setError(null)
+    try {
+      const res = await fetch('/api/restructure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: rawStory }),
+      })
+      if (!res.ok) throw new Error('整理失败')
+      const data = (await res.json()) as { cleanedText: string }
+      setAiText(data.cleanedText)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '整理失败，请重试')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [rawStory])
 
-  useEffect(startLoading, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void runRestructure() }, [runRestructure])
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -86,11 +98,21 @@ function RestructureContent() {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* AI 整理结果 / 加载态 */}
+        {/* AI 整理结果 / 加载态 / 错误态 */}
         {isLoading ? (
           <div className="flex flex-col items-center py-6 gap-3">
             <Orb size={120} />
             <p className="text-[13px] text-v2-text-muted">AI 整理中…</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center py-6 gap-3">
+            <p className="text-[13px] text-red-400">{error}</p>
+            <button
+              onClick={() => void runRestructure()}
+              className="flex items-center gap-1.5 text-[13px] text-gray-400 active:opacity-70"
+            >
+              <RefreshCw size={13} />重试
+            </button>
           </div>
         ) : (
           <AiResultCard
@@ -103,12 +125,11 @@ function RestructureContent() {
       </div>
 
       {/* 底部操作区 */}
-      {!isLoading && (
+      {!isLoading && !error && (
         <div
           className="flex-shrink-0 px-5 relative z-10"
           style={{ paddingBottom: 'max(88px, calc(env(safe-area-inset-bottom) + 56px))', paddingTop: 12 }}
         >
-          {/* 主按钮 */}
           <button
             className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150"
             style={GRADIENT_BORDER_STYLE}
@@ -116,10 +137,9 @@ function RestructureContent() {
           >
             开始匹配题目 →
           </button>
-          {/* 次要按钮 */}
           <button
             className="w-full flex items-center justify-center gap-1.5 text-[13px] text-gray-400 active:opacity-70 transition-opacity"
-            onClick={() => { setAiText(MOCK_AI_RESULT); startLoading() }}
+            onClick={() => void runRestructure()}
           >
             <RefreshCw size={13} />重新整理
           </button>

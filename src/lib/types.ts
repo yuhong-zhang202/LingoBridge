@@ -196,6 +196,94 @@ export interface QuestionWithLinks extends DBQuestion {
   observation_points: string[]
 }
 
+// ── matching 真实化相关 ──
+
+export interface MatchedPoint {
+  pointCode: string          // 'SPA_03'
+  pointName: string          // '你和所在城市/街区的关系'
+  dimension: DimensionLabel  // '空间感知'
+  reason: string             // 萃取理由
+}
+
+export interface MatchedQuestion {
+  id: string
+  part: 1 | 2 | 3
+  question_text: string
+  question_text_zh: string | null
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  is_new: boolean
+  topic_only: boolean
+  matched_point: string      // 命中的观察点 code
+  dimension: DimensionLabel  // 该观察点所属维度（中文标签）
+}
+
+export interface MatchResult {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  questions: MatchedQuestion[]
+  count: number
+}
+
+// ── feedback 收藏 ──
+export interface SessionPolish {
+  original: string
+  optimized: string
+  note: string
+  part: 1 | 2 | 3
+  questionEn: string
+}
+export interface SavedPhrase extends SessionPolish {
+  id: string
+  createdAt: string
+}
+
+// ── 🔨 重新表达 ──
+export interface PolishResult {
+  optimized: string   // 优化后的英文句子
+  note: string        // 一句中文说明改进点
+}
+
+// ── practice 对话 ──
+export interface PracticeScaffold {
+  part: 1 | 2 | 3
+  questionForAI: string    // 喂给 AI 的完整题目（Part 2 = 完整 cue card）
+  displayEn: string        // 页面头部展示用（Part 2 = 短标题）
+  displayZh: string
+  focusPoints: string[]    // analysis 侧重点（作对话节拍）
+  part3Questions: string[] // 真实 Part 3 追问（要自然融入；Part 1 为空）
+}
+export interface PracticeMessage {
+  role: 'assistant' | 'user'
+  content: string
+}
+
+// ── analysis 真实化 ──
+export interface AnalysisFocusPoint {
+  title: string
+  desc: string
+}
+export interface AnalysisSentenceFrame {
+  text: string   // 含 [可替换] 方括号标记
+  tip?: string
+}
+export interface QuestionAnalysis {
+  structureLabel: string
+  focusPoints: AnalysisFocusPoint[]
+  sentenceFrames: AnalysisSentenceFrame[]
+}
+export interface AnalysisResponse {
+  question: {
+    id: string
+    part: 1 | 2 | 3
+    en: string
+    zh: string
+    dimension: DimensionLabel | null
+    isNew: boolean
+  }
+  analysis: QuestionAnalysis
+}
+
 /** 切换池用：首页随机切换展示的题目 */
 export interface SwitchQuestion {
   id: string

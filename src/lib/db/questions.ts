@@ -101,6 +101,46 @@ export async function getQuestionsByObservation(
 }
 
 /**
+ * 获取一张 Part 2 卡片的 Part 3 追问
+ * @param cardId  Part 2 题目 UUID
+ * @returns       该卡的 Part 3 题目列表（按创建顺序）
+ */
+export async function getQuestionsByParent(cardId: string): Promise<QuestionWithLinks[]> {
+  const { data, error } = await getSupabase()
+    .from('questions')
+    .select(`*, question_observation_links(observation_point_id)`)
+    .eq('parent_card_id', cardId)
+    .order('created_at')
+
+  if (error) throw error
+  return (data ?? []).map((q) => mapQuestion(q as RawQuestionRow))
+}
+
+/**
+ * 按 ID 获取单道题目（带观察点）
+ * @param id  题目 UUID
+ * @returns   题目 + 观察点列表，找不到返回 null
+ */
+export async function getQuestionById(id: string): Promise<QuestionWithLinks | null> {
+  const { data, error } = await getSupabase()
+    .from('questions')
+    .select(`*, question_observation_links(observation_point_id)`)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const q = data as Record<string, unknown>
+  return {
+    ...(q as unknown as DBQuestion),
+    observation_points: (
+      (q.question_observation_links as Array<{ observation_point_id: string }>) ?? []
+    ).map((l) => l.observation_point_id),
+  }
+}
+
+/**
  * 获取切换池随机题目（首页随机切换用）
  * 优先取 topic_only 题目，没有则取普通映射题目
  * @param excludeIds  已展示过的题目 ID 列表（去重用）

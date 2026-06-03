@@ -1,0 +1,24 @@
+/**
+ * @module   api/practice/polish
+ * @desc     POST 一句英文 → Claude 给优化版 + 改进说明（密钥只在服务端）
+ * @author   LingoBridge
+ * @created  2026-06-03
+ */
+import { NextResponse } from 'next/server'
+import { polishSentence } from '@/services/practice'
+
+export async function POST(req: Request): Promise<NextResponse> {
+  try {
+    const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown }
+    const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
+    const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined
+    if (!sentence) {
+      return NextResponse.json({ error: 'sentence 不能为空' }, { status: 400 })
+    }
+    const result = await polishSentence(sentence, aiQuestion)
+    return NextResponse.json(result)
+  } catch (e) {
+    console.error('[polish API] error', e)
+    return NextResponse.json({ error: '优化失败' }, { status: 500 })
+  }
+}
