@@ -6,9 +6,11 @@
  */
 import { NextResponse } from 'next/server'
 import { buildScaffold, coachReply } from '@/services/practice'
+import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
+  const t0 = Date.now()
   try {
     const body = (await req.json()) as {
       questionId?: string
@@ -27,8 +29,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     const reply = await coachReply(scaffold, messages)
+    // coachReply 内未向上暴露 usage，按题目 + 对话历史长度估算（+ 系统提示约 600 token）
+    const promptTokens = Math.round(scaffold.questionForAI.length * 0.3 + messages.length * 50 + 600)
+    const completionTokens = 60
+    logApiUsage({ service: 'claude_haiku', endpoint: 'anthropic/v1/messages', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.claude_haiku_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.claude_haiku_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
     return NextResponse.json({ scaffold, reply })
   } catch (e) {
+    logApiUsage({ service: 'claude_haiku', endpoint: 'anthropic/v1/messages', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     console.error('[practice API] error', e)
     return NextResponse.json({ error: '对话失败' }, { status: 500 })
   }

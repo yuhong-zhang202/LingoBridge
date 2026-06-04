@@ -131,6 +131,51 @@ export async function saveExtraction(
 }
 
 /**
+ * 读取单条语料关联的观察点 code，及主观察点 code
+ * @param  corpusId  corpus UUID
+ * @returns          codes（全部）+ primaryCode（role='primary' 的那个，无则取首个）
+ */
+export async function getCorpusPointCodes(
+  corpusId: string,
+): Promise<{ codes: string[]; primaryCode: string | null }> {
+  await ensureSession()
+  const { data, error } = await getSupabase()
+    .from('corpus_point_links')
+    .select('role, observation_points(code)')
+    .eq('corpus_id', corpusId)
+  if (error) throw new Error(`读取观察点失败：${error.message}`)
+  // Supabase 嵌套查询对 forward FK 也返回数组形式（与 listMyObservationCodes 同理）
+  const rows = data as unknown as Array<{
+    role: string
+    observation_points: { code: string }[] | null
+  }>
+  const items = rows.map((r) => ({
+    role: r.role,
+    code: (r.observation_points ?? [])[0]?.code ?? null,
+  }))
+  const codes = items.flatMap((item) => (item.code ? [item.code] : []))
+  const primaryCode = items.find((item) => item.role === 'primary')?.code ?? codes[0] ?? null
+  return { codes, primaryCode }
+}
+
+/**
+ * 读取当前用户所有语料命中的观察点 code（去重）
+ * corpus_point_links.point_id → observation_points(id) 有 FK，使用嵌套查询
+ * @returns  去重后的观察点 code 列表（如 ['SPA_03', 'EMO_04']）
+ */
+export async function listMyObservationCodes(): Promise<string[]> {
+  await ensureSession()
+  const { data, error } = await getSupabase()
+    .from('corpus_point_links')
+    .select('observation_points(code)')
+  if (error) throw new Error(`读取命中观察点失败：${error.message}`)
+  // Supabase 嵌套查询对 forward FK 也返回数组类型，用 unknown 转型后按数组处理
+  const rows = data as unknown as Array<{ observation_points: { code: string }[] | null }>
+  const codes = rows.flatMap((row) => (row.observation_points ?? []).map((op) => op.code))
+  return [...new Set(codes)]
+}
+
+/**
  * 写回整理后的短文，状态从 draft 推进到 restructured
  * @param  id           corpus UUID
  * @param  cleanedText  千问整理后的中文短文

@@ -13,15 +13,16 @@ import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
 import Chip from '@/components/Chip'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
+import { saveExtraction } from '@/lib/db/corpus'
 import type { MatchResult } from '@/lib/types'
-
-const STORY_ID = '1' // 暂硬编码，多故事导航后续实现
 
 type PartTab = '全部' | 'Part 1' | 'Part 2'
 
 function MatchingContent() {
   const router = useRouter()
-  const story = useSearchParams().get('story') ?? ''
+  const params = useSearchParams()
+  const story    = params.get('story')    ?? ''
+  const corpusId = params.get('corpusId') ?? ''
   const [result, setResult] = useState<MatchResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,11 +38,16 @@ function MatchingContent() {
         const res = await fetch('/api/matching', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cleanedText: story }),
+          body: JSON.stringify({ cleanedText: story, corpusId }),
         })
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as MatchResult
         if (!cancelled) { setResult(data); setSelectedId(data.questions[0]?.id ?? null) }
+        // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
+        if (!cancelled && corpusId && data.primary) {
+          saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
+            .catch((err: unknown) => console.warn('[MatchingPage] saveExtraction 失败，跳过', err))
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : '匹配失败')
       } finally {
@@ -49,7 +55,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true }
-  }, [story])
+  }, [story, corpusId])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {
@@ -121,7 +127,7 @@ function MatchingContent() {
                   question={q}
                   selected={selectedId === q.id}
                   onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                  onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${STORY_ID}`)}
+                  onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId || '1'}`)}
                 />
               ))}
               {filtered.length === 0 && (

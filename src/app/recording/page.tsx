@@ -5,7 +5,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
@@ -15,6 +15,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 export default function RecordingPage() {
   const router = useRouter()
   const [seconds, setSeconds] = useState(0)
+  const secondsRef = useRef(0)
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { audioLevel, start, stop } = useAudioRecorder()
@@ -22,7 +23,7 @@ export default function RecordingPage() {
   // 计时（转写时暂停）
   useEffect(() => {
     if (transcribing) return
-    const t = setInterval(() => setSeconds((s) => s + 1), 1000)
+    const t = setInterval(() => setSeconds((s) => { secondsRef.current = s + 1; return s + 1 }), 1000)
     return () => clearInterval(t)
   }, [transcribing])
 
@@ -31,6 +32,11 @@ export default function RecordingPage() {
 
   const handleFinish = useCallback(async () => {
     setError(null)
+    // 第一层：录音过短，提示继续说而非上传（保持录音中）
+    if (secondsRef.current < 5) {
+      setError('还想再说点什么吗？目前语料可能有点短哦')
+      return
+    }
     setTranscribing(true)
     try {
       const blob = await stop()
@@ -39,7 +45,14 @@ export default function RecordingPage() {
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
       const res = await fetch('/api/transcribe', { method: 'POST', body: form })
-      if (!res.ok) throw new Error('转写失败，请重试')
+      if (!res.ok) {
+        const errData = (await res.json()) as { error?: string; code?: string }
+        throw new Error(
+          errData.code === 'EMPTY_TRANSCRIPT'
+            ? '好像没太听清，要不要再说一次？'
+            : '转写失败，请重试'
+        )
+      }
       const data = (await res.json()) as { text: string }
       router.push(`/restructure?rawText=${encodeURIComponent(data.text)}`)
     } catch (e) {
@@ -50,6 +63,7 @@ export default function RecordingPage() {
 
   const handleRerecord = useCallback(async () => {
     await stop()
+    secondsRef.current = 0
     setSeconds(0)
     setError(null)
     void start()

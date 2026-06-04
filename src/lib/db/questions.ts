@@ -4,7 +4,7 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
-import { getSupabase } from '../supabase'
+import { getSupabase, ensureSession } from '../supabase'
 import type { DBQuestion, QuestionWithLinks, SwitchQuestion } from '../types'
 
 interface RawLinkRow {
@@ -65,6 +65,7 @@ function mapSwitchQuestion(raw: RawQuestionRow): SwitchQuestion {
  * @returns     题目列表 + 关联观察点 code 列表
  */
 export async function getQuestions(part?: 1 | 2 | 3): Promise<QuestionWithLinks[]> {
+  await ensureSession()
   const supabase = getSupabase()
   let query = supabase
     .from('questions')
@@ -89,6 +90,7 @@ export async function getQuestions(part?: 1 | 2 | 3): Promise<QuestionWithLinks[
 export async function getQuestionsByObservation(
   observationPointId: string,
 ): Promise<QuestionWithLinks[]> {
+  await ensureSession()
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('question_observation_links')
@@ -101,11 +103,30 @@ export async function getQuestionsByObservation(
 }
 
 /**
+ * 按多个观察点 code 聚合计算不重复题目数（一次查询代替 N 次逐个查）
+ * @param  codes  观察点 code 列表（如 ['SPA_03', 'EMO_04']）
+ * @returns       去重后的题目数量
+ */
+export async function getQuestionCountByObservations(codes: string[]): Promise<number> {
+  if (codes.length === 0) return 0
+  await ensureSession()
+  const { data, error } = await getSupabase()
+    .from('question_observation_links')
+    .select('question_id')
+    .in('observation_point_id', codes)
+    .eq('is_primary', true)
+  if (error) throw new Error(`读取匹配题数失败：${error.message}`)
+  const ids = new Set((data as { question_id: string }[]).map((r) => r.question_id))
+  return ids.size
+}
+
+/**
  * 获取一张 Part 2 卡片的 Part 3 追问
  * @param cardId  Part 2 题目 UUID
  * @returns       该卡的 Part 3 题目列表（按创建顺序）
  */
 export async function getQuestionsByParent(cardId: string): Promise<QuestionWithLinks[]> {
+  await ensureSession()
   const { data, error } = await getSupabase()
     .from('questions')
     .select(`*, question_observation_links(observation_point_id)`)
@@ -122,6 +143,7 @@ export async function getQuestionsByParent(cardId: string): Promise<QuestionWith
  * @returns   题目 + 观察点列表，找不到返回 null
  */
 export async function getQuestionById(id: string): Promise<QuestionWithLinks | null> {
+  await ensureSession()
   const { data, error } = await getSupabase()
     .from('questions')
     .select(`*, question_observation_links(observation_point_id)`)
@@ -149,6 +171,7 @@ export async function getQuestionById(id: string): Promise<QuestionWithLinks | n
 export async function getRandomSwitchQuestion(
   excludeIds: string[] = [],
 ): Promise<SwitchQuestion | null> {
+  await ensureSession()
   const supabase = getSupabase()
   const selectFields = `id, part, question_text, question_text_zh, cue_card_title, cue_card_title_zh, topic_only, question_observation_links(observation_point_id)`
 

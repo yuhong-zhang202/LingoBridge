@@ -3,6 +3,8 @@ import { useState, useRef } from 'react'
 import { Trash2 } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import type { CollectedCard } from '@/lib/types'
+import EmptyState from '@/components/EmptyState'
+import { removeSavedPhrase } from '@/lib/storage'
 
 interface Props { cards: CollectedCard[] }
 
@@ -73,11 +75,10 @@ export default function CollectedCardsTab({ cards: initialCards }: Props) {
 
   if (cards.length === 0) {
     return (
-      <div className="flex items-center justify-center pt-20 px-4 text-center">
-        <p className="text-[14px] text-v2-text-muted">
-          还没有收藏卡片，练习后右滑卡片即可收藏
-        </p>
-      </div>
+      <EmptyState
+        title="还没有收藏卡片"
+        subtitle="练习后左滑卡片即可收藏，随时复习"
+      />
     )
   }
 
@@ -88,7 +89,7 @@ export default function CollectedCardsTab({ cards: initialCards }: Props) {
         <SwipeCard
           key={card.id}
           card={card}
-          onDelete={() => setCards(prev => prev.filter(c => c.id !== card.id))}
+          onDelete={() => { removeSavedPhrase(card.id); setCards(prev => prev.filter(c => c.id !== card.id)) }}
         />
       ))}
     </div>

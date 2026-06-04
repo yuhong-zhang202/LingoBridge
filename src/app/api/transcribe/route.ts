@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
+import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import type { AppError } from '@/types/errors'
 
 // ffmpeg 需要 Node.js 运行时（不支持 Edge）
@@ -33,6 +34,7 @@ function mimeToExt(mimeType: string): string {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
+  const t0 = Date.now()
   try {
     const form = await req.formData()
     const file = form.get('audio')
@@ -47,8 +49,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     const wavBlob  = new Blob([new Uint8Array(wavBuf)], { type: 'audio/wav' })
 
     const text = await transcribeAudio(wavBlob)
+    // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
+    const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
+    logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})
     return NextResponse.json({ text })
   } catch (e) {
+    logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     console.error('[transcribe API] error', e)
     if (isAppError(e)) {
       return NextResponse.json({ error: e.message, code: e.code }, { status: 500 })

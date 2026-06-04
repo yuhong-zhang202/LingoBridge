@@ -43,3 +43,13 @@ export function addSavedPhrase(p: SavedPhrase): void {
   all.unshift(p)
   localStorage.setItem(SAVED_KEY, JSON.stringify(all))
 }
+
+/**
+ * 删除单条收藏（按 id 过滤后写回 localStorage）
+ * @param id  SavedPhrase.id
+ */
+export function removeSavedPhrase(id: string): void {
+  if (typeof window === 'undefined') return
+  const filtered = getSavedPhrases().filter(p => p.id !== id)
+  localStorage.setItem(SAVED_KEY, JSON.stringify(filtered))
+}

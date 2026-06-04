@@ -15,6 +15,7 @@ import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { MOCK_RAW_STORY } from '@/data/restructure'
+import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 
 const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 
@@ -51,11 +52,15 @@ function RestructureContent() {
   const [aiText,    setAiText]    = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
+  const [usable,    setUsable]    = useState<boolean | null>(null)
+  const [isSaving,  setIsSaving]  = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const runRestructure = useCallback(async () => {
     setIsLoading(true)
     setIsEditing(false)
     setError(null)
+    setUsable(null)
     try {
       const res = await fetch('/api/restructure', {
         method: 'POST',
@@ -63,8 +68,9 @@ function RestructureContent() {
         body: JSON.stringify({ rawText: rawStory }),
       })
       if (!res.ok) throw new Error('整理失败')
-      const data = (await res.json()) as { cleanedText: string }
+      const data = (await res.json()) as { cleanedText: string; usable: boolean }
       setAiText(data.cleanedText)
+      setUsable(data.usable ?? true)
     } catch (e) {
       setError(e instanceof Error ? e.message : '整理失败，请重试')
     } finally {
@@ -73,6 +79,19 @@ function RestructureContent() {
   }, [rawStory])
 
   useEffect(() => { void runRestructure() }, [runRestructure])
+
+  async function handleMatchClick(): Promise<void> {
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      const corpus = await createCorpus({ source: 'voice', rawText: rawStory })
+      await updateCorpusCleaned(corpus.id, aiText)
+      router.push(`/matching?story=${encodeURIComponent(aiText)}&corpusId=${corpus.id}`)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -115,12 +134,19 @@ function RestructureContent() {
             </button>
           </div>
         ) : (
-          <AiResultCard
-            text={aiText}
-            isEditing={isEditing}
-            onToggleEdit={() => setIsEditing(v => !v)}
-            onChange={setAiText}
-          />
+          <>
+            <AiResultCard
+              text={aiText}
+              isEditing={isEditing}
+              onToggleEdit={() => setIsEditing(v => !v)}
+              onChange={setAiText}
+            />
+            {usable === false && (
+              <p className="text-[12px] text-v2-text-muted text-center px-2 leading-relaxed">
+                这段内容可以再丰富一些，补充些细节后面练习效果会更好；当然也可以直接继续 ✨
+              </p>
+            )}
+          </>
         )}
       </div>
 
@@ -130,12 +156,16 @@ function RestructureContent() {
           className="flex-shrink-0 px-5 relative z-10"
           style={{ paddingBottom: 'max(88px, calc(env(safe-area-inset-bottom) + 56px))', paddingTop: 12 }}
         >
+          {saveError && (
+            <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
+          )}
           <button
-            className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150"
+            className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
             style={GRADIENT_BORDER_STYLE}
-            onClick={() => router.push(`/matching?story=${encodeURIComponent(aiText)}`)}
+            onClick={() => void handleMatchClick()}
+            disabled={isSaving}
           >
-            开始匹配题目 →
+            {isSaving ? '保存中…' : '开始匹配题目 →'}
           </button>
           <button
             className="w-full flex items-center justify-center gap-1.5 text-[13px] text-gray-400 active:opacity-70 transition-opacity"

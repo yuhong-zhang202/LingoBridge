@@ -1,6 +1,6 @@
 /**
  * @module   QuestionListTab
- * @desc     题目列表 Tab — 进度卡 + Part 筛选 + 可以练习/等待语料两区
+ * @desc     题目列表 Tab — 进度卡 + 动态 Part 筛选 + 可练习 / 等待语料两区
  * @author   LingoBridge
  * @created  2026-06-01
  */
@@ -8,25 +8,30 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
-import { BANK_QUESTIONS } from '@/data/questionBank'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import SegmentDots from './SegmentDots'
+import type { QBQuestion } from '@/lib/types'
 
-const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3'] as const
-type PartFilter = typeof PARTS[number]
-const TOTAL = BANK_QUESTIONS.length
-const TOTAL_MATCHED = BANK_QUESTIONS.filter(q => q.matched).length
 const PROG = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
 const BAR  = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
 
-export default function QuestionListTab() {
+interface Props {
+  mappedQuestions: QBQuestion[]
+  totalMapped: number
+  totalMatched: number
+  availableParts: (1 | 2 | 3)[]
+}
+
+export default function QuestionListTab({ mappedQuestions, totalMapped, totalMatched, availableParts }: Props) {
   const router = useRouter()
-  const [part, setPart] = useState<PartFilter>('全部')
+  const [part, setPart] = useState('全部')
   const [matchedOpen, setMatchedOpen] = useState(true)
   const [unmatchedOpen, setUnmatchedOpen] = useState(false)
-  const filtered = BANK_QUESTIONS.filter(q => part === '全部' || q.part === part)
+
+  const partChips = ['全部', ...availableParts.map(p => `Part ${p}`)]
+  const filtered   = part === '全部' ? mappedQuestions : mappedQuestions.filter(q => `Part ${q.part}` === part)
   const matchedQ   = filtered.filter(q => q.matched)
   const unmatchedQ = filtered.filter(q => !q.matched)
 
@@ -37,17 +42,19 @@ export default function QuestionListTab() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] font-medium text-[#6B5B52]">你的故事已覆盖</span>
             <div>
-              <span className="text-[18px] font-semibold text-[#2C2420]">{TOTAL_MATCHED}</span>
-              <span className="text-[12px] text-[#A89990]"> / {TOTAL} 题</span>
+              <span className="text-[18px] font-semibold text-[#2C2420]">{totalMatched}</span>
+              <span className="text-[12px] text-[#A89990]"> / {totalMapped} 题</span>
             </div>
           </div>
-          <SegmentDots total={TOTAL} filled={TOTAL_MATCHED} />
-          <p className="text-[11px] text-[#C4B5A9] mt-1.5">每一段都是你自己的答题素材</p>
+          <SegmentDots total={totalMapped} filled={totalMatched} />
+          {totalMatched === 0
+            ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
+            : <p className="text-[11px] text-[#C4B5A9] mt-1.5">每一段都是你自己的答题素材</p>}
         </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {PARTS.map(p => <Chip key={p} onClick={() => setPart(p)} variant="ghost" active={part === p}>{p}</Chip>)}
+        {partChips.map(p => <Chip key={p} onClick={() => setPart(p)} variant="ghost" active={part === p}>{p}</Chip>)}
       </div>
 
       {matchedQ.length > 0 && <>
@@ -61,8 +68,8 @@ export default function QuestionListTab() {
               <div className="w-[4px] flex-shrink-0 self-stretch" style={{ background: BAR }} />
               <div className="flex-1 px-[14px] py-[10px] flex items-center gap-[10px]">
                 <div className="flex-1 min-w-0">
-                  <PartTag label={q.part} />
-                  <p className="text-[13px] font-semibold text-[#111] leading-tight mt-1">{q.en}</p>
+                  <PartTag label={`Part ${q.part}`} />
+                  <p className="text-[13px] font-semibold text-[#111] leading-tight mt-1">{q.displayText}</p>
                 </div>
                 <button onClick={() => router.push(`/analysis?questionId=${q.id}&storyId=1`)} style={GRADIENT_BORDER_STYLE} className="text-[11px] font-medium text-[#444] px-[10px] py-[3px] rounded-full flex-shrink-0">练习 →</button>
               </div>
@@ -79,8 +86,8 @@ export default function QuestionListTab() {
         {unmatchedOpen && <div className="flex flex-col gap-2">
           {unmatchedQ.map(q => (
             <div key={q.id} className="bg-[#FAFAF8] rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
-              <span className="text-[11px] font-medium border border-black/[0.06] text-[#CCC] px-[7px] py-[2px] rounded-full flex-shrink-0">{q.part}</span>
-              <p className="text-[13px] text-[#BBB] flex-1">{q.en}</p>
+              <span className="text-[11px] font-medium border border-black/[0.06] text-[#CCC] px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              <p className="text-[13px] text-[#BBB] flex-1">{q.displayText}</p>
             </div>
           ))}
         </div>}

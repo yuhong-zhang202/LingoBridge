@@ -8,6 +8,7 @@ import 'server-only'
 import { env } from '@/lib/env'
 import { getQuestionById, getQuestionsByParent } from '@/lib/db/questions'
 import { generateAnalysis } from '@/services/analysis'
+import { callLLMJson } from '@/lib/llm'
 import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/types'
 
 // 实时对话：延迟优先 + 强指令遵循
@@ -127,62 +128,32 @@ const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅
 规则：
 - optimized 保持原意，只是更自然/更准确/更地道；不要堆砌高级词
 - note 只点出最关键的 1 个改进（地道搭配、时态、连接更顺等），一句话，别长篇
-- 若原句已不错，optimized 只做小润色，note 说明它已不错 + 微调点`
+- 若原句已不错，optimized 只做小润色，note 说明它已不错 + 微调点
 
-/**
- * 优化用户刚说的一句英文，给出更地道的版本 + 一句中文说明
- * @param sentence    用户原句（英文，可能来自转写）
- * @param aiQuestion  教练上一句提问（作上下文，可选）
- * @returns           优化句 + 改进说明
- */
+【JSON 格式硬约束】
+你只能输出合法 JSON，前后不得有任何说明文字或 markdown 代码块（不要 \`\`\`json）。
+字符串值内部禁止出现英文双引号 " ——如需引用或强调，一律改用中文引号「」。
+  错误示例："tip":"别只说"I was scared""   ← 裸双引号会破坏 JSON
+  正确示例："tip":"别只说「I was scared」"`
+
 export async function polishSentence(sentence: string, aiQuestion?: string): Promise<PolishResult> {
   if (!env.anthropicApiKey) {
     throw new Error('未配置 ANTHROPIC_API_KEY，请在 .env.local 中设置')
   }
-
   const userMsg = `${aiQuestion ? `(教练问的:) ${aiQuestion}\n` : ''}(我说的:) ${sentence}`
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000) // ENGINEERING §4
-  const startedAt = Date.now()
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': env.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: POLISH_MODEL,
-        max_tokens: 400,
-        system: POLISH_SYSTEM,
-        messages: [{ role: 'user', content: userMsg }],
-      }),
-      signal: controller.signal,
-    })
-
-    if (!res.ok) {
-      const detail = await res.text()
-      throw new Error(`Claude 优化失败（${res.status}）：${detail}`)
-    }
-
-    const data = (await res.json()) as { content: { type: string; text?: string }[] }
-    const raw = data.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
-    const jsonText = raw.replace(/^```(?:json)?/, '').replace(/```$/, '').trim()
-
-    let parsed: PolishResult
-    try {
-      parsed = JSON.parse(jsonText) as PolishResult
-    } catch {
-      throw new Error(`Claude 优化返回非法 JSON：${raw}`)
-    }
-    if (!parsed.optimized) throw new Error(`Claude 优化缺少 optimized：${raw}`)
-
-    console.log('[Polish] done', { ms: Date.now() - startedAt })
-    return parsed
-  } finally {
-    clearTimeout(timeout)
-  }
+  return callLLMJson<PolishResult>({
+    label: '[Polish]',
+    call: {
+      provider: 'anthropic',
+      apiKey: env.anthropicApiKey,
+      model: POLISH_MODEL,
+      system: POLISH_SYSTEM,
+      messages: [{ role: 'user', content: userMsg }],
+      maxTokens: 400,
+    },
+    validate: (v): v is PolishResult =>
+      typeof v === 'object' && v !== null &&
+      typeof (v as { optimized?: unknown }).optimized === 'string' &&
+      (v as { optimized: string }).optimized.length > 0,
+  })
 }

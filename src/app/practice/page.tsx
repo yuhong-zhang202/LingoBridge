@@ -13,6 +13,7 @@ import { StepBar } from '@/components/StepBar'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { setSessionPolishes } from '@/lib/storage'
+import { recordPracticeSession } from '@/lib/db/practice-sessions'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
@@ -158,7 +159,12 @@ function PracticeContent(): JSX.Element {
         title="练习对话"
         right={
           <button
-            onClick={() => { setSessionPolishes(polishHistory); router.push('/feedback') }}
+            onClick={() => {
+                setSessionPolishes(polishHistory)
+                void recordPracticeSession(questionId || null).catch((e) =>
+                  console.warn('[Practice] 记录练习场次失败', e))
+                router.push('/feedback')
+              }}
             className="text-[13px] text-[#AAAAAA]"
           >
             结束

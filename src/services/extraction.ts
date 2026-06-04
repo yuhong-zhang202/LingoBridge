@@ -6,6 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env'
+import { callLLMJson } from '@/lib/llm'
 
 // 萃取是 43 点细微边界判断 + 产品核心，默认用 Sonnet（准确性优先）
 // 验证够准后可降到 'claude-haiku-4-5' 省钱；还不够准可升到 'claude-opus-4-7'
@@ -50,7 +51,7 @@ REL_07｜和宠物/动物的日常陪伴 —— 日常存在感；⚠️ "宠物
 REL_08｜一次和宠物/动物的特殊互动 —— 单次（生病/走失/告别等）
 REL_09｜一次你帮助别人的经历 —— 主语是"我帮"
 REL_10｜一次被别人帮助的经历 —— 主语是"我被帮"
-REL_11｜一次关系摩擦或冲突 —— 一次真实的关系紧张/摩擦，可冲突可冷战，不要求和解；家人/朋友/伴侣/同事都走这
+REL_11｜一次关系摩擦或冲突 —— 一次真实的关系紧张/摩擦，可冲突可冷战，不要求和解；家人/朋友/伴侣/同事都走这；⚠️ 和平台/机构/公司/组织之间的摩擦（被坑/投诉无果/规则不公/感到不被尊重）也归这里，不要归情绪维度
 
 ## 空间感知 space
 SPA_01｜你和居住空间的关系 —— 对住所/家乡的长期感受与依恋
@@ -84,11 +85,28 @@ GRO_06｜对自己未来方向的思考 —— 收"现在怎么想方向"，不�
 4. 绝不输出 value（价值底色）维度的任何点。
 5. 如果整段语料都很难归类（太短/无信息），primary 仍选最接近的点，并在 reason 里说明不确定。
 
+# 内容示例（帮你校准边界，照这个逻辑判断）
+
+用户输入：「我在某电商平台买到了假货，联系客服反复被推诿，平台的处理方式让我很寒心。」
+正确归类：{"primary":{"pointCode":"REL_11","reason":"与平台之间的具体摩擦冲突，主角是「我 vs 机构」的对抗体验，归 REL_11 而非情绪维度"},"secondary":null}
+
+用户输入：「上个月出差去广州赶了三个提案，压力大到每晚都失眠，整个人靠意志力撑着。」
+正确归类：{"primary":{"pointCode":"EMO_09","reason":"虽提到出差地点，重心是这次压力事件本身，空间只是背景；出行不是叙述的主角"},"secondary":{"pointCode":"SPA_06","reason":"出差远行是顺带触及的副维度"}}
+
+用户输入：「大一参加编程比赛第一轮就被淘汰，很受打击，但这件事让我意识到算法是短板，之后系统补了半年。」
+正确归类：{"primary":{"pointCode":"GRO_04","reason":"虽有挫败情绪，叙述重心是「失败→看清短板→系统改进」，这是成长复盘，不是情绪波动"},"secondary":null}
+
 # 输出格式
 只输出一个 JSON 对象，不要任何解释、不要 markdown 代码块、不要前后缀文字：
 {"primary":{"pointCode":"REL_04","reason":"一句话说明为什么"},"secondary":{"pointCode":"SPA_06","reason":"一句话说明"}}
 若无副维度，secondary 为 null：
-{"primary":{"pointCode":"EMO_03","reason":"..."},"secondary":null}`
+{"primary":{"pointCode":"EMO_03","reason":"..."},"secondary":null}
+
+【JSON 格式硬约束】
+你只能输出合法 JSON，前后不得有任何说明文字或 markdown 代码块（不要 \`\`\`json）。
+字符串值内部禁止出现英文双引号 " ——如需引用或强调，一律改用中文引号「」。
+  错误示例："tip":"别只说"I was scared""   ← 裸双引号会破坏 JSON
+  正确示例："tip":"别只说「I was scared」"`
 
 export interface ExtractionPick {
   pointCode: string
@@ -100,71 +118,22 @@ export interface ExtractionResult {
   secondary: ExtractionPick | null
 }
 
-/**
- * 萃取一段语料
- * @param cleanedText  整理后的中文短文
- * @returns            主/副观察点的归类结果
- */
 export async function extractCorpus(cleanedText: string): Promise<ExtractionResult> {
   if (!env.anthropicApiKey) {
     throw new Error('未配置 ANTHROPIC_API_KEY，请在 .env.local 中设置')
   }
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
-  const startedAt = Date.now()
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': env.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: EXTRACTION_MODEL,
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: cleanedText }],
-      }),
-      signal: controller.signal,
-    })
-
-    if (!res.ok) {
-      const detail = await res.text()
-      throw new Error(`Claude 萃取失败（${res.status}）：${detail}`)
-    }
-
-    const data = (await res.json()) as {
-      content: { type: string; text?: string }[]
-      usage?: { input_tokens: number; output_tokens: number }
-    }
-
-    const raw = data.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
-    // 容错：去掉可能的 ```json ``` 包裹
-    const jsonText = raw.replace(/^```(?:json)?/, '').replace(/```$/, '').trim()
-
-    let parsed: ExtractionResult
-    try {
-      parsed = JSON.parse(jsonText) as ExtractionResult
-    } catch {
-      throw new Error(`Claude 萃取返回非法 JSON：${raw}`)
-    }
-    if (!parsed.primary?.pointCode) {
-      throw new Error(`Claude 萃取缺少 primary：${raw}`)
-    }
-
-    console.log('[Extraction] done', {
-      ms: Date.now() - startedAt,
-      inputTokens: data.usage?.input_tokens,
-      outputTokens: data.usage?.output_tokens,
-      primary: parsed.primary.pointCode,
-      secondary: parsed.secondary?.pointCode ?? null,
-    })
-
-    return parsed
-  } finally {
-    clearTimeout(timeout)
-  }
+  return callLLMJson<ExtractionResult>({
+    label: '[Extraction]',
+    call: {
+      provider: 'anthropic',
+      apiKey: env.anthropicApiKey,
+      model: EXTRACTION_MODEL,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: cleanedText }],
+      maxTokens: 1024,
+    },
+    validate: (v): v is ExtractionResult =>
+      typeof v === 'object' && v !== null &&
+      typeof (v as { primary?: { pointCode?: unknown } }).primary?.pointCode === 'string',
+  })
 }

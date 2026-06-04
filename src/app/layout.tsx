@@ -10,6 +10,10 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'LingoBridge',
   },
+  // W3C 标准标签，与 apple- 标签并存消除浏览器 deprecation 警告
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 }
 
 export const viewport: Viewport = {

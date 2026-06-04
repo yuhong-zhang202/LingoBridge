@@ -54,14 +54,20 @@ const PARTICLES = [
   { angle: 349.1, dist: 0.863, r: 2.0,  color: '#EDF2D4' },
 ]
 
-// Stable per-particle random animation params — computed once at module load
-const PARTICLE_ANIM = PARTICLES.map(() => ({
-  vx:      (Math.random() - 0.5) * 0.3,
-  vy:      (Math.random() - 0.5) * 0.3,
-  opMin:   0.3 + Math.random() * 0.1,
-  opMax:   0.6 + Math.random() * 0.1,
-  opFreq:  0.2 + Math.random() * 0.3,
-  opPhase: Math.random() * Math.PI * 2,
+// Deterministic pseudo-random seeded by index — identical on SSR and CSR
+function drand(seed: number): number {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+// Stable per-particle animation params — deterministic so server/client renders agree
+const PARTICLE_ANIM = PARTICLES.map((_, i) => ({
+  vx:      (drand(i * 7 + 1) - 0.5) * 0.3,
+  vy:      (drand(i * 7 + 2) - 0.5) * 0.3,
+  opMin:   0.3 + drand(i * 7 + 3) * 0.1,
+  opMax:   0.6 + drand(i * 7 + 4) * 0.1,
+  opFreq:  0.2 + drand(i * 7 + 5) * 0.3,
+  opPhase: drand(i * 7 + 6) * Math.PI * 2,
 }))
 
 // Orb core breathe frequency

@@ -7,12 +7,20 @@
 import 'server-only'
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegBin from 'ffmpeg-static'
+import { existsSync } from 'node:fs'
 import fs from 'fs/promises'
 import path from 'path'
 import type { AppError } from '@/types/errors'
 
+console.log('[Transcode] ffmpeg binary path:', ffmpegBin)
 // ffmpeg-static 在当前系统找不到二进制时返回 null；开机时立即失败比请求时失败更好
-if (!ffmpegBin) throw new Error('ffmpeg-static 未找到二进制，请重新安装 ffmpeg-static')
+if (!ffmpegBin) {
+  throw { code: 'FFMPEG_NOT_FOUND', message: 'ffmpeg-static 未返回二进制路径，请重新安装 ffmpeg-static' } satisfies AppError
+}
+// serverComponentsExternalPackages 确保路径指向真实 node_modules 二进制；此处二次确认
+if (!existsSync(ffmpegBin)) {
+  throw { code: 'FFMPEG_BINARY_MISSING', message: `ffmpeg 二进制文件不存在：${ffmpegBin}` } satisfies AppError
+}
 ffmpeg.setFfmpegPath(ffmpegBin)
 
 /**

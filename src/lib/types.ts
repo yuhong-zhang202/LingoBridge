@@ -295,3 +295,34 @@ export interface SwitchQuestion {
   topic_only: boolean
   observation_points: string[]
 }
+
+// ── 题库真实数据展示类型 ──
+
+export interface QBQuestion {
+  id: string
+  part: 1 | 2 | 3
+  /** Part 2 取 cue_card_title（无则 question_text），其余取 question_text */
+  displayText: string
+  displayTextZh: string | null
+  dimension: DimensionLabel
+  matched: boolean
+}
+
+export interface QBDimensionSummary {
+  dimension: DimensionLabel
+  total: number
+  matched: number
+  questions: QBQuestion[]
+}
+
+// ── API 用量日志 ──
+export type ApiUsageLog = {
+  service: 'doubao_asr' | 'qwen_flash' | 'claude_sonnet' | 'claude_haiku'
+  endpoint: string
+  usage_amount: number
+  usage_unit: 'tokens' | 'seconds'
+  estimated_cost_cny: number
+  latency_ms: number
+  status: 'success' | 'error'
+  metadata?: Record<string, unknown>
+}

@@ -6,6 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env'
+import { checkTranscriptUsable } from '@/lib/transcript-guard'
 import type { AppError } from '@/types/errors'
 
 const DOUBAO_ASR_ENDPOINT = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash'
@@ -104,7 +105,15 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
 
     const data = (await res.json()) as DoubaoAsrResponse
     const text = data.result?.text?.trim() ?? ''
-    if (!text) throw new Error('豆包转写返回为空')
+    const guard = checkTranscriptUsable(text)
+    if (!guard.usable) {
+      const err: AppError = {
+        code:    'EMPTY_TRANSCRIPT',
+        message: '没有捕捉到清晰的语音内容',
+        cause:   { reason: guard.reason },
+      }
+      throw err
+    }
 
     console.log('[Transcription] done', { ms: Date.now() - startedAt, logId, chars: text.length })
     return text

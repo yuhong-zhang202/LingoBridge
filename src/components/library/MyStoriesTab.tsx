@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { Mic2, Keyboard, MoreHorizontal, ChevronRight } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
+import EmptyState from '@/components/EmptyState'
 
 const PILL_GRAD = 'linear-gradient(135deg, rgba(232,136,58,0.45), rgba(123,191,116,0.45))'
 
@@ -13,9 +14,12 @@ export default function MyStoriesTab({ stories }: Props) {
 
   if (stories.length === 0) {
     return (
-      <div className="flex items-center justify-center pt-20 text-center">
-        <p className="text-[14px] text-v2-text-muted">还没有语料，去首页录一条吧</p>
-      </div>
+      <EmptyState
+        title="还没有语料"
+        subtitle="去首页录一条故事，它会自动出现在这里"
+        ctaLabel="去录制"
+        onCta={() => router.push('/')}
+      />
     )
   }
 
