@@ -28,7 +28,7 @@ interface LoggedInViewProps {
  * @param onLogout   page 层的退出登录处理函数
  * @sideEffect       挂载时并行拉取 listMyCorpus + getDimensionScores，更新真实数据
  */
-export default function LoggedInView({ stats, onLogout }: LoggedInViewProps): JSX.Element {
+export default function LoggedInView({ stats: _stats, onLogout }: LoggedInViewProps): JSX.Element {
   const [corpusCount, setCorpusCount] = useState(0)
   const [streak, setStreak] = useState(0)
   const [practiceCount, setPracticeCount] = useState(0)

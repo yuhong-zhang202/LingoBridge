@@ -1,6 +1,6 @@
 /**
  * @module   PracticePage
- * @desc     练习对话页 — Claude Haiku 对话教练，录音转写后续聊，🔨 触发重新表达
+ * @desc     练习对话页 — 教练 Lior（千问 qwen-plus），录音转写后续聊，🔨 触发重新表达
  * @author   LingoBridge
  * @created  2026-05-15
  */
@@ -24,6 +24,7 @@ function PracticeContent(): JSX.Element {
   const router = useRouter()
   const params = useSearchParams()
   const questionId = params.get('questionId') ?? ''
+  const storyId = params.get('storyId') ?? ''
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -51,7 +52,7 @@ function PracticeContent(): JSX.Element {
         const res = await fetch('/api/practice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ questionId, messages: [] }),
+          body: JSON.stringify({ questionId, storyId, messages: [] }),
         })
         if (!res.ok) throw new Error('对话初始化失败')
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
@@ -65,7 +66,7 @@ function PracticeContent(): JSX.Element {
       }
     })()
     return () => { cancelled = true }
-  }, [questionId])
+  }, [questionId, storyId])
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
   const handleUserTurn = useCallback(async () => {

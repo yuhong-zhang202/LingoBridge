@@ -1,6 +1,6 @@
 /**
  * @module   api/practice/polish
- * @desc     POST 一句英文 → Claude 给优化版 + 改进说明（密钥只在服务端）
+ * @desc     POST 一句英文 → 千问给优化版 + 改进说明（密钥只在服务端）
  * @author   LingoBridge
  * @created  2026-06-03
  */

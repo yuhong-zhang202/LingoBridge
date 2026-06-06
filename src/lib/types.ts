@@ -252,6 +252,7 @@ export interface PracticeScaffold {
   displayZh: string
   focusPoints: string[]    // analysis 侧重点（作对话节拍）
   part3Questions: string[] // 真实 Part 3 追问（要自然融入；Part 1 为空）
+  userStory?: string       // 用户为这道题选中的真实语料（无则教练走 fallback）
 }
 export interface PracticeMessage {
   role: 'assistant' | 'user'
