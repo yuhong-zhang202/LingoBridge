@@ -10,6 +10,7 @@ import { getSupabase } from '@/lib/supabase'
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
   qwen_flash:    { name: '千问 Qwen',     color: '#7BA699' },
+  qwen_plus:     { name: '千问 Plus',     color: '#6FA8C8' },
   claude_sonnet: { name: 'Claude Sonnet', color: '#9A7DB8' },
   claude_haiku:  { name: 'Claude Haiku',  color: '#E8B87A' },
 }
@@ -145,6 +146,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         date:          `${d.getUTCMonth() + 1}/${d.getUTCDate()}`,
         doubao_asr:    r2(entry['doubao_asr']    ?? 0),
         qwen_flash:    r2(entry['qwen_flash']    ?? 0),
+        qwen_plus:     r2(entry['qwen_plus']     ?? 0),
         claude_sonnet: r2(entry['claude_sonnet'] ?? 0),
         claude_haiku:  r2(entry['claude_haiku']  ?? 0),
         total:         r2(entry['total']         ?? 0),

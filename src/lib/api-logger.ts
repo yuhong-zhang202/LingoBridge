@@ -12,6 +12,8 @@ import type { ApiUsageLog } from './types'
 export const API_PRICING = {
   doubao_asr_per_second: 0.003,          // ¥0.003/秒
   qwen_flash_per_1k_tokens: 0.0008,      // ¥0.0008/千token
+  qwen_plus_input_per_1m:   0.8,          // ¥0.0008/千 × 1000 = ¥0.8/百万token（输入）
+  qwen_plus_output_per_1m:  2.0,          // ¥0.002/千  × 1000 = ¥2.0/百万token（输出）
   claude_sonnet_input_per_1m: 21.6,      // $3 × 7.2 汇率 = ¥21.6/百万token
   claude_sonnet_output_per_1m: 108,      // $15 × 7.2
   claude_haiku_input_per_1m: 1.8,        // $0.25 × 7.2

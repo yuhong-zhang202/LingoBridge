@@ -1,18 +1,52 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Mic2, ChevronLeft, ChevronRight } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
+import Toast from '@/components/Toast'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
+import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 
 export default function HomePage() {
   const router = useRouter()
   const [showTextInput, setShowTextInput] = useState(false)
   const [textStory, setTextStory] = useState('')
   const [ieltsMode, setIeltsMode] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
   const { question, loading, next } = useSwitchQuestion()
+
+  const handleTextSubmit = useCallback(async (): Promise<void> => {
+    // 第一层：即时预检，不调 API
+    if (isGarbageInput(textStory)) {
+      setToastMsg(GARBAGE_TOAST_MSG)
+      return
+    }
+    setSubmitting(true)
+    try {
+      // 第二层：让 restructure 判断 usable
+      const res = await fetch('/api/restructure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: textStory }),
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { cleanedText: string; usable: boolean }
+        if (!data.usable) {
+          setToastMsg(GARBAGE_TOAST_MSG)
+          return
+        }
+      }
+      // API 错误或 usable=true，放行（restructure 页会再跑一次，属已知开销）
+      router.push(`/restructure?rawText=${encodeURIComponent(textStory)}`)
+    } catch {
+      router.push(`/restructure?rawText=${encodeURIComponent(textStory)}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }, [textStory, router])
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -123,15 +157,15 @@ export default function HomePage() {
                     {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上，越具体越好'}
                   </span>
                   <button
-                    disabled={textStory.trim().length < 10}
-                    onClick={() => router.push('/article')}
+                    disabled={textStory.trim().length < 10 || submitting}
+                    onClick={() => void handleTextSubmit()}
                     className={`px-5 py-2 text-[14px] font-medium transition-all duration-200 ${
-                      textStory.trim().length >= 10
+                      textStory.trim().length >= 10 && !submitting
                         ? 'btn-gradient'
                         : 'rounded-[50px] bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
                     }`}
                   >
-                    开始匹配 →
+                    {submitting ? '检查中…' : '开始匹配 →'}
                   </button>
                 </div>
                 <button
@@ -151,6 +185,7 @@ export default function HomePage() {
       </div>{/* end 主体 */}
 
       <div className="flex-shrink-0"><TabBar /></div>
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </div>
   )
 }

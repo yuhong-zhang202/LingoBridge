@@ -19,7 +19,7 @@ type DashboardData = {
   todayCost:  number; todayCalls: number
   avgDailyCalls: number; avgLatency: number; errorRate: number; avgDailyCost: number
   serviceTotals: ServiceTotal[]
-  dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; claude_sonnet: number; claude_haiku: number; total: number }>
+  dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; claude_sonnet: number; claude_haiku: number; total: number }>
   hourlyData: Array<{ hour: string; calls: number }>
   recentLogs: Array<{ id: string; created_at: string; service: string; endpoint: string; usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string }>
 }

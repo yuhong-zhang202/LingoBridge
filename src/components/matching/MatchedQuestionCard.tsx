@@ -15,6 +15,9 @@ interface Props {
   selected: boolean
   onToggle: () => void
   onPractice: () => void
+  isPrimaryMatch: boolean
+  /** 当前题卡属于高匹配组时传 true，高匹配组一律不显示"需切换角度"标签 */
+  isHighMatch: boolean
 }
 
 /**
@@ -24,7 +27,7 @@ interface Props {
  * @param onToggle   点击卡片切换选中
  * @param onPractice 点击练习按钮
  */
-export default function MatchedQuestionCard({ question, selected, onToggle, onPractice }: Props) {
+export default function MatchedQuestionCard({ question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch }: Props) {
   // Part 2 主显示卡片标题，其余显示题目文本
   const enText = question.part === 2 ? (question.cue_card_title ?? question.question_text) : question.question_text
   const zhText = question.part === 2 ? (question.cue_card_title_zh ?? '') : (question.question_text_zh ?? '')
@@ -57,6 +60,14 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
           {question.is_new && (
             <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
               新题
+            </span>
+          )}
+          {!isPrimaryMatch && !isHighMatch && (
+            <span
+              className="text-[10px] font-medium px-[8px] py-[3px] rounded-full"
+              style={{ background: 'rgba(212,135,90,0.10)', color: '#D4875A', border: '1px solid rgba(212,135,90,0.28)' }}
+            >
+              需切换角度
             </span>
           )}
         </div>

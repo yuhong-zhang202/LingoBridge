@@ -20,10 +20,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     // extractCorpus 内未向上暴露 usage，按语料字数估算输入 token（中文约 0.8 token/字 + 系统提示约 1200）
     const promptTokens = Math.round(cleanedText.length * 0.8 + 1200)
     const completionTokens = 100
-    logApiUsage({ service: 'claude_sonnet', endpoint: 'anthropic/v1/messages', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.claude_sonnet_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.claude_sonnet_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
+    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
     return NextResponse.json(result)
   } catch (e) {
-    logApiUsage({ service: 'claude_sonnet', endpoint: 'anthropic/v1/messages', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
+    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     console.error('[matching API] error', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }

@@ -58,7 +58,8 @@ function AnalysisContent() {
   const router     = useRouter()
   const params     = useSearchParams()
   const questionId = params.get('questionId') ?? ''
-  const storyId    = params.get('storyId') ?? '1'
+  const storyId    = params.get('storyId') ?? ''
+  const story      = params.get('story')   ?? ''
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -69,7 +70,7 @@ function AnalysisContent() {
     ;(async () => {
       setLoading(true); setError(null)
       try {
-        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}`)
+        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&story=${encodeURIComponent(story)}`)
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)

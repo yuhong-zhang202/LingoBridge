@@ -315,9 +315,16 @@ export interface QBDimensionSummary {
   questions: QBQuestion[]
 }
 
+// ── 相关性排名 ──
+export type RelevanceScore = {
+  id: string      // 候选题 id
+  score: number   // 0-100，贴合度
+  reason: string  // 一句话中文理由（可复用为前台"为什么推荐这道题"）
+}
+
 // ── API 用量日志 ──
 export type ApiUsageLog = {
-  service: 'doubao_asr' | 'qwen_flash' | 'claude_sonnet' | 'claude_haiku'
+  service: 'doubao_asr' | 'qwen_flash' | 'qwen_plus' | 'claude_sonnet' | 'claude_haiku'
   endpoint: string
   usage_amount: number
   usage_unit: 'tokens' | 'seconds'

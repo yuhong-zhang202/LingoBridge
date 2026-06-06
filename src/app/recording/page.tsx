@@ -10,7 +10,9 @@ import { useRouter } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
+import Toast from '@/components/Toast'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 
 export default function RecordingPage() {
   const router = useRouter()
@@ -18,6 +20,7 @@ export default function RecordingPage() {
   const secondsRef = useRef(0)
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
   const { audioLevel, start, stop } = useAudioRecorder()
 
   // 计时（转写时暂停）
@@ -54,6 +57,28 @@ export default function RecordingPage() {
         )
       }
       const data = (await res.json()) as { text: string }
+      // 第一层：即时预检（不调 API）
+      if (isGarbageInput(data.text)) {
+        setToastMsg(GARBAGE_TOAST_MSG)
+        setTranscribing(false)
+        return
+      }
+      // 第二层：让 restructure 判断 usable
+      try {
+        const checkRes = await fetch('/api/restructure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText: data.text }),
+        })
+        if (checkRes.ok) {
+          const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean }
+          if (!checkData.usable) {
+            setToastMsg(GARBAGE_TOAST_MSG)
+            setTranscribing(false)
+            return
+          }
+        }
+      } catch { /* API 错误放行，restructure 页面兜底 */ }
       router.push(`/restructure?rawText=${encodeURIComponent(data.text)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '转写失败，请重试')
@@ -142,6 +167,7 @@ export default function RecordingPage() {
           </button>
         </div>
       </div>
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </div>
   )
 }

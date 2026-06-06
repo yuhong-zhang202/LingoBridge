@@ -6,6 +6,7 @@
  */
 import { NextResponse } from 'next/server'
 import { getQuestionById } from '@/lib/db/questions'
+import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { DIMENSION_LABEL } from '@/lib/constants'
@@ -25,8 +26,19 @@ export async function GET(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   const { searchParams } = new URL(req.url)
   const questionId = searchParams.get('questionId') ?? ''
+  const storyId    = searchParams.get('storyId') ?? ''
+  const storyUrl   = searchParams.get('story') || undefined   // URL 兜底
   if (!questionId) {
     return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
+  }
+
+  // DB 优先读故事；读不到或 storyId 缺失则退回 URL 里的 story；都无则走通用分析
+  let story: string | undefined
+  try {
+    const dbStory = storyId ? await getCorpusByIdServer(storyId) : null
+    story = dbStory ?? storyUrl
+  } catch {
+    story = storyUrl
   }
 
   try {
@@ -40,11 +52,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     const enForDisplay = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
     const zhForDisplay = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
 
-    const analysis = await generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh })
+    const analysis = await generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story })
     // generateAnalysis 内未向上暴露 usage，按题目长度估算（英文约 0.3 token/字 + 系统提示约 800）
     const promptTokens = Math.round(enForAI.length * 0.3 + 800)
     const completionTokens = 400
-    logApiUsage({ service: 'claude_sonnet', endpoint: 'anthropic/v1/messages', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.claude_sonnet_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.claude_sonnet_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
+    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
 
     const body: AnalysisResponse = {
       question: {
@@ -59,7 +71,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     return NextResponse.json(body)
   } catch (e) {
-    logApiUsage({ service: 'claude_sonnet', endpoint: 'anthropic/v1/messages', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
+    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     console.error('[analysis API] error', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }

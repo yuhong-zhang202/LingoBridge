@@ -1,22 +1,49 @@
 /**
  * @module   matching
- * @desc     题目匹配服务 — 故事萃取观察点 → 按观察点取真实题目（服务端）
+ * @desc     题目匹配服务 — 三层漏斗：primary 主标签 → secondary 降级 → noMatch → 相关性排名
  * @author   LingoBridge
  * @created  2026-06-03
  */
 import 'server-only'
 import { extractCorpus, type ExtractionPick } from '@/services/extraction'
+import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { DIMENSION_LABEL } from '@/lib/constants'
-import type { MatchResult, MatchedPoint, MatchedQuestion } from '@/lib/types'
+import type { MatchedPoint } from '@/lib/types'
+
+export interface FunnelMatchedQuestion {
+  id: string
+  part: 1 | 2 | 3
+  question_text: string
+  question_text_zh: string | null
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  is_new: boolean
+  topic_only: boolean
+  matched_point: string
+  pointName: string
+  dimension: string
+  isPrimaryMatch: boolean
+  relevanceScore?: number
+  relevanceReason?: string
+}
+
+export interface FunnelMatchResult {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  questions: FunnelMatchedQuestion[]
+  count: number
+  matchedViaSecondary: boolean
+  noMatch: boolean
+}
 
 /**
- * 根据故事文本做真实反向匹配
+ * 根据故事文本做三层漏斗真实反向匹配，并对候选题做相关性排名
  * @param cleanedText  整理后的中文故事
- * @returns            主/副观察点 + 匹配到的真实题目列表
+ * @returns            主/副观察点 + 漏斗匹配结果（含 matchedViaSecondary / noMatch / 排名后 questions）
  */
-export async function matchByStory(cleanedText: string): Promise<MatchResult> {
+export async function matchByStory(cleanedText: string): Promise<FunnelMatchResult> {
   // 1. 萃取观察点（主 + 副）
   const extraction = await extractCorpus(cleanedText)
 
@@ -38,20 +65,24 @@ export async function matchByStory(cleanedText: string): Promise<MatchResult> {
   const primary = toMatchedPoint(extraction.primary)
   const secondary = toMatchedPoint(extraction.secondary)
 
-  // 3. 按观察点取题，主维度优先，合并去重
+  // 3. 三层漏斗
   const seen = new Set<string>()
-  const questions: MatchedQuestion[] = []
 
-  async function collect(mp: MatchedPoint | null): Promise<void> {
-    if (!mp) return
-    const qs = await getQuestionsByObservation(mp.pointCode)
-    qs.sort((a, b) => a.part - b.part) // Part 1 → 2
+  // 从某个观察点收题，tagAsPrimary 决定 isPrimaryMatch 标记（与 DB 的 is_primary 无关）
+  // includeSec=true 仅在第二层借道时传入，让副标签挂载的题也能被检索到
+  async function collectFrom(
+    mp: MatchedPoint,
+    tagAsPrimary: boolean,
+    includeSec = false,
+  ): Promise<FunnelMatchedQuestion[]> {
+    const qs = await getQuestionsByObservation(mp.pointCode, includeSec)
+    const result: FunnelMatchedQuestion[] = []
     for (const q of qs) {
       if (seen.has(q.id)) continue
       seen.add(q.id)
-      questions.push({
+      result.push({
         id: q.id,
-        part: q.part,
+        part: q.part as 1 | 2 | 3,
         question_text: q.question_text,
         question_text_zh: q.question_text_zh,
         cue_card_title: q.cue_card_title,
@@ -59,13 +90,88 @@ export async function matchByStory(cleanedText: string): Promise<MatchResult> {
         is_new: q.is_new,
         topic_only: q.topic_only,
         matched_point: mp.pointCode,
+        pointName: mp.pointName,
         dimension: mp.dimension,
+        isPrimaryMatch: tagAsPrimary,
+      })
+    }
+    return result
+  }
+
+  const allQuestions: FunnelMatchedQuestion[] = []
+  let matchedViaSecondary = false
+  let noMatch = false
+
+  if (primary) {
+    const primaryHits = await collectFrom(primary, true)
+
+    if (primaryHits.length > 0) {
+      // 第一层命中：主维度有题；若 secondary 非空，再追加副维度题作为补充
+      allQuestions.push(...primaryHits)
+      if (secondary) {
+        const secondaryHits = await collectFrom(secondary, false)
+        allQuestions.push(...secondaryHits)
+      }
+    } else if (secondary) {
+      // 第二层触发：primary 无题时才尝试 secondary，避免混淆主题
+      const secondaryHits = await collectFrom(secondary, false, true)
+      if (secondaryHits.length > 0) {
+        allQuestions.push(...secondaryHits)
+        matchedViaSecondary = true
+      } else {
+        noMatch = true
+      }
+    } else {
+      // primary 无题且无 secondary
+      noMatch = true
+    }
+  } else {
+    // 理论上萃取保证 primary 非 null，此处作保险兜底
+    noMatch = true
+  }
+
+  // 4. 相关性排名（仅在有候选题时调用；降级返回空数组时回退到漏斗排序）
+  if (allQuestions.length > 0) {
+    const candidates: CandidateQuestion[] = allQuestions.map((q) => ({
+      id: q.id,
+      en: q.cue_card_title ?? q.question_text,
+      zh: q.cue_card_title_zh ?? q.question_text_zh ?? '',
+      obs: q.pointName,
+    }))
+    const scores = await rankQuestions(cleanedText, candidates)
+
+    if (scores.length > 0) {
+      const scoreMap = new Map(scores.map((s) => [s.id, s]))
+      for (const q of allQuestions) {
+        const s = scoreMap.get(q.id)
+        if (s) {
+          q.relevanceScore = s.score
+          q.relevanceReason = s.reason
+        }
+      }
+      // 按 score 降序；未打分（降级）的排末尾，内部按 isPrimaryMatch → Part
+      allQuestions.sort((a, b) => {
+        const sa = a.relevanceScore ?? -1
+        const sb = b.relevanceScore ?? -1
+        if (sa !== sb) return sb - sa
+        if (a.isPrimaryMatch !== b.isPrimaryMatch) return a.isPrimaryMatch ? -1 : 1
+        return a.part - b.part
+      })
+    } else {
+      // 排名服务降级：保留漏斗排序
+      allQuestions.sort((a, b) => {
+        if (a.isPrimaryMatch !== b.isPrimaryMatch) return a.isPrimaryMatch ? -1 : 1
+        return a.part - b.part
       })
     }
   }
 
-  await collect(primary)
-  await collect(secondary)
-
-  return { primary, secondary, questions, count: questions.length }
+  return {
+    primary,
+    secondary,
+    questions: allQuestions,
+    count: allQuestions.length,
+    matchedViaSecondary,
+    noMatch,
+  }
 }

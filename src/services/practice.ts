@@ -1,6 +1,6 @@
 /**
  * @module   practice
- * @desc     练习对话服务 — Claude Haiku 当对话教练，顺侧重点引导、自然融入 Part 3
+ * @desc     练习对话服务 — 千问 qwen-plus 当对话教练，顺侧重点引导、自然融入 Part 3
  * @author   LingoBridge
  * @created  2026-06-03
  */
@@ -9,10 +9,8 @@ import { env } from '@/lib/env'
 import { getQuestionById, getQuestionsByParent } from '@/lib/db/questions'
 import { generateAnalysis } from '@/services/analysis'
 import { callLLMJson } from '@/lib/llm'
+import { MODEL_PRACTICE } from '@/lib/constants'
 import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/types'
-
-// 实时对话：延迟优先 + 强指令遵循
-const COACH_MODEL = 'claude-haiku-4-5'
 
 /** 构建对话脚手架（一次性：取题 + 侧重点 + 真实 Part 3） */
 export async function buildScaffold(questionId: string): Promise<PracticeScaffold> {
@@ -67,31 +65,32 @@ export async function coachReply(
   scaffold: PracticeScaffold,
   messages: PracticeMessage[],
 ): Promise<string> {
-  if (!env.anthropicApiKey) {
-    throw new Error('未配置 ANTHROPIC_API_KEY，请在 .env.local 中设置')
+  if (!env.dashscopeApiKey) {
+    throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
 
-  // Anthropic 要求 user 起手且交替；对话以 AI 开场（assistant）开头，
-  // 故前置一条 seed user 消息，使整段合法且让 Claude 看到自己的开场
-  const seed: PracticeMessage = { role: 'user', content: "Hi, I'd like to practise this question. Could you start us off?" }
-  const apiMessages = [seed, ...messages].map((m) => ({ role: m.role, content: m.content }))
+  // 前置 seed user 消息，确保对话序列以 user 起手（千问同 Claude 要求首条非系统消息为 user）
+  const seed = { role: 'user' as const, content: "Hi, I'd like to practise this question. Could you start us off?" }
+  const apiMessages = [
+    { role: 'system' as const, content: buildSystemPrompt(scaffold) },
+    seed,
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ]
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000) // ENGINEERING §4
+  const timeout = setTimeout(() => controller.abort(), 30_000)
   const startedAt = Date.now()
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${env.dashscopeBaseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': env.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${env.dashscopeApiKey}`,
       },
       body: JSON.stringify({
-        model: COACH_MODEL,
+        model: MODEL_PRACTICE,
         max_tokens: 256,
-        system: buildSystemPrompt(scaffold),
         messages: apiMessages,
       }),
       signal: controller.signal,
@@ -99,25 +98,27 @@ export async function coachReply(
 
     if (!res.ok) {
       const detail = await res.text()
-      throw new Error(`Claude 对话失败（${res.status}）：${detail}`)
+      throw new Error(`千问对话失败（${res.status}）：${detail}`)
     }
 
     const data = (await res.json()) as {
-      content: { type: string; text?: string }[]
-      usage?: { input_tokens: number; output_tokens: number }
+      choices: { message?: { content?: string } }[]
+      usage?: { prompt_tokens: number; completion_tokens: number }
     }
-    const reply = data.content.find((b) => b.type === 'text')?.text?.trim() ?? ''
-    if (!reply) throw new Error('Claude 对话返回为空')
+    const reply = data.choices[0]?.message?.content?.trim() ?? ''
+    if (!reply) throw new Error('千问对话返回为空')
 
-    console.log('[Practice] reply', { ms: Date.now() - startedAt, turns: messages.length, outputTokens: data.usage?.output_tokens })
+    console.log('[Practice] reply', {
+      ms: Date.now() - startedAt,
+      turns: messages.length,
+      promptTokens: data.usage?.prompt_tokens,
+      completionTokens: data.usage?.completion_tokens,
+    })
     return reply
   } finally {
     clearTimeout(timeout)
   }
 }
-
-// 🔨 优化也用 Haiku（快、便宜；要更细讲解可换 sonnet）
-const POLISH_MODEL = 'claude-haiku-4-5'
 
 const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅思口语，会给你一句他刚说的英文（可能来自语音转写、可能有小错或不够地道）。
 任务：给一个更自然、更地道的版本（适合雅思 6-7 分水平，别太花哨、别太长，长度与原句相当），并用一句中文说明最关键的改进点。
@@ -136,20 +137,28 @@ const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅
   错误示例："tip":"别只说"I was scared""   ← 裸双引号会破坏 JSON
   正确示例："tip":"别只说「I was scared」"`
 
+/**
+ * 对用户刚说的一句英文做地道度优化
+ * @param sentence    用户原句（可能来自语音转写）
+ * @param aiQuestion  上下文：教练刚问的问题（可选）
+ * @returns           优化后的句子 + 一句中文改进说明
+ */
 export async function polishSentence(sentence: string, aiQuestion?: string): Promise<PolishResult> {
-  if (!env.anthropicApiKey) {
-    throw new Error('未配置 ANTHROPIC_API_KEY，请在 .env.local 中设置')
+  if (!env.dashscopeApiKey) {
+    throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   const userMsg = `${aiQuestion ? `(教练问的:) ${aiQuestion}\n` : ''}(我说的:) ${sentence}`
   return callLLMJson<PolishResult>({
     label: '[Polish]',
     call: {
-      provider: 'anthropic',
-      apiKey: env.anthropicApiKey,
-      model: POLISH_MODEL,
-      system: POLISH_SYSTEM,
-      messages: [{ role: 'user', content: userMsg }],
-      maxTokens: 400,
+      provider: 'dashscope',
+      endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+      apiKey: env.dashscopeApiKey,
+      model: MODEL_PRACTICE,
+      messages: [
+        { role: 'system', content: POLISH_SYSTEM },
+        { role: 'user', content: userMsg },
+      ],
     },
     validate: (v): v is PolishResult =>
       typeof v === 'object' && v !== null &&
