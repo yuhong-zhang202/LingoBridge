@@ -91,7 +91,7 @@
         "What kind of accommodation did you grow up in?",
         "Which room do you like best?",
         "Has anything changed in the place where you live?",
-        "What kind of house or at do you want to live in in the future?",
+        "What kind of house or flat do you want to live in in the future?",
         "Do you like the area that you live in?",
         "Do you live in a noisy or a quiet area?",
         "Where do you like to go in that area?",
@@ -203,9 +203,9 @@
       "is_new": true,
       "questions": [
         "At what age do you think people are the happiest?",
-        "Do you have any plans for the next ve years?",
+        "Do you have any plans for the next five years?",
         "What do you think is the most important at the moment?",
-        "Are you satis ed with your current life?",
+        "Are you satisfied with your current life?",
         "What did you often do with your friends in your childhood?",
         "How do people remember each stage of their lives?"
       ]
@@ -581,7 +581,7 @@
       "part3_questions": [
         "What kind of music is popular in your country?",
         "What kind of music do young people like?",
-        "Do you think music is bene cial for children at school?",
+        "Do you think music is beneficial for children at school?",
         "What are the benefits of children learning a musical instrument?",
         "Do you know what kind of music children like today?",
         "Do you think the government should invest more money on concerts?"
@@ -651,7 +651,7 @@
         "Do you think shops and shopping malls will disappear in the future?",
         "What are the differences between shopping in street markets and big shopping malls?",
         "What are the differences in the shopping habits of different age groups?",
-        "What are the differences between shopping online and instore?"
+        "What are the differences between shopping online and in-store?"
       ]
     },
     {
@@ -673,7 +673,7 @@
       "cue_text": "Describe your favorite place in your house where you can relax. You should say: where it is what it is like what you enjoy doing there And explain why you feel relaxed at this place.",
       "part3_questions": [
         "What are the benefits of doing exercise?",
-        "Why is it dif cult for some people to relax?",
+        "Why is it difficult for some people to relax?",
         "Which is more important, mental relaxation or physical relaxation?",
         "What is the place where people spend most of their time at home?",
         "Do you think there should be classes for training young people and children how to relax?",
@@ -749,7 +749,7 @@
       "part3_questions": [
         "What technology do young people like to use?",
         "What are the differences between the technology of the past and that of today?",
-        "What are the differences between online and face-toface communication?",
+        "What are the differences between online and face-to-face communication?",
         "What are the differences between making friends in real life and online?",
         "What kind of technologies can be used at school?",
         "What negative effects does technology have on people's relationship?",
@@ -767,7 +767,7 @@
         "Why are children attracted to new things (such as electronics)?",
         "Why do some grown-ups hate to throw out old things (such as clothes)?",
         "Is the way people buy things affected? How?",
-        "What do you think influences people to buy new things? tablet fancy black, stunning cracks, screen, mean relatively big, a bit heavy study/video games-home, composing-sometimes, alsofilms irreplaceable-online, Internet, big screen"
+        "What do you think influences people to buy new things?"
       ]
     },
     {
@@ -841,11 +841,11 @@
       "cue_text": "Describe a movie you watched recently that you felt disappointed about. You should say: when it was why you didn't like it why you decided to watch it And explain why you felt disappointed about it.",
       "part3_questions": [
         "Do you believe movie reviews?",
-        "What are the different types of lms in your country?",
-        "Why are Japanese animated lms so popular?",
+        "What are the different types of films in your country?",
+        "Why are Japanese animated films so popular?",
         "Should the director pay a lot of money to famous actors?",
-        "Do you think lms with famous actors or actresses are more likely to become successful lms?",
-        "Are historical lms popular in your country? Why?"
+        "Do you think films with famous actors or actresses are more likely to become successful films?",
+        "Are historical films popular in your country? Why?"
       ]
     },
     {
@@ -866,9 +866,9 @@
       "cue_text": "Describe a story (e.g. a fairy tale, etc.) you have read recently. You should say: what it is about when you read it whether you liked it And explain what you have learned from it.",
       "part3_questions": [
         "Why do most children like listening to stories before bedtime?",
-        "What lms are popular in China right now?",
+        "What films are popular in China right now?",
         "Is a good storyline important for a movie?",
-        "Do you think lms with many celebrities are more likely to be popular?"
+        "Do you think films with many celebrities are more likely to be popular?"
       ]
     },
     {
@@ -992,7 +992,7 @@
     {
       "title": "A Water Sport",
       "is_new": false,
-      "cue_text": "Describe a water sport you would like to try in the future. You should say: what it is where you would like to try it whether it is dif cult And explain why you would like to try it.",
+      "cue_text": "Describe a water sport you would like to try in the future. You should say: what it is where you would like to try it whether it is difficult And explain why you would like to try it.",
       "part3_questions": [
         "Do you think it is good to teach swimming in school?",
         "What kinds of water sports are popular nowadays?",
@@ -1053,7 +1053,7 @@
     {
       "title": "A Time You Needed To Use Your Imagination",
       "is_new": true,
-      "cue_text": "Describe a time when you needed to use your imagination. You should say: when it was why you needed to use imagination how dif cult or easy it was And explain how you felt about it.",
+      "cue_text": "Describe a time when you needed to use your imagination. You should say: when it was why you needed to use imagination how difficult or easy it was And explain how you felt about it.",
       "part3_questions": [
         "What kinds of jobs need imagination?",
         "What subjects are helpful for children's imagination?",
@@ -1145,11 +1145,11 @@
       "cue_text": "Describe a time when you broke something. You should say: what it was when / where that happened how you broke it And explain what you did after that.",
       "part3_questions": [
         "What kind of things are more likely to be broken by people at home?",
-        "What kind of people like to x things by themselves?",
+        "What kind of people like to fix things by themselves?",
         "Do you think clothes produced in the factory are of better quality than those made by hand?",
         "Do you think handmade clothes are more valuable?",
-        "Is the older generation better at xing things?",
-        "Do you think elderly people should teach young people how to x things?"
+        "Is the older generation better at fixing things?",
+        "Do you think elderly people should teach young people how to fix things?"
       ]
     },
     {
@@ -1161,7 +1161,7 @@
         "Which skill is more important, speaking or writing?",
         "Does a person still need to learn other languages, if he or she is good at English?",
         "Do you think minority languages will disappear?",
-        "Does learning a foreign language help in nding a job?",
+        "Does learning a foreign language help in finding a job?",
         "Which stage of life do you think is the best for learning a foreign language?"
       ]
     },
@@ -1174,7 +1174,7 @@
         "Do you think electric bicycles will replace ordinary bicycles in the future?",
         "Which is better, electric cars or petrol cars?",
         "How did people manage to live without electricity in the ancient world?",
-        "Is it dif cult for the government to replace all the petrol cars with electric cars?",
+        "Is it difficult for the government to replace all the petrol cars with electric cars?",
         "Do people use more electricity now than before?"
       ]
     },
