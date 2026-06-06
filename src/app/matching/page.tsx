@@ -238,7 +238,7 @@ function MatchingContent() {
                         question={q}
                         selected={selectedId === q.id}
                         onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}&story=${encodeURIComponent(story)}`)}
+                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={true}
                       />
@@ -258,7 +258,7 @@ function MatchingContent() {
                         question={q}
                         selected={selectedId === q.id}
                         onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}&story=${encodeURIComponent(story)}`)}
+                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={false}
                       />
@@ -278,7 +278,7 @@ function MatchingContent() {
                         question={q}
                         selected={selectedId === q.id}
                         onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}&story=${encodeURIComponent(story)}`)}
+                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={false}
                       />
