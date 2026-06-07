@@ -141,6 +141,10 @@ function RestructureContent() {
               onToggleEdit={() => setIsEditing(v => !v)}
               onChange={setAiText}
             />
+            <div className="bg-[#F8F7F5] border border-black/[0.05] rounded-[12px] px-3.5 py-2.5">
+              <p className="text-[11px] font-medium text-v2-text-secondary mb-1">怎样的素材更好用</p>
+              <p className="text-[12px] text-v2-text-muted leading-relaxed">同一段真实经历，细节越全，能套用的题越多。好用的素材通常会带到：时间、人物、发生的事、你的做法和感受。</p>
+            </div>
             {usable === false && (
               <p className="text-[12px] text-v2-text-muted text-center px-2 leading-relaxed">
                 这段内容可以再丰富一些，补充些细节后面练习效果会更好；当然也可以直接继续 ✨
