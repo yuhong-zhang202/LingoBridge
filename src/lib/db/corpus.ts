@@ -144,15 +144,17 @@ export async function getCorpusPointCodes(
     .select('role, observation_points(code)')
     .eq('corpus_id', corpusId)
   if (error) throw new Error(`读取观察点失败：${error.message}`)
-  // Supabase 嵌套查询对 forward FK 也返回数组形式（与 listMyObservationCodes 同理）
-  const rows = data as unknown as Array<{
+  // corpus_point_links → observation_points 是 many-to-one，Supabase 嵌套返回「对象」而非数组；
+  // 兼容 对象/数组/空，并对 data 本身做 null 兜底
+  const rows = (data ?? []) as unknown as Array<{
     role: string
-    observation_points: { code: string }[] | null
+    observation_points: { code: string } | { code: string }[] | null
   }>
-  const items = rows.map((r) => ({
-    role: r.role,
-    code: (r.observation_points ?? [])[0]?.code ?? null,
-  }))
+  const items = rows.map((r) => {
+    const op = r.observation_points
+    const code = !op ? null : Array.isArray(op) ? (op[0]?.code ?? null) : op.code
+    return { role: r.role, code }
+  })
   const codes = items.flatMap((item) => (item.code ? [item.code] : []))
   const primaryCode = items.find((item) => item.role === 'primary')?.code ?? codes[0] ?? null
   return { codes, primaryCode }
