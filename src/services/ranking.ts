@@ -162,7 +162,7 @@ export async function rankQuestions(
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
         ],
-        temperature: 0.2,
+        temperature: 0,
         maxTokens: 4096,
       },
       validate: isRankingResponse,

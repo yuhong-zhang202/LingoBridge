@@ -151,6 +151,7 @@ export async function extractCorpus(cleanedText: string): Promise<ExtractionResu
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user',   content: cleanedText },
       ],
+      temperature: 0,
       maxTokens: 1024,
     },
     validate: (v): v is ExtractionResult =>
