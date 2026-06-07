@@ -25,6 +25,7 @@ function PracticeContent(): JSX.Element {
   const params = useSearchParams()
   const questionId = params.get('questionId') ?? ''
   const storyId = params.get('storyId') ?? ''
+  const level = params.get('level') ?? '6.0'
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -52,7 +53,7 @@ function PracticeContent(): JSX.Element {
         const res = await fetch('/api/practice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ questionId, storyId, messages: [] }),
+          body: JSON.stringify({ questionId, storyId, messages: [], level }),
         })
         if (!res.ok) throw new Error('对话初始化失败')
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
@@ -107,7 +108,7 @@ function PracticeContent(): JSX.Element {
       const res = await fetch('/api/practice/polish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, aiQuestion }),
+        body: JSON.stringify({ sentence, aiQuestion, level }),
       })
       if (!res.ok) throw new Error('优化失败')
       const data = (await res.json()) as PolishResult

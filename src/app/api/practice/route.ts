@@ -17,6 +17,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       storyId?: string
       messages?: PracticeMessage[]
       scaffold?: PracticeScaffold
+      level?: string
     }
     const messages = Array.isArray(body.messages) ? body.messages : []
 
@@ -26,7 +27,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (!body.questionId) {
         return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
       }
-      scaffold = await buildScaffold(body.questionId, body.storyId)
+      scaffold = await buildScaffold(body.questionId, body.storyId, body.level)
     }
 
     const reply = await coachReply(scaffold, messages)

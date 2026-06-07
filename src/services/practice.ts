@@ -14,7 +14,7 @@ import { MODEL_PRACTICE } from '@/lib/constants'
 import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/types'
 
 /** 构建对话脚手架（一次性：取题 + 用户语料 + 侧重点 + 真实 Part 3） */
-export async function buildScaffold(questionId: string, storyId?: string): Promise<PracticeScaffold> {
+export async function buildScaffold(questionId: string, storyId?: string, level = '6.0'): Promise<PracticeScaffold> {
   const q = await getQuestionById(questionId)
   if (!q) throw new Error('题目不存在')
 
@@ -37,6 +37,7 @@ export async function buildScaffold(questionId: string, storyId?: string): Promi
     focusPoints: analysis.focusPoints.map((f) => f.title),
     part3Questions: part3.map((p) => p.question_text),
     userStory: story || undefined,
+    level,
   }
 }
 
@@ -85,6 +86,15 @@ ${angles}
 - Talk like a real, friendly person speaking out loud, not like writing. Use everyday words and easy, natural phrasing.
 - Contractions always (I'm, you've, that's, let's). Light, natural fillers are fine now and then (so, okay, right, oh nice), but do not overdo them.
 - Keep sentences short and relaxed. No formal or essay like wording, no fancy vocabulary.
+
+# Match the user's level (IELTS ${s.level})
+- The user is aiming for around IELTS band ${s.level}. Tune the DIFFICULTY of what you ask to fit that level, but ALWAYS speak natural, correct, fluent English yourself. You are a coach modelling good English, so never switch to broken or oversimplified English, and never copy a learner's mistakes.
+- What changes with level is how hard your questions are, not the quality of your own English:
+  - Around 5.0 to 5.5: ask very simple, short questions, one small idea at a time, with the most common everyday words. Be extra patient and concrete. If something might be hard to understand, rephrase it more simply.
+  - Around 6.0 to 6.5: natural everyday questions and follow ups, ordinary vocabulary, a comfortable pace.
+  - Around 7.0 to 7.5: you can probe a bit more, ask more nuanced follow ups, and use slightly richer everyday vocabulary.
+  - Around 8.0 and up: engage more freely, including more abstract or nuanced angles, while staying spoken and natural.
+- This only adjusts your questions and word choice. All the coaching rules above still apply exactly: still one short question at a time, still warm, still drawing content out of them, still no rephrasing their sentences for them.
 
 # Opening
 If the user is just starting, open with one warm, casual line that invites them to talk about this question in their own words, then ask your first simple question aimed at one of the key angles. Make it feel like the two of you are building this answer together.
@@ -163,10 +173,10 @@ const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅
 
 任务：给一个更自然、更地道的版本，并用一句中文说明最关键的改进点。
 
-【最重要的原则：贴着用户自己的水平提升，只升一档】
-- 先从用户这句英文判断他大致的水平（词汇、句式复杂度、语法）。
-- 优化后的句子要明显是「同一个人能说出口的、自然一点的版本」，只在他现有水平上往上提一小档，绝不要把它改写成远高于他水平的句子。
-- 例：用户说「I very like coffee」（A2 左右），就改成「I really like coffee」这种他下次开口就能用的，绝不要拔成「I'm absolutely passionate about coffee」这种 C1 句子。用户看了要觉得「这个我也说得出来」，而不是「这是别人的句子」。
+【最重要的原则：按用户的目标水平提升，升约半档】
+- 用户消息里会给出他的目标雅思水平（如 6.0）。把这句话优化到比这个目标【高约半档】（如 6.0 就奔着 6.5 去），是一个「踮脚够得着」的版本，不是遥不可及的跳级。
+- 优化后的句子仍要像「同一个人下次开口就能说出来」的自然版本，绝不要拔成远高于目标水平的炫技句。
+- 例：目标 6.0、用户说「I very like coffee」，改成「I really enjoy a good coffee」这种自然、地道、6.5 左右的口语，绝不要拔成「I'm absolutely passionate about coffee」这种刻意的高级句。用户看了要觉得「这个我踮踮脚也能说」，而不是「这是别人的句子」。
 
 【第二原则：日常口语，不是书面语】
 - 改后的句子必须是「说出来」的英语，不是写出来的：短、自然、可以有缩写（I'm, it's, that's）。
@@ -192,11 +202,11 @@ const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅
  * @param aiQuestion  上下文：教练刚问的问题（可选）
  * @returns           优化后的句子 + 一句中文改进说明
  */
-export async function polishSentence(sentence: string, aiQuestion?: string): Promise<PolishResult> {
+export async function polishSentence(sentence: string, aiQuestion?: string, level = '6.0'): Promise<PolishResult> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
-  const userMsg = `${aiQuestion ? `(教练问的:) ${aiQuestion}\n` : ''}(我说的:) ${sentence}`
+  const userMsg = `(目标雅思水平:) ${level}\n${aiQuestion ? `(教练问的:) ${aiQuestion}\n` : ''}(我说的:) ${sentence}`
   return callLLMJson<PolishResult>({
     label: '[Polish]',
     call: {

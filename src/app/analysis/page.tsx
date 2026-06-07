@@ -264,7 +264,7 @@ function AnalysisContent() {
             <button
               className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-[#444] active:scale-[0.97] transition-transform duration-150"
               style={LIGHTER_BORDER}
-              onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}`)}
+              onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}`)}
             >
               开始练习 →
             </button>

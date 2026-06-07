@@ -9,13 +9,14 @@ import { polishSentence } from '@/services/practice'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown }
+    const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
     const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
     const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined
+    const level = typeof body.level === 'string' ? body.level : '6.0'
     if (!sentence) {
       return NextResponse.json({ error: 'sentence 不能为空' }, { status: 400 })
     }
-    const result = await polishSentence(sentence, aiQuestion)
+    const result = await polishSentence(sentence, aiQuestion, level)
     return NextResponse.json(result)
   } catch (e) {
     console.error('[polish API] error', e)
