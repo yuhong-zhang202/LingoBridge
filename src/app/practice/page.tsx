@@ -157,7 +157,7 @@ function PracticeContent(): JSX.Element {
   const micLabel = phase === 'recording' ? '松开发送' : phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '按住说话'
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       <TopBar
         title="练习对话"
         right={
