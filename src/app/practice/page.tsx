@@ -28,7 +28,7 @@ function PracticeContent(): JSX.Element {
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
-  const [phase, setPhase]                 = useState<'init' | 'idle' | 'recording' | 'processing' | 'error'>('init')
+  const [phase, setPhase]                 = useState<'init' | 'idle' | 'recording' | 'transcribing' | 'replying' | 'error'>('init')
   const [error, setError]                 = useState<string | null>(null)
   const [showPolish, setShowPolish]       = useState(false)
   const [polishLoading, setPolishLoading] = useState(false)
@@ -70,7 +70,7 @@ function PracticeContent(): JSX.Element {
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
   const handleUserTurn = useCallback(async () => {
-    setPhase('processing')
+    setPhase('transcribing')
     try {
       const blob = await stop()
       if (!blob) throw new Error('没有录到声音')
@@ -82,6 +82,7 @@ function PracticeContent(): JSX.Element {
 
       const next: PracticeMessage[] = [...messages, { role: 'user', content: text }]
       setMessages(next)
+      setPhase('replying')
 
       const res = await fetch('/api/practice', {
         method: 'POST',
@@ -152,7 +153,7 @@ function PracticeContent(): JSX.Element {
     return () => document.removeEventListener('mousedown', handler)
   }, [showPolish])
 
-  const micLabel = phase === 'recording' ? '松开发送' : phase === 'processing' ? '思考中…' : '按住说话'
+  const micLabel = phase === 'recording' ? '松开发送' : phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '按住说话'
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -206,7 +207,8 @@ function PracticeContent(): JSX.Element {
         )}
 
         {/* 处理中提示 */}
-        {phase === 'processing' && <AiBubble text="…" />}
+        {phase === 'transcribing' && <UserBubble text="…" />}
+        {phase === 'replying' && <AiBubble text="…" />}
         {error && phase === 'idle' && (
           <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
         )}
@@ -242,7 +244,7 @@ function PracticeContent(): JSX.Element {
         <button
           className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
           style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-          disabled={phase === 'init' || phase === 'processing' || phase === 'error'}
+          disabled={phase !== 'idle' && phase !== 'recording'}
           onPointerDown={onPressStart}
           onPointerUp={onPressEnd}
           onPointerLeave={onPressEnd}

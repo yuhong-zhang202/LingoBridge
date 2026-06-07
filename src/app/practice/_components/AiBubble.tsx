@@ -4,12 +4,12 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
+import OrbSoft from './OrbSoft'
+
 export default function AiBubble({ text }: { text: string }): JSX.Element {
   return (
     <div className="flex items-start gap-2 max-w-[85%] mb-4">
-      <div className="w-[34px] h-[34px] rounded-full bg-[#E8F3E5] border border-[#C0DDB9] flex items-center justify-center flex-shrink-0 text-[14px]">
-        🌿
-      </div>
+      <OrbSoft size={34} className="flex-shrink-0" />
       <div
         className="px-3.5 py-2.5"
         style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,.07)', borderRadius: '6px 16px 16px 16px' }}
