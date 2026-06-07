@@ -81,7 +81,7 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
             className="flex items-center gap-1 text-[12px] font-semibold text-[#444] px-3 py-1.5 rounded-full flex-shrink-0"
             style={GRADIENT_BORDER_STYLE}
           >
-            练习
+            题目分析
             <ArrowRight size={12} />
           </button>
         </div>

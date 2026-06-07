@@ -264,14 +264,14 @@ export interface AnalysisFocusPoint {
   title: string
   desc: string
 }
-export interface AnalysisSentenceFrame {
-  text: string   // 含 [可替换] 方括号标记
-  tip?: string
+export interface AnalysisPhraseGroup {
+  group: string      // 分组中文标签，如「做什么」「什么感受」
+  items: string[]    // 该组可直接开口用的英文词组
 }
 export interface QuestionAnalysis {
   structureLabel: string
   focusPoints: AnalysisFocusPoint[]
-  sentenceFrames: AnalysisSentenceFrame[]
+  phrases: AnalysisPhraseGroup[]
 }
 export interface AnalysisResponse {
   question: {

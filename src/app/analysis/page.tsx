@@ -21,18 +21,13 @@ const LIGHTER_BORDER: CSSProperties = {
   border: '1.5px solid transparent',
 }
 
-/** 句式填空 [xxx] 渲染为绿色加粗 */
-function HighlightSentence({ text }: { text: string }) {
-  return (
-    <>
-      {text.split(/(\[[^\]]+\])/).map((part, i) =>
-        part.startsWith('[')
-          ? <span key={i} className="font-semibold text-[#4A8A45]">{part}</span>
-          : part
-      )}
-    </>
-  )
-}
+/** 词组分组配色：按组循环（暖 / 中性 / 绿），浅柔色调 */
+const PHRASE_CHIP_STYLES = [
+  'bg-[#FAEEDA] text-[#8A5320] border-[#EFDCBE]',
+  'bg-[#F4F2EC] text-[#6B5B52] border-black/[0.05]',
+  'bg-[#EAF3DE] text-[#3B6D11] border-[#C8DDB9]',
+]
+
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底 + 灰色数字 */
 function StepNum({ n }: { n: number }) {
@@ -118,39 +113,43 @@ function AnalysisContent() {
 
             {/* 答题侧重点 */}
             <GradCard>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <Target size={13} className="text-brand-primary" />
-                  <span className="text-[13px] font-semibold text-[#444]">答题侧重点</span>
-                </div>
-                {data.analysis.structureLabel && (
-                  <span className="text-[10px] text-v2-text-muted font-medium">{data.analysis.structureLabel}</span>
-                )}
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target size={13} className="text-brand-primary" />
+                <span className="text-[13px] font-semibold text-[#444]">答题侧重点</span>
               </div>
-              <div className="flex flex-col gap-3">
+              {data.analysis.structureLabel && (
+                <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
+              )}
+              <div className="flex flex-col gap-4">
                 {data.analysis.focusPoints.map((fp, i) => (
                   <div key={i} className="flex items-start gap-2.5">
                     <StepNum n={i + 1} />
                     <div className="flex-1 pt-[1px]">
                       <p className="text-[14px] font-medium text-[#1A1A1A] leading-[1.6]">{fp.title}</p>
-                      <p className="text-[12px] text-[#888888] mt-0.5 leading-relaxed">{fp.desc}</p>
+                      <p className="text-[12px] text-[#888888] mt-1 leading-relaxed">{fp.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </GradCard>
 
-            {/* 可用句式框架 */}
+            {/* 可用词组（按答案分段分组，可直接取用） */}
             <GradCard>
               <div className="flex items-center gap-1.5 mb-3">
                 <Type size={13} className="text-brand-accent" />
-                <span className="text-[13px] font-semibold text-[#444]">可用句式框架</span>
+                <span className="text-[13px] font-semibold text-[#444]">可用词组</span>
               </div>
-              <div className="flex flex-col gap-2.5">
-                {data.analysis.sentenceFrames.map((sf, i) => (
-                  <div key={i} className="bg-[#F8F7F5] rounded-[10px] px-4 py-3">
-                    <p className="text-[14px] text-[#1A1A1A] leading-[1.6]"><HighlightSentence text={sf.text} /></p>
-                    {sf.tip && <p className="text-[12px] text-[#888888] mt-1.5">{sf.tip}</p>}
+              <div className="flex flex-col gap-3.5">
+                {(data.analysis.phrases ?? []).map((g, i) => (
+                  <div key={i}>
+                    <p className="text-[11px] font-medium text-[#888888] mb-2">{g.group}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {g.items.map((p, j) => (
+                        <span key={j} className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border ${PHRASE_CHIP_STYLES[i % PHRASE_CHIP_STYLES.length]}`}>
+                          {p}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
