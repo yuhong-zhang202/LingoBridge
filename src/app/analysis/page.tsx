@@ -7,12 +7,12 @@
 'use client'
 import { Suspense, useEffect, useState, type ReactNode, type CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Target, Type } from 'lucide-react'
+import { Target, Type, ChevronDown, Check } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
-import type { AnalysisResponse } from '@/lib/types'
+import type { AnalysisResponse, AnalysisPhraseGroup } from '@/lib/types'
 
 const GRAD_BORDER = 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))'
 const GRAD_NUM    = 'linear-gradient(135deg, rgba(232,136,58,0.40), rgba(123,191,116,0.40))'
@@ -27,6 +27,9 @@ const PHRASE_CHIP_STYLES = [
   'bg-[#F4F2EC] text-[#6B5B52] border-black/[0.05]',
   'bg-[#EAF3DE] text-[#3B6D11] border-[#C8DDB9]',
 ]
+
+/** 可选雅思口语目标水平 */
+const LEVELS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0']
 
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底 + 灰色数字 */
@@ -58,6 +61,9 @@ function AnalysisContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
   const [openPhrase, setOpenPhrase] = useState<string | null>(null)
+  const [level, setLevel] = useState('6.0')
+  const [levelMenuOpen, setLevelMenuOpen] = useState(false)
+  const [phrasesLoading, setPhrasesLoading] = useState(false)
 
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
@@ -77,6 +83,25 @@ function AnalysisContent() {
     })()
     return () => { cancelled = true }
   }, [questionId])
+
+  function changeLevel(newLevel: string) {
+    const prevLevel = level
+    setLevel(newLevel)
+    setOpenPhrase(null)
+    setPhrasesLoading(true)
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
+        if (!res.ok) throw new Error('换词失败')
+        const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
+        setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)
+      } catch {
+        setLevel(prevLevel)
+      } finally {
+        setPhrasesLoading(false)
+      }
+    })()
+  }
 
   return (
     <div
@@ -139,7 +164,35 @@ function AnalysisContent() {
               <div className="flex items-center gap-1.5 mb-3">
                 <Type size={13} className="text-brand-accent" />
                 <span className="text-[13px] font-semibold text-[#444]">可用词组</span>
+                <div className="relative ml-auto">
+                  <button
+                    onClick={() => setLevelMenuOpen(v => !v)}
+                    disabled={phrasesLoading}
+                    className="flex items-center gap-1 text-[12px] text-[#8A5320] bg-white border border-[#EFDCBE] rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+                  >
+                    雅思 {level}
+                    <ChevronDown size={13} className={`transition-transform duration-150 ${levelMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {levelMenuOpen && (
+                    <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
+                      <p className="text-[11px] text-[#A89990] px-2.5 pt-0.5 pb-1">目标水平</p>
+                      {LEVELS.map(lv => (
+                        <button
+                          key={lv}
+                          onClick={() => { setLevelMenuOpen(false); if (lv !== level) changeLevel(lv) }}
+                          className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-[#F4F2EC] ${lv === level ? 'text-[#B5663A] font-medium' : 'text-[#4B4540]'}`}
+                        >
+                          {lv}
+                          {lv === level && <Check size={13} className="ml-auto text-brand-primary" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+              {phrasesLoading ? (
+                <p className="text-[12px] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
+              ) : (
               <div className="flex flex-col gap-3.5">
                 {(data.analysis.phrases ?? []).map((g, gi) => {
                   const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
@@ -174,6 +227,7 @@ function AnalysisContent() {
                   )
                 })}
               </div>
+              )}
             </GradCard>
 
             <button
