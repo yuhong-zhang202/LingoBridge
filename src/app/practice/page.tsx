@@ -175,16 +175,18 @@ function PracticeContent(): JSX.Element {
       />
       <StepBar currentStep="practice" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-2 pb-[100px] relative z-10">
-        {/* 题目条 */}
-        <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px] mb-4">
+      {/* 题目条：固定在流程轴下方，不随对话滚动 */}
+      <div className="flex-shrink-0 px-5 pt-2 pb-3">
+        <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
           <span className="text-[11px] text-[#AAAAAA] flex-shrink-0">Part {scaffold?.part ?? 1}</span>
           <div className="w-px h-3 bg-[#DDDDDD] flex-shrink-0" />
           <span className="text-[12px] font-medium text-[#444] flex-1 truncate min-w-0">
             {scaffold?.displayEn ?? '加载中…'}
           </span>
         </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto px-5 pt-0 pb-[100px] relative z-10">
         {phase === 'init' && (
           <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
         )}
