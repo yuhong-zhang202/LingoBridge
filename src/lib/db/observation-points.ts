@@ -40,5 +40,5 @@ export async function listObservationPoints(): Promise<ObservationPoint[]> {
   const supabase = getSupabase()
   const { data, error } = await supabase.from('observation_points').select().order('sort_order')
   if (error) throw new Error(`读取观察点失败：${error.message}`)
-  return (data as ObservationPointRow[]).map(mapRow)
+  return ((data ?? []) as ObservationPointRow[]).map(mapRow)
 }

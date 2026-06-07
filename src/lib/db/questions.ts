@@ -84,7 +84,7 @@ export async function getQuestions(part?: 1 | 2 | 3): Promise<QuestionWithLinks[
 
   const { data, error } = await query
   if (error) throw new Error(`读取题目失败：${error.message}`)
-  return (data as RawQuestionRow[]).map(mapQuestion)
+  return ((data ?? []) as RawQuestionRow[]).map(mapQuestion)
 }
 
 /**

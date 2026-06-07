@@ -63,7 +63,7 @@ export async function listMyCorpus(): Promise<Corpus[]> {
     .select()
     .order('created_at', { ascending: false })
   if (error) throw new Error(`读取语料失败：${error.message}`)
-  return (data as CorpusRow[]).map(mapCorpusRow)
+  return ((data ?? []) as CorpusRow[]).map(mapCorpusRow)
 }
 
 /**
@@ -169,9 +169,16 @@ export async function listMyObservationCodes(): Promise<string[]> {
     .from('corpus_point_links')
     .select('observation_points(code)')
   if (error) throw new Error(`读取命中观察点失败：${error.message}`)
-  // Supabase 嵌套查询对 forward FK 也返回数组类型，用 unknown 转型后按数组处理
-  const rows = data as unknown as Array<{ observation_points: { code: string }[] | null }>
-  const codes = rows.flatMap((row) => (row.observation_points ?? []).map((op) => op.code))
+  // corpus_point_links → observation_points 是 many-to-one，Supabase 嵌套返回的是「对象」而非数组；
+  // 兼容 对象 / 数组 / 空 三种形态，避免对对象调用 .map 抛错
+  const rows = (data ?? []) as unknown as Array<{
+    observation_points: { code: string } | { code: string }[] | null
+  }>
+  const codes = rows.flatMap((row) => {
+    const op = row.observation_points
+    if (!op) return []
+    return Array.isArray(op) ? op.map((x) => x.code) : [op.code]
+  })
   return [...new Set(codes)]
 }
 

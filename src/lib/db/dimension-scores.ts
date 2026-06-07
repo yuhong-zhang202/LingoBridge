@@ -32,7 +32,7 @@ export async function getDimensionScores(): Promise<DimensionScore[]> {
   const { data, error } = await supabase.rpc('get_dimension_scores')
   if (error) throw new Error(`读取维度得分失败：${error.message}`)
   const byId = new Map(
-    (data as { dimension_id: DimensionId; score: number }[]).map((r) => [
+    ((data ?? []) as { dimension_id: DimensionId; score: number }[]).map((r) => [
       r.dimension_id, Number(r.score),
     ]),
   )
@@ -49,7 +49,7 @@ export async function getDimensionProgress(): Promise<DimensionProgress[]> {
   const { data, error } = await supabase.rpc('get_dimension_progress')
   if (error) throw new Error(`读取维度进度失败：${error.message}`)
   const byId = new Map(
-    (data as { dimension_id: DimensionId; lit: number; total: number }[]).map((r) => [
+    ((data ?? []) as { dimension_id: DimensionId; lit: number; total: number }[]).map((r) => [
       r.dimension_id, { lit: Number(r.lit), total: Number(r.total) },
     ]),
   )
