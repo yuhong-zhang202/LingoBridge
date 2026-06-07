@@ -57,6 +57,7 @@ function AnalysisContent() {
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
+  const [openPhrase, setOpenPhrase] = useState<string | null>(null)
 
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
@@ -140,18 +141,38 @@ function AnalysisContent() {
                 <span className="text-[13px] font-semibold text-[#444]">可用词组</span>
               </div>
               <div className="flex flex-col gap-3.5">
-                {(data.analysis.phrases ?? []).map((g, i) => (
-                  <div key={i}>
-                    <p className="text-[11px] font-medium text-[#888888] mb-2">{g.group}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {g.items.map((p, j) => (
-                        <span key={j} className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border ${PHRASE_CHIP_STYLES[i % PHRASE_CHIP_STYLES.length]}`}>
-                          {p}
-                        </span>
-                      ))}
+                {(data.analysis.phrases ?? []).map((g, gi) => {
+                  const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
+                  const openItem = og === gi ? g.items[oi] : null
+                  return (
+                    <div key={gi}>
+                      <p className="text-[11px] font-medium text-[#888888] mb-2">{g.group}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {g.items.map((p, ii) => {
+                          const isOpen = openPhrase === `${gi}-${ii}`
+                          return (
+                            <button
+                              key={ii}
+                              onClick={() => setOpenPhrase(isOpen ? null : `${gi}-${ii}`)}
+                              className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap active:scale-[0.97] transition-transform duration-150 ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
+                            >
+                              {p.text}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {openItem && (
+                        <div className="mt-2.5 bg-[#FBFAF8] border border-black/[0.05] rounded-[12px] px-3.5 py-3">
+                          <p className="text-[13px] font-medium text-[#1A1A1A] mb-2">{openItem.text}</p>
+                          <p className="text-[11px] text-[#A89990] mb-0.5">释义</p>
+                          <p className="text-[12px] text-[#6B5B52] leading-relaxed mb-2.5">{openItem.meaning}</p>
+                          <p className="text-[11px] text-[#A89990] mb-0.5">适用场景</p>
+                          <p className="text-[12px] text-[#6B5B52] leading-relaxed">{openItem.scene}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </GradCard>
 

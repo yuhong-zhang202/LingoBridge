@@ -264,9 +264,14 @@ export interface AnalysisFocusPoint {
   title: string
   desc: string
 }
+export interface AnalysisPhrase {
+  text: string       // 英文词组本身
+  meaning: string    // 中文释义
+  scene: string      // 适用场景：真实英语里什么场合会用到它（脱离用户故事的通用用法）
+}
 export interface AnalysisPhraseGroup {
-  group: string      // 分组中文标签，如「做什么」「什么感受」
-  items: string[]    // 该组可直接开口用的英文词组
+  group: string      // 分组中文标签，如「时间」「原因」「感受」
+  items: AnalysisPhrase[]
 }
 export interface QuestionAnalysis {
   structureLabel: string
