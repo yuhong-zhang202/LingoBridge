@@ -8,7 +8,7 @@ import 'server-only'
 import { env } from '@/lib/env'
 import { callLLMJson } from '@/lib/llm'
 import { MODEL_ANALYSIS } from '@/lib/constants'
-import type { QuestionAnalysis } from '@/lib/types'
+import type { QuestionAnalysis, AnalysisPhraseGroup } from '@/lib/types'
 
 const SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定一道雅思口语题（可能附用户的真实故事），为中国考生生成「答题侧重点」和「可用词组」。本页只会出现 Part 1 和 Part 2 的题（Part 3 不会走到这里，不用考虑）。
 
@@ -52,7 +52,7 @@ const SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定�
 - 分组标签用简洁名词（如 时间、人物、地点、原因、经过、感受、做什么），不要用「谁」「为什么道歉」「什么时候」「什么感受」这类口语化或带疑问词的长标签。
 - 分组：通常分 3 组左右。问日常、习惯、休息类的 Part 1，固定分「做什么 / 时间 / 感受」三组，三组都要给。其它类型的题（如某次经历）按它自己的自然分段来分组，用上面那种简洁名词标签，组数不限。
 - 每组 3 到 5 个；挑最有用、最地道、最贴这个故事的。
-- text 的词汇贴 6 到 7 分水平，必须是「说出来」的口语（自然、日常、可缩写），不要书面腔、不要长难句、不要堆高级词。
+- 默认按雅思 6.0 出词（初始水平，用户之后可在页面上切换）：自然的日常口语、朴素为主；感受、描述这类不要用流利的整句、也不要生动习语，普通说清楚就行。时间、人物、地点这种交代事实的锚点保持简单即可，别硬拔高。整体必须是「说出来」的口语（自然、日常、可缩写），不要书面腔、不要长难句、不要堆高级词。
 - text 尽量贴用户故事里的真实内容（动作、场景、感受），但绝不替用户编造他没说过的事实；scene 则讲通用用法、不绑定故事。
 - 没有用户故事时，给这道题通用、好用的纯英文短词块，三字段照常给。
 
@@ -95,4 +95,70 @@ export async function generateAnalysis(input: {
       Array.isArray((v as { focusPoints?: unknown }).focusPoints) &&
       Array.isArray((v as { phrases?: unknown }).phrases),
   })
+}
+
+const PHRASES_SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定一道雅思口语题（可能附用户真实故事）和一个目标雅思口语水平，为中国考生生成「可用词组」——一组能直接开口用的英文短词块，按答案分段分组。本页只有 Part 1 和 Part 2 的题。
+
+# 输出：严格 JSON（不要 markdown 代码块，不要任何解释）
+{
+  "phrases": [{ "group": "简洁名词标签，如「时间」「人物」「原因」「经过」「感受」「做什么」", "items": [{ "text": "纯英文短词块", "meaning": "中文释义", "scene": "中文，真实英语里什么场合会用到它" }] }]
+}
+
+# phrases 规则
+- 每个词组是一个对象，含三个字段：text（英文词组本身）、meaning（中文释义）、scene（中文，适用场景）。
+- text 是「短词块」，能直接塞进自己话里说出来（一般 2 到 5 个词）。不要写成完整句子，尤其别给「I / we / it + 动词 + …」这种一整句；短的动词短语、名词短语、形容词都可以，感受组也给短词块。
+  · 反例：I felt relieved once we talked it out　正例：relieved、kind of surprised、more honest now
+- text 必须是纯英文，绝不能夹中文字；遇到中文概念（如「分工」「健身房卡」）必须翻成英文。
+- meaning：一句简短中文释义，不超过 15 字。
+- scene：一句中文，说明这个词组在【真实英语世界里】什么场合、什么语境会用到，脱离用户这条具体故事来讲（讲通用用法，不是「在你的故事里」）。例：take all the credit 的 scene 可写「别人把团队或他人的功劳算到自己头上时，用来描述这种行为」。
+- 分组标签用简洁名词，不要用「谁」「为什么」「什么时候」这类带疑问词的长标签。通常分 3 组左右；问日常、习惯、休息类的 Part 1 固定分「做什么 / 时间 / 感受」三组；其它题按自然分段分组。每组 3 到 5 个。
+- text 尽量贴用户故事里的真实内容（动作、场景、感受），绝不替用户编造他没说过的事实；scene 讲通用用法、不绑故事。没有故事时给通用好用的纯英文短词块，三字段照常给。
+
+# 按目标雅思水平给词（用户消息里会给出一个目标水平，5.0 到 8.0）
+关键：水平只调「表达性」的词，也就是感受、动作经过、评价这类能体现词汇功力的部分。像时间、人物（谁）、地点这种只是交代事实的锚点（如 last autumn、an old friend、by myself、the plateau），任何档都可以简单、可以和低档一样，不要为了拔高硬换成花哨说法，那样反而假、反而像炫技。
+表达性词按下面调难度，但永远是「能说出口的口语」，不是书面词：
+- 5.0 到 5.5：最常见、最基础的日常词，简单直接，宁可朴素也别难。
+- 6.0 到 6.5：自然的日常口语，朴素为主。感受、描述这类不要用流利的整句、也不要生动习语，普通说清楚就行（默认水平）。
+- 7.0 到 7.5：感受和动作这类明显更地道，用 less common 的搭配、phrasal verb、习惯说法，开始有点个性，别停在 6 分那种最普通的搭配上。
+- 8.0：感受和动作有 native 感的地道表达（idiomatic chunks、natural collocations、灵活的 particle 用法），但依然是口语，不是长难句或炫技。
+meaning 和 scene 始终用中文，和水平无关。
+
+# 全局
+- 全部紧扣这道具体题目。
+- 不要使用破折号：任何地方都不要出现「—」或「–」，需要停顿或连接用逗号、句号或 and、so、but、like。
+
+【JSON 格式硬约束】
+只能输出合法 JSON，前后不得有任何说明文字或 markdown 代码块。
+字符串值内部禁止出现英文双引号 " ，如需引用一律改用中文引号「」。`
+
+export async function generatePhrases(input: {
+  part: 1 | 2 | 3
+  en: string
+  zh: string | null
+  story?: string
+  level: string
+}): Promise<AnalysisPhraseGroup[]> {
+  if (!env.dashscopeApiKey) {
+    throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
+  }
+  const storySection = input.story ? `\n\n用户的真实故事：${input.story}` : ''
+  const userMsg = `目标雅思水平：${input.level}\nPart ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
+  const result = await callLLMJson<{ phrases: AnalysisPhraseGroup[] }>({
+    label: '[Phrases]',
+    call: {
+      provider: 'dashscope',
+      endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+      apiKey: env.dashscopeApiKey,
+      model: MODEL_ANALYSIS,
+      messages: [
+        { role: 'system', content: PHRASES_SYSTEM_PROMPT },
+        { role: 'user',   content: userMsg },
+      ],
+      maxTokens: 2048,
+    },
+    validate: (v): v is { phrases: AnalysisPhraseGroup[] } =>
+      typeof v === 'object' && v !== null &&
+      Array.isArray((v as { phrases?: unknown }).phrases),
+  })
+  return result.phrases
 }
