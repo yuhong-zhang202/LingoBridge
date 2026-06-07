@@ -7,12 +7,14 @@
 'use client'
 import { Suspense, useEffect, useState, type ReactNode, type CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Target, Type, ChevronDown, Check } from 'lucide-react'
+import { Target, Type, ChevronDown, Check, Star } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
-import type { AnalysisResponse, AnalysisPhraseGroup } from '@/lib/types'
+import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
+import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
+import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
 
 const GRAD_BORDER = 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))'
 const GRAD_NUM    = 'linear-gradient(135deg, rgba(232,136,58,0.40), rgba(123,191,116,0.40))'
@@ -64,6 +66,7 @@ function AnalysisContent() {
   const [level, setLevel] = useState('6.0')
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
+  const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
@@ -101,6 +104,29 @@ function AnalysisContent() {
         setPhrasesLoading(false)
       }
     })()
+  }
+
+  useEffect(() => {
+    setSavedSet(new Set(getSavedWords().map(w => w.text)))
+  }, [])
+
+  function toggleSave(item: AnalysisPhrase, group: string) {
+    const isSaved = getSavedWords().some(w => w.text === item.text)
+    if (isSaved) {
+      removeSavedWord(item.text)
+    } else {
+      addSavedWord({
+        id: item.text,
+        text: item.text,
+        meaning: item.meaning,
+        scene: item.scene,
+        group,
+        level,
+        questionEn: data?.question.en ?? '',
+        createdAt: new Date().toISOString(),
+      })
+    }
+    setSavedSet(new Set(getSavedWords().map(w => w.text)))
   }
 
   return (
@@ -210,17 +236,22 @@ function AnalysisContent() {
                               className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap active:scale-[0.97] transition-transform duration-150 ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                             >
                               {p.text}
+                              {savedSet.has(p.text) && (
+                                <Star size={11} className="inline-block ml-1 -mt-[2px] align-middle fill-brand-primary text-brand-primary" />
+                              )}
                             </button>
                           )
                         })}
                       </div>
                       {openItem && (
-                        <div className="mt-2.5 bg-[#FBFAF8] border border-black/[0.05] rounded-[12px] px-3.5 py-3">
-                          <p className="text-[13px] font-medium text-[#1A1A1A] mb-2">{openItem.text}</p>
-                          <p className="text-[11px] text-[#A89990] mb-0.5">释义</p>
-                          <p className="text-[12px] text-[#6B5B52] leading-relaxed mb-2.5">{openItem.meaning}</p>
-                          <p className="text-[11px] text-[#A89990] mb-0.5">适用场景</p>
-                          <p className="text-[12px] text-[#6B5B52] leading-relaxed">{openItem.scene}</p>
+                        <div className="mt-2.5">
+                          <PhraseDetailCard
+                            text={openItem.text}
+                            meaning={openItem.meaning}
+                            scene={openItem.scene}
+                            isSaved={savedSet.has(openItem.text)}
+                            onToggleSave={() => toggleSave(openItem, g.group)}
+                          />
                         </div>
                       )}
                     </div>

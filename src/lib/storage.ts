@@ -5,10 +5,11 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
-import type { SessionPolish, SavedPhrase } from '@/lib/types'
+import type { SessionPolish, SavedPhrase, SavedWord } from '@/lib/types'
 
 const SESSION_KEY = 'lingobridge:session_polishes'
 const SAVED_KEY = 'lingobridge:saved_phrases'
+const SAVED_WORDS_KEY = 'lingobridge:saved_words'
 
 // ── 本场暂存：practice → feedback ──
 export function setSessionPolishes(items: SessionPolish[]): void {
@@ -52,4 +53,25 @@ export function removeSavedPhrase(id: string): void {
   if (typeof window === 'undefined') return
   const filtered = getSavedPhrases().filter(p => p.id !== id)
   localStorage.setItem(SAVED_KEY, JSON.stringify(filtered))
+}
+
+// ── 持久收藏：词组（题目分析里收藏的可用词组）──
+export function getSavedWords(): SavedWord[] {
+  if (typeof window === 'undefined') return []
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_WORDS_KEY) ?? '[]') as SavedWord[]
+  } catch {
+    return []
+  }
+}
+export function addSavedWord(w: SavedWord): void {
+  if (typeof window === 'undefined') return
+  const all = getSavedWords().filter(x => x.id !== w.id)
+  all.unshift(w)
+  localStorage.setItem(SAVED_WORDS_KEY, JSON.stringify(all))
+}
+export function removeSavedWord(id: string): void {
+  if (typeof window === 'undefined') return
+  const filtered = getSavedWords().filter(w => w.id !== id)
+  localStorage.setItem(SAVED_WORDS_KEY, JSON.stringify(filtered))
 }

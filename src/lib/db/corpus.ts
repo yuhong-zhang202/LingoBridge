@@ -185,6 +185,19 @@ export async function listMyObservationCodes(): Promise<string[]> {
 }
 
 /**
+ * 删除单条语料，先清关联的 corpus_point_links，再删除语料行
+ * @param  id  corpus UUID
+ */
+export async function deleteCorpus(id: string): Promise<void> {
+  await ensureSession()
+  const supabase = getSupabase()
+  const { error: linkErr } = await supabase.from('corpus_point_links').delete().eq('corpus_id', id)
+  if (linkErr) throw new Error(`清理语料归类失败：${linkErr.message}`)
+  const { error } = await supabase.from('corpus').delete().eq('id', id)
+  if (error) throw new Error(`删除语料失败：${error.message}`)
+}
+
+/**
  * 写回整理后的短文，状态从 draft 推进到 restructured
  * @param  id           corpus UUID
  * @param  cleanedText  千问整理后的中文短文

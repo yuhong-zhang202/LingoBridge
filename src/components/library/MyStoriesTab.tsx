@@ -4,12 +4,13 @@ import { Mic2, Keyboard, MoreHorizontal, ChevronRight } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
 import EmptyState from '@/components/EmptyState'
+import SwipeToDelete from '@/components/library/SwipeToDelete'
 
 const PILL_GRAD = 'linear-gradient(135deg, rgba(232,136,58,0.45), rgba(123,191,116,0.45))'
 
-interface Props { stories: MyStory[] }
+interface Props { stories: MyStory[]; onDelete?: (id: string) => void }
 
-export default function MyStoriesTab({ stories }: Props) {
+export default function MyStoriesTab({ stories, onDelete }: Props) {
   const router = useRouter()
 
   if (stories.length === 0) {
@@ -26,7 +27,8 @@ export default function MyStoriesTab({ stories }: Props) {
   return (
     <div className="flex flex-col gap-3 pt-3">
       {stories.map(story => (
-        <div key={story.id} className="bg-white rounded-[16px] p-4" style={GRADIENT_BORDER_STYLE}>
+        <SwipeToDelete key={story.id} borderRadius={16} onDelete={() => onDelete?.(story.id)}>
+        <div className="bg-white rounded-[16px] p-4" style={GRADIENT_BORDER_STYLE}>
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               {story.inputType === 'voice' ? (
@@ -72,6 +74,7 @@ export default function MyStoriesTab({ stories }: Props) {
             </div>
           )}
         </div>
+        </SwipeToDelete>
       ))}
     </div>
   )

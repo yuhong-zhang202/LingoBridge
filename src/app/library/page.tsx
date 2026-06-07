@@ -11,7 +11,8 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import CollectedCardsTab from '@/components/library/CollectedCardsTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
-import { listMyCorpus, getCorpusPointCodes } from '@/lib/db/corpus'
+import SavedWordsTab from '@/components/library/SavedWordsTab'
+import { listMyCorpus, getCorpusPointCodes, deleteCorpus } from '@/lib/db/corpus'
 import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { getSavedPhrases } from '@/lib/storage'
@@ -29,11 +30,12 @@ function codeToLabel(code: string): DimensionLabel | undefined {
   return undefined
 }
 
-type Tab = 'stories' | 'cards'
+type Tab = 'stories' | 'cards' | 'words'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'stories', label: '我的语料' },
   { key: 'cards',   label: '收藏卡片' },
+  { key: 'words',   label: '词组收藏' },
 ]
 
 export default function LibraryPage() {
@@ -125,9 +127,13 @@ export default function LibraryPage() {
             ? <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
             : error
               ? <p className="text-[13px] text-error text-center pt-16">{error}</p>
-              : <MyStoriesTab stories={stories} />
+              : <MyStoriesTab stories={stories} onDelete={(id) => {
+                  setStories(prev => prev.filter(s => s.id !== id))
+                  deleteCorpus(id).catch(e => console.error('[LibraryPage] 删除语料失败', e))
+                }} />
         )}
         {activeTab === 'cards' && <CollectedCardsTab cards={cards} />}
+        {activeTab === 'words' && <SavedWordsTab />}
       </div>
 
       <TabBar />

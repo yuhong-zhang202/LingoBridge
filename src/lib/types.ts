@@ -233,6 +233,16 @@ export interface SessionPolish {
   part: 1 | 2 | 3
   questionEn: string
 }
+export interface SavedWord {
+  id: string         // 唯一 id（用词组英文本身）
+  text: string       // 英文词组
+  meaning: string    // 中文释义
+  scene: string      // 适用场景
+  group: string      // 分组标签，如「感受」
+  level: string      // 收藏时的雅思水平，如「6.0」
+  questionEn: string // 收藏时所在题目（英文）
+  createdAt: string  // ISO 时间
+}
 export interface SavedPhrase extends SessionPolish {
   id: string
   createdAt: string

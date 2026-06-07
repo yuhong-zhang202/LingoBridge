@@ -160,35 +160,30 @@ function RestructureContent() {
                 <p className="text-[13px] text-v2-text-secondary leading-relaxed">好用的素材通常会带到：时间、人物、发生的事、你的做法和感受</p>
               </div>
             </div>
+
+            <div className="pt-1">
+              {saveError && (
+                <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
+              )}
+              <button
+                className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
+                style={GRADIENT_BORDER_STYLE}
+                onClick={() => void handleMatchClick()}
+                disabled={isSaving}
+              >
+                {isSaving ? '保存中…' : '开始匹配题目 →'}
+              </button>
+              <button
+                className="w-full flex items-center justify-center gap-1.5 text-[13px] text-gray-400 active:opacity-70 transition-opacity"
+                onClick={() => void runRestructure()}
+              >
+                <RefreshCw size={13} />重新整理
+              </button>
+            </div>
           </>
         )}
       </div>
 
-      {/* 底部操作区 */}
-      {!isLoading && !error && (
-        <div
-          className="flex-shrink-0 px-5 relative z-10"
-          style={{ paddingBottom: 'max(88px, calc(env(safe-area-inset-bottom) + 56px))', paddingTop: 12 }}
-        >
-          {saveError && (
-            <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
-          )}
-          <button
-            className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
-            style={GRADIENT_BORDER_STYLE}
-            onClick={() => void handleMatchClick()}
-            disabled={isSaving}
-          >
-            {isSaving ? '保存中…' : '开始匹配题目 →'}
-          </button>
-          <button
-            className="w-full flex items-center justify-center gap-1.5 text-[13px] text-gray-400 active:opacity-70 transition-opacity"
-            onClick={() => void runRestructure()}
-          >
-            <RefreshCw size={13} />重新整理
-          </button>
-        </div>
-      )}
       <div className="flex-shrink-0"><TabBar /></div>
     </div>
   )
