@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Target } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { isLoggedIn, getPhone, logout, maskPhone } from '@/lib/auth'
@@ -32,16 +32,6 @@ const profileData = {
   version: 'v0.6.0',
 }
 
-/**
- * 根据目标 Band 分数返回胶囊颜色参数
- * @param band  目标分数
- * @returns     bg / border / text 内联色值字符串
- */
-function getBandColors(band: number): { bg: string; border: string; text: string } {
-  if (band >= 7.0) return { bg: 'rgba(154,125,184,0.10)', border: 'rgba(154,125,184,0.28)', text: '#9A7DB8' }
-  if (band >= 6.5) return { bg: 'rgba(212,135,90,0.10)',  border: 'rgba(212,135,90,0.28)',  text: '#D4875A' }
-  return              { bg: 'rgba(123,166,153,0.10)',  border: 'rgba(123,166,153,0.28)',  text: '#7BA699' }
-}
 
 /**
  * Profile 主页
@@ -65,7 +55,6 @@ export default function ProfilePage(): JSX.Element {
   }, [loggedIn])
 
   const { targetBand, stats, version } = profileData
-  const bandColors = getBandColors(targetBand)
 
   const displayName = loggedIn
     ? (phone ? maskPhone(phone) : '我的账号')
@@ -99,20 +88,6 @@ export default function ProfilePage(): JSX.Element {
         <div className="flex flex-col items-center pt-6 pb-5">
           <OrbAvatar size={84} />
           <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{displayName}</p>
-          {loggedIn && (
-            <div
-              className="inline-flex items-center gap-[5px] px-[11px] py-1 rounded-full mt-2"
-              style={{
-                backgroundColor: bandColors.bg,
-                border: `1px solid ${bandColors.border}`,
-              }}
-            >
-              <Target size={11} color={bandColors.text} />
-              <span className="text-[11px] font-medium" style={{ color: bandColors.text }}>
-                目标 Band {targetBand.toFixed(1)}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* ── 未登录引导卡 */}
@@ -123,12 +98,23 @@ export default function ProfilePage(): JSX.Element {
           <LoggedInView
             stats={stats}
             targetBand={targetBand}
-            onLogout={handleLogout}
           />
         )}
 
         {/* ── 功能列表卡（两态均显示） */}
         <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
+
+        {/* ── 退出登录（仅登录态，置于页面最下方） */}
+        {loggedIn && (
+          <div className="text-center mt-5 mb-2">
+            <button
+              onClick={handleLogout}
+              className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
+            >
+              退出登录
+            </button>
+          </div>
+        )}
 
       </div>
 

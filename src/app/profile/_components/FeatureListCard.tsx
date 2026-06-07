@@ -7,7 +7,7 @@
 'use client'
 
 import {
-  Bookmark, History, SlidersHorizontal, MessageCircleQuestionMark,
+  Bookmark, History, MessageCircleQuestionMark,
   Info, ChevronRight,
 } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
@@ -32,7 +32,6 @@ export default function FeatureListCard({ bookmarkCount, version }: FeatureListC
       {[
         { Icon: Bookmark,                  label: '收藏的卡片',       badge: String(bookmarkCount) },
         { Icon: History,                   label: '练习历史',          badge: null },
-        { Icon: SlidersHorizontal,         label: '学习偏好',          badge: null },
         { Icon: MessageCircleQuestionMark, label: '帮助与反馈',        badge: null },
         { Icon: Info,                      label: '关于 LingoBridge',  badge: version },
       ].map(({ Icon, label, badge }, idx, arr) => (
