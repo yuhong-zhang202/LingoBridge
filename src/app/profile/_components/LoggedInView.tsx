@@ -8,7 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Flame, MessageCircle, Target } from 'lucide-react'
+import { Flame, MessageCircle, Target, Lock } from 'lucide-react'
 import Tag from '@/components/Tag'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { listMyCorpus } from '@/lib/db/corpus'
@@ -16,20 +16,22 @@ import { getDimensionScores } from '@/lib/db/dimension-scores'
 import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
 import PortraitRadar from './PortraitRadar'
 
+// 空状态下「我的画像」用的占位形状（雷达会被模糊+锁住，仅作装饰，值域 0–1）
+const PORTRAIT_PLACEHOLDER: readonly [number, number, number, number, number] = [0.72, 0.5, 0.45, 0.62, 0.4]
+
 interface LoggedInViewProps {
   stats: { corpus: number }
   targetBand: number
-  onLogout: () => void
 }
 
 /**
- * 已登录态面板：Hero 打卡卡 + 双列副数据卡 + 我的画像雷达卡 + 退出登录
+ * 已登录态面板：Hero 打卡卡 + 双列副数据卡 + 我的画像雷达卡
  * @param stats      profileData.stats（corpus 占位，streak/practice 由内部真实加载）
- * @param onLogout   page 层的退出登录处理函数
  * @sideEffect       挂载时并行拉取 listMyCorpus + getDimensionScores，更新真实数据
  */
-export default function LoggedInView({ stats: _stats, onLogout }: LoggedInViewProps): JSX.Element {
+export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.Element {
   const [corpusCount, setCorpusCount] = useState(0)
+  const [loaded, setLoaded] = useState(false)
   const [streak, setStreak] = useState(0)
   const [practiceCount, setPracticeCount] = useState(0)
   const [radarValues, setRadarValues] = useState<readonly [number, number, number, number, number]>(
@@ -55,7 +57,11 @@ export default function LoggedInView({ stats: _stats, onLogout }: LoggedInViewPr
       .catch((err: unknown) => {
         console.warn('[ProfilePage] 加载真实数据失败，保留占位', err)
       })
+      .finally(() => setLoaded(true))
   }, [])
+
+  // 数据加载完成且一条语料都没有 → 画像卡显示「未解锁」空态（模糊雷达 + 提示）
+  const showEmpty = loaded && corpusCount === 0
 
   return (
     <>
@@ -116,28 +122,39 @@ export default function LoggedInView({ stats: _stats, onLogout }: LoggedInViewPr
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[15px] font-semibold text-v2-text-primary">我的画像</span>
-              <Tag label="AI 生成" variant="green" />
+              {!showEmpty && <Tag label="AI 生成" variant="green" />}
             </div>
-            <p className="text-[12px] text-v2-text-secondary mt-1">
-              基于你的 {corpusCount} 段语料
-            </p>
+            {!showEmpty && (
+              <p className="text-[12px] text-v2-text-secondary mt-1">
+                基于你的 {corpusCount} 段语料
+              </p>
+            )}
           </div>
-          <button className="text-[12px] font-medium text-brand-primary-dark mt-0.5 active:opacity-60">
-            查看完整 →
-          </button>
+          {!showEmpty && (
+            <button className="text-[12px] font-medium text-brand-primary-dark mt-0.5 active:opacity-60">
+              查看完整 →
+            </button>
+          )}
         </div>
-        <PortraitRadar values={radarValues} />
+
+        {showEmpty ? (
+          <div className="relative">
+            <div style={{ filter: 'blur(4px)', opacity: 0.55 }}>
+              <PortraitRadar values={PORTRAIT_PLACEHOLDER} />
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-white/50">
+              <Lock size={20} className="text-brand-primary-dark mb-2" />
+              <p className="text-[14px] font-medium text-v2-text-secondary leading-relaxed">
+                录一条故事后，这里会生成专属语料维度
+              </p>
+            </div>
+          </div>
+        ) : (
+          <PortraitRadar values={radarValues} />
+        )}
       </div>
 
-      {/* ── 退出登录 */}
-      <div className="text-center mt-1 mb-4">
-        <button
-          onClick={onLogout}
-          className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
-        >
-          退出登录
-        </button>
-      </div>
+
     </>
   )
 }
