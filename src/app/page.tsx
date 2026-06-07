@@ -64,10 +64,10 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col items-center px-7 relative z-10 pt-6 pb-[72px] overflow-y-auto">
 
         {/* Orb */}
-        <Orb size={300} pulse={false} />
+        <Orb size={showTextInput ? 96 : 300} pulse={false} />
 
-        {/* Orb 与文字区固定间距 */}
-        <div className="h-[41px]" />
+        {/* Orb 与文字区间距：文字输入态收窄，让输入框成为主角 */}
+        <div className={showTextInput ? 'h-[20px]' : 'h-[41px]'} />
 
         {/* 文字 + 操作区 */}
         <div className="w-full flex flex-col items-center">
@@ -149,7 +149,7 @@ export default function HomePage() {
                   value={textStory}
                   onChange={e => setTextStory(e.target.value)}
                   placeholder="用中文写下你的故事，比如：今天去了附近的公园，空气很好，心情也轻松了很多..."
-                  className="w-full min-h-[120px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-brand-primary transition-colors"
+                  className="w-full min-h-[240px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-brand-primary transition-colors"
                   autoFocus
                 />
                 <div className="flex justify-between items-center mt-2 px-1">
