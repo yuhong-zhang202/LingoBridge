@@ -42,7 +42,7 @@
 
 | Token | 色值 | 说明 |
 |---|---|---|
-| `bg-page` | `#FEFEFE` | 当前全局页面背景（已更新，见下节） |
+| `bg-page` | `#F5F2EE` | 当前全局页面背景（已更新，见下节） |
 | `bg-card` | `#FFFFFF` | 卡片背景 |
 | `bg-inner` | `#F4F4F4` | 内嵌区域 / `.surface` |
 | `text-1` | `#111111` | 主文字 |
@@ -77,9 +77,9 @@ linear-gradient(135deg,
 ```css
 radial-gradient(
   circle,
-  rgba(240,188,160,0.14) 0%,
-  rgba(168,210,196,0.10) 35%,
-  rgba(188,210,168,0.06) 55%,
+  rgba(240,188,160,0.18) 0%,
+  rgba(168,210,196,0.13) 35%,
+  rgba(188,210,168,0.08) 55%,
   transparent 72%
 )
 filter: blur(60px)
@@ -94,8 +94,8 @@ position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
 
 ### 背景与卡片层次
 
-- **页面背景**：`bg-bg-page`（`#FEFEFE`），永远不用有色背景，禁止内联色值
-- **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`），无阴影
+- **页面背景**：`bg-bg-page`（`#F5F2EE`），永远不用有色背景，禁止内联色值
+- **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`）+ 轻阴影（`.card` 类含 `box-shadow: 0 2px 12px rgba(0,0,0,0.06)`）
 - **强调卡片**（AI 输出内容）：白色背景 + 1px 渐变边框，使用 `GRADIENT_BORDER_STYLE_FULL` 常量
 
 ### 渐变色使用规范
@@ -362,7 +362,7 @@ text-[13px] text-[#AAAAAA]
 background: #FFFFFF
 border-radius: 20px
 border: 1px solid rgba(0,0,0,0.05)   /* 0.5px 视觉等效 */
-box-shadow: none                       /* 普通卡片不加阴影 */
+box-shadow: 0 2px 12px rgba(0,0,0,0.06)
 ```
 
 **强调卡片（AI 输出内容）：**
@@ -386,7 +386,7 @@ border-radius: 14px
 
 | 类型 | 用途 | padding | 字号 | 字重 | 圆角 |
 |---|---|---|---|---|---|
-| 信息标签 Tag | 当季热题、语料梳理、AI 优化、Part 标签 | `px-[10px] py-[4px]` | `text-[11px]` | `font-medium` | `rounded-full` |
+| 信息标签 Tag | 当季热题、语料梳理、AI 优化、Part 标签 | `px-[10px] py-[5px]` | `text-[11px]` | `font-medium` | `rounded-full` |
 | 交互按钮 Chip | 全部/Part筛选、编辑/完成、练习 | `px-[14px] py-[5px]` | `text-[12px]` | `font-medium` | `rounded-full` |
 
 实现：使用 `src/components/Tag.tsx` 和 `src/components/Chip.tsx`，禁止页面内直接手写同类样式。
@@ -410,7 +410,7 @@ border-radius: 14px
 
 ### StepBar 步骤条
 
-流程步骤：`story → article → topic → practice → feedback`
+流程步骤：`story → restructure → matching → analysis → practice`
 
 | 状态 | 圆点样式 | 文字样式 | 连线 |
 |---|---|---|---|
@@ -423,7 +423,7 @@ border-radius: 14px
 ### TabBar 底部导航
 
 ```
-背景：bg-[#FEFEFE]（硬编码，与页面背景一致）
+背景：bg-bg-page（#F5F2EE）
 高度：56px + env(safe-area-inset-bottom)
 边框：border-t border-black/[0.06]
 位置：fixed bottom-0，max-w-[430px]，居中
@@ -432,7 +432,7 @@ border-radius: 14px
 激活指示器：3×3px 圆点 bg-[#111]
 ```
 
-Tab：首页（/）、素材库（/library）、我的（/profile）
+Tab：首页（/）、题库（/question-bank）、素材库（/library）、我的（/profile）
 
 显示原则：用户正在产出内容时（录音中 /recording、练习对话 /practice）不显示 TabBar，其余所有页面均显示。
 
@@ -512,7 +512,7 @@ Accordion：accordionDown，200ms ease-out
 
 ### 背景色
 
-- 页面背景：`bg-bg-page`（当前 `#FEFEFE`）
+- 页面背景：`bg-bg-page`（当前 `#F5F2EE`）
 - 禁止直接写 `bg-white` 作为页面底色
 - 卡片保持 `bg-white`，形成层次感
 
