@@ -176,7 +176,7 @@ refactor: extract API client to lib/api.ts
 - 第3层：均无结果 → `noMatch=true`，前端走温柔收尾页
 
 **第三段 相关性重排**（`src/services/ranking.ts`）
-- 模型：`MODEL_RANKING`（qwen-plus），`temperature: 0.2`（降波动，结果可复现）
+- 模型：`MODEL_RANKING`（qwen-plus），`temperature: 0`（降波动，结果可复现）
 - 判分标准：不用改故事即可回答 ≥85（高）；同故事换角度 60–84（中）；必须换故事 30–59（低）；<30 隐藏
 - 降级策略：模型调用失败静默返回空数组，调用方保留漏斗排序原序展示
 
