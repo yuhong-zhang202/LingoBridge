@@ -1,0 +1,1346 @@
+[
+  {
+    "id": "00c2303f-e7b5-4d71-8ec0-3b4a6f324648",
+    "en": "Do you prefer to work in the mornings or afternoons?",
+    "old_zh": "你更喜欢早上工作还是下午工作？",
+    "new_zh": "你更喜欢在上午工作还是下午工作？"
+  },
+  {
+    "id": "0186bba0-ee28-4f24-b59b-fd3e150966ab",
+    "en": "What kind of advertising do you like?",
+    "old_zh": "你喜欢什么样的广告？",
+    "new_zh": "你喜欢哪种广告？"
+  },
+  {
+    "id": "036065b6-a896-4771-89bd-d83b29f97c18",
+    "en": "What technology do you use at work?",
+    "old_zh": "你在工作中用什么技术？",
+    "new_zh": "你在工作中用什么技术？"
+  },
+  {
+    "id": "039cf313-4242-4e76-9fe7-34c0e193f1a1",
+    "en": "Do many people grow vegetables in your city?",
+    "old_zh": "你们城市里很多人种蔬菜吗？",
+    "new_zh": "你们城市里很多人种蔬菜吗？"
+  },
+  {
+    "id": "04339049-895b-4e7e-a5da-374e19ce770d",
+    "en": "Do you see a lot of advertising on trains or other transport?",
+    "old_zh": "你在火车或其他交通工具上看到很多广告吗？",
+    "new_zh": "你在火车或其他交通工具上看到很多广告吗？"
+  },
+  {
+    "id": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+    "en": "Do you have an experience that your teacher thought you did a good job?",
+    "old_zh": "你有没有过老师觉得你表现很好的经历？",
+    "new_zh": "你有没有过老师认为你表现很好的经历？"
+  },
+  {
+    "id": "0ae5651c-af65-4f18-ada6-b232e3e9e875",
+    "en": "Do you think you are good at choosing gifts?",
+    "old_zh": "你觉得你自己选礼物的水平怎么样？",
+    "new_zh": "你觉得你擅长挑选礼物吗？"
+  },
+  {
+    "id": "0f0aa3ab-e7e6-45a9-b55a-517225820107",
+    "en": "Do you have a hobby that you've had since childhood?",
+    "old_zh": "你有没有从小一直坚持到现在的爱好？",
+    "new_zh": "你有没有从小就有的一项爱好？"
+  },
+  {
+    "id": "1122fa1a-3ad8-42bb-b3cd-f1f14d8bf018",
+    "en": "Do you like your job?",
+    "old_zh": "你喜欢你的工作吗？",
+    "new_zh": "你喜欢你的工作吗？"
+  },
+  {
+    "id": "11a1aa4e-99e7-42ca-a49f-712fd684a784",
+    "en": "How much money do you usually spend on shoes?",
+    "old_zh": "你通常买鞋花多少钱？",
+    "new_zh": "你通常买鞋花多少钱？"
+  },
+  {
+    "id": "11fc6210-a6b9-4dc3-9c03-62528b2880f2",
+    "en": "Where would you like to take a long walk if you had the chance?",
+    "old_zh": "如果你有机会，你希望在哪里散长时间的步？",
+    "new_zh": "如果你有机会，你希望在哪里散长时间的步？"
+  },
+  {
+    "id": "13431717-ceda-4fc9-a57b-2fec50c17749",
+    "en": "Have you ever borrowed money from others?",
+    "old_zh": "你有没有向别人借过钱？",
+    "new_zh": "你有没有向别人借过钱？"
+  },
+  {
+    "id": "13cd244b-2c46-4566-a983-36df1541da74",
+    "en": "Do you always bring a lot of keys with you?",
+    "old_zh": "你出门时总是带很多钥匙吗？",
+    "new_zh": "你总是随身带很多钥匙吗？"
+  },
+  {
+    "id": "149c6982-c2ea-49de-87f2-fa837b4b4935",
+    "en": "Do you think the environment of your neighborhood is suitable for children?",
+    "old_zh": "你觉得你住的社区环境适合孩子吗？",
+    "new_zh": "你觉得你所在社区的环境适合孩子吗？"
+  },
+  {
+    "id": "14da49c2-5ee3-4191-b637-09c31d20c2cd",
+    "en": "Do you often carry cash with you?",
+    "old_zh": "你经常随身带现金吗？",
+    "new_zh": "你经常随身带现金吗？"
+  },
+  {
+    "id": "172cfe24-0030-4736-9b48-0b063685da4e",
+    "en": "Do you mind if others borrow money from you?",
+    "old_zh": "别人向你借钱你会介意吗？",
+    "new_zh": "别人向你借钱你会介意吗？"
+  },
+  {
+    "id": "17d4b1f6-43a4-4354-967a-7d91980aee63",
+    "en": "What do you usually do in the morning?",
+    "old_zh": "你早上通常做什么？",
+    "new_zh": "你早上通常做什么？"
+  },
+  {
+    "id": "182c4da8-eb42-4a6d-a492-2dde105a0804",
+    "en": "Do you like the area that you live in?",
+    "old_zh": "你喜欢你住的这个区域吗？",
+    "new_zh": "你喜欢你住的这个区域吗？"
+  },
+  {
+    "id": "1999f6d4-fefa-4c71-8bd0-16ede601e3dc",
+    "en": "Where do you prefer to keep your pet, indoors or outdoors?",
+    "old_zh": "你更愿意把宠物养在室内还是室外？",
+    "new_zh": "你更喜欢把宠物放在室内还是室外？"
+  },
+  {
+    "id": "1a2e321e-4b79-495e-aeab-bb97f8246757",
+    "en": "Do you prefer typing or handwriting?",
+    "old_zh": "你更喜欢打字还是手写？",
+    "new_zh": "你更喜欢打字还是手写？"
+  },
+  {
+    "id": "1c2b88bd-3a4b-4466-afc1-a42fb15d45c4",
+    "en": "Do you think your school is a good place to study?",
+    "old_zh": "你觉得你的学校是个适合学习的好地方吗？",
+    "new_zh": "你觉得你的学校是个好的学习地方吗？"
+  },
+  {
+    "id": "1d9517c0-6e84-4427-b57a-4ffe47f49510",
+    "en": "Do you have the same hobbies as your family members?",
+    "old_zh": "你和家人的爱好一样吗？",
+    "new_zh": "你和家人的爱好一样吗？"
+  },
+  {
+    "id": "1efff4b8-2a7c-4c29-8031-c72296676281",
+    "en": "Do you like your major?",
+    "old_zh": "你喜欢你的专业吗？",
+    "new_zh": "你喜欢你的专业吗？"
+  },
+  {
+    "id": "2132a0c8-cffe-4843-9a2a-053fc53e9b9f",
+    "en": "Are there tall buildings near your home?",
+    "old_zh": "你家附近有高楼吗？",
+    "new_zh": "你家附近有高楼吗？"
+  },
+  {
+    "id": "21349af4-582e-4c9c-bf3a-80b776358b65",
+    "en": "Do you prefer to communicate face-to-face or via social media?",
+    "old_zh": "你更喜欢面对面交流还是通过社交媒体交流？",
+    "new_zh": "你更喜欢面对面交流还是通过社交媒体交流？"
+  },
+  {
+    "id": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+    "en": "Do you prefer to have more or fewer rules at school?",
+    "old_zh": "你更希望学校规则多一点还是少一点？",
+    "new_zh": "你更希望学校规则多一点还是少一点？"
+  },
+  {
+    "id": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
+    "en": "What do you usually do when you are resting?",
+    "old_zh": "你休息的时候通常做什么？",
+    "new_zh": "你休息时通常做什么？"
+  },
+  {
+    "id": "2ab5a987-39f8-47ee-8e3c-99f76a627710",
+    "en": "Where did you go for a walk lately?",
+    "old_zh": "最近你去哪里散步了？",
+    "new_zh": "最近你去什么地方散步了？"
+  },
+  {
+    "id": "2ad86a68-cbfd-4d41-ad87-b0e741bc8ae5",
+    "en": "Which do you prefer, fashionable shoes or comfortable shoes?",
+    "old_zh": "你更喜欢时髦的鞋子还是舒服的鞋子？",
+    "new_zh": "你更喜欢时髦的鞋子还是舒服的鞋子？"
+  },
+  {
+    "id": "2f62f2b6-1d3d-4f3d-9dd8-28eec1081e9e",
+    "en": "What do you like about the place you're living?",
+    "old_zh": "你住的地方有什么让你喜欢的地方？",
+    "new_zh": "你对你住的地方有什么喜欢的地方？"
+  },
+  {
+    "id": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+    "en": "Do you prefer views in your own country or in other countries?",
+    "old_zh": "你更喜欢看自己国家的风景，还是其他国家的风景？",
+    "new_zh": "你更喜欢自己国家的风景还是其他国家的风景？"
+  },
+  {
+    "id": "2fa44100-bc2c-4412-9890-42e780c00ab7",
+    "en": "Are there any differences between what you do in the morning now and what you did in the past?",
+    "old_zh": "你现在早上的活动和过去有什么不同吗？",
+    "new_zh": "你现在早上的活动和过去有什么不同吗？"
+  },
+  {
+    "id": "2fa96298-f9ac-49d4-b195-e4c6bd587009",
+    "en": "Do Chinese people send plants as gift?",
+    "old_zh": "中国人会送植物当礼物吗？",
+    "new_zh": "中国人会送植物当礼物吗？"
+  },
+  {
+    "id": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+    "en": "Do you have an experience that you did something well?",
+    "old_zh": "你有没有做过一件特别出色的事情的经历？",
+    "new_zh": "你有没有过做得很出色的经历？"
+  },
+  {
+    "id": "31f14cbb-2717-4923-8319-3b022b173b91",
+    "en": "Do you know any famous people in your area?",
+    "old_zh": "你所在地区有认识的名人吗？",
+    "new_zh": "你认识你所在地区有名的人吗？"
+  },
+  {
+    "id": "31fc04c4-d9e4-46e3-8dcf-826774c33eda",
+    "en": "Do you think it's easy to grow vegetables?",
+    "old_zh": "你觉得种蔬菜容易吗？",
+    "new_zh": "你觉得种蔬菜容易吗？"
+  },
+  {
+    "id": "332f5057-e4e4-4243-a9ba-6fc9fc031451",
+    "en": "Has your favourite food changed since you were a child?",
+    "old_zh": "你最喜欢的饭菜从小时候到现在变过吗？",
+    "new_zh": "你最喜欢的吃的自从小时候有变化吗？"
+  },
+  {
+    "id": "3389a076-56b6-4940-b0af-05eb384e0e14",
+    "en": "Do you like this city? Why?",
+    "old_zh": "你喜欢这座城市吗？为什么？",
+    "new_zh": "你喜欢这座城市吗？为什么？"
+  },
+  {
+    "id": "342820e2-5cf4-4ed5-af38-060cd60115e3",
+    "en": "Is it a good place to grow up?",
+    "old_zh": "这里是个适合成长的好地方吗？",
+    "new_zh": "这是个适合成长的地方吗？"
+  },
+  {
+    "id": "34c0945d-edd8-4521-8210-c238ac9aab8f",
+    "en": "What work do you do?",
+    "old_zh": "你从事什么工作？",
+    "new_zh": "你做什么工作？"
+  },
+  {
+    "id": "363178cc-22c7-4f72-8764-ed6debd48f01",
+    "en": "Who is the first person you would like to share good news with?",
+    "old_zh": "你最想把好消息分享给谁？",
+    "new_zh": "你最想跟谁分享好消息？"
+  },
+  {
+    "id": "37e42eec-12c3-4e0c-92b8-a8b2fc9635e0",
+    "en": "What city do you live in?",
+    "old_zh": "你住哪个城市？",
+    "new_zh": "你住哪个城市？"
+  },
+  {
+    "id": "392ad649-421f-4645-ab1a-01825d0acb86",
+    "en": "Is there a crowded place where you live?",
+    "old_zh": "你住的地方有比较拥挤的地方吗？",
+    "new_zh": "你住的地方有拥挤的地方吗？"
+  },
+  {
+    "id": "398665c6-fa82-46cf-a0ee-0e19e09802e5",
+    "en": "Do you take photos of buildings?",
+    "old_zh": "你会拍建筑物的照片吗？",
+    "new_zh": "你会拍建筑物的照片吗？"
+  },
+  {
+    "id": "3c972670-5a2c-40ad-b410-e381e321f7bb",
+    "en": "Do you prefer scanning or detailed reading?",
+    "old_zh": "你更喜欢快速浏览还是仔细阅读？",
+    "new_zh": "你更喜欢快速浏览还是仔细阅读？"
+  },
+  {
+    "id": "3e122641-774d-41b6-94e0-ac5c5be637b7",
+    "en": "Do you have any plans for the next ve years?",
+    "old_zh": "你对未来五年有什么计划吗？",
+    "new_zh": "你对未来五年有什么计划吗？"
+  },
+  {
+    "id": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
+    "en": "When was the last time you had a few days off?",
+    "old_zh": "你上一次休息几天是什么时候？",
+    "new_zh": "上一次你有几天休息是什么时候？"
+  },
+  {
+    "id": "3fe126e0-a754-4412-a509-9dde775a1935",
+    "en": "Is this city your permanent residence?",
+    "old_zh": "这座城市是你的常住地吗？",
+    "new_zh": "这座城市是你的永久居所吗？"
+  },
+  {
+    "id": "4007b2ab-d00b-4525-bf09-450fd5a6d873",
+    "en": "Do you like art?",
+    "old_zh": "你喜欢艺术吗？",
+    "new_zh": "你喜欢艺术吗？"
+  },
+  {
+    "id": "41834516-2334-4a8f-82bf-bbb309af4f94",
+    "en": "What's the most exciting thing about your major?",
+    "old_zh": "你专业里最让你兴奋的是什么？",
+    "new_zh": "你专业里最令人兴奋的是什么？"
+  },
+  {
+    "id": "427dde83-22e9-4531-91eb-73ec596318b1",
+    "en": "How do you feel after taking a nap?",
+    "old_zh": "小睡之后你感觉怎么样？",
+    "new_zh": "小睡之后你感觉怎么样？"
+  },
+  {
+    "id": "429f63b1-c439-4540-aa9e-0275b104c6c3",
+    "en": "Has anything changed in the place where you live?",
+    "old_zh": "你住的地方最近有什么变化吗？",
+    "new_zh": "你住的地方有什么变化吗？"
+  },
+  {
+    "id": "43f61bc6-f0b2-4e1a-aa03-1619f6d223ad",
+    "en": "Will you change to another job in the future? / Have you ever thought about changing jobs?",
+    "old_zh": "你以后会换工作吗？/ 你曾经想过换工作吗？",
+    "new_zh": "你将来会换工作吗？/ 你曾经想过换工作吗？"
+  },
+  {
+    "id": "44296097-0713-4219-af6e-47e534d9bcc3",
+    "en": "Do you like advertisements?",
+    "old_zh": "你喜欢广告吗？",
+    "new_zh": "你喜欢广告吗？"
+  },
+  {
+    "id": "4641b5e0-0079-40bb-9c8b-9797d8bd0391",
+    "en": "Which subject do you find challenging?",
+    "old_zh": "你觉得哪门科目最难？",
+    "new_zh": "你认为哪个科目最难？"
+  },
+  {
+    "id": "46da02e8-a681-44cd-9113-f4845bc23f0f",
+    "en": "Is team sports popular in your culture?",
+    "old_zh": "在你们文化里，团队运动受欢迎吗？",
+    "new_zh": "在你的文化中，团队运动受欢迎吗？"
+  },
+  {
+    "id": "46db6c79-bc2a-4493-94e5-3b81835a5540",
+    "en": "Do you often go to public places with your friends?",
+    "old_zh": "你经常和朋友一起去公共场所吗？",
+    "new_zh": "你经常和朋友一起去公共场所吗？"
+  },
+  {
+    "id": "4711c3ca-5833-4986-a83e-4f31c508087e",
+    "en": "Do you prefer views in urban areas or rural areas?",
+    "old_zh": "你更喜欢待在城市地区还是乡村地区？",
+    "new_zh": "你更喜欢城市里的风景还是乡村的风景？"
+  },
+  {
+    "id": "4954b617-8398-4128-8236-9bf20c70e1c4",
+    "en": "Do you prefer to spend time with one friend or with a group of friends?",
+    "old_zh": "你更喜欢和一个朋友相处，还是和一群朋友一起？",
+    "new_zh": "你更喜欢和一个朋友待在一起，还是和一群朋友一起？"
+  },
+  {
+    "id": "49efe71e-d5c5-4135-8674-7339a8e465d7",
+    "en": "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+    "old_zh": "你在周末和工作日的早晨都做同样的事情吗？为什么？",
+    "new_zh": "你在周末和工作日早上做同样的事吗？为什么？"
+  },
+  {
+    "id": "4a835219-37c2-4683-869c-44538491e0f3",
+    "en": "Do you have a friend you have known for a long time?",
+    "old_zh": "你有认识很久的朋友吗？",
+    "new_zh": "你有没有一个认识很久的朋友？"
+  },
+  {
+    "id": "4c7ad1dd-cb44-4295-9c47-7e8784c51887",
+    "en": "How do people remember each stage of their lives?",
+    "old_zh": "人们是怎么记住自己人生各个阶段的？",
+    "new_zh": "人们是怎么记住自己人生各个阶段的？"
+  },
+  {
+    "id": "4dac8c1e-1a7e-42c9-966e-c6a17dfa82c6",
+    "en": "Did you prefer to do activities alone or with a group of people when you were a child?",
+    "old_zh": "你小时候更喜欢独自活动还是和一群人一起？",
+    "new_zh": "你小时候更喜欢独自活动还是和一群人一起？"
+  },
+  {
+    "id": "4e2ac5a6-9881-4545-aeb2-e1f2230a3523",
+    "en": "What's a typical day at work like for you?",
+    "old_zh": "你平时工作的一天是怎样的？",
+    "new_zh": "你工作时的一天通常是什么样的？"
+  },
+  {
+    "id": "4f43b992-973b-4c91-8242-f21396bd7c5b",
+    "en": "When was the last time you were in a crowded place?",
+    "old_zh": "上一次你去人多的地方是什么时候？",
+    "new_zh": "你上一次去人多的地方是什么时候？"
+  },
+  {
+    "id": "52426e9c-d286-4f0f-8723-af921bf1ee22",
+    "en": "Did you often go outside to go for a walk when you were a child?",
+    "old_zh": "你小时候经常出去散步吗？",
+    "new_zh": "你小时候经常出去散步吗？"
+  },
+  {
+    "id": "52a43c4d-8c77-4755-8002-5f4eba80535f",
+    "en": "Are you familiar with the people living nearby?",
+    "old_zh": "你熟悉附近住的人吗？",
+    "new_zh": "你熟悉附近住的人吗？"
+  },
+  {
+    "id": "52ac9f88-a77f-4398-8308-203067a42a5c",
+    "en": "When did you learn how to type on a keyboard?",
+    "old_zh": "你什么时候学会在键盘上打字的？",
+    "new_zh": "你什么时候学会在键盘上打字的？"
+  },
+  {
+    "id": "52d7f4f7-2e1a-4c8b-a366-833901185dd1",
+    "en": "Have you ever received a great gift?",
+    "old_zh": "你有没有收到过特别棒的礼物？",
+    "new_zh": "你有没有收到过一份很棒的礼物？"
+  },
+  {
+    "id": "55165edd-5c9e-4bc0-a929-a3fcf234aea8",
+    "en": "What are the advantages of a company having a relaxation room?",
+    "old_zh": "公司设一个休息室有什么好处？",
+    "new_zh": "公司设休息室有什么好处？"
+  },
+  {
+    "id": "569fd707-3e6d-4bb1-a2fb-1609738b9713",
+    "en": "How did you go to school when you were young?",
+    "old_zh": "你小时候是怎么上学的？",
+    "new_zh": "你小时候是怎么上学的？"
+  },
+  {
+    "id": "56ebab05-30e1-404f-b561-9fb037930a9d",
+    "en": "What kind of things are not suitable for sharing?",
+    "old_zh": "哪些东西不适合分享？",
+    "new_zh": "有哪些东西不适合分享？"
+  },
+  {
+    "id": "57e67dd2-afe7-4a8c-ab3f-edee477e3b66",
+    "en": "Is the city where you live crowded?",
+    "old_zh": "你住的城市很拥挤吗？",
+    "new_zh": "你住的城市拥挤吗？"
+  },
+  {
+    "id": "5a78c6ad-2f3f-40b6-bdf1-086b01908d44",
+    "en": "Do you like reading?",
+    "old_zh": "你喜欢读书吗？",
+    "new_zh": "你喜欢读书吗？"
+  },
+  {
+    "id": "5acae3ce-a483-496e-a04c-1bba75ecbb2b",
+    "en": "Do you have anything to share with others recently?",
+    "old_zh": "最近你有什么想跟别人分享的事情吗？",
+    "new_zh": "你最近有什么想跟别人分享的东西吗？"
+  },
+  {
+    "id": "5af1acdb-3e28-4621-abfc-a5ebae51cc11",
+    "en": "What do you think is the most important at the moment?",
+    "old_zh": "你现在觉得最重要的是什么？",
+    "new_zh": "你现在觉得什么最重要？"
+  },
+  {
+    "id": "5bb36713-713e-4aca-87dc-2f7f34f35737",
+    "en": "Do you often tell your friends when they do something well?",
+    "old_zh": "你经常夸朋友做得好的事情吗？",
+    "new_zh": "你经常夸朋友做得好的事情吗？"
+  },
+  {
+    "id": "5bd3491a-2723-498e-9128-9e8cc07e7d93",
+    "en": "What is the environment like in your school?",
+    "old_zh": "你学校的环境怎么样？",
+    "new_zh": "你学校的环境怎么样？"
+  },
+  {
+    "id": "5c536970-148a-4f5a-9231-a6884e69c812",
+    "en": "Are you satis ed with your current life?",
+    "old_zh": "你对现在的生活满意吗？",
+    "new_zh": "你对现在的生活满意吗？"
+  },
+  {
+    "id": "5e44d80e-148e-4f13-91aa-80730152ba03",
+    "en": "Who is more important in your studies, your teacher or your classmate?",
+    "old_zh": "在你的学习中，老师和同学哪个更重要？",
+    "new_zh": "在你的学习中，老师和同学哪个更重要？"
+  },
+  {
+    "id": "61081777-f895-406b-8c01-3039730bc97f",
+    "en": "Do most people like crowded places?",
+    "old_zh": "大多数人喜欢人多的地方吗？",
+    "new_zh": "大多数人喜欢去人多的地方吗？"
+  },
+  {
+    "id": "6157a9a6-a9c1-4488-b8e7-f63dcf666f90",
+    "en": "What do you usually do when you have days off?",
+    "old_zh": "你放假的时候通常都做些什么？",
+    "new_zh": "你放假时通常做什么？"
+  },
+  {
+    "id": "62fd96f6-8ee9-4d37-bf83-d6cbc3908c7d",
+    "en": "Do you like modern art or traditional art?",
+    "old_zh": "你喜欢现代艺术还是传统艺术？",
+    "new_zh": "你喜欢现代艺术还是传统艺术？"
+  },
+  {
+    "id": "656fe686-4bc3-434d-9e0f-87803b65cece",
+    "en": "What plant did you grow when you were young?",
+    "old_zh": "你小时候种过什么植物？",
+    "new_zh": "你小时候种过什么植物？"
+  },
+  {
+    "id": "66375db1-53d9-411a-9be2-dbba0e3edc5e",
+    "en": "Do you like visiting art galleries?",
+    "old_zh": "你喜欢参观艺术馆吗？",
+    "new_zh": "你喜欢参观艺术画廊吗？"
+  },
+  {
+    "id": "66c4e7b2-5482-4ff4-b1ec-659a916ddb1b",
+    "en": "How important is having an interest in studying?",
+    "old_zh": "对学习有兴趣有多重要？",
+    "new_zh": "对学习有兴趣重要吗？"
+  },
+  {
+    "id": "67155c18-a4e8-4f9f-952a-8b3366f17087",
+    "en": "How do you feel when people don't return things they borrowed from you?",
+    "old_zh": "当别人借了东西不还时，你会有什么感觉？",
+    "new_zh": "当别人借了你的东西不还时，你感觉如何？"
+  },
+  {
+    "id": "69b78595-f289-48a5-8eae-8c0c45cba563",
+    "en": "What did you do in the morning when you were little? Why?",
+    "old_zh": "你小时候早上一般都做什么？为什么？",
+    "new_zh": "你小时候早上通常做什么？为什么？"
+  },
+  {
+    "id": "6a65c126-30cf-4832-a81e-aacba4e4ad8f",
+    "en": "What would you like to do if you had a day off tomorrow?",
+    "old_zh": "如果你明天有空，你最想做什么？",
+    "new_zh": "如果你明天有空，你最想做什么？"
+  },
+  {
+    "id": "6b18ce86-833d-43e3-b961-972b514219d8",
+    "en": "Have you ever talked with someone you don't know in public places?",
+    "old_zh": "你曾在公共场合跟陌生人说过话吗？",
+    "new_zh": "你曾在公共场所跟陌生人交谈过吗？"
+  },
+  {
+    "id": "6b239973-9869-4eaa-80e5-baa783dc012f",
+    "en": "Have you ever sent handmade gifts to others?",
+    "old_zh": "你有没有给别人送过亲手制作的礼物？",
+    "new_zh": "你有没有给他人送过手工礼物？"
+  },
+  {
+    "id": "6d7acbca-f1f8-49b2-9829-8cb2a4041526",
+    "en": "What's your favourite food?",
+    "old_zh": "你最喜欢的食物是什么？",
+    "new_zh": "你最喜欢的食物是什么？"
+  },
+  {
+    "id": "6f0c5815-58f3-49df-af2b-9620c8f90461",
+    "en": "Have you ever lost your keys?",
+    "old_zh": "你有没有丢过钥匙？",
+    "new_zh": "你有没有丢过钥匙？"
+  },
+  {
+    "id": "6f82da52-a793-473e-b2d6-4215a8308a21",
+    "en": "Where do you come from?",
+    "old_zh": "你来自哪里？",
+    "new_zh": "你来自哪里？"
+  },
+  {
+    "id": "7238c6ef-f69c-4536-8ef5-e63076e460a4",
+    "en": "Have you ever worked with old people?",
+    "old_zh": "你有没有和老年人一起工作过？",
+    "new_zh": "你有没有和老年人一起工作过？"
+  },
+  {
+    "id": "731d3dba-1d9d-46a8-97b8-dd29a807d561",
+    "en": "Where do you often meet each other?",
+    "old_zh": "你们经常在哪儿见面？",
+    "new_zh": "你们经常在哪里见面？"
+  },
+  {
+    "id": "759fdbb6-34ae-4adc-b54a-9615f9861f47",
+    "en": "Is there anything you don't like about this job?",
+    "old_zh": "这份工作里有什么是你不喜欢的吗？",
+    "new_zh": "这份工作里有什么是你不喜欢的吗？"
+  },
+  {
+    "id": "77ead590-c071-423d-bd64-662cf0c55326",
+    "en": "Do you think you will continue living there in the future?",
+    "old_zh": "你觉得将来还会继续住在那里吗？",
+    "new_zh": "你认为将来还会继续住在那里吗？"
+  },
+  {
+    "id": "787d751a-be1f-49f5-abac-9633e3bdba87",
+    "en": "What do you usually chat about with friends?",
+    "old_zh": "你通常和朋友聊些什么？",
+    "new_zh": "你通常和朋友聊些什么？"
+  },
+  {
+    "id": "78d09fa4-fbcb-4468-b95c-4647b12f9518",
+    "en": "Is there a building that you would like to visit?",
+    "old_zh": "有没有你想去参观的建筑？",
+    "new_zh": "有没有你想去参观的建筑？"
+  },
+  {
+    "id": "7d4e97c1-0c5b-4fd0-b024-a043699a44c0",
+    "en": "Do you like getting up early in the morning?",
+    "old_zh": "你喜欢早上早起吗？",
+    "new_zh": "你喜欢早上早起吗？"
+  },
+  {
+    "id": "7e2d318a-3aeb-4076-bb2e-87929b5f4d07",
+    "en": "Who was the person who spent the most time with you when you were little?",
+    "old_zh": "你小时候，谁花最多时间陪在你身边？",
+    "new_zh": "小时候和你在一起时间最长的人是谁？"
+  },
+  {
+    "id": "7fc96c7e-5d68-4ca8-ae44-f195321917fc",
+    "en": "Do you eat different foods at different times of the year?",
+    "old_zh": "你会不会在一年中的不同时间吃不同的食物？",
+    "new_zh": "你一年四季会吃不同的食物吗？"
+  },
+  {
+    "id": "7fecb7db-f97b-41ba-8188-a07f4ac63ac4",
+    "en": "What kind of accommodation did you grow up in?",
+    "old_zh": "你成长过程中住的是什么样的住所？",
+    "new_zh": "你成长过程中住的是什么样的住宿环境？"
+  },
+  {
+    "id": "80c982cf-3fcd-4330-8b27-2e9d60fcd39d",
+    "en": "What did you often do with your friends in your childhood?",
+    "old_zh": "你小时候经常和朋友一起做什么？",
+    "new_zh": "你小时候经常和朋友做什么？"
+  },
+  {
+    "id": "8146c561-b098-4763-a322-a122e3c821b7",
+    "en": "Do you like crowded places?",
+    "old_zh": "你喜欢人多的地方吗？",
+    "new_zh": "你喜欢人多的地方吗？"
+  },
+  {
+    "id": "81f7cbd0-2d74-4734-95ef-a1794f3fd5d1",
+    "en": "What kind of job would you like to do in the future?",
+    "old_zh": "你将来想从事什么类型的工作？",
+    "new_zh": "你将来想从事什么类型的工作？"
+  },
+  {
+    "id": "8448025c-1960-4a61-b9c5-e6a145cce4f8",
+    "en": "Have you ever had a really strict teacher?",
+    "old_zh": "你有没有遇到过特别严格的老师？",
+    "new_zh": "你有没有遇到过特别严格的老师？"
+  },
+  {
+    "id": "84f415ca-406e-4e2d-8891-274b1dd49bae",
+    "en": "Would you like to move to the countryside?",
+    "old_zh": "你愿意搬到乡下去住吗？",
+    "new_zh": "你愿意搬到乡下去吗？"
+  },
+  {
+    "id": "89516670-0c7e-4ee8-bb75-81acdb5ea5eb",
+    "en": "What are the disadvantages of the place where you're living?",
+    "old_zh": "你住的地方有什么缺点？",
+    "new_zh": "你目前居住的地方有什么缺点？"
+  },
+  {
+    "id": "8a12cc46-011c-4353-a1c5-2695dfc823f0",
+    "en": "How would you use your major in the future?",
+    "old_zh": "你将来打算怎么用你的专业？",
+    "new_zh": "你将来打算怎么用你的专业？"
+  },
+  {
+    "id": "8a61baea-f0b1-4056-8fe4-a8a108012532",
+    "en": "Do you like buying shoes? How often?",
+    "old_zh": "你喜欢买鞋吗？多久买一次？",
+    "new_zh": "你喜欢买鞋吗？多久买一次？"
+  },
+  {
+    "id": "8b79db99-15d9-47f8-9884-b402afbe8d5c",
+    "en": "Which one would you prefer, studying alone or studying with others?",
+    "old_zh": "你更喜欢独自学习还是和别人一起学习？",
+    "new_zh": "你更喜欢独自学习还是和别人一起学习？"
+  },
+  {
+    "id": "8f8b987f-b242-4aeb-89ce-9e5b0c22b033",
+    "en": "Do you think museums are important?",
+    "old_zh": "你觉得博物馆重要吗？",
+    "new_zh": "你认为博物馆重要吗？"
+  },
+  {
+    "id": "907180f1-9f59-44f0-8658-ae60210eb0ef",
+    "en": "What gifts have you received recently?",
+    "old_zh": "你最近收到过什么礼物？",
+    "new_zh": "你最近收到过什么礼物？"
+  },
+  {
+    "id": "91771b46-d2f4-4f56-9500-643e5b538d88",
+    "en": "Can you remember the dreams you had?",
+    "old_zh": "你能记得自己做过的梦吗？",
+    "new_zh": "你能记得自己做过的梦吗？"
+  },
+  {
+    "id": "91b9b144-c035-407e-b6ff-e01af6ed595b",
+    "en": "Do you have any hobbies?",
+    "old_zh": "你有什么爱好吗？",
+    "new_zh": "你有爱好吗？"
+  },
+  {
+    "id": "92d681cf-b5e3-4534-a768-261e8b3b426e",
+    "en": "Do you prefer to read on paper or on a screen?",
+    "old_zh": "你更喜欢纸质书还是电子屏幕看书？",
+    "new_zh": "你更喜欢纸质阅读还是屏幕阅读？"
+  },
+  {
+    "id": "94aaad5e-6c15-4740-8fa0-af3767081b55",
+    "en": "How long have you lived in this city?",
+    "old_zh": "你在这座城市住了多久了？",
+    "new_zh": "你在这座城市住了多久了？"
+  },
+  {
+    "id": "94e623b8-c8bb-4a80-b2c9-0db12d643648",
+    "en": "Do you usually spend your days off with your parents or your friends?",
+    "old_zh": "你通常休息日是和父母还是朋友一起度过？",
+    "new_zh": "你通常在休息日和父母还是朋友一起度过？"
+  },
+  {
+    "id": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+    "en": "Do you like taking pictures of different views?",
+    "old_zh": "你喜欢拍不同风景的照片吗？",
+    "new_zh": "你喜欢拍不同风景的照片吗？"
+  },
+  {
+    "id": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+    "en": "What are the most beautiful sights you have seen while traveling?",
+    "old_zh": "你旅行时见过最漂亮的景色是什么？",
+    "new_zh": "你旅行时见过最美丽的景色是什么？"
+  },
+  {
+    "id": "96b900d5-c2ed-4f3b-839f-d457c17bdfdf",
+    "en": "Is there a place in your company that makes you feel relaxed?",
+    "old_zh": "你公司里有没有一个让你感觉放松的地方？",
+    "new_zh": "你公司里有没有一个让你感到放松的地方？"
+  },
+  {
+    "id": "97c4120c-b5da-43ce-9733-d775c168668a",
+    "en": "Are you happy to work with people who are older than you?",
+    "old_zh": "你愿意和比你年长的人一起工作吗？",
+    "new_zh": "你愿意和比你年长的人一起工作吗？"
+  },
+  {
+    "id": "98461c19-9a89-4385-a49f-023a68e24299",
+    "en": "Have you ever had a really dedicated teacher?",
+    "old_zh": "你有没有遇到过特别认真负责的老师？",
+    "new_zh": "你有过特别专注的老师吗？"
+  },
+  {
+    "id": "98e01b25-9c08-49ed-a54b-4c439f77746b",
+    "en": "Do you think it's a good idea to leave your keys with a neighbour?",
+    "old_zh": "把钥匙留给邻居保管是个好主意吗？",
+    "new_zh": "把钥匙留给邻居是个好主意吗？"
+  },
+  {
+    "id": "9aac8ca9-b0ad-4154-bfb9-1e94d923dd69",
+    "en": "Is there anything you don't like about where you live?",
+    "old_zh": "你住的地方有什么是你不喜欢的吗？",
+    "new_zh": "你住的地方有什么是你不喜欢的吗？"
+  },
+  {
+    "id": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+    "en": "Do you look out of the window at the scenery when traveling by car or bus?",
+    "old_zh": "坐车或坐公交车旅行时，你会往窗外看风景吗？",
+    "new_zh": "坐车或坐公交车旅行时，你会朝窗外看风景吗？"
+  },
+  {
+    "id": "9e5dbf47-ad7f-4511-9ecd-b6ebd245bccf",
+    "en": "Do you argue with friends?",
+    "old_zh": "你会和朋友吵架吗？",
+    "new_zh": "你会和朋友吵架吗？"
+  },
+  {
+    "id": "9f3f76d5-6be6-4bda-a15e-12011d4f5d51",
+    "en": "Do you currently have a good work environment?",
+    "old_zh": "你现在的工作环境好吗？",
+    "new_zh": "你现在有良好的工作环境吗？"
+  },
+  {
+    "id": "9f6e1322-24f7-47e2-b838-ef6472943b9d",
+    "en": "Are there any rules for students at your school?",
+    "old_zh": "你们学校对学生有什么规定吗？",
+    "new_zh": "你们学校对学生有什么规定吗？"
+  },
+  {
+    "id": "9f97f593-8d09-4449-996c-4d3046ac3f19",
+    "en": "What don't you like about your hometown?",
+    "old_zh": "你家乡有什么是你不喜欢的？",
+    "new_zh": "你家乡有什么是你不喜欢的？"
+  },
+  {
+    "id": "a0e84b83-8bac-4189-bfd6-2d62cfdc0e34",
+    "en": "What are your favourite activities?",
+    "old_zh": "你最喜欢的活动是什么？",
+    "new_zh": "你最喜欢的活动是什么？"
+  },
+  {
+    "id": "a20c1501-69c8-4287-8d66-d998b5a1c366",
+    "en": "Does your city have a lot of entertainment facilities?",
+    "old_zh": "你的城市有很多娱乐设施吗？",
+    "new_zh": "你的城市有很多娱乐设施吗？"
+  },
+  {
+    "id": "a28ec18f-8591-4fc4-aa75-da0e1f961b51",
+    "en": "Do you wear headphones in public places?",
+    "old_zh": "你在公共场所会戴耳机吗？",
+    "new_zh": "你在公共场所会戴耳机吗？"
+  },
+  {
+    "id": "a385234a-93b3-48cb-a8e5-3cfe05b283bf",
+    "en": "Should schools teach students how to grow vegetables?",
+    "old_zh": "学校应该教学生种蔬菜吗？",
+    "new_zh": "学校应该教学生如何种蔬菜吗？"
+  },
+  {
+    "id": "a4bfe217-73f2-4b8f-815f-9315dabc80d4",
+    "en": "What kind of things do you like to share with others?",
+    "old_zh": "你喜欢和别人分享哪些东西？",
+    "new_zh": "你喜欢和别人分享哪些东西？"
+  },
+  {
+    "id": "a5432c2e-c5b4-4afe-b368-7bb5c40178b0",
+    "en": "Did you have any hobbies when you were a child?",
+    "old_zh": "你小时候有什么爱好吗？",
+    "new_zh": "你小时候有什么爱好吗？"
+  },
+  {
+    "id": "a6475a99-49e8-4a3d-b123-7dc4db02c58b",
+    "en": "Do you like to watch team games? Why?",
+    "old_zh": "你喜欢看团体比赛吗？为什么？",
+    "new_zh": "你喜欢看团体比赛吗？为什么？"
+  },
+  {
+    "id": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
+    "en": "How often do you take a rest or a break?",
+    "old_zh": "你多久休息一次或歇一会儿？",
+    "new_zh": "你多久休息一次或停下来歇一歇？"
+  },
+  {
+    "id": "a76957d0-02ad-4627-81cb-613c88bf08db",
+    "en": "What are some changes in the area recently?",
+    "old_zh": "最近这个区域有哪些变化？",
+    "new_zh": "这个地区最近有哪些变化？"
+  },
+  {
+    "id": "a8ef4b55-9cd5-40d6-b26d-cc9bc28fd40b",
+    "en": "Are there big changes in this city?",
+    "old_zh": "这座城市有大的变化吗？",
+    "new_zh": "这座城市有大的变化吗？"
+  },
+  {
+    "id": "a90a2cad-acb4-4513-aa05-fa2004b5b80c",
+    "en": "Do you keep plants at home?",
+    "old_zh": "你家里养植物吗？",
+    "new_zh": "你在家养植物吗？"
+  },
+  {
+    "id": "aa17ab69-d6c7-4508-845c-eb321650c624",
+    "en": "Would you like to see more public places near where you live?",
+    "old_zh": "你希望住的地方附近有更多的公共空间吗？",
+    "new_zh": "你希望你住的地方附近有更多的公共空间吗？"
+  },
+  {
+    "id": "aa1bf257-e656-4b2a-b531-0fb374885a14",
+    "en": "What technologies can help you study better?",
+    "old_zh": "哪些技术能帮助你更好地学习？",
+    "new_zh": "哪些技术能帮助你更好地学习？"
+  },
+  {
+    "id": "adf22c5d-24ce-445b-b792-486dd1b4db58",
+    "en": "Do you know anything about growing a plant?",
+    "old_zh": "你知道怎么种植物吗？",
+    "new_zh": "你知道怎么种植物吗？"
+  },
+  {
+    "id": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+    "en": "Do you like to take scenery pictures?",
+    "old_zh": "你喜欢拍风景照吗？",
+    "new_zh": "你喜欢拍风景照吗？"
+  },
+  {
+    "id": "b145c40c-e26f-470e-a866-c7180ea74104",
+    "en": "What can you see from your window?",
+    "old_zh": "从你窗户能看到什么？",
+    "new_zh": "从你窗户能看到什么？"
+  },
+  {
+    "id": "b26f01cc-b075-460d-9374-3cf1b53a5ee6",
+    "en": "How long have you been at this job?",
+    "old_zh": "你做这份工作有多久了？",
+    "new_zh": "你在这份工作上做了多久了？"
+  },
+  {
+    "id": "b3aaa3ad-f813-46b9-96f9-78559e809a76",
+    "en": "Do you take a nap when you are taking your rest?",
+    "old_zh": "你休息的时候会小睡一会儿吗？",
+    "new_zh": "你休息时会小睡一会儿吗？"
+  },
+  {
+    "id": "b644020b-6747-4932-8c09-8c54ff09338d",
+    "en": "Do you think dreams have special meanings?",
+    "old_zh": "你觉得梦有特殊含义吗？",
+    "new_zh": "你觉得梦有特殊含义吗？"
+  },
+  {
+    "id": "b6eb7a51-64e7-43fc-a71b-28b62194802c",
+    "en": "What subjects do you study? / What's your major?",
+    "old_zh": "你学什么科目？/ 你的专业是什么？",
+    "new_zh": "你学什么科目？／你的专业是什么？"
+  },
+  {
+    "id": "b9141ce0-9176-4b55-8108-ca22639eb2cb",
+    "en": "Would you invite friends to your home?",
+    "old_zh": "你会邀请朋友来你家吗？",
+    "new_zh": "你会邀请朋友来你家吗？"
+  },
+  {
+    "id": "b99b2e30-90b6-417b-b1d6-983a7b1d4609",
+    "en": "Do you often visit a museum?",
+    "old_zh": "你经常去博物馆吗？",
+    "new_zh": "你经常去博物馆吗？"
+  },
+  {
+    "id": "bb7f2227-69d8-466a-bae4-62d0b6cfa984",
+    "en": "Are there people of different ages living in this city?",
+    "old_zh": "这个城市里有不同年龄的人住吗？",
+    "new_zh": "这个城市里有不同年龄的人住吗？"
+  },
+  {
+    "id": "bbb16fae-5ae9-4f5e-991a-a626701772b1",
+    "en": "What do you like best about your job?",
+    "old_zh": "你最喜欢工作中的哪一点？",
+    "new_zh": "你最喜欢工作中的哪一点？"
+  },
+  {
+    "id": "bc14fd55-7631-400c-96f1-4e51926a515a",
+    "en": "What do you think is the biggest difference between now and your childhood?",
+    "old_zh": "你认为现在和童年最大的区别是什么？",
+    "new_zh": "你认为现在和童年最大的区别是什么？"
+  },
+  {
+    "id": "bd138243-dc6a-46fb-aaf7-c58811eb6ff9",
+    "en": "What are the benefits of being friends with or working with old people?",
+    "old_zh": "和老年人做朋友或一起工作有什么好处？",
+    "new_zh": "和老年人做朋友或一起工作有什么好处？"
+  },
+  {
+    "id": "bd375f54-c448-472f-b062-2861fec245d4",
+    "en": "Do you know any of your neighbours?",
+    "old_zh": "你认识你的邻居吗？",
+    "new_zh": "你认识你的邻居吗？"
+  },
+  {
+    "id": "be43f248-d481-435c-820c-41b512513a00",
+    "en": "Did your parents teach you to share when you were a child?",
+    "old_zh": "你小时候父母教过你要分享吗？",
+    "new_zh": "你小时候父母教过你分享吗？"
+  },
+  {
+    "id": "bf2acef4-1143-48f2-82dc-92b3d1658e28",
+    "en": "Do you want to be an artist?",
+    "old_zh": "你想当艺术家吗？",
+    "new_zh": "你想当艺术家吗？"
+  },
+  {
+    "id": "bf846ead-3b13-43ed-986b-28355ef2437c",
+    "en": "Is there anything you would like to change about your work?",
+    "old_zh": "你希望改变工作中的哪些方面？",
+    "new_zh": "你希望改变工作中的哪些方面？"
+  },
+  {
+    "id": "c1cca6f9-cd7b-4870-9496-ef97b050a15a",
+    "en": "Have you borrowed books from others?",
+    "old_zh": "你借过别人的书吗？",
+    "new_zh": "你借过别人书吗？"
+  },
+  {
+    "id": "c1ce8090-73ba-4f9f-97c1-3e68c1b06f16",
+    "en": "Has your hometown changed a lot in the last few years?",
+    "old_zh": "你家乡近几年变化大吗？",
+    "new_zh": "你家乡近几年变化大吗？"
+  },
+  {
+    "id": "c1f3d39c-1975-4688-ae93-961416e917d3",
+    "en": "Do you prefer to share news with your friends or your parents?",
+    "old_zh": "你更喜欢和朋友还是父母分享新闻？",
+    "new_zh": "你更喜欢和朋友还是父母分享新闻？"
+  },
+  {
+    "id": "c210740e-9030-4a08-8dc0-cae71b9d4144",
+    "en": "Do you type on a desktop or laptop keyboard everyday?",
+    "old_zh": "你每天用台式机还是笔记本键盘打字吗？",
+    "new_zh": "你每天用台式机还是笔记本键盘打字？"
+  },
+  {
+    "id": "c2849960-afa1-46a5-a5d8-71314e0864b4",
+    "en": "Why did you choose that job?",
+    "old_zh": "你为什么选择那份工作？",
+    "new_zh": "你为什么选择那份工作？"
+  },
+  {
+    "id": "c2dc0833-5d3c-4b35-bd85-25f17d535668",
+    "en": "Do you walk a lot?",
+    "old_zh": "你经常走路吗？",
+    "new_zh": "你经常走路吗？"
+  },
+  {
+    "id": "c401abb2-fad9-4ffe-9678-4eb0cbf82283",
+    "en": "What do you usually do during a typical school day?",
+    "old_zh": "你平时在上学日通常做什么？",
+    "new_zh": "你平时在上学日通常做什么？"
+  },
+  {
+    "id": "c46eef57-dc02-4172-a759-e42ee5dbdeaf",
+    "en": "Do you live in a noisy or a quiet area?",
+    "old_zh": "你住在吵闹还是安静的地方？",
+    "new_zh": "你住在吵闹还是安静的地方？"
+  },
+  {
+    "id": "c6270f66-540e-45dd-badd-626283964293",
+    "en": "Are there many museums in your hometown?",
+    "old_zh": "你家乡有很多博物馆吗？",
+    "new_zh": "你家乡有很多博物馆吗？"
+  },
+  {
+    "id": "c88d3432-8f9e-4dc6-99b3-6cb974656f97",
+    "en": "What do you usually do with your friends?",
+    "old_zh": "你通常和朋友一起做什么？",
+    "new_zh": "你通常和朋友做什么？"
+  },
+  {
+    "id": "c8f2ba64-d536-4eb9-b789-42cfa53300b8",
+    "en": "Do you always take your mobile phone with you when going out?",
+    "old_zh": "出门时你总是带着手机吗？",
+    "new_zh": "出门时你总是带着手机吗？"
+  },
+  {
+    "id": "cc69949b-e412-4044-a703-f0b72ada2280",
+    "en": "Do you enjoy spending time with old people?",
+    "old_zh": "你喜欢和老人待在一起吗？",
+    "new_zh": "你喜欢和老年人相处吗？"
+  },
+  {
+    "id": "cd09b794-d7a4-4617-ad09-7a592c086a50",
+    "en": "At what age do you think people are the happiest?",
+    "old_zh": "你认为人什么时候最幸福？",
+    "new_zh": "你认为人什么时候最幸福？"
+  },
+  {
+    "id": "cdc54a75-72f8-4435-80a1-a5d6893aeeb0",
+    "en": "What kind of house or at do you want to live in in the future?",
+    "old_zh": "你将来想住什么样的房子或地方？",
+    "new_zh": "你将来想住什么样的房子？"
+  },
+  {
+    "id": "ce325285-9a97-4378-9bda-f078f311b73d",
+    "en": "How often do you use cash?",
+    "old_zh": "你多久用一次现金？",
+    "new_zh": "你多久用一次现金？"
+  },
+  {
+    "id": "cfadadbb-cc63-47d3-b0a4-70606fd3e164",
+    "en": "Do you share your dreams with others?",
+    "old_zh": "你会和别人分享你的梦吗？",
+    "new_zh": "你会和别人分享你的梦吗？"
+  },
+  {
+    "id": "d0ef9198-2f25-4c08-a106-8ca504b4e70b",
+    "en": "Are the people in your neighbourhood nice and friendly?",
+    "old_zh": "你邻居的人友善吗？",
+    "new_zh": "你邻居的人友善又友好吗？"
+  },
+  {
+    "id": "d57fc751-1880-46fb-b98a-27014714312c",
+    "en": "Is it a big city or a small place?",
+    "old_zh": "这是个大城市还是小地方？",
+    "new_zh": "这是个大城市还是小地方？"
+  },
+  {
+    "id": "d6271ac0-61ee-4d02-8e20-03f93f1319b3",
+    "en": "What do you think could be improved at your workplace?",
+    "old_zh": "你觉得你的工作单位有哪些地方可以改进？",
+    "new_zh": "你觉得你的工作场所可以有哪些改进？"
+  },
+  {
+    "id": "d7c986a0-dc78-4ee8-873b-42afe9e2c0cb",
+    "en": "Do you prefer to chat with a group of people or with only one friend?",
+    "old_zh": "你是更喜欢和一群人聊天，还是只和一个朋友聊天？",
+    "new_zh": "你是更喜欢和一群人聊天，还是只和一个朋友聊天？"
+  },
+  {
+    "id": "d8363038-7c30-4ee6-ae00-c7208bc7284a",
+    "en": "Why are some places suitable for meeting while others are not?",
+    "old_zh": "为什么有些地方适合见面，而有些地方不适合？",
+    "new_zh": "为什么有些地方适合见面，而另一些地方不适合？"
+  },
+  {
+    "id": "d84784a9-4190-4920-9b82-ac86cae04427",
+    "en": "What do you like about your hometown?",
+    "old_zh": "你最喜欢你家乡的哪些方面？",
+    "new_zh": "你最喜欢你家乡的哪些方面？"
+  },
+  {
+    "id": "d88ec1a7-1ba5-4e72-8b87-a1785180f797",
+    "en": "What's your favourite animal? Why?",
+    "old_zh": "你最喜欢的动物是什么？为什么？",
+    "new_zh": "你最喜欢的动物是什么？为什么？"
+  },
+  {
+    "id": "d921e4a9-79ad-47e7-843b-7f95926fd7a4",
+    "en": "What do you consider when choosing a gift?",
+    "old_zh": "你在挑选礼物时会考虑哪些因素？",
+    "new_zh": "你挑选礼物时会考虑哪些因素？"
+  },
+  {
+    "id": "da3fdf96-341d-46a0-baab-3f52f95f4742",
+    "en": "Is there something you liked as a child that you still enjoy now?",
+    "old_zh": "你小时候喜欢过的东西，现在还喜欢吗？",
+    "new_zh": "你小时候喜欢过的东西，现在还喜欢吗？"
+  },
+  {
+    "id": "da69cb73-0958-4b57-afa9-d9359bad37ee",
+    "en": "Where do you like to go in that area?",
+    "old_zh": "在那个区域，你喜欢去哪里？",
+    "new_zh": "在那个地区，你喜欢去哪里？"
+  },
+  {
+    "id": "daf65917-2415-45d2-b716-2a2f7ca9f159",
+    "en": "Do you think students would benefit more from more rules?",
+    "old_zh": "你认为学生会从更多的规则中获益吗？",
+    "new_zh": "你认为学生如果多一些规则会受益更多吗？"
+  },
+  {
+    "id": "db48a680-efef-4c75-bac4-4e93ae32b79e",
+    "en": "Do you want to live in a tall building?",
+    "old_zh": "你想住在高楼里吗？",
+    "new_zh": "你想住在高楼里吗？"
+  },
+  {
+    "id": "dbff94d4-5001-4752-ad24-afba2e493856",
+    "en": "What do you think could be improved in your school?",
+    "old_zh": "你认为你的学校有哪些地方可以改进？",
+    "new_zh": "你觉得你的学校可以有哪些改进？"
+  },
+  {
+    "id": "dc5dcd11-cf5c-4222-88a5-260b5d7da708",
+    "en": "What is the most popular animal in China?",
+    "old_zh": "中国最受欢迎的动物是什么？",
+    "new_zh": "中国最受欢迎的动物是什么？"
+  },
+  {
+    "id": "de120bed-dc80-4be8-a3ac-c05c1b4a6b23",
+    "en": "Are you interested in growing vegetables and fruits?",
+    "old_zh": "你对种植蔬菜和水果感兴趣吗？",
+    "new_zh": "你对种植蔬菜和水果感兴趣吗？"
+  },
+  {
+    "id": "de3c0583-7c2d-437f-b5f7-ed122fab2f61",
+    "en": "What's your plan after you finish your studies?",
+    "old_zh": "你毕业后有什么计划？",
+    "new_zh": "你完成学业后有什么计划？"
+  },
+  {
+    "id": "de8ab307-5eec-4bc3-8a2d-ae6363bf7ee3",
+    "en": "What kind of food did you like when you were young?",
+    "old_zh": "你小时候喜欢吃什么食物？",
+    "new_zh": "你小时候喜欢吃什么食物？"
+  },
+  {
+    "id": "debaac14-d2ad-40e6-8334-1ed8d1419f9b",
+    "en": "What were your favourite activities when you were a child?",
+    "old_zh": "你小时候最喜欢做什么活动？",
+    "new_zh": "你小时候最喜欢做什么活动？"
+  },
+  {
+    "id": "dfe181b7-5068-4aef-9e9f-13da6f570156",
+    "en": "Do you want to make your dreams come true?",
+    "old_zh": "你希望实现自己的梦想吗？",
+    "new_zh": "你想让自己的梦想实现吗？"
+  },
+  {
+    "id": "e04c0d32-2848-4959-b906-2d707b6b072e",
+    "en": "Why do people like to walk in parks?",
+    "old_zh": "人们为什么喜欢在公园里散步？",
+    "new_zh": "人们为什么喜欢在公园里散步？"
+  },
+  {
+    "id": "e11d7a06-4c32-442f-8b01-ed6d1666c2a3",
+    "en": "How important are friends to you?",
+    "old_zh": "朋友对你来说有多重要？",
+    "new_zh": "朋友对你来说有多重要？"
+  },
+  {
+    "id": "e1f82359-cd35-48cc-b9f0-0f4a462277f1",
+    "en": "Which room do you like best?",
+    "old_zh": "你最喜欢哪个房间？",
+    "new_zh": "你最喜欢哪个房间？"
+  },
+  {
+    "id": "e2331eb1-3597-4c6b-be21-593fed499df1",
+    "en": "Do you need any specific skills or abilities for your job?",
+    "old_zh": "你的工作需要哪些特别的技能或能力？",
+    "new_zh": "你的工作需要哪些特定的技能或能力？"
+  },
+  {
+    "id": "e339c0ee-253f-4b62-a81e-887bd5f0609b",
+    "en": "Do you often go out with your friends?",
+    "old_zh": "你经常和朋友外出吗？",
+    "new_zh": "你经常和朋友外出吗？"
+  },
+  {
+    "id": "e4b545fd-100e-4582-9706-3b48d6da5604",
+    "en": "Have you ever been part of a sports team?",
+    "old_zh": "你曾经参加过运动队吗？",
+    "new_zh": "你曾经参加过运动队吗？"
+  },
+  {
+    "id": "e4d54c27-68c5-4356-8302-434261696cca",
+    "en": "When do you need to read carefully, and when do you not need to?",
+    "old_zh": "什么时候你需要仔细阅读，什么时候不需要？",
+    "new_zh": "什么时候你需要仔细阅读，什么时候不需要？"
+  },
+  {
+    "id": "e5806df0-50ca-4ef9-be2c-477d937f0397",
+    "en": "Where do you study? / Where is your school?",
+    "old_zh": "你在哪里学习？/ 你的学校在哪里？",
+    "new_zh": "你在哪里学习？/ 你的学校在哪里？"
+  },
+  {
+    "id": "e5de6504-ae36-455e-ba63-ccee7f6df8fc",
+    "en": "Do you work or are you a student?",
+    "old_zh": "你是工作还是学生？",
+    "new_zh": "你是工作还是学生？"
+  },
+  {
+    "id": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+    "en": "Have you ever had a pet before?",
+    "old_zh": "你以前养过宠物吗？",
+    "new_zh": "你以前养过宠物吗？"
+  },
+  {
+    "id": "e8a5d098-c932-457d-97c3-8860ce5df174",
+    "en": "How do you improve your typing?",
+    "old_zh": "你怎么提高打字速度？",
+    "new_zh": "你怎么提高打字速度？"
+  },
+  {
+    "id": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+    "en": "Would you like to work as a teacher in a rule-free school?",
+    "old_zh": "你愿意在一个没有规则的学校当老师吗？",
+    "new_zh": "你愿意在一个没有规则的学校当老师吗？"
+  },
+  {
+    "id": "ecb70d27-9f78-4398-9d35-72629a48e7fa",
+    "en": "Is there an advertisement that made an impression on you when you were a child?",
+    "old_zh": "你小时候有没有哪则广告给你留下过深刻印象？",
+    "new_zh": "你小时候有没有哪则广告给你留下过深刻印象？"
+  },
+  {
+    "id": "efd24f8f-137a-432a-9662-c2c0f08bae8a",
+    "en": "Who do you live with?",
+    "old_zh": "你和谁一起住？",
+    "new_zh": "你和谁一起住？"
+  },
+  {
+    "id": "eff4e996-ac6c-4ec0-8756-3ff23f6bed11",
+    "en": "When was the last time you visited a museum?",
+    "old_zh": "你上次去博物馆是什么时候？",
+    "new_zh": "你上次去博物馆是什么时候？"
+  },
+  {
+    "id": "f42e9f4c-e05e-4291-b966-a864240d911e",
+    "en": "Have you ever bought shoes online?",
+    "old_zh": "你有没有在网上买过鞋子？",
+    "new_zh": "你有没有在网上买过鞋子？"
+  },
+  {
+    "id": "f540a416-1801-44ca-a8c8-8558257360e3",
+    "en": "Do you like to lend things to others?",
+    "old_zh": "你喜欢把东西借给别人吗？",
+    "new_zh": "你喜欢把东西借给别人吗？"
+  },
+  {
+    "id": "f5832d6a-f531-49f8-9f80-e6c11edee58d",
+    "en": "Do you live in a house or a flat?",
+    "old_zh": "你是住房子还是公寓？",
+    "new_zh": "你是住在房子里还是公寓里？"
+  },
+  {
+    "id": "f635e147-016f-4459-8a29-13eae4811ea5",
+    "en": "Is there a difference between where you meet friends now and where you used to meet them in the past?",
+    "old_zh": "你现在和朋友见面的地方跟过去不一样吗？",
+    "new_zh": "你现在和朋友见面的地方跟过去不一样吗？"
+  },
+  {
+    "id": "f72879fb-5ba9-465d-84e5-d52322490312",
+    "en": "Do you like chatting with friends?",
+    "old_zh": "你喜欢和朋友聊天吗？",
+    "new_zh": "你喜欢和朋友聊天吗？"
+  },
+  {
+    "id": "f7ece2ec-9499-42a8-88b3-d8e70ef2a37c",
+    "en": "Do you often forget the keys and lock yourself out?",
+    "old_zh": "你经常忘记钥匙，把自己锁在外面吗？",
+    "new_zh": "你经常忘记钥匙，把自己锁在外面吗？"
+  },
+  {
+    "id": "f862aa30-3d92-4d5d-a88f-ea810f5e6853",
+    "en": "Do you like your school?",
+    "old_zh": "你喜欢你的学校吗？",
+    "new_zh": "你喜欢你的学校吗？"
+  },
+  {
+    "id": "f9119694-2aba-4c05-ad17-88cf7a858048",
+    "en": "Do you often see advertisements when you are on your phone or computer?",
+    "old_zh": "你在手机或电脑上经常看到广告吗？",
+    "new_zh": "你在手机或电脑上经常看到广告吗？"
+  },
+  {
+    "id": "fa5c24b8-4bd0-4dd6-aac2-7d0e81814527",
+    "en": "What are the differences between team sports and individual sports?",
+    "old_zh": "团体运动和个人运动有什么不同？",
+    "new_zh": "团体运动和个人运动有什么不同？"
+  },
+  {
+    "id": "fdd1837d-7daf-474c-8122-269b670ed46a",
+    "en": "Do you prefer the mountains or the sea?",
+    "old_zh": "你更喜欢山还是海？",
+    "new_zh": "你更喜欢山还是海？"
+  },
+  {
+    "id": "ff32fa58-4897-407a-8962-9106e50b6ae6",
+    "en": "Is growing vegetables popular in your country?",
+    "old_zh": "在你们国家种蔬菜受欢迎吗？",
+    "new_zh": "在你们国家种蔬菜流行吗？"
+  },
+  {
+    "id": "ffa63b89-80e5-4c7c-9bff-b146f55e3b3c",
+    "en": "Do you bring food or snacks with you when going out?",
+    "old_zh": "出门时你会带食物或零食吗？",
+    "new_zh": "外出时你会带食物或零食吗？"
+  }
+]

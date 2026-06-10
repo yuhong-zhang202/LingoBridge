@@ -95,8 +95,10 @@ await retryStream(call)
   ```ts
   // lib/env.ts
   export const env = {
-    openaiApiKey: process.env.OPENAI_API_KEY!,
-    // ...
+    dashscopeApiKey: process.env.DASHSCOPE_API_KEY ?? '',
+    doubaoAsrAppId: process.env.DOUBAO_ASR_APP_ID ?? '',
+    doubaoAsrAccessToken: process.env.DOUBAO_ASR_ACCESS_TOKEN ?? '',
+    // ...其余字段见 env.ts
   }
   ```
 
@@ -194,24 +196,19 @@ export const SCORE_LOW  = 40   // 低匹配：折叠进「查看更多」
 
 **当前模型常量**（均在 `src/lib/constants.ts`，改模型只改这里）
 ```ts
-export const MODEL_EXTRACTION = 'qwen-plus'   // 故事萃取
-export const MODEL_RANKING    = 'qwen-plus'   // 相关性重排
-export const MODEL_ANALYSIS   = 'qwen-plus'   // 侧重点分析
-export const MODEL_PRACTICE   = 'qwen-plus'   // 练习对话 + 润色
-// restructure 用 qwen-flash（在 /api/restructure/route.ts 内直接指定）
+export const MODEL_EXTRACTION   = 'qwen-plus'    // 故事萃取
+export const MODEL_RANKING      = 'qwen-plus'    // 相关性重排
+export const MODEL_ANALYSIS     = 'qwen-flash'   // 侧重点分析
+export const MODEL_PRACTICE     = 'qwen-plus'    // 练习对话 + 润色
+export const MODEL_RESTRUCTURE  = 'qwen-flash'   // 语料整理（原写死在 restructure.ts，已收编至此）
 // 转写用豆包 ASR（DOUBAO_ASR_APP_ID / DOUBAO_ASR_ACCESS_TOKEN）
 ```
 
 **统一调用入口**：`src/lib/llm.ts` 的 `callLLMJson<T>()`，支持 `provider: 'dashscope' | 'anthropic'`。anthropic 分支保留作备用，不要删除。
 
-**成本基准（dev.log 实测，供回归对比）**
+**成本基准**
 
-| 步骤 | 单次估算 |
-|------|---------|
-| restructure（qwen-flash） | ~¥0.00015 |
-| matching（萃取 + 重排） | ~¥0.0012 |
-| analysis | ~¥0.00145 |
-| practice 单轮 | ~¥0.0006 |
+> 旧的实测基准数据已删除（模型配置调整后原数据失效）。上线后用真实故事重新跑一轮，建立新基准。
 
 改动 AI 相关逻辑后，必须在 app 里跑真实故事并 `grep ApiLogger dev.log` 确认 service/成本，不能只信 `tsc`。
 

@@ -7,9 +7,7 @@
 import 'server-only'
 import { env } from '@/lib/env'
 import { callLLMJson } from '@/lib/llm'
-
-// 便宜快，足够做去口语化；若质量不够再换成 'qwen-plus'
-const RESTRUCTURE_MODEL = 'qwen-flash'
+import { MODEL_RESTRUCTURE } from '@/lib/constants'
 
 const SYSTEM_PROMPT = `你是一个中文文本整理助手。用户会给你一段口语化的、可能来自语音转写的中文叙述。
 你的任务：去掉口头禅、语气词、重复和明显的转写错误，让它读起来通顺、像一段书面短文。
@@ -40,7 +38,7 @@ export async function restructureText(rawText: string): Promise<{ cleanedText: s
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
       apiKey: env.dashscopeApiKey,
-      model: RESTRUCTURE_MODEL,
+      model: MODEL_RESTRUCTURE,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: rawText },

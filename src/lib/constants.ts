@@ -7,11 +7,12 @@
 import type { CSSProperties } from 'react'
 import type { DimensionId, DimensionLabel } from '@/lib/types'
 
-// ── 模型名常量（千问 qwen-plus 稳定别名）
-export const MODEL_RANKING    = 'qwen-plus'
-export const MODEL_PRACTICE   = 'qwen-plus'
-export const MODEL_EXTRACTION = 'qwen-plus'
-export const MODEL_ANALYSIS   = 'qwen-plus'
+// ── 模型名常量（千问 qwen-plus 稳定别名；qwen-flash 用于成本敏感、质量要求次之的环节）
+export const MODEL_RANKING     = 'qwen-plus'
+export const MODEL_PRACTICE    = 'qwen-plus'
+export const MODEL_EXTRACTION  = 'qwen-plus'
+export const MODEL_ANALYSIS    = 'qwen-flash'
+export const MODEL_RESTRUCTURE = 'qwen-flash'
 
 // ── 相关性排名三档阈值（调参时改这里，不要散落硬编码）
 /** score ≥ 此值：高匹配，默认直接展示 */
