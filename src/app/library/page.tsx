@@ -12,6 +12,7 @@ import TabBar from '@/components/TabBar'
 import CollectedCardsTab from '@/components/library/CollectedCardsTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
+import PronunciationTab from '@/components/library/PronunciationTab'
 import { listMyCorpus, getCorpusPointCodes, deleteCorpus } from '@/lib/db/corpus'
 import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
@@ -30,12 +31,13 @@ function codeToLabel(code: string): DimensionLabel | undefined {
   return undefined
 }
 
-type Tab = 'stories' | 'cards' | 'words'
+type Tab = 'stories' | 'cards' | 'words' | 'pron'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'stories', label: '我的语料' },
   { key: 'cards',   label: '收藏卡片' },
   { key: 'words',   label: '词组收藏' },
+  { key: 'pron',    label: '发音' },
 ]
 
 export default function LibraryPage() {
@@ -134,6 +136,7 @@ export default function LibraryPage() {
         )}
         {activeTab === 'cards' && <CollectedCardsTab cards={cards} />}
         {activeTab === 'words' && <SavedWordsTab />}
+        {activeTab === 'pron' && <PronunciationTab />}
       </div>
 
       <TabBar />
