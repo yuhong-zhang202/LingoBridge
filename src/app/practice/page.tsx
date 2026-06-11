@@ -5,7 +5,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense, Fragment } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -38,7 +38,7 @@ function PracticeContent(): JSX.Element {
   const [polishLoading, setPolishLoading] = useState(false)
   const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
   const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
-  const [capture, setCapture]             = useState<{ heard: string; context: string } | null>(null)
+  const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number } | null>(null)
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
@@ -243,15 +243,23 @@ function PracticeContent(): JSX.Element {
         {messages.map((m, i) =>
           m.role === 'assistant'
             ? <AiBubble key={i} text={m.content} />
-            : <UserBubble
-                key={i}
-                text={m.content}
-                onWordTap={(word) => setCapture({ heard: word, context: m.content })}
-                onPolish={() => {
-                  const prev = messages[i - 1]
-                  void handlePolish(m.content, prev?.role === 'assistant' ? prev.content : undefined)
-                }}
-              />
+            : <Fragment key={i}>
+                <UserBubble
+                  text={m.content}
+                  onWordTap={(word) => setCapture({ heard: word, context: m.content, msgIndex: i })}
+                  onPolish={() => {
+                    const prev = messages[i - 1]
+                    void handlePolish(m.content, prev?.role === 'assistant' ? prev.content : undefined)
+                  }}
+                />
+                {capture?.msgIndex === i && (
+                  <PronounceCapturePopup
+                    heard={capture.heard}
+                    onSave={handleSavePronunciation}
+                    onClose={() => setCapture(null)}
+                  />
+                )}
+              </Fragment>
         )}
 
         {/* 处理中提示 */}
@@ -275,14 +283,6 @@ function PracticeContent(): JSX.Element {
         />
       )}
 
-      {/* 发音纠错弹窗：点气泡里的词后填入想说的词 */}
-      {capture && (
-        <PronounceCapturePopup
-          heard={capture.heard}
-          onSave={handleSavePronunciation}
-          onClose={() => setCapture(null)}
-        />
-      )}
 
       {/* 底部输入区 */}
       <div
