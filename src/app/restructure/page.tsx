@@ -98,7 +98,7 @@ function RestructureContent() {
       <TopBar title="整理确认" />
       <StepBar currentStep="restructure" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-6 relative z-10 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[88px] relative z-10 flex flex-col gap-4">
 
         {/* 原始语料卡片 */}
         <div className="bg-white rounded-[16px] border border-black/[0.05] px-5 pt-4 pb-5">
