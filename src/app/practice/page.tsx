@@ -7,7 +7,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mic, Clock } from 'lucide-react'
+import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
@@ -131,15 +131,20 @@ function PracticeContent(): JSX.Element {
     }
   }, [scaffold])
 
-  const onMicTap = useCallback(() => {
-    if (phase === 'idle') {
-      setError(null)
-      setPhase('recording')
-      void start()
-    } else if (phase === 'recording') {
-      void handleUserTurn()
-    }
-  }, [phase, start, handleUserTurn])
+  const onStartRecord = useCallback(() => {
+    if (phase !== 'idle') return
+    setError(null)
+    setPhase('recording')
+    void start()
+  }, [phase, start])
+
+  // 取消录音：停掉并丢弃这段，不转写、不发送，回到空闲
+  const onCancelRecord = useCallback(() => {
+    if (phase !== 'recording') return
+    void stop()
+    setError(null)
+    setPhase('idle')
+  }, [phase, stop])
 
   // 录音计时（驱动计时器 + 临近上限提示）；离开录音态即归零
   useEffect(() => {
@@ -276,27 +281,44 @@ function PracticeContent(): JSX.Element {
             <OrbSoft size={50} />
           </button>
 
-          <button
-            className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
-            style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-            disabled={phase !== 'idle' && phase !== 'recording'}
-            onClick={onMicTap}
-          >
-            {phase === 'recording' ? (
-              <div className="flex flex-1 items-center gap-[9px] px-[14px]">
-                <span className="w-[14px] h-[14px] rounded-[4px] bg-brand-primary flex-shrink-0" />
-                <VoiceBar audioLevel={audioLevel} />
-                <span className={`text-[12px] font-medium flex-shrink-0 min-w-[30px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
-                  {recTime}
-                </span>
-              </div>
-            ) : (
-              <>
-                <Mic size={19} className="text-brand-primary" />
-                <span className="text-[14px] font-medium text-[#444]">{micLabel}</span>
-              </>
-            )}
-          </button>
+          {phase === 'recording' ? (
+            // 录音态：容器本身不可点，仅「×」取消与「发送」可点
+            <div
+              className="flex flex-1 items-center gap-[6px] pl-[8px] pr-[6px]"
+              style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
+            >
+              <button
+                onClick={onCancelRecord}
+                aria-label="取消录音"
+                className="flex-shrink-0 w-[34px] h-[34px] flex items-center justify-center text-v2-text-muted active:scale-90 transition-transform"
+              >
+                <X size={19} />
+              </button>
+              <VoiceBar audioLevel={audioLevel} />
+              <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
+                {recTime}
+              </span>
+              <button
+                onClick={() => void handleUserTurn()}
+                aria-label="发送"
+                className="flex-shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center text-white active:scale-90 transition-transform"
+                style={{ background: 'linear-gradient(135deg, #E0A06A, #C98C72)' }}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          ) : (
+            // 空闲 / 处理态：点击说话胶囊
+            <button
+              className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
+              style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
+              disabled={phase !== 'idle'}
+              onClick={onStartRecord}
+            >
+              <Mic size={19} className="text-brand-primary" />
+              <span className="text-[14px] font-medium text-[#444]">{micLabel}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
