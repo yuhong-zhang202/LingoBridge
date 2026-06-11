@@ -7,7 +7,7 @@
 'use client'
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mic } from 'lucide-react'
+import { Mic, Clock } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
@@ -19,6 +19,7 @@ import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
 import UserBubble from './_components/UserBubble'
 import RephrasePopup from './_components/RephrasePopup'
+import VoiceBar from './_components/VoiceBar'
 
 function PracticeContent(): JSX.Element {
   const router = useRouter()
@@ -30,6 +31,7 @@ function PracticeContent(): JSX.Element {
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
   const [phase, setPhase]                 = useState<'init' | 'idle' | 'recording' | 'transcribing' | 'replying' | 'error'>('init')
+  const [elapsed, setElapsed]             = useState(0)
   const [error, setError]                 = useState<string | null>(null)
   const [showPolish, setShowPolish]       = useState(false)
   const [polishLoading, setPolishLoading] = useState(false)
@@ -39,7 +41,7 @@ function PracticeContent(): JSX.Element {
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const { start, stop } = useAudioRecorder()
+  const { start, stop, audioLevel } = useAudioRecorder()
 
   // 自动滚到底
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, phase])
@@ -129,17 +131,31 @@ function PracticeContent(): JSX.Element {
     }
   }, [scaffold])
 
-  const onPressStart = useCallback(() => {
-    if (phase !== 'idle') return
-    setError(null)
-    setPhase('recording')
-    void start()
-  }, [phase, start])
+  const onMicTap = useCallback(() => {
+    if (phase === 'idle') {
+      setError(null)
+      setPhase('recording')
+      void start()
+    } else if (phase === 'recording') {
+      void handleUserTurn()
+    }
+  }, [phase, start, handleUserTurn])
 
-  const onPressEnd = useCallback(() => {
-    if (phase !== 'recording') return
-    void handleUserTurn()
-  }, [phase, handleUserTurn])
+  // 录音计时（驱动计时器 + 临近上限提示）；离开录音态即归零
+  useEffect(() => {
+    if (phase !== 'recording') { setElapsed(0); return }
+    const startedAt = Date.now()
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    }, 250)
+    return () => window.clearInterval(id)
+  }, [phase])
+
+  // 到达上限自动停止并发送：Part 2 = 150s，Part 1/3 = 90s
+  useEffect(() => {
+    const cap = scaffold?.part === 2 ? 150 : 90
+    if (phase === 'recording' && elapsed >= cap) void handleUserTurn()
+  }, [phase, elapsed, scaffold, handleUserTurn])
 
   // 点弹窗外关闭
   useEffect(() => {
@@ -154,7 +170,14 @@ function PracticeContent(): JSX.Element {
     return () => document.removeEventListener('mousedown', handler)
   }, [showPolish])
 
-  const micLabel = phase === 'recording' ? '松开发送' : phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '按住说话'
+  const recordCap = scaffold?.part === 2 ? 150 : 90
+  const nearLimit = phase === 'recording' && recordCap - elapsed <= 20
+  const capHint =
+    scaffold?.part === 2
+      ? '真实雅思 Part 2 约 2 分钟会被喊停，可以开始收尾啦'
+      : '快到录音上限了，可以开始收尾啦'
+  const recTime = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
+  const micLabel = phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '点击说话'
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -232,29 +255,49 @@ function PracticeContent(): JSX.Element {
 
       {/* 底部输入区 */}
       <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.05] z-20 flex items-center gap-[12px] px-[14px]"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.05] z-20 px-[14px]"
         style={{ paddingTop: 18, paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
       >
-        <button
-          ref={orbRef}
-          onClick={() => { if (polishResult) setShowPolish(true) }}
-          aria-label="换个说法"
-          className="flex-shrink-0 active:scale-[0.94] transition-transform duration-150"
-        >
-          <OrbSoft size={50} />
-        </button>
+        {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
+        {nearLimit && (
+          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11.5px] leading-[1.4] text-warning">
+            <Clock size={13} className="flex-shrink-0 mt-px" />
+            <span>{capHint}</span>
+          </div>
+        )}
 
-        <button
-          className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
-          style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-          disabled={phase !== 'idle' && phase !== 'recording'}
-          onPointerDown={onPressStart}
-          onPointerUp={onPressEnd}
-          onPointerLeave={onPressEnd}
-        >
-          <Mic size={19} color="#D4875A" />
-          <span className="text-[14px] font-medium text-[#444]">{micLabel}</span>
-        </button>
+        <div className="flex items-center gap-[12px]">
+          <button
+            ref={orbRef}
+            onClick={() => { if (polishResult) setShowPolish(true) }}
+            aria-label="换个说法"
+            className="flex-shrink-0 active:scale-[0.94] transition-transform duration-150"
+          >
+            <OrbSoft size={50} />
+          </button>
+
+          <button
+            className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
+            style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
+            disabled={phase !== 'idle' && phase !== 'recording'}
+            onClick={onMicTap}
+          >
+            {phase === 'recording' ? (
+              <div className="flex flex-1 items-center gap-[9px] px-[14px]">
+                <span className="w-[14px] h-[14px] rounded-[4px] bg-brand-primary flex-shrink-0" />
+                <VoiceBar audioLevel={audioLevel} />
+                <span className={`text-[12px] font-medium flex-shrink-0 min-w-[30px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
+                  {recTime}
+                </span>
+              </div>
+            ) : (
+              <>
+                <Mic size={19} className="text-brand-primary" />
+                <span className="text-[14px] font-medium text-[#444]">{micLabel}</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
