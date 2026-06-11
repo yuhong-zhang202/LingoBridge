@@ -11,7 +11,7 @@ import type { DimensionId, DimensionLabel } from '@/lib/types'
 export const MODEL_RANKING     = 'qwen-plus'
 export const MODEL_PRACTICE    = 'qwen-plus'
 export const MODEL_EXTRACTION  = 'qwen-plus'
-export const MODEL_ANALYSIS    = 'qwen-flash'
+export const MODEL_ANALYSIS    = 'qwen-plus'    // 侧重点分析（flash 跟不住固定 3 点约束，回退 qwen-plus）
 export const MODEL_RESTRUCTURE = 'qwen-flash'
 
 // ── 相关性排名三档阈值（调参时改这里，不要散落硬编码）

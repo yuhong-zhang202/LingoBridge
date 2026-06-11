@@ -198,7 +198,7 @@ export const SCORE_LOW  = 40   // 低匹配：折叠进「查看更多」
 ```ts
 export const MODEL_EXTRACTION   = 'qwen-plus'    // 故事萃取
 export const MODEL_RANKING      = 'qwen-plus'    // 相关性重排
-export const MODEL_ANALYSIS     = 'qwen-flash'   // 侧重点分析
+export const MODEL_ANALYSIS     = 'qwen-plus'    // 侧重点分析（flash 跟不住固定 3 点约束，回退 qwen-plus）
 export const MODEL_PRACTICE     = 'qwen-plus'    // 练习对话 + 润色
 export const MODEL_RESTRUCTURE  = 'qwen-flash'   // 语料整理（原写死在 restructure.ts，已收编至此）
 // 转写用豆包 ASR（DOUBAO_ASR_APP_ID / DOUBAO_ASR_ACCESS_TOKEN）
