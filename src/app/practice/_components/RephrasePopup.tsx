@@ -5,7 +5,7 @@
  * @created  2026-06-03
  */
 import { type RefObject } from 'react'
-import { X } from 'lucide-react'
+import { X, Check } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import type { PolishResult } from '@/lib/types'
 
@@ -37,13 +37,20 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
       {loading ? (
         <p className="text-[13px] text-v2-text-muted px-1 py-2">优化中…</p>
       ) : result ? (
-        <div className="flex flex-col gap-2">
-          <div style={{ padding: '9px 11px', background: '#F8F7F5', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
-            <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
-            <p className="text-[13.5px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
+        result.needsWork && result.optimized ? (
+          <div className="flex flex-col gap-2">
+            <div style={{ padding: '9px 11px', background: '#F8F7F5', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
+              <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
+              <p className="text-[13.5px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
+            </div>
+            {result.note && <p className="text-[12px] text-v2-text-muted leading-[1.45] px-1">{result.note}</p>}
           </div>
-          {result.note && <p className="text-[12px] text-v2-text-muted leading-[1.45] px-1">{result.note}</p>}
-        </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-1 py-1.5">
+            <Check size={14} className="text-brand-accent flex-shrink-0" />
+            <p className="text-[13px] text-v2-text-secondary">{result.note || '回答无需优化'}</p>
+          </div>
+        )
       ) : null}
     </div>
   )

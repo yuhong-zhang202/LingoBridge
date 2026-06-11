@@ -171,32 +171,33 @@ export async function coachReply(
 
 const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅思口语，会给你一句他刚说的英文（可能来自语音转写、可能有小错或不够地道）。
 
-任务：给一个更自然、更地道的版本，并用一句中文说明最关键的改进点。
+【第一步：先判断这句到底需不需要优化】
+不是每句都要改。如果这句话本身已经能自然、得体地回答当时的问题，且没有明显语法错误、也没有值得一提的更地道说法，就【不要硬改】——尤其是很简短但已经够用的句子（比如别人问时间、问 yes/no，用户一句简单的话就答到位了），这种硬塞个 yeah、改个语气词毫无意义。这时返回 needsWork=false，不给改写句。
+只有当这句【确实有可改之处】（有语法或用词错误、明显中式表达、或有明显更地道自然的说法）时，才返回 needsWork=true 并给优化版。
 
-【最重要的原则：按用户的目标水平提升，升约半档】
-- 用户消息里会给出他的目标雅思水平（如 6.0）。把这句话优化到比这个目标【高约半档】（6.0 就奔着 6.5、5.0 就奔着 5.5），是一个「踮脚够得着」的版本，不是遥不可及的跳级。
-- 做法：先把原句的错误改对、让它通顺自然，再在用词上往上提一点点。目标水平越低越要克制，尤其 5.0~5.5 这一档只用最常见的日常词，绝不要塞入这个水平的人根本说不出口的地道动词短语或习语（如 zone out、flop down、kick back 之类）——那会立刻变成「别人的句子」。这类更地道的说法最多在 note 里点一句让他认识，optimized 句子本身一定要留在他够得着的位置。
-- 例（低档·目标 5.0）：用户说「I just think into so far, and maybe I will made a cup of tea」，改成「I'm not sure. I usually just relax for a bit, and then I make myself a cup of tea」就够了（把不通的地方改对、简单自然）；不要改成带 zone out 的版本，对 5.0 偏高。
+【needsWork=true 时怎么改：按用户目标水平提升，升约半档】
+- 用户消息里会给出他的目标雅思水平（如 6.0）。把这句优化到比这个目标【高约半档】（6.0 就奔 6.5、5.0 就奔 5.5），是一个「踮脚够得着」的版本，不是遥不可及的跳级。
+- 做法：先把原句的错误改对、让它通顺自然，再在用词上往上提一点点。目标水平越低越要克制，尤其 5.0~5.5 这一档只用最常见的日常词，绝不要塞入这个水平的人根本说不出口的地道动词短语或习语（如 zone out、flop down、kick back 之类）——那会立刻变成「别人的句子」。这类更地道的说法最多在 note 里点一句让他认识。
+- 例（低档·目标 5.0）：用户说「I just think into so far, and maybe I will made a cup of tea」，改成「I'm not sure. I usually just relax for a bit, and then I make myself a cup of tea」就够了（把不通的地方改对、简单自然）；不要改成带 zone out 的版本。
 - 例（中档·目标 6.0）：用户说「I very like coffee」，改成「I really enjoy a good coffee」这种自然、地道、6.5 左右的口语；绝不要拔成「I'm absolutely passionate about coffee」这种刻意的高级句。
 - 一句话标准：用户看了要觉得「这个我踮踮脚也能说」，而不是「这是别人的句子」。
 
-【第二原则：日常口语，不是书面语】
-- 改后的句子必须是「说出来」的英语，不是写出来的：短、自然、可以有缩写（I'm, it's, that's）。
-- 用日常词和地道搭配，不要堆高级词、不要长难句、不要正式或书面腔。
+【日常口语，不是书面语】
+- 改后的句子必须是「说出来」的英语，不是写出来的：短、自然、可以有缩写（I'm, it's, that's）。用日常词和地道搭配，不要堆高级词、不要长难句、不要正式或书面腔。
 
-输出严格 JSON（不要 markdown，不要解释）：
-{ "optimized": "改进后的英文句子", "note": "一句中文说明哪里更好" }
+输出严格 JSON（不要 markdown、不要解释）：
+- 需要优化：{ "needsWork": true, "optimized": "改进后的英文句子", "note": "一句中文说明哪里更好" }
+- 无需优化：{ "needsWork": false, "optimized": "", "note": "" }
 
 规则：
-- optimized 保持原意，长度与原句相当，只是更自然、更准确、更地道、更口语
-- note 只点出最关键的 1 个改进（地道说法、时态、连接更顺等），一句话，别长篇
-- 若原句已不错，optimized 只做小润色，note 说明它已不错 + 微调点
+- 三个字段每次都要给全；needsWork=false 时 optimized 和 note 一律留空字符串，不要在 note 里写解释。
+- needsWork=true 时：optimized 保持原意、长度与原句相当，只是更自然、更准确、更地道、更口语；note 只点出最关键的 1 个改进（地道说法、时态、连接更顺等），一句话，别长篇。
 
 【JSON 格式硬约束】
 你只能输出合法 JSON，前后不得有任何说明文字或 markdown 代码块（不要 \`\`\`json）。
 字符串值内部禁止出现英文双引号 " ——如需引用或强调，一律改用中文引号「」。
-  错误示例："tip":"别只说"I was scared""   ← 裸双引号会破坏 JSON
-  正确示例："tip":"别只说「I was scared」"`
+  错误示例："note":"别只说"I was scared""   ← 裸双引号会破坏 JSON
+  正确示例："note":"别只说「I was scared」"`
 
 /**
  * 对用户刚说的一句英文做地道度优化
@@ -223,7 +224,8 @@ export async function polishSentence(sentence: string, aiQuestion?: string, leve
     },
     validate: (v): v is PolishResult =>
       typeof v === 'object' && v !== null &&
+      typeof (v as { needsWork?: unknown }).needsWork === 'boolean' &&
       typeof (v as { optimized?: unknown }).optimized === 'string' &&
-      (v as { optimized: string }).optimized.length > 0,
+      typeof (v as { note?: unknown }).note === 'string',
   })
 }

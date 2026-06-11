@@ -250,8 +250,9 @@ export interface SavedPhrase extends SessionPolish {
 
 // ── 🔨 重新表达 ──
 export interface PolishResult {
-  optimized: string   // 优化后的英文句子
-  note: string        // 一句中文说明改进点
+  needsWork: boolean  // 这句是否需要优化；false = 已经够好，不给改写句
+  optimized: string   // 优化后的英文句子（needsWork=false 时为空字符串）
+  note: string        // 一句中文说明改进点（needsWork=false 时为空字符串）
 }
 
 // ── practice 对话 ──

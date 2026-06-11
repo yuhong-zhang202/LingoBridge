@@ -115,7 +115,7 @@ function PracticeContent(): JSX.Element {
       if (!res.ok) throw new Error('优化失败')
       const data = (await res.json()) as PolishResult
       setPolishResult(data)
-      if (data.optimized) {
+      if (data.needsWork && data.optimized) {
         setPolishHistory(h => [...h, {
           original: sentence,
           optimized: data.optimized,
@@ -125,7 +125,7 @@ function PracticeContent(): JSX.Element {
         }])
       }
     } catch {
-      setPolishResult({ optimized: '', note: '优化失败，请重试' })
+      setPolishResult({ needsWork: false, optimized: '', note: '优化失败，请重试' })
     } finally {
       setPolishLoading(false)
     }
