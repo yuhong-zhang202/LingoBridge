@@ -12,7 +12,7 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { setSessionPolishes } from '@/lib/storage'
+import { setSessionPolishes, addSavedPronunciation } from '@/lib/storage'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import OrbSoft from './_components/OrbSoft'
@@ -20,6 +20,7 @@ import AiBubble from './_components/AiBubble'
 import UserBubble from './_components/UserBubble'
 import RephrasePopup from './_components/RephrasePopup'
 import VoiceBar from './_components/VoiceBar'
+import PronounceCapturePopup from './_components/PronounceCapturePopup'
 
 function PracticeContent(): JSX.Element {
   const router = useRouter()
@@ -37,6 +38,7 @@ function PracticeContent(): JSX.Element {
   const [polishLoading, setPolishLoading] = useState(false)
   const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
   const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
+  const [capture, setCapture]             = useState<{ heard: string; context: string } | null>(null)
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
@@ -130,6 +132,20 @@ function PracticeContent(): JSX.Element {
       setPolishLoading(false)
     }
   }, [scaffold])
+
+  // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"存进 localStorage
+  const handleSavePronunciation = useCallback((intended: string) => {
+    if (!capture) return
+    const heard = capture.heard
+    addSavedPronunciation({
+      id: `${intended.toLowerCase()}__${heard.toLowerCase()}`,
+      intended,
+      heard,
+      context: capture.context,
+      createdAt: new Date().toISOString(),
+    })
+    setCapture(null)
+  }, [capture])
 
   const onStartRecord = useCallback(() => {
     if (phase !== 'idle') return
@@ -230,6 +246,7 @@ function PracticeContent(): JSX.Element {
             : <UserBubble
                 key={i}
                 text={m.content}
+                onWordTap={(word) => setCapture({ heard: word, context: m.content })}
                 onPolish={() => {
                   const prev = messages[i - 1]
                   void handlePolish(m.content, prev?.role === 'assistant' ? prev.content : undefined)
@@ -255,6 +272,15 @@ function PracticeContent(): JSX.Element {
           result={polishResult}
           onClose={() => setShowPolish(false)}
           popupRef={popupRef}
+        />
+      )}
+
+      {/* 发音纠错弹窗：点气泡里的词后填入想说的词 */}
+      {capture && (
+        <PronounceCapturePopup
+          heard={capture.heard}
+          onSave={handleSavePronunciation}
+          onClose={() => setCapture(null)}
         />
       )}
 

@@ -5,11 +5,12 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
-import type { SessionPolish, SavedPhrase, SavedWord } from '@/lib/types'
+import type { SessionPolish, SavedPhrase, SavedWord, SavedPronunciation } from '@/lib/types'
 
 const SESSION_KEY = 'lingobridge:session_polishes'
 const SAVED_KEY = 'lingobridge:saved_phrases'
 const SAVED_WORDS_KEY = 'lingobridge:saved_words'
+const SAVED_PRON_KEY = 'lingobridge:saved_pronunciations'
 
 // ── 本场暂存：practice → feedback ──
 export function setSessionPolishes(items: SessionPolish[]): void {
@@ -74,4 +75,25 @@ export function removeSavedWord(id: string): void {
   if (typeof window === 'undefined') return
   const filtered = getSavedWords().filter(w => w.id !== id)
   localStorage.setItem(SAVED_WORDS_KEY, JSON.stringify(filtered))
+}
+
+// ── 持久收藏：发音正音（练习页点词收藏）──
+export function getSavedPronunciations(): SavedPronunciation[] {
+  if (typeof window === 'undefined') return []
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_PRON_KEY) ?? '[]') as SavedPronunciation[]
+  } catch {
+    return []
+  }
+}
+export function addSavedPronunciation(p: SavedPronunciation): void {
+  if (typeof window === 'undefined') return
+  const all = getSavedPronunciations().filter(x => x.id !== p.id)
+  all.unshift(p)
+  localStorage.setItem(SAVED_PRON_KEY, JSON.stringify(all))
+}
+export function removeSavedPronunciation(id: string): void {
+  if (typeof window === 'undefined') return
+  const filtered = getSavedPronunciations().filter(p => p.id !== id)
+  localStorage.setItem(SAVED_PRON_KEY, JSON.stringify(filtered))
 }

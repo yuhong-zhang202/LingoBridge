@@ -247,6 +247,13 @@ export interface SavedPhrase extends SessionPolish {
   id: string
   createdAt: string
 }
+export interface SavedPronunciation {
+  id: string          // 唯一 id（intended__heard 小写）
+  intended: string    // 用户真正想说的词
+  heard: string       // ASR 听成的词
+  context: string     // 出处：这个词所在的整句
+  createdAt: string   // ISO 时间
+}
 
 // ── 🔨 重新表达 ──
 export interface PolishResult {

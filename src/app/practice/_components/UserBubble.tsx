@@ -1,6 +1,6 @@
 /**
  * @module   UserBubble
- * @desc     练习页用户消息气泡（左上角 🔨 触发重新表达）
+ * @desc     练习页用户消息气泡 — 左上角 ✨ 换个说法；气泡内每个词可点，触发发音纠错
  * @author   LingoBridge
  * @created  2026-05-15
  */
@@ -10,9 +10,15 @@ import OrbWarm from './OrbWarm'
 interface UserBubbleProps {
   text: string
   onPolish?: () => void
+  onWordTap?: (word: string) => void
 }
 
-export default function UserBubble({ text, onPolish }: UserBubbleProps): JSX.Element {
+/** 去掉词首尾的非字母字符（保留撇号），用作收藏的"听成的词" */
+function cleanWord(s: string): string {
+  return s.replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, '')
+}
+
+export default function UserBubble({ text, onPolish, onWordTap }: UserBubbleProps): JSX.Element {
   return (
     <div className="flex items-start gap-2 max-w-[85%] ml-auto flex-row-reverse mb-4">
       <OrbWarm size={34} className="flex-shrink-0" />
@@ -20,7 +26,6 @@ export default function UserBubble({ text, onPolish }: UserBubbleProps): JSX.Ele
         className="relative px-3.5 py-2.5"
         style={{ background: '#EDF6EB', border: '1px solid rgba(192,221,185,.55)', borderRadius: '16px 6px 16px 16px' }}
       >
-        {/* 重新表达：气泡左上角，安静的小按钮 */}
         {onPolish && (
           <button
             onClick={onPolish}
@@ -30,7 +35,24 @@ export default function UserBubble({ text, onPolish }: UserBubbleProps): JSX.Ele
             <Sparkles size={12} />
           </button>
         )}
-        <p className="text-[14px] text-[#1A1A1A] leading-[1.6]">{text}</p>
+        <p className="text-[14px] text-[#1A1A1A] leading-[1.6]">
+          {onWordTap
+            ? text.split(/(\s+)/).map((tok, i) => {
+                const w = cleanWord(tok)
+                return /[A-Za-z]/.test(tok) && w
+                  ? (
+                    <span
+                      key={i}
+                      onClick={() => onWordTap(w)}
+                      className="cursor-pointer rounded-[3px] hover:bg-brand-primary-light/50 active:bg-brand-primary-light/80 transition-colors"
+                    >
+                      {tok}
+                    </span>
+                  )
+                  : <span key={i}>{tok}</span>
+              })
+            : text}
+        </p>
       </div>
     </div>
   )
