@@ -97,3 +97,9 @@ export function removeSavedPronunciation(id: string): void {
   const filtered = getSavedPronunciations().filter(p => p.id !== id)
   localStorage.setItem(SAVED_PRON_KEY, JSON.stringify(filtered))
 }
+/** 就地更新一条发音收藏（用于缓存 AI 生成的音标/提示，不改变顺序） */
+export function updateSavedPronunciation(id: string, patch: Partial<SavedPronunciation>): void {
+  if (typeof window === 'undefined') return
+  const all = getSavedPronunciations().map(p => (p.id === id ? { ...p, ...patch } : p))
+  localStorage.setItem(SAVED_PRON_KEY, JSON.stringify(all))
+}

@@ -253,6 +253,16 @@ export interface SavedPronunciation {
   heard: string       // ASR 听成的词
   context: string     // 出处：这个词所在的整句
   createdAt: string   // ISO 时间
+  ipaIntended?: string // AI 生成并缓存：想说词的音标
+  ipaHeard?: string    // AI 生成并缓存：被听成词的音标
+  tip?: string         // AI 生成并缓存：怎么念提示
+}
+
+/** 发音提示（AI 返回，缓存进 SavedPronunciation） */
+export interface PronunciationTip {
+  ipaIntended: string  // 想说词的音标
+  ipaHeard: string     // 被听成词的音标
+  tip: string          // 一段中文「怎么念」提示
 }
 
 // ── 🔨 重新表达 ──
