@@ -16,6 +16,15 @@ interface FeedbackCardProps {
   className?: string
 }
 
+/** 用浏览器 TTS 读一句英文（与词组卡同一实现） */
+function speak(text: string): void {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const utt = new SpeechSynthesisUtterance(text)
+  utt.lang = 'en-US'
+  window.speechSynthesis.speak(utt)
+}
+
 const PILL_GRAD = 'linear-gradient(135deg, rgba(232,136,58,0.45), rgba(123,191,116,0.45))'
 
 function InfoTag({ text, letterSpacing }: { text: string; letterSpacing?: number }) {
@@ -43,7 +52,11 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
       <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>
         {text}
       </p>
-      <button className="absolute right-2.5 bottom-2.5 active:opacity-50 transition-opacity">
+      <button
+        onClick={() => speak(text)}
+        aria-label="播放"
+        className="absolute right-2.5 bottom-2.5 active:opacity-50 transition-opacity"
+      >
         <Volume2 size={13} className="text-v2-text-muted" />
       </button>
     </div>
