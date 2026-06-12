@@ -2,12 +2,13 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mic2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Mic2, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
+import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 
 export default function HomePage() {
   const router = useRouter()
@@ -61,13 +62,13 @@ export default function HomePage() {
       </div>
 
       {/* 主体 */}
-      <div className="flex-1 flex flex-col items-center px-7 relative z-10 pt-6 pb-[72px] overflow-y-auto">
+      <div className={`flex-1 flex flex-col items-center px-7 relative z-10 overflow-y-auto ${showTextInput ? 'pt-3 pb-[120px]' : 'pt-6 pb-[72px]'}`}>
 
-        {/* Orb */}
-        <Orb size={showTextInput ? 96 : 300} pulse={false} />
+        {/* Orb（故事/录音态居中展示；文字态的小 Orb 放在引导气泡行内） */}
+        {!showTextInput && <Orb size={300} pulse={false} />}
 
-        {/* Orb 与文字区间距：文字输入态收窄，让输入框成为主角 */}
-        <div className={showTextInput ? 'h-[20px]' : 'h-[41px]'} />
+        {/* Orb 与下方间距：仅故事/录音态需要 */}
+        {!showTextInput && <div className="h-[41px]" />}
 
         {/* 文字 + 操作区 */}
         <div className="w-full flex flex-col items-center">
@@ -145,43 +146,70 @@ export default function HomePage() {
 
             {showTextInput && (
               <div className="w-full animate-fade-up">
-                <textarea
-                  value={textStory}
-                  onChange={e => setTextStory(e.target.value)}
-                  placeholder="用中文写下你的故事，比如：今天去了附近的公园，空气很好，心情也轻松了很多..."
-                  className="w-full min-h-[240px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-brand-primary transition-colors"
-                  autoFocus
-                />
-                <div className="flex justify-between items-center mt-2 px-1">
-                  <span className="text-[12px] text-[#CCCCCC]">
-                    {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上，越具体越好'}
-                  </span>
-                  <button
-                    disabled={textStory.trim().length < 10 || submitting}
-                    onClick={() => void handleTextSubmit()}
-                    className={`px-5 py-2 text-[14px] font-medium transition-all duration-200 ${
-                      textStory.trim().length >= 10 && !submitting
-                        ? 'btn-gradient'
-                        : 'rounded-[50px] bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
-                    }`}
-                  >
-                    {submitting ? '检查中…' : '开始匹配 →'}
-                  </button>
+                {/* 引导：Orb + 纯文本 */}
+                <div className="w-full flex items-center gap-[14px] mb-[22px]">
+                  <Orb size={72} pulse={false} />
+                  <p className="flex-1 text-[15px] leading-[1.5] text-v2-text-primary">写点今天的小事，我帮你变成口语素材～</p>
                 </div>
+
+                {/* 故事输入卡（渐变描边，加长文本框） */}
+                <div className="w-full rounded-[18px]" style={{ ...GRADIENT_BORDER_STYLE_FULL, padding: '15px 15px 12px' }}>
+                  <textarea
+                    value={textStory}
+                    onChange={e => setTextStory(e.target.value)}
+                    placeholder={'用中文写下你的故事……\n比如：上周末我去了附近的公园，空气很好，待了很久，整个人都放松下来。'}
+                    className="w-full min-h-[235px] bg-transparent text-[15px] text-v2-text-primary leading-[1.75] placeholder:text-[#CCCCCC] resize-none outline-none"
+                    autoFocus
+                  />
+                  <div className="flex justify-between items-center border-t border-black/[0.05] pt-3">
+                    <span className="text-[12px] text-[#CCCCCC]">
+                      {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上'}
+                    </span>
+                    <button
+                      disabled={textStory.trim().length < 10 || submitting}
+                      onClick={() => void handleTextSubmit()}
+                      className={`flex items-center gap-1 px-4 py-2 text-[14px] font-medium transition-all duration-200 ${
+                        textStory.trim().length >= 10 && !submitting
+                          ? 'btn-gradient'
+                          : 'rounded-full bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
+                      }`}
+                    >
+                      {submitting ? '检查中…' : '开始匹配 →'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 改用录音：紧贴输入框下方 */}
                 <button
                   onClick={() => setShowTextInput(false)}
-                  className="mt-3 text-[13px] text-[#AAAAAA] flex items-center gap-1 mx-auto"
+                  className="mt-[14px] mx-auto block text-[13px] text-[#AAAAAA]"
                 >
                   ← 改用录音
                 </button>
+
+                {/* 通用提示：怎样的素材更好用（与整理语料页一致） */}
+                <div className="w-full mt-6">
+                  <div className="flex items-center gap-1.5 mb-[11px]">
+                    <Lightbulb size={14} className="text-[#C0996F]" />
+                    <span className="text-[13px] font-medium text-v2-text-secondary">怎样的素材更好用</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 mb-[9px]">
+                    <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">1</span>
+                    <p className="text-[13px] text-v2-text-secondary leading-relaxed">同一段真实经历，细节越全，能套用的题越多</p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">2</span>
+                    <p className="text-[13px] text-v2-text-secondary leading-relaxed">好用的素材通常会带到：时间、人物、发生的事、你的做法和感受</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
         </div>
 
-        {/* 剩余空白沉到底部 */}
-        <div className="flex-1" />
+        {/* 剩余空白沉到底部（仅故事/录音态需要；文字态内容长，否则会压住可滚动空间） */}
+        {!showTextInput && <div className="flex-1" />}
       </div>{/* end 主体 */}
 
       <div className="flex-shrink-0"><TabBar /></div>
