@@ -11,7 +11,7 @@ import type { PhraseCard } from '@/lib/types'
 
 // 超过此位移（px）判定为一次有效滑动
 const SWIPE_THRESHOLD = 90
-// 顶部渐变细条（品牌橙→绿），V3 识别感；与 SwipeToDelete 的 DEL_BG 同为模块常量
+// 顶部渐变细条（品牌橙→绿）
 const STRIP = 'linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9))'
 
 // 朗读英文（系统语音）
@@ -28,6 +28,7 @@ interface Props {
   onGrade: (remembered: boolean) => void
 }
 
+// 记忆进度圆点（box 1~5）
 function Dots({ box }: { box: number }): JSX.Element {
   return (
     <div className="flex items-center justify-center gap-2 mt-[22px]">
@@ -41,38 +42,23 @@ function Dots({ box }: { box: number }): JSX.Element {
   )
 }
 
-export default function FlashCard({ card, onGrade }: Props): JSX.Element {
-  const [flipped, setFlipped] = useState(false)
-  const [dx, setDx] = useState(0)
-  const [leaving, setLeaving] = useState(false)
-  const startX = useRef(0)
-  const moved = useRef(false)
-
-  // 飞出 + 回调（留出动画时间）
-  const fly = (remembered: boolean): void => {
-    setLeaving(true)
-    setDx(remembered ? 520 : -520)
-    window.setTimeout(() => onGrade(remembered), 200)
-  }
-
-  const onClick = (): void => { if (!moved.current) setFlipped(f => !f) }            // 轻点翻面（拖动则忽略）
-  const onTouchStart = (e: React.TouchEvent): void => { startX.current = e.touches[0].clientX; moved.current = false }
-  const onTouchMove = (e: React.TouchEvent): void => {
-    const d = e.touches[0].clientX - startX.current
-    if (Math.abs(d) > 6) moved.current = true
-    setDx(d)                                                                          // 正反面都允许滑动
-  }
-  const onTouchEnd = (): void => {
-    if (moved.current && Math.abs(dx) > SWIPE_THRESHOLD) fly(dx > 0)
-    else setDx(0)
-  }
-
-  const Face = ({ back }: { back: boolean }): JSX.Element => (
+// 单面（正面中文 / 背面英文）。提到组件外，避免随父组件每次渲染而被卸载重挂导致拖动卡顿
+function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element {
+  return (
     <div
       className={`${back ? 'absolute inset-0' : ''} rounded-[20px] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.06)] overflow-hidden`}
       style={{ backfaceVisibility: 'hidden', transform: back ? 'rotateY(180deg)' : undefined }}
     >
       <div className="h-1" style={{ background: STRIP }} />
+      {back && (
+        <button
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); speak(card.text) }}
+          aria-label="播放发音"
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-[#F4F2EE] flex items-center justify-center active:opacity-50"
+        >
+          <Volume2 size={16} className="text-v2-text-muted" />
+        </button>
+      )}
       <div className="px-[22px] pt-[18px] pb-5 min-h-[256px] flex flex-col">
         {card.group && (
           <span className="self-start text-[11px] text-[#3D7A38] bg-[#EDF6EB] border border-[#C0DDB9] rounded-full px-2.5 py-[3px]">{card.group}</span>
@@ -81,13 +67,6 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
           {back ? (
             <>
               <p className="text-[19px] font-medium text-v2-text-primary leading-[1.4]">{card.text}</p>
-              <button
-                onClick={(e: React.MouseEvent) => { e.stopPropagation(); speak(card.text) }}
-                aria-label="播放发音"
-                className="mt-2.5 w-8 h-8 rounded-full bg-[#F4F2EE] flex items-center justify-center active:opacity-50"
-              >
-                <Volume2 size={16} className="text-v2-text-muted" />
-              </button>
               <p className="text-[15px] text-v2-text-secondary mt-3">{card.meaning}</p>
               {card.scene && <p className="text-[12px] text-v2-text-muted mt-1.5">{card.scene}</p>}
             </>
@@ -102,12 +81,53 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
       </div>
     </div>
   )
+}
+
+export default function FlashCard({ card, onGrade }: Props): JSX.Element {
+  const [flipped, setFlipped] = useState(false)
+  const [dx, setDx] = useState(0)
+  const [animated, setAnimated] = useState(false)
+  const startX = useRef(0)
+  const dragging = useRef(false)
+  const moved = useRef(false)
+
+  // 直接飞出并回调（底部按钮用）
+  const flyOut = (remembered: boolean): void => {
+    setAnimated(true)
+    setDx(remembered ? 520 : -520)
+    window.setTimeout(() => onGrade(remembered), 180)
+  }
+
+  const onClick = (): void => { if (!moved.current) setFlipped(f => !f) }   // 轻点翻面（拖动则忽略）
+  const onTouchStart = (e: React.TouchEvent): void => {
+    startX.current = e.touches[0].clientX
+    dragging.current = true
+    moved.current = false
+    setAnimated(false)
+  }
+  const onTouchMove = (e: React.TouchEvent): void => {
+    if (!dragging.current) return
+    const d = e.touches[0].clientX - startX.current
+    if (Math.abs(d) > 6) moved.current = true
+    setDx(d)
+  }
+  const onTouchEnd = (): void => {
+    if (!dragging.current) return
+    dragging.current = false
+    setAnimated(true)
+    // 用函数式更新读「最新」位移，避免闭包里的 dx 落后导致飞不走
+    setDx(cur => {
+      if (cur > SWIPE_THRESHOLD)  { window.setTimeout(() => onGrade(true), 180);  return 520 }
+      if (cur < -SWIPE_THRESHOLD) { window.setTimeout(() => onGrade(false), 180); return -520 }
+      window.setTimeout(() => setAnimated(false), 180)
+      return 0
+    })
+  }
 
   return (
     <div className="w-full select-none">
       <div
-        className={leaving ? 'transition-all duration-200 ease-out' : 'transition-transform duration-200 ease-out'}
-        style={{ transform: `translateX(${dx}px) rotate(${dx * 0.03}deg)`, opacity: leaving ? 0 : 1 }}
+        style={{ transform: `translateX(${dx}px) rotate(${dx * 0.03}deg)`, transition: animated ? 'transform 0.2s ease' : 'none' }}
         onClick={onClick}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -115,8 +135,8 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
       >
         <div style={{ perspective: 1000 }}>
           <div className="relative transition-transform duration-300" style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateY(180deg)' : 'none' }}>
-            <Face back={false} />
-            <Face back={true} />
+            <Face card={card} back={false} />
+            <Face card={card} back={true} />
           </div>
         </div>
       </div>
@@ -127,11 +147,11 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px]">
-          <button onClick={() => fly(false)} className="flex items-center gap-1 text-[13px] text-[#C47A6A] active:opacity-60">
+          <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-[#C47A6A] active:opacity-60">
             <ArrowLeft size={15} />没记住
           </button>
           <span className="text-[12px] text-[#D8D2CA]">左右滑动</span>
-          <button onClick={() => fly(true)} className="flex items-center gap-1 text-[13px] text-[#3D7A38] active:opacity-60">
+          <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-[#3D7A38] active:opacity-60">
             记住了<ArrowRight size={15} />
           </button>
         </div>
