@@ -6,13 +6,22 @@
  */
 'use client'
 import { useState, useRef } from 'react'
-import { RotateCw, ArrowLeft, ArrowRight } from 'lucide-react'
+import { RotateCw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react'
 import type { PhraseCard } from '@/lib/types'
 
 // 超过此位移（px）判定为一次有效滑动
 const SWIPE_THRESHOLD = 90
 // 顶部渐变细条（品牌橙→绿），V3 识别感；与 SwipeToDelete 的 DEL_BG 同为模块常量
 const STRIP = 'linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9))'
+
+// 朗读英文（系统语音）
+function speak(text: string): void {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(text)
+  u.lang = 'en-US'
+  window.speechSynthesis.speak(u)
+}
 
 interface Props {
   card: PhraseCard
@@ -51,11 +60,10 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
   const onTouchMove = (e: React.TouchEvent): void => {
     const d = e.touches[0].clientX - startX.current
     if (Math.abs(d) > 6) moved.current = true
-    if (flipped) setDx(d)                                                            // 仅翻面后允许滑动评估
+    setDx(d)                                                                          // 正反面都允许滑动
   }
   const onTouchEnd = (): void => {
-    if (!flipped) { setDx(0); return }
-    if (Math.abs(dx) > SWIPE_THRESHOLD) fly(dx > 0)
+    if (moved.current && Math.abs(dx) > SWIPE_THRESHOLD) fly(dx > 0)
     else setDx(0)
   }
 
@@ -73,6 +81,13 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
           {back ? (
             <>
               <p className="text-[19px] font-medium text-v2-text-primary leading-[1.4]">{card.text}</p>
+              <button
+                onClick={(e: React.MouseEvent) => { e.stopPropagation(); speak(card.text) }}
+                aria-label="播放发音"
+                className="mt-2.5 w-8 h-8 rounded-full bg-[#F4F2EE] flex items-center justify-center active:opacity-50"
+              >
+                <Volume2 size={16} className="text-v2-text-muted" />
+              </button>
               <p className="text-[15px] text-v2-text-secondary mt-3">{card.meaning}</p>
               {card.scene && <p className="text-[12px] text-v2-text-muted mt-1.5">{card.scene}</p>}
             </>

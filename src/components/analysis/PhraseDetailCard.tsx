@@ -1,5 +1,5 @@
 'use client'
-import { Star, Volume2 } from 'lucide-react'
+import { Star, Volume2, Layers, Check } from 'lucide-react'
 import type { CSSProperties } from 'react'
 
 const GRAD_BORDER = 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))'
@@ -23,11 +23,14 @@ interface Props {
   /** 显示分组和水平胶囊（素材库里用） */
   group?: string
   level?: string
-  isSaved: boolean
-  onToggleSave: () => void
+  isSaved?: boolean
+  onToggleSave?: () => void
+  /** 记忆卡片（仅词组收藏里传）：是否已加入 deck + 加入回调 */
+  inDeck?: boolean
+  onAddToMemory?: () => void
 }
 
-export default function PhraseDetailCard({ text, meaning, scene, group, level, isSaved, onToggleSave }: Props) {
+export default function PhraseDetailCard({ text, meaning, scene, group, level, isSaved, onToggleSave, inDeck, onAddToMemory }: Props) {
   return (
     <div style={{ background: GRAD_BORDER, padding: 1, borderRadius: 14 }}>
       <div className="bg-white rounded-[13px] px-3.5 py-3">
@@ -51,14 +54,29 @@ export default function PhraseDetailCard({ text, meaning, scene, group, level, i
             {level && <span className="text-[10px] text-v2-text-muted bg-[#F4F2EC] rounded-full px-2 py-[2px]">雅思 {level}</span>}
           </div>
         )}
-        <button
-          onClick={onToggleSave}
-          className={`mt-3 w-full flex items-center justify-center gap-1.5 text-[12px] font-semibold rounded-full py-2 active:scale-[0.97] transition-transform duration-150 ${isSaved ? 'text-brand-primary' : 'text-[#444]'}`}
-          style={LIGHTER_BORDER}
-        >
-          <Star size={13} className={isSaved ? 'fill-brand-primary text-brand-primary' : ''} />
-          {isSaved ? '已收藏' : '收藏到素材库'}
-        </button>
+        {onToggleSave && (
+          <button
+            onClick={onToggleSave}
+            className={`mt-3 w-full flex items-center justify-center gap-1.5 text-[12px] font-semibold rounded-full py-2 active:scale-[0.97] transition-transform duration-150 ${isSaved ? 'text-brand-primary' : 'text-[#444]'}`}
+            style={LIGHTER_BORDER}
+          >
+            <Star size={13} className={isSaved ? 'fill-brand-primary text-brand-primary' : ''} />
+            {isSaved ? '已收藏' : '收藏到素材库'}
+          </button>
+        )}
+        {onAddToMemory && (
+          <button
+            onClick={onAddToMemory}
+            disabled={inDeck}
+            className={`mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] font-medium rounded-full py-2 ${
+              inDeck
+                ? 'text-brand-accent'
+                : 'border border-black/[0.11] text-[#666] active:scale-[0.97] transition-transform duration-150'
+            }`}
+          >
+            {inDeck ? <><Check size={13} />已加入记忆</> : <><Layers size={13} />加入记忆卡片</>}
+          </button>
+        )}
       </div>
     </div>
   )
