@@ -265,6 +265,18 @@ export interface PronunciationTip {
   tip: string          // 一段中文「怎么念」提示
 }
 
+export interface PhraseCard {
+  id: string
+  text: string            // 英文词组
+  meaning: string         // 中文释义
+  scene: string           // 适用场景
+  group: string           // 分类标签（感受 / 时间 / 行为 …）
+  box: number             // Leitner 盒子等级 1..5
+  dueAt: string           // ISO 时间，下次复习
+  lastReviewedAt: string | null
+  createdAt: string       // ISO 时间
+}
+
 // ── 🔨 重新表达 ──
 export interface PolishResult {
   needsWork: boolean  // 这句是否需要优化；false = 已经够好，不给改写句
