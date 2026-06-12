@@ -2,13 +2,12 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mic2, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react'
+import { Mic2, ChevronLeft, ChevronRight, Lightbulb, ArrowRight, Loader2 } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
-import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 
 export default function HomePage() {
   const router = useRouter()
@@ -62,7 +61,7 @@ export default function HomePage() {
       </div>
 
       {/* 主体 */}
-      <div className={`flex-1 flex flex-col items-center px-7 relative z-10 overflow-y-auto ${showTextInput ? 'pt-3 pb-[120px]' : 'pt-6 pb-[72px]'}`}>
+      <div className={`flex-1 min-h-0 flex flex-col items-center px-7 relative z-10 overflow-y-auto ${showTextInput ? 'pt-3 pb-[120px]' : 'pt-6 pb-[72px]'}`}>
 
         {/* Orb（故事/录音态居中展示；文字态的小 Orb 放在引导气泡行内） */}
         {!showTextInput && <Orb size={300} pulse={false} />}
@@ -146,48 +145,51 @@ export default function HomePage() {
 
             {showTextInput && (
               <div className="w-full animate-fade-up">
-                {/* 引导：Orb + 纯文本 */}
+                {/* 引导：Orb + 纯文本（方案 A） */}
                 <div className="w-full flex items-center gap-[14px] mb-[22px]">
-                  <Orb size={72} pulse={false} />
-                  <p className="flex-1 text-[15px] leading-[1.5] text-v2-text-primary">写点今天的小事，我帮你变成口语素材～</p>
+                  <Orb size={64} pulse={false} />
+                  <p className="flex-1 text-[15px] leading-[1.5] text-v2-text-primary">分享生活小事，我帮你变成口语素材～</p>
                 </div>
 
-                {/* 故事输入卡（渐变描边，加长文本框） */}
-                <div className="w-full rounded-[18px]" style={{ ...GRADIENT_BORDER_STYLE_FULL, padding: '15px 15px 12px' }}>
+                {/* 故事输入卡（方案 B：白底细边框 + 内置录音入口 + 圆形发送按钮） */}
+                <div className="w-full bg-white border border-black/[0.06] rounded-[18px] px-4 pt-4 pb-3">
                   <textarea
                     value={textStory}
                     onChange={e => setTextStory(e.target.value)}
                     placeholder={'用中文写下你的故事……\n比如：上周末我去了附近的公园，空气很好，待了很久，整个人都放松下来。'}
-                    className="w-full min-h-[235px] bg-transparent text-[15px] text-v2-text-primary leading-[1.75] placeholder:text-[#CCCCCC] resize-none outline-none"
+                    className="w-full min-h-[180px] bg-transparent text-[15px] text-v2-text-primary leading-[1.75] placeholder:text-[#CCCCCC] resize-none outline-none"
                     autoFocus
                   />
-                  <div className="flex justify-between items-center border-t border-black/[0.05] pt-3">
-                    <span className="text-[12px] text-[#CCCCCC]">
-                      {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上'}
-                    </span>
+                  <div className="flex items-center justify-between pt-2">
+                    {/* 左下：改用录音 */}
+                    <button
+                      onClick={() => setShowTextInput(false)}
+                      className="flex items-center gap-1.5 text-[13px] text-[#AAAAAA] active:opacity-60"
+                    >
+                      <Mic2 size={15} />
+                      改用录音
+                    </button>
+                    {/* 右下：圆形发送 / 开始匹配 */}
                     <button
                       disabled={textStory.trim().length < 10 || submitting}
                       onClick={() => void handleTextSubmit()}
-                      className={`flex items-center gap-1 px-4 py-2 text-[14px] font-medium transition-all duration-200 ${
+                      aria-label="开始匹配题目"
+                      className={
                         textStory.trim().length >= 10 && !submitting
-                          ? 'btn-gradient'
-                          : 'rounded-full bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
-                      }`}
+                          ? 'btn-gradient-circle w-[42px] h-[42px]'
+                          : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-[#EEEEEE] cursor-not-allowed'
+                      }
                     >
-                      {submitting ? '检查中…' : '开始匹配 →'}
+                      {submitting ? (
+                        <Loader2 size={18} className="text-[#CCCCCC] animate-spin" />
+                      ) : (
+                        <ArrowRight size={18} className={textStory.trim().length >= 10 ? 'text-brand-primary-dark' : 'text-[#CCCCCC]'} />
+                      )}
                     </button>
                   </div>
                 </div>
 
-                {/* 改用录音：紧贴输入框下方 */}
-                <button
-                  onClick={() => setShowTextInput(false)}
-                  className="mt-[14px] mx-auto block text-[13px] text-[#AAAAAA]"
-                >
-                  ← 改用录音
-                </button>
-
-                {/* 通用提示：怎样的素材更好用（与整理语料页一致） */}
+                {/* 通用提示：怎样的素材更好用（方案 A，保持现状） */}
                 <div className="w-full mt-6">
                   <div className="flex items-center gap-1.5 mb-[11px]">
                     <Lightbulb size={14} className="text-[#C0996F]" />
