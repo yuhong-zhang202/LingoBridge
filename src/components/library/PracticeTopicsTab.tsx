@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PartTag from '@/components/PartTag'
 import Chip from '@/components/Chip'
+import Card from '@/components/Card'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { PracticedTopic } from '@/lib/types'
 
@@ -39,7 +40,7 @@ export default function PracticeTopicsTab({ topics }: Props) {
         ))}
       </div>
       {filtered.map(topic => (
-        <div key={topic.id} className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4" style={GRADIENT_BORDER_STYLE}>
+        <Card key={topic.id} variant="gradient" className="p-4">
           <div className="flex items-center justify-between mb-2.5">
             <PartTag label={topic.part} />
             <span className="text-[12px] text-v2-text-muted">{topic.lastPracticedAt}</span>
@@ -59,7 +60,7 @@ export default function PracticeTopicsTab({ topics }: Props) {
               练习
             </button>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )

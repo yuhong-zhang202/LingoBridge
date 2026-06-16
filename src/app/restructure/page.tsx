@@ -14,7 +14,7 @@ import Card from '@/components/Card'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
-import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { MOCK_RAW_STORY } from '@/data/restructure'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 
@@ -22,25 +22,23 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
 }) {
   return (
-    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: BRAND_GRADIENT, padding: 1, borderRadius: 17 }}>
-      <div className="bg-white rounded-[16px] px-5 pt-4 pb-5">
-        {isEditing ? (
-          <textarea
-            value={text}
-            onChange={e => onChange(e.target.value)}
-            className="w-full min-h-[110px] text-[14px] text-v2-text-primary leading-relaxed bg-bg-inner rounded-[12px] px-3 py-2.5 outline-none resize-none focus:ring-1 focus:ring-brand-primary/30"
-            autoFocus
-          />
-        ) : (
-          <p className="text-[14px] text-v2-text-primary leading-relaxed">{text}</p>
-        )}
-        <div className="flex justify-end mt-2">
-          <Chip onClick={onToggleEdit} variant="default">
-            {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
-          </Chip>
-        </div>
+    <Card variant="gradient" className="px-5 pt-4 pb-5">
+      {isEditing ? (
+        <textarea
+          value={text}
+          onChange={e => onChange(e.target.value)}
+          className="w-full min-h-[110px] text-[14px] text-v2-text-primary leading-relaxed bg-bg-inner rounded-[12px] px-3 py-2.5 outline-none resize-none focus:ring-1 focus:ring-brand-primary/30"
+          autoFocus
+        />
+      ) : (
+        <p className="text-[14px] text-v2-text-primary leading-relaxed">{text}</p>
+      )}
+      <div className="flex justify-end mt-2">
+        <Chip onClick={onToggleEdit} variant="default">
+          {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
+        </Chip>
       </div>
-    </div>
+    </Card>
   )
 }
 

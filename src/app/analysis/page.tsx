@@ -12,6 +12,7 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
+import Card from '@/components/Card'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
 import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
@@ -47,11 +48,7 @@ function StepNum({ n }: { n: number }) {
 
 /** 渐变描边卡片 — 极淡 1px 渐变 border + 白底内层 */
 function GradCard({ children }: { children: ReactNode }) {
-  return (
-    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: 17 }}>
-      <div className="bg-white rounded-[16px] px-[22px] pt-[16px] pb-[22px]">{children}</div>
-    </div>
-  )
+  return <Card variant="gradient" className="px-[22px] pt-[16px] pb-[22px]">{children}</Card>
 }
 
 function AnalysisContent() {
