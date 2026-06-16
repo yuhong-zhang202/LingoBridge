@@ -41,7 +41,7 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
           <div className="flex flex-col gap-2">
             <div style={{ padding: '9px 11px', background: '#F8F7F5', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
               <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
-              <p className="text-[13.5px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
+              <p className="text-[13px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
             </div>
             {result.note && <p className="text-[12px] text-v2-text-muted leading-[1.45] px-1">{result.note}</p>}
           </div>

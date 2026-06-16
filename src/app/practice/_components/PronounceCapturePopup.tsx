@@ -44,7 +44,7 @@ export default function PronounceCapturePopup({ heard, onSave, onClose }: Pronou
       <p className="text-[12px] text-v2-text-muted mb-2.5">
         听成了：<span className="text-brand-primary-dark font-medium">{heard}</span>
       </p>
-      <p className="text-[11.5px] text-v2-text-secondary mb-1.5">你真正想说的词是</p>
+      <p className="text-[11px] text-v2-text-secondary mb-1.5">你真正想说的词是</p>
       <div className="flex items-center gap-2">
         <input
           autoFocus
@@ -52,7 +52,7 @@ export default function PronounceCapturePopup({ heard, onSave, onClose }: Pronou
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="输入正确的词"
-          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-[#FAFAF8] px-2.5 py-1.5 text-[13.5px] text-v2-text-primary outline-none focus:border-brand-primary/40"
+          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-[#FAFAF8] px-2.5 py-1.5 text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
         />
         <button
           onClick={submit}

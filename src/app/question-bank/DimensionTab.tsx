@@ -101,12 +101,12 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div className="w-[7px] h-[7px] rounded-full bg-text-4 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-v2-text-muted">{dim}</p>
-                  <p className="text-[11.5px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
+                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
                 </div>
                 <Chip
                   variant="gradient"
                   onClick={() => router.push('/')}
-                  className="text-[11.5px] px-3 gap-[3px] flex-shrink-0"
+                  className="text-[11px] px-3 gap-[3px] flex-shrink-0"
                 >
                   分享经历
                   <ChevronRight size={12} className="text-brand-primary-dark" />
@@ -128,7 +128,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div className="w-[7px] h-[7px] rounded-full bg-brand-primary flex-shrink-0" />
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-[14px] font-semibold text-v2-text-primary">{dim}</p>
-                  <p className="text-[11.5px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
+                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
                 </div>
                 <span className="text-[12px] font-semibold text-v2-text-secondary">{lit}/{total}</span>
                 <ChevronDown size={14} className={`text-v2-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />

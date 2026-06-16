@@ -29,7 +29,7 @@ function WordRow({ label, word, ipa }: { label: string; word: string; ipa?: stri
       <div className="flex items-center justify-between mb-[11px]">
         <span className="text-[15px] text-v2-text-primary">
           <span className="font-medium">{word}</span>
-          {ipa && <span className="ml-2 text-[12.5px] text-v2-text-secondary">{ipa}</span>}
+          {ipa && <span className="ml-2 text-[12px] text-v2-text-secondary">{ipa}</span>}
         </span>
         <button
           onClick={() => speak(word)}
@@ -83,11 +83,11 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
       <div className="rounded-[12px] bg-bg-page px-3 py-2.5 mb-[11px]">
         <p className="text-[11px] text-v2-text-muted mb-1">怎么念</p>
         {data
-          ? <p className="text-[12.5px] text-v2-text-primary leading-[1.6]">{data.tip}</p>
-          : <p className="text-[12.5px] text-v2-text-muted leading-[1.6]">{loading ? '发音提示生成中…' : '稍后再试'}</p>}
+          ? <p className="text-[12px] text-v2-text-primary leading-[1.6]">{data.tip}</p>
+          : <p className="text-[12px] text-v2-text-muted leading-[1.6]">{loading ? '发音提示生成中…' : '稍后再试'}</p>}
       </div>
 
-      <p className="text-[11.5px] text-v2-text-muted leading-[1.5]">出处：{item.context}</p>
+      <p className="text-[11px] text-v2-text-muted leading-[1.5]">出处：{item.context}</p>
     </div>
   )
 }

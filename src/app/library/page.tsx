@@ -270,14 +270,14 @@ export default function LibraryPage() {
                 {/* 微预览 */}
                 <div className="bg-bg-page rounded-[14px] px-[13px] py-[11px]">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="flex-shrink-0 text-[9.5px] font-semibold rounded-full px-[7px] py-[2px] bg-bg-muted text-v2-text-muted">你的话</span>
+                    <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-bg-muted text-v2-text-muted">你的话</span>
                     <span className="text-[12px] text-v2-text-secondary truncate flex-1">
                       {latestCard?.originalSentence ?? ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className="flex-shrink-0 text-[9.5px] font-semibold rounded-full px-[7px] py-[2px]"
+                      className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px]"
                       style={{ background: '#EDF6EB', border: '1px solid #C0DDB9', color: '#3D7A38' }}
                     >更地道</span>
                     <span className="text-[12px] text-v2-text-primary font-medium truncate flex-1">
@@ -342,8 +342,8 @@ export default function LibraryPage() {
                 <Mic2 size={15} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-medium text-v2-text-secondary">我的语料</p>
-                <p className="text-[11.5px] text-v2-text-muted mt-[0.5px]">已匹配 {matchedTotal} 道题 · 可回看与重练</p>
+                <p className="text-[13px] font-medium text-v2-text-secondary">我的语料</p>
+                <p className="text-[11px] text-v2-text-muted mt-[0.5px]">已匹配 {matchedTotal} 道题 · 可回看与重练</p>
               </div>
               <span className="text-[13px] font-semibold text-v2-text-muted">{stories.length}</span>
               <ChevronRight size={16} className="text-text-4" />

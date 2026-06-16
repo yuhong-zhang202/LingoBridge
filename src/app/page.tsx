@@ -95,7 +95,7 @@ export default function HomePage() {
             <div className="bg-bg-muted rounded-full p-1 inline-flex w-[228px]">
               <button
                 onClick={() => setIeltsMode(false)}
-                className={`flex-1 text-center py-2 text-[13.5px] font-semibold rounded-full transition-all ${
+                className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${
                   !ieltsMode
                     ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark'
                     : 'bg-transparent text-v2-text-muted'
@@ -105,7 +105,7 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
-                className={`flex-1 text-center py-2 text-[13.5px] font-semibold rounded-full transition-all ${
+                className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${
                   ieltsMode
                     ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark'
                     : 'bg-transparent text-v2-text-muted'
@@ -232,7 +232,7 @@ export default function HomePage() {
                 </div>
 
                 {/* 要素提示行 */}
-                <div className="mt-4 px-1 text-[12.5px] leading-[1.7] text-v2-text-muted">
+                <div className="mt-4 px-1 text-[12px] leading-[1.7] text-v2-text-muted">
                   试着带到：<span className="text-v2-text-secondary font-medium">时间 · 人物 · 发生的事 · 你的做法和感受</span>
                 </div>
               </div>

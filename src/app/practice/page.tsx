@@ -291,7 +291,7 @@ function PracticeContent(): JSX.Element {
       >
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
         {nearLimit && (
-          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11.5px] leading-[1.4] text-warning">
+          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning">
             <Clock size={13} className="flex-shrink-0 mt-px" />
             <span>{capHint}</span>
           </div>

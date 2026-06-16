@@ -75,7 +75,7 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
               <p className="text-[25px] font-bold text-v2-text-primary tracking-[-0.3px]">{card.text}</p>
               <p className="text-[15px] text-v2-text-secondary mt-3">{card.meaning}</p>
               {card.scene && (
-                <div className="w-full bg-bg-page rounded-[12px] px-3 py-2.5 mt-3.5 text-left text-[12.5px] leading-[1.6] text-v2-text-secondary">
+                <div className="w-full bg-bg-page rounded-[12px] px-3 py-2.5 mt-3.5 text-left text-[12px] leading-[1.6] text-v2-text-secondary">
                   {card.scene}
                 </div>
               )}
