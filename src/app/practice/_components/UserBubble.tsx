@@ -30,7 +30,7 @@ export default function UserBubble({ text, onPolish, onWordTap }: UserBubbleProp
           <button
             onClick={onPolish}
             aria-label="换个说法"
-            className="absolute -left-2.5 -top-2.5 w-[22px] h-[22px] rounded-full bg-white border border-black/[0.08] shadow-sm flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+            className="absolute -left-2.5 -top-2.5 w-[22px] h-[22px] rounded-full bg-white border border-black/[0.08] shadow-sm flex items-center justify-center text-brand-primary active:scale-[0.97] transition-transform"
           >
             <Sparkles size={12} />
           </button>

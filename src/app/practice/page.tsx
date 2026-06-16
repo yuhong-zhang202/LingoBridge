@@ -302,7 +302,7 @@ function PracticeContent(): JSX.Element {
             ref={orbRef}
             onClick={() => { if (polishResult) setShowPolish(true) }}
             aria-label="换个说法"
-            className="flex-shrink-0 active:scale-[0.94] transition-transform duration-150"
+            className="flex-shrink-0 active:scale-[0.97] transition-transform duration-150"
           >
             <OrbSoft size={50} />
           </button>
@@ -316,7 +316,7 @@ function PracticeContent(): JSX.Element {
               <button
                 onClick={onCancelRecord}
                 aria-label="取消录音"
-                className="flex-shrink-0 w-[34px] h-[34px] flex items-center justify-center text-v2-text-muted active:scale-90 transition-transform"
+                className="flex-shrink-0 w-[34px] h-[34px] flex items-center justify-center text-v2-text-muted active:scale-[0.97] transition-transform"
               >
                 <X size={19} />
               </button>

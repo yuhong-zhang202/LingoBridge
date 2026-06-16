@@ -489,7 +489,10 @@ orb-pulse：  scale(1.00→1.07)，2.2s ease-in-out infinite
 波形（录音激活）：wave-a1~a5，500ms，交错 0/80/160ms
 底栏滑入：sheet-enter，250ms，cubic-bezier(0.32,0.72,0,1)
 Accordion：accordionDown，200ms ease-out
-按钮点击：active:scale-[0.97]，transition-transform duration-150
+按钮点击（按元素大小分 3 档）：
+  - 普通按钮：active:scale-[0.97]，transition-transform duration-150
+  - 圆形主按钮（.btn-gradient-circle）：scale(0.93)（由 class 提供）
+  - 大卡片 / 列表行：active:scale-[0.99]（大元素轻按）
 ```
 
 ---

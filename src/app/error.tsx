@@ -51,7 +51,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
       {/* 重试：圆角矩形渐变按钮 */}
       <button
         onClick={reset}
-        className="mt-7 w-full max-w-[280px] flex items-center justify-center gap-1.5 rounded-[14px] py-3.5 text-[14px] font-medium text-[#444] active:scale-[0.98] transition-transform duration-150"
+        className="mt-7 w-full max-w-[280px] flex items-center justify-center gap-1.5 rounded-[14px] py-3.5 text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
         style={GRADIENT_BORDER_STYLE}
       >
         <RefreshCw size={15} />重试
@@ -87,7 +87,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           <button
             onClick={() => void send()}
             disabled={!text.trim() || sending}
-            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium text-[#444] disabled:opacity-40 active:scale-[0.98] transition-transform duration-150"
+            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium text-[#444] disabled:opacity-40 active:scale-[0.97] transition-transform duration-150"
             style={GRADIENT_BORDER_STYLE}
           >
             {sending ? '发送中…' : '发送'}
