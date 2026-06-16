@@ -123,6 +123,16 @@ export default function LibraryPage() {
       className="relative flex flex-col bg-bg-page overflow-hidden"
       style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
+      <style>{`
+        @keyframes lib-hero-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.35; }
+          50%      { transform: scale(1.08); opacity: 0.6; }
+        }
+        @keyframes lib-deck-float {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-5px); }
+        }
+      `}</style>
       {view !== 'hub' ? (
         <>
           {/* 二级页返回栏 */}
@@ -174,18 +184,23 @@ export default function LibraryPage() {
                 className="rounded-[20px] p-[18px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
                 style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 16 }}
               >
-                {/* 右上暖光 */}
+                {/* 右上暖光（更淡更小 + 轻柔脉动） */}
                 <div
-                  className="absolute w-[170px] h-[170px] rounded-full blur-[24px] pointer-events-none"
+                  className="absolute w-[130px] h-[130px] rounded-full blur-[24px] pointer-events-none"
                   style={{
-                    background: 'radial-gradient(circle, rgba(248,168,118,0.34), transparent 70%)',
-                    top: -50, right: -50,
+                    background: 'radial-gradient(circle, rgba(248,168,118,0.18), transparent 70%)',
+                    top: -30, right: -30,
+                    animation: 'lib-hero-pulse 3s ease-in-out infinite',
                   }}
                   aria-hidden="true"
                 />
 
-                {/* 闪卡叠卡 */}
-                <div className="relative w-[74px] h-[92px] flex-shrink-0" aria-hidden="true">
+                {/* 闪卡叠卡（上下浮动） */}
+                <div
+                  className="relative w-[74px] h-[92px] flex-shrink-0"
+                  style={{ animation: 'lib-deck-float 4s ease-in-out infinite' }}
+                  aria-hidden="true"
+                >
                   <div
                     className="absolute w-[60px] h-[80px] rounded-[13px]"
                     style={{ background: '#FBF4EC', boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(-3px,3px) rotate(-9deg)' }}
@@ -232,25 +247,24 @@ export default function LibraryPage() {
               style={{ animationDelay: '0.18s' }}
             >
               <div
-                className="rounded-[20px] p-4 active:scale-[0.99] transition-transform"
-                style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 14 }}
+                className="rounded-[20px] p-4 bg-bg-surface active:scale-[0.99] transition-transform"
+                style={{ boxShadow: SOFT, marginBottom: 14 }}
               >
                 <div className="flex items-center gap-[13px] mb-[13px]">
                   {/* 图标块（橙云） */}
                   <div className="relative w-[46px] h-[46px] rounded-[14px] flex items-center justify-center flex-shrink-0">
                     <div
-                      className="absolute inset-[-4px] rounded-full blur-[9px] opacity-90 pointer-events-none"
+                      className="absolute inset-[-4px] rounded-full blur-[9px] opacity-[0.55] pointer-events-none"
                       style={{ background: 'radial-gradient(circle, rgba(248,168,118,0.95) 0%, rgba(248,168,118,0) 70%)' }}
                       aria-hidden="true"
                     />
                     <MessageSquareText size={21} className="text-v2-text-secondary relative z-[2]" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="flex-1 min-w-0">
                     <h3 className="text-[15px] font-semibold text-v2-text-primary">收藏卡片</h3>
                     <p className="text-[12px] text-v2-text-muted mt-[2px]">练习里你说过、改得更好的句子</p>
                   </div>
-                  <span className="flex-shrink-0 text-[19px] font-bold text-brand-primary-dark">{cards.length}</span>
-                  <div className="flex-1" />
+                  <span className="flex-shrink-0 self-start mt-0.5 mr-9 text-[19px] font-bold text-v2-text-primary">{cards.length}</span>
                 </div>
 
                 {/* 微预览 */}
@@ -284,7 +298,7 @@ export default function LibraryPage() {
               >
                 <div className="relative w-[42px] h-[42px] rounded-[12px] flex items-center justify-center flex-shrink-0">
                   <div
-                    className="absolute inset-[-4px] rounded-full blur-[9px] opacity-90 pointer-events-none"
+                    className="absolute inset-[-4px] rounded-full blur-[9px] opacity-[0.55] pointer-events-none"
                     style={{ background: 'radial-gradient(circle, rgba(145,200,122,0.95) 0%, rgba(145,200,122,0) 70%)' }}
                     aria-hidden="true"
                   />
@@ -292,7 +306,7 @@ export default function LibraryPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-v2-text-secondary">词组收藏</p>
-                  <p className="text-[18px] font-bold text-brand-primary-dark leading-none mt-1">{wordsCount}</p>
+                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{wordsCount}</p>
                 </div>
               </button>
 
@@ -304,7 +318,7 @@ export default function LibraryPage() {
               >
                 <div className="relative w-[42px] h-[42px] rounded-[12px] flex items-center justify-center flex-shrink-0">
                   <div
-                    className="absolute inset-[-4px] rounded-full blur-[9px] opacity-90 pointer-events-none"
+                    className="absolute inset-[-4px] rounded-full blur-[9px] opacity-[0.55] pointer-events-none"
                     style={{ background: 'radial-gradient(circle, rgba(246,196,108,0.90) 0%, rgba(246,196,108,0) 70%)' }}
                     aria-hidden="true"
                   />
@@ -312,7 +326,7 @@ export default function LibraryPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-v2-text-secondary">发音</p>
-                  <p className="text-[18px] font-bold text-brand-primary-dark leading-none mt-1">{pronCount}</p>
+                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{pronCount}</p>
                 </div>
               </button>
             </div>
