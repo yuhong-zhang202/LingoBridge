@@ -11,8 +11,8 @@ import type { PhraseCard } from '@/lib/types'
 
 // 超过此位移（px）判定为一次有效滑动
 const SWIPE_THRESHOLD = 90
-// 顶部渐变细条（品牌橙→绿）
-const STRIP = 'linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9))'
+// 左侧竖渐变条（品牌橙→绿）
+const STRIP = 'linear-gradient(180deg, rgba(212,135,90,0.92), rgba(123,166,153,0.92))'
 
 // 朗读英文（系统语音）
 function speak(text: string): void {
@@ -46,10 +46,15 @@ function Dots({ box }: { box: number }): JSX.Element {
 function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element {
   return (
     <div
-      className={`${back ? 'absolute inset-0' : ''} rounded-[20px] bg-white shadow-[0_2px_14px_rgba(0,0,0,0.06)] overflow-hidden`}
-      style={{ backfaceVisibility: 'hidden', transform: back ? 'rotateY(180deg)' : undefined }}
+      className={`${back ? 'absolute inset-0' : 'relative'} rounded-[22px] bg-white shadow-[0_10px_30px_-8px_rgba(180,120,70,0.20),0_3px_10px_rgba(120,90,60,0.06)] overflow-hidden`}
+      style={{ backfaceVisibility: 'hidden', transform: back ? 'rotateX(180deg)' : undefined }}
     >
-      <div className="h-1" style={{ background: STRIP }} />
+      {/* 左侧竖渐变条 */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[5px] z-[3]"
+        style={{ background: STRIP }}
+        aria-hidden="true"
+      />
       {back && (
         <button
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); speak(card.text) }}
@@ -59,20 +64,24 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
           <Volume2 size={16} className="text-v2-text-muted" />
         </button>
       )}
-      <div className="px-[22px] pt-[18px] pb-5 min-h-[256px] flex flex-col">
+      <div className="px-[22px] pt-[18px] pb-[18px] min-h-[300px] flex flex-col">
         {card.group && (
           <span className="self-start text-[11px] text-[#3D7A38] bg-[#EDF6EB] border border-[#C0DDB9] rounded-full px-2.5 py-[3px]">{card.group}</span>
         )}
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           {back ? (
             <>
-              <p className="text-[19px] font-medium text-v2-text-primary leading-[1.4]">{card.text}</p>
+              <p className="text-[25px] font-bold text-v2-text-primary tracking-[-0.3px]">{card.text}</p>
               <p className="text-[15px] text-v2-text-secondary mt-3">{card.meaning}</p>
-              {card.scene && <p className="text-[12px] text-v2-text-muted mt-1.5">{card.scene}</p>}
+              {card.scene && (
+                <div className="w-full bg-bg-page rounded-[12px] px-3 py-2.5 mt-3.5 text-left text-[12.5px] leading-[1.6] text-v2-text-secondary">
+                  {card.scene}
+                </div>
+              )}
             </>
           ) : (
             <>
-              <p className="text-[21px] font-medium text-v2-text-primary leading-[1.5]">{card.meaning}</p>
+              <p className="text-[23px] font-semibold text-v2-text-primary leading-[1.4]">{card.meaning}</p>
               <p className="text-[13px] text-brand-accent mt-3.5">想想英文怎么说?</p>
             </>
           )}
@@ -134,7 +143,7 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
         onTouchEnd={onTouchEnd}
       >
         <div style={{ perspective: 1000 }}>
-          <div className="relative transition-transform duration-300" style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateY(180deg)' : 'none' }}>
+          <div className="relative transition-transform duration-300" style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateX(180deg)' : 'none' }}>
             <Face card={card} back={false} />
             <Face card={card} back={true} />
           </div>
@@ -148,11 +157,11 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px]">
           <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-[#C47A6A] active:opacity-60">
-            <ArrowLeft size={15} />没记住
+            <ArrowLeft size={15} />重复
           </button>
           <span className="text-[12px] text-[#D8D2CA]">左右滑动</span>
           <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-[#3D7A38] active:opacity-60">
-            记住了<ArrowRight size={15} />
+            熟知<ArrowRight size={15} />
           </button>
         </div>
       )}

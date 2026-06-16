@@ -53,12 +53,27 @@ export default function ReviewPage(): JSX.Element {
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       {/* 顶栏：关闭 + 进度 */}
-      <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
-        <button onClick={close} aria-label="关闭复习" className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
-          <X size={15} className="text-[#888]" />
-        </button>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between h-[52px] px-5">
+          <button onClick={close} aria-label="关闭复习" className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
+            <X size={15} className="text-[#888]" />
+          </button>
+          {!loading && !error && queue.length > 0 && current < queue.length && (
+            <span className="text-[13px] text-[#AAAAAA]">{current + 1} / {queue.length}</span>
+          )}
+        </div>
         {!loading && !error && queue.length > 0 && current < queue.length && (
-          <span className="text-[13px] text-[#AAAAAA]">{current + 1} / {queue.length}</span>
+          <div className="px-5">
+            <div className="mt-1 h-1 rounded-full bg-bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-[width] duration-300"
+                style={{
+                  width: `${(current / queue.length) * 100}%`,
+                  background: 'linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9))',
+                }}
+              />
+            </div>
+          </div>
         )}
       </div>
 
