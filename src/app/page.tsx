@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mic2, ChevronLeft, ChevronRight, Lightbulb, ArrowRight, Loader2 } from 'lucide-react'
+import { Mic2, RotateCw, Lightbulb, ArrowRight, Loader2 } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
@@ -53,11 +53,10 @@ export default function HomePage() {
       <div className="ambient-light" />
 
       {/* 顶部栏 */}
-      <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
+      <div className="flex items-center h-[52px] px-5 relative z-10">
         <span className="text-[16px] font-bold text-[#111]">
           LingoBridge
         </span>
-        <div className="w-[30px] h-[30px] rounded-full bg-white shadow-sm" />
       </div>
 
       {/* 主体 */}
@@ -74,24 +73,30 @@ export default function HomePage() {
 
           {!showTextInput && (
             <div className="text-center w-full">
-              {/* 左右箭头切换控件，始终显示在标题上方 */}
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <button
-                  onClick={() => setIeltsMode(false)}
-                  className="w-[26px] h-[26px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.93] transition-all duration-150"
-                  style={{ border: '1px solid rgba(0,0,0,0.07)', opacity: ieltsMode ? 1 : 0.28 }}
-                  aria-label="返回故事模式"
-                >
-                  <ChevronLeft size={14} color="#A89990" />
-                </button>
-                <button
-                  onClick={() => { setIeltsMode(true); void next() }}
-                  className="w-[26px] h-[26px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.93] transition-all duration-150"
-                  style={{ border: '1px solid rgba(0,0,0,0.07)', opacity: ieltsMode ? 0.28 : 1 }}
-                  aria-label="切换雅思题目"
-                >
-                  <ChevronRight size={14} color="#A89990" />
-                </button>
+              {/* 分段控件：故事模式 / 雅思题模式 */}
+              <div className="flex justify-center mb-3">
+                <div className="bg-muted rounded-full p-1 inline-flex">
+                  <button
+                    onClick={() => setIeltsMode(false)}
+                    className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                      !ieltsMode
+                        ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                        : 'text-v2-text-muted'
+                    }`}
+                  >
+                    我的故事
+                  </button>
+                  <button
+                    onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                    className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                      ieltsMode
+                        ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                        : 'text-v2-text-muted'
+                    }`}
+                  >
+                    雅思题
+                  </button>
+                </div>
               </div>
 
               {!ieltsMode ? (
@@ -105,16 +110,23 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <h1 className="w-full text-center text-[20px] font-bold text-[#111] tracking-tight leading-snug pl-6 min-h-[28px]">
+                  <h1 className="w-full text-center text-[20px] font-bold text-[#111] tracking-tight leading-snug min-h-[28px]">
                     {loading
                       ? '换一题中…'
                       : question
                         ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh)
-                        : '点右箭头换一道雅思题'}
+                        : ''}
                   </h1>
                   <p className="text-[13px] text-[#888] mt-2">
                     聊聊你的看法
                   </p>
+                  <button
+                    onClick={() => void next()}
+                    className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-v2-text-muted active:opacity-60"
+                  >
+                    <RotateCw size={12} />
+                    换一题
+                  </button>
                 </>
               )}
             </div>
