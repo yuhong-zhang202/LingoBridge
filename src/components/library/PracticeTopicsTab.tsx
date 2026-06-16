@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import PartTag from '@/components/PartTag'
 import Chip from '@/components/Chip'
 import Card from '@/components/Card'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { PracticedTopic } from '@/lib/types'
 
 const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3'] as const
@@ -52,13 +51,13 @@ export default function PracticeTopicsTab({ topics }: Props) {
             <span className="text-[12px] text-v2-text-muted">
               已练习 {topic.practiceCount} 次 · 收藏 {topic.collectedCount} 张
             </span>
-            <button
+            <Chip
+              variant="gradient"
               onClick={() => router.push(`/practice?questionId=${topic.questionId}`)}
-              className="px-[14px] py-[5px] rounded-full text-[12px] font-medium text-v2-text-secondary"
-              style={GRADIENT_BORDER_STYLE}
+              className="font-medium"
             >
               练习
-            </button>
+            </Chip>
           </div>
         </Card>
       ))}

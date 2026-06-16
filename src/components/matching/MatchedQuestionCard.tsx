@@ -8,7 +8,7 @@
 import { ArrowRight } from 'lucide-react'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import Chip from '@/components/Chip'
 import type { MatchedQuestion } from '@/lib/types'
 
 interface Props {
@@ -71,14 +71,14 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
         {zhText && <p className="text-[12px] text-v2-text-muted mt-0.5">{zhText}</p>}
 
         <div className="flex items-center justify-end mt-3">
-          <button
+          <Chip
+            variant="gradient"
             onClick={(e) => { e.stopPropagation(); onPractice() }}
-            className="flex items-center gap-1 text-[12px] font-semibold text-v2-text-secondary px-3 py-1.5 rounded-full flex-shrink-0"
-            style={GRADIENT_BORDER_STYLE}
+            className="px-3 py-1.5 flex-shrink-0"
           >
             题目分析
             <ArrowRight size={12} />
-          </button>
+          </Chip>
         </div>
       </div>
     </div>
