@@ -62,6 +62,34 @@ export default function HomePage() {
       {/* 主体 */}
       <div className={`flex-1 min-h-0 flex flex-col items-center px-7 relative z-10 overflow-y-auto ${showTextInput ? 'pt-3 pb-[120px]' : 'pt-6 pb-[72px]'}`}>
 
+        {/* 分段控件：故事模式 / 雅思题模式（在 Orb 上方） */}
+        {!showTextInput && (
+          <div className="flex justify-center mb-7">
+            <div className="bg-muted rounded-full p-1 inline-flex">
+              <button
+                onClick={() => setIeltsMode(false)}
+                className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                  !ieltsMode
+                    ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                    : 'text-v2-text-muted'
+                }`}
+              >
+                我的故事
+              </button>
+              <button
+                onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                  ieltsMode
+                    ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                    : 'text-v2-text-muted'
+                }`}
+              >
+                雅思题
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Orb（故事/录音态居中展示；文字态的小 Orb 放在引导气泡行内） */}
         {!showTextInput && <Orb size={300} pulse={false} />}
 
@@ -73,32 +101,6 @@ export default function HomePage() {
 
           {!showTextInput && (
             <div className="text-center w-full">
-              {/* 分段控件：故事模式 / 雅思题模式 */}
-              <div className="flex justify-center mb-3">
-                <div className="bg-muted rounded-full p-1 inline-flex">
-                  <button
-                    onClick={() => setIeltsMode(false)}
-                    className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
-                      !ieltsMode
-                        ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
-                        : 'text-v2-text-muted'
-                    }`}
-                  >
-                    我的故事
-                  </button>
-                  <button
-                    onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
-                    className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
-                      ieltsMode
-                        ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
-                        : 'text-v2-text-muted'
-                    }`}
-                  >
-                    雅思题
-                  </button>
-                </div>
-              </div>
-
               {!ieltsMode ? (
                 <>
                   <h1 className="text-[20px] font-bold text-[#111] tracking-tight">
