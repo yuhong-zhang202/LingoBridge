@@ -105,6 +105,7 @@ export default function RecordingPage() {
       <div className="flex-shrink-0 flex items-center justify-between h-[52px] px-5 relative z-10">
         <button
           onClick={() => router.back()}
+          aria-label="返回"
           className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center"
         >
           <X size={14} className="text-v2-text-primary" />

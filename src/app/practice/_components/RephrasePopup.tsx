@@ -31,7 +31,7 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
 
       <div className="flex justify-between items-center mb-2">
         <span className="text-[13px] font-semibold text-v2-text-primary">换个说法</span>
-        <button onClick={onClose} className="active:opacity-60 transition-opacity"><X size={14} color="#A89990" /></button>
+        <button onClick={onClose} aria-label="关闭" className="active:opacity-60 transition-opacity"><X size={14} color="#A89990" /></button>
       </div>
 
       {loading ? (

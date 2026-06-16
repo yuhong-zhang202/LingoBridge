@@ -21,6 +21,7 @@ export default function TopBar({
         {showBack && (
           <button
             onClick={() => router.back()}
+            aria-label="返回"
             className="w-[30px] h-[30px] rounded-full bg-white flex items-center justify-center shadow-sm"
           >
             <ChevronLeft size={15} className="text-v2-text-primary" />

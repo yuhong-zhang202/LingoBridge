@@ -142,6 +142,7 @@ export default function FeedbackPage() {
             <div className="flex gap-3 mb-4">
               <button
                 onClick={skip}
+                aria-label="跳过"
                 className="btn-ghost flex-1 h-[48px] active:scale-[0.97] transition-transform duration-150"
               >
                 <X size={15} className="text-[#CCCCCC]" />

@@ -72,6 +72,7 @@ export default function ProfilePage(): JSX.Element {
         console.log('[ProfilePage] navigate to /settings')
         router.push('/settings')
       }}
+      aria-label="设置"
       className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.97] transition-transform duration-150"
     >
       <Settings size={15} color="#333" />
