@@ -221,7 +221,6 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 搜索框、统计卡 | `#FFFFFF` | 带细边框 |
 | 用户原句 / AI 优化句区域 | `#F8F7F5` | feedback 页内嵌内容块 |
 | AI 标签背景 | `#EEF7F3` | feedback 页"AI 优化"标签 |
-| 按钮禁用态 | `#EEEEEE` | 不可点击时 |
 | TopBar 返回按钮 | `#FFFFFF` | 圆形 w-30px，shadow-sm |
 
 ---
@@ -345,11 +344,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ### 禁用态按钮
 
-```
-背景：#EEEEEE
-文字：#CCCCCC
-cursor-not-allowed
-```
+统一 `disabled:opacity-50` + `cursor-not-allowed`（保留按钮原样式，整体降到 50% 透明度，不改灰底）。
 
 ### 文字按钮（无边框）
 
@@ -554,6 +549,7 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
-*最后更新：2026-06-16（analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外）*
+*最后更新：2026-06-16（禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则）*
+*2026-06-16：analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外*
 *2026-06-16：统一页面背景为 `#F8F5F1`；主基准页引用修正为 `feedback/page.tsx`*
 *2026-05-30：统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页*

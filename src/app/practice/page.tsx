@@ -335,7 +335,7 @@ function PracticeContent(): JSX.Element {
           ) : (
             // 空闲 / 处理态：点击说话胶囊
             <button
-              className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
+              className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
               style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
               disabled={phase !== 'idle'}
               onClick={onStartRecord}

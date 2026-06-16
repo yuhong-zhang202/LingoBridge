@@ -87,7 +87,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           <button
             onClick={() => void send()}
             disabled={!text.trim() || sending}
-            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium text-v2-text-secondary disabled:opacity-40 active:scale-[0.97] transition-transform duration-150"
+            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium text-v2-text-secondary disabled:opacity-50 active:scale-[0.97] transition-transform duration-150"
             style={GRADIENT_BORDER_STYLE}
           >
             {sending ? '发送中…' : '发送'}

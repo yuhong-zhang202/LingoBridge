@@ -151,7 +151,7 @@ export default function RecordingPage() {
         <button
           onClick={handleFinish}
           disabled={transcribing}
-          className="btn-gradient w-full h-[56px] text-[16px] font-semibold disabled:opacity-60"
+          className="btn-gradient w-full h-[56px] text-[16px] font-semibold disabled:opacity-50"
         >
           <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
           {transcribing ? '转写中…' : '完成录音'}

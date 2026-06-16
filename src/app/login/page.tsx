@@ -116,7 +116,7 @@ export default function LoginPage() {
           <button
             onClick={() => void handleLogin()}
             disabled={logging}
-            className="btn-gradient w-full h-[50px] mt-5 disabled:opacity-60"
+            className="btn-gradient w-full h-[50px] mt-5 disabled:opacity-50"
           >
             {logging ? '登录中…' : '登录'}
           </button>

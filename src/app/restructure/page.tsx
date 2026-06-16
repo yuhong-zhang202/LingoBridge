@@ -166,7 +166,7 @@ function RestructureContent() {
                 <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
               )}
               <button
-                className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-60"
+                className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
                 style={GRADIENT_BORDER_STYLE}
                 onClick={() => void handleMatchClick()}
                 disabled={isSaving}
