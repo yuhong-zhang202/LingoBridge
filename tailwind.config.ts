@@ -25,7 +25,7 @@ const config: Config = {
         'warning':  '#C4965A',
         'error':    '#C47A6A',
         /* v2 tokens */
-        'bg-base':              '#F5F2EE',
+        'bg-base':              '#F8F5F1',
         'bg-surface':           '#FFFFFF',
         'bg-muted':             '#EEEBE6',
         'brand-primary':        '#D4875A',

@@ -7,7 +7,7 @@
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', background: '#F5F2EE', zIndex: 9999 }}>
+    <div className="bg-bg-page" style={{ position: 'fixed', inset: 0, overflowY: 'auto', zIndex: 9999 }}>
       {children}
     </div>
   )
