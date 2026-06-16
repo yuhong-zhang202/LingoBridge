@@ -245,11 +245,12 @@ export default function LibraryPage() {
                     />
                     <MessageSquareText size={21} className="text-v2-text-secondary relative z-[2]" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <h3 className="text-[15px] font-semibold text-v2-text-primary">收藏卡片</h3>
-                    <p className="text-[12px] text-v2-text-muted mt-[2px]">练习里你打磨过的更好表达</p>
+                    <p className="text-[12px] text-v2-text-muted mt-[2px]">练习里你说过、改得更好的句子</p>
                   </div>
                   <span className="flex-shrink-0 text-[19px] font-bold text-brand-primary-dark">{cards.length}</span>
+                  <div className="flex-1" />
                 </div>
 
                 {/* 微预览 */}
