@@ -81,14 +81,6 @@
   }
   .btn-ghost:active { opacity: 0.6; }
 
-  /* 卡片 */
-  .card {
-    background: #FFFFFF;
-    border-radius: 20px;
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  }
-
   /* 内嵌表面（输入框/次级内容）*/
   .surface {
     background: #F4F4F4;

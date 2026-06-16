@@ -143,7 +143,7 @@ function AnalysisContent() {
         {!loading && !error && data && (
           <>
             {/* 题目卡片 */}
-            <div className="card px-[22px] pt-[16px] pb-[22px]">
+            <Card className="px-[22px] pt-[16px] pb-[22px]">
               <div className="flex items-center gap-2 mb-2.5">
                 <PartTag label={`Part ${data.question.part}`} />
                 {data.question.dimension && <Tag variant="green" label={data.question.dimension} />}
@@ -151,7 +151,7 @@ function AnalysisContent() {
               </div>
               <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
               <p className="text-[12px] text-v2-text-muted">{data.question.zh}</p>
-            </div>
+            </Card>
 
             {/* 答题侧重点 */}
             <GradCard>
