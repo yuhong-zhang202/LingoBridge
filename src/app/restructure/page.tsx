@@ -148,15 +148,15 @@ function RestructureContent() {
             )}
             <div className="px-0.5 mt-[18px]">
               <div className="flex items-center gap-1.5 mb-2.5">
-                <Lightbulb size={13} className="text-[#C0996F]" />
+                <Lightbulb size={13} className="text-brand-primary" />
                 <span className="text-[13px] font-medium text-v2-text-secondary">怎样的素材更好用</span>
               </div>
               <div className="flex items-start gap-2.5 mb-2">
-                <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">1</span>
+                <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-brand-primary-light bg-phrase-warm-bg flex items-center justify-center text-[11px] text-brand-primary-dark mt-[1px]">1</span>
                 <p className="text-[13px] text-v2-text-secondary leading-relaxed">同一段真实经历，细节越全，能套用的题越多</p>
               </div>
               <div className="flex items-start gap-2.5">
-                <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">2</span>
+                <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-brand-primary-light bg-phrase-warm-bg flex items-center justify-center text-[11px] text-brand-primary-dark mt-[1px]">2</span>
                 <p className="text-[13px] text-v2-text-secondary leading-relaxed">好用的素材通常会带到：时间、人物、发生的事、你的做法和感受</p>
               </div>
             </div>
