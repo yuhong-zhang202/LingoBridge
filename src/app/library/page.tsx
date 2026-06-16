@@ -7,7 +7,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, ChevronLeft, ChevronRight, Mic2, CreditCard, BookOpen, Volume2 } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import CollectedCardsTab from '@/components/library/CollectedCardsTab'
@@ -195,12 +195,15 @@ export default function LibraryPage() {
                     style={{ background: '#F4F8F3', boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(4px,1px) rotate(5deg)' }}
                   />
                   <div
-                    className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-surface flex flex-col items-center justify-center"
+                    className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-1.5"
                     style={{ boxShadow: SOFT_SM, top: 6, left: 7, transform: 'rotate(-2deg)' }}
                   >
-                    <span className="text-[11.5px] font-bold text-v2-text-primary">wind down</span>
-                    <div className="w-[24px] h-[3px] rounded my-1 bg-gradient-to-r from-brand-primary to-brand-accent" />
-                    <span className="text-[8.5px] text-v2-text-muted">放松下来</span>
+                    <span className="text-[10px] leading-tight font-bold text-v2-text-primary text-center break-words">wind down</span>
+                    <div
+                      className="w-[24px] h-[3px] rounded-full my-1"
+                      style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
+                    />
+                    <span className="text-[8.5px] text-v2-text-muted text-center">放松下来</span>
                   </div>
                 </div>
 
@@ -240,13 +243,13 @@ export default function LibraryPage() {
                       style={{ background: 'radial-gradient(circle, rgba(248,168,118,0.95) 0%, rgba(248,168,118,0) 70%)' }}
                       aria-hidden="true"
                     />
-                    <CreditCard size={21} className="text-v2-text-secondary relative z-[2]" />
+                    <MessageSquareText size={21} className="text-v2-text-secondary relative z-[2]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[15px] font-semibold text-v2-text-primary">收藏卡片</h3>
                     <p className="text-[12px] text-v2-text-muted mt-[2px]">练习里你打磨过的更好表达</p>
                   </div>
-                  <span className="text-[19px] font-bold text-brand-primary-dark tracking-[-0.5px]">{cards.length}</span>
+                  <span className="flex-shrink-0 text-[19px] font-bold text-brand-primary-dark">{cards.length}</span>
                 </div>
 
                 {/* 微预览 */}
