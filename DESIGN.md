@@ -139,7 +139,7 @@ position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 <button
-  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
+  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
   style={GRADIENT_BORDER_STYLE}
 >
   开始匹配题目 →
@@ -153,7 +153,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 圆角 | `rounded-full`（全圆角胶囊） |
 | 内边距 | `px-6 py-3`（宽松版）/ `px-5 py-2.5`（紧凑版） |
 | 字重 | `font-medium` |
-| 文字色 | `text-[#444]`（深灰），如需渐变文字另加 `background-clip: text` |
+| 文字色 | `text-v2-text-secondary`（深灰），如需渐变文字另加 `background-clip: text` |
 | 交互 | `active:scale-[0.97] transition-transform duration-150` |
 
 - **禁止**：自行内联渐变背景替代 `GRADIENT_BORDER_STYLE`，所有页面必须使用同一常量
@@ -216,7 +216,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 组件 | 背景色 | 说明 |
 |---|---|---|
 | `.surface` 内嵌区域 | `#F4F4F4` | 文本输入框、引用内容、代码块 |
-| `.card` 卡片 | `#FFFFFF` | 带 `border-radius: 20px` 和阴影 |
+| `<Card>` 卡片 | `#FFFFFF` | 带 `rounded-[16px]` 和阴影 |
 | Tab 选中态 | `#F4F4F4` | Tab 切换器激活背景 |
 | 搜索框、统计卡 | `#FFFFFF` | 带细边框 |
 | 用户原句 / AI 优化句区域 | `#F8F7F5` | feedback 页内嵌内容块 |
@@ -259,7 +259,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 | 场景 | 值 |
 |---|---|
-| 标准页面横向内边距 | `px-5`（20px）或 `px-6`（24px） |
+| 标准页面横向内边距 | `px-5`（20）或 `px-6`（24） |
 | 首页内容区 | `px-7`（28px） |
 | 录音底部控制区 | `px-8`（32px） |
 | TopBar 高度 | `h-[52px]` |
@@ -282,7 +282,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 用途 | 值 |
 |---|---|
 | 主按钮 / 胶囊 / 标签 | `rounded-full`（9999px） |
-| 卡片（`.card`） | `rounded-[20px]` |
+| 卡片（`<Card>`） | `rounded-[16px]` |
 | 小卡片 / 搜索框 | `rounded-[12px]` |
 | 统计卡内层 / Tab 按钮 | `rounded-[14px]` / `rounded-[10px]` |
 | `.surface` 内嵌区域 | `rounded-[14px]` |
@@ -295,31 +295,27 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ## 5. 组件规范
 
-### 主按钮
+### 主按钮 / 渐变 CTA — `<GradientButton>`
 
-所有页面的唯一主操作（继续、确认、开始、完成）统一使用以下样式，不得例外。
+所有页面的主操作（继续、确认、开始、完成、回首页、重试等）统一用 `<GradientButton>`，不得手写。
 
 ```tsx
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 
-<button
-  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
-  style={GRADIENT_BORDER_STYLE}
->
+<GradientButton onClick={...} className="px-6 py-3 rounded-full text-[14px] font-medium">
   按钮文字
-</button>
+</GradientButton>
 ```
 
+组件已内置：渐变描边（`GRADIENT_BORDER_STYLE`）+ 白底 + 文字色 `text-v2-text-secondary` + `active:scale-[0.97]` + `transition` + `disabled:opacity-50`。尺寸 / 形状 / 宽度 / 字号由 `className` 决定。
+
 ```
-形状：rounded-full（9999px 全圆角）
-边框：1.5px 渐变描边，由 GRADIENT_BORDER_STYLE 常量提供
-背景：white padding-box（内部纯白，由常量提供）
-文字：14px / font-medium / text-[#444]
-内边距：px-6 py-3（宽松）/ px-5 py-2.5（紧凑，如底栏内联按钮）
-交互：active:scale-[0.97]，transition-transform duration-150
+形状：默认 rounded-full；error 页等可用 rounded-[12/14px] 圆角矩形
+文字：text-v2-text-secondary（禁止再写 text-v2-text-secondary）
+内边距：px-6 py-3（宽松）/ px-5 py-2（紧凑）
 ```
 
-> `.btn-gradient` CSS class（globals.css）与 `GRADIENT_BORDER_STYLE` 实现原理相同，二者均可用，新页面优先用常量方式，便于 TypeScript 类型推断。见「核心视觉原则 → 主按钮规范」。
+> 例外（不归 GradientButton，各自保留专用样式）：practice 录音条（专用输入组件）、login 验证码按钮（禁用时整体变灰，是另一套）。
 
 ### 录音圆形按钮 `.btn-gradient-circle`
 
@@ -349,28 +345,25 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 ### 文字按钮（无边框）
 
 ```
-text-[13px] text-[#AAAAAA]
+text-[13px] text-v2-text-muted
 无背景、无边框
 用于：「或用文字输入」「← 改用录音」等低优先级入口
 ```
 
-### 卡片 `.card`
+### 卡片 — `<Card>`
 
-**普通卡片（信息展示）：**
-```css
-background: #FFFFFF
-border-radius: 20px
-border: 1px solid rgba(0,0,0,0.05)   /* 0.5px 视觉等效 */
-box-shadow: 0 2px 12px rgba(0,0,0,0.06)
+统一用 `<Card>`，不得手写卡片样式。
+
+```tsx
+import Card from '@/components/Card'
+
+<Card className="px-4 py-4">…</Card>                         {/* 普通卡 plain */}
+<Card variant="gradient" className="px-5 pt-4 pb-5">…</Card>  {/* 强调卡 gradient（AI 输出） */}
 ```
 
-**强调卡片（AI 输出内容）：**
-```css
-/* 使用 GRADIENT_BORDER_STYLE_FULL 常量，外层渐变 + 内层白底 */
-border-radius: 20px
-```
-
-使用 `GRADIENT_BORDER_STYLE_FULL` 常量（`src/lib/constants.ts`），padding-box + 渐变 border-box，border-radius: 20px。见「核心视觉原则 → 渐变边框标准实现」。
+**普通卡（plain，默认）：** `bg-white` + `rounded-[16px]` + `border border-black/[0.05]`（0.5px 视觉等效）+ `shadow-[0_2px_12px_rgba(0,0,0,0.06)]`
+**强调卡（gradient）：** `GRADIENT_BORDER_STYLE_FULL` 渐变描边 + 白底 + `rounded-[16px]` + 同款阴影
+内边距由 `className` 决定。
 
 ### 内嵌表面 `.surface`
 
@@ -381,12 +374,15 @@ border-radius: 14px
 
 用于：实时转写预览、文本引用块、可编辑区域。
 
-### Tag / Chip 尺寸规范（全局强制）
+### Tag / Chip 规范（全局强制）
 
-| 类型 | 用途 | padding | 字号 | 字重 | 圆角 |
-|---|---|---|---|---|---|
-| 信息标签 Tag | 当季热题、语料梳理、AI 优化、Part 标签 | `px-[10px] py-[5px]` | `text-[11px]` | `font-medium` | `rounded-full` |
-| 交互按钮 Chip | 全部/Part筛选、编辑/完成、练习 | `px-[14px] py-[5px]` | `text-[12px]` | `font-medium` | `rounded-full` |
+| 组件 | 性质 | 变体 | 默认尺寸 | 圆角 |
+|---|---|---|---|---|
+| `<Tag>` | 展示型（不可点） | `green`（默认）/ `gradient` / `gray` | `text-[11px]` `px-[10px] py-[5px]` `font-medium` | `rounded-full` |
+| `<Chip>` | 交互型（可点） | `gradient`（默认）/ `ghost` / `default` | `md`：`text-[12px]` `px-[14px] py-[5px]`；`sm`：`text-[11px]` `px-[10px] py-[3px]` | `rounded-full` |
+
+- `<Tag>`：展示标签（当季热题、语料梳理、Part 等），不带交互。
+- `<Chip>`：可点胶囊（筛选、切换、练习/分析等小动作）。`ghost + active` 自动切为渐变样式（用于筛选/切换）；`size="sm"` 用于紧凑动作 chip。
 
 实现：使用 `src/components/Tag.tsx` 和 `src/components/Chip.tsx`，禁止页面内直接手写同类样式。
 
@@ -428,7 +424,7 @@ border-radius: 14px
 高度：56px + env(safe-area-inset-bottom)
 边框：border-t border-black/[0.06]
 位置：fixed bottom-0，max-w-[430px]，居中
-图标：20px，激活 text-[#111]，未激活 text-[#BBBBBB]
+图标：size={20}，激活 text-[#111]，未激活 text-[#BBBBBB]
 文字：10px / 500，激活 #111，未激活 #BBBBBB
 激活指示器：3×3px 圆点 bg-[#111]
 ```
@@ -530,6 +526,10 @@ Accordion：accordionDown，200ms ease-out
 
 | 需求 | 组件 |
 |---|---|
+| 卡片（普通 / 强调） | `<Card variant="plain\|gradient">` |
+| 展示标签 | `<Tag variant="green\|gradient\|gray">` |
+| 可点胶囊（筛选 / 切换 / 小动作） | `<Chip variant="gradient\|ghost\|default" size="md\|sm">` |
+| 主操作 / 渐变 CTA 按钮 | `<GradientButton>` |
 | 顶部返回 / 标题栏 | `<TopBar />` |
 | 底部主导航 | `<TabBar />`（除 /recording、/practice 外的所有页面） |
 | 流程进度 | `<StepBar currentStep="..." />` |
@@ -546,10 +546,12 @@ Accordion：accordionDown，200ms ease-out
 - 禁止将渐变用于卡片背景、页面背景或大面积色块（见「核心视觉原则」）
 - 禁止因 prompt 指定了不同色值而新增 token，冲突时一律用项目原有 token
 - 禁止单文件超过 1000 行（参见 ENGINEERING.md §1）
+- 禁止页面内手写卡片 / 标签 / 胶囊 / 渐变 CTA 按钮样式，必须用 `<Card>` / `<Tag>` / `<Chip>` / `<GradientButton>`（防止再次漂移）
 
 ---
 
-*最后更新：2026-06-16（禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则）*
+*2026-06-17：卡片/标签/胶囊/渐变 CTA 统一为 `<Card>`/`<Tag>`/`<Chip>`/`<GradientButton>` 四组件并列为必用；卡片圆角全站统一为 16（删旧 .card 死样式）；示例 v1 色 #444/#AAAAAA 改 v2*
+*2026-06-16：禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则*
 *2026-06-16：analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外*
 *2026-06-16：统一页面背景为 `#F8F5F1`；主基准页引用修正为 `feedback/page.tsx`*
 *2026-05-30：统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页*
