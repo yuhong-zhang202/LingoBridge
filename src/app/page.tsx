@@ -65,12 +65,12 @@ export default function HomePage() {
         {/* 分段控件：故事模式 / 雅思题模式（在 Orb 上方） */}
         {!showTextInput && (
           <div className="flex justify-center mb-7">
-            <div className="bg-muted rounded-full p-1 inline-flex">
+            <div className="bg-muted rounded-full p-1.5 inline-flex">
               <button
                 onClick={() => setIeltsMode(false)}
-                className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                className={`px-6 py-2.5 text-[15px] rounded-full transition-all ${
                   !ieltsMode
-                    ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                    ? 'bg-surface shadow-md text-brand-primary-dark font-semibold'
                     : 'text-v2-text-muted'
                 }`}
               >
@@ -78,9 +78,9 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
-                className={`px-4 py-1.5 text-[13px] rounded-full transition-all ${
+                className={`px-6 py-2.5 text-[15px] rounded-full transition-all ${
                   ieltsMode
-                    ? 'bg-surface shadow-sm text-brand-primary-dark font-semibold'
+                    ? 'bg-surface shadow-md text-brand-primary-dark font-semibold'
                     : 'text-v2-text-muted'
                 }`}
               >
