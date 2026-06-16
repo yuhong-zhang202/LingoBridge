@@ -160,15 +160,15 @@ function AnalysisContent() {
                   </span>
                 )}
               </div>
-              <p className="text-[14px] font-medium text-[#1A1A1A] leading-[1.6] mb-1">{data.question.en}</p>
-              <p className="text-[12px] text-[#888888]">{data.question.zh}</p>
+              <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
+              <p className="text-[12px] text-v2-text-muted">{data.question.zh}</p>
             </div>
 
             {/* 答题侧重点 */}
             <GradCard>
               <div className="flex items-center gap-1.5 mb-2">
                 <Target size={13} className="text-brand-primary" />
-                <span className="text-[13px] font-semibold text-[#444]">答题侧重点</span>
+                <span className="text-[13px] font-semibold text-v2-text-secondary">答题侧重点</span>
               </div>
               {data.analysis.structureLabel && (
                 <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
@@ -178,8 +178,8 @@ function AnalysisContent() {
                   <div key={i} className="flex items-start gap-2.5">
                     <StepNum n={i + 1} />
                     <div className="flex-1 pt-[1px]">
-                      <p className="text-[14px] font-medium text-[#1A1A1A] leading-[1.6]">{fp.title}</p>
-                      <p className="text-[12px] text-[#888888] mt-1 leading-relaxed">{fp.desc}</p>
+                      <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
+                      <p className="text-[12px] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -190,7 +190,7 @@ function AnalysisContent() {
             <GradCard>
               <div className="flex items-center gap-1.5 mb-3">
                 <Type size={13} className="text-brand-accent" />
-                <span className="text-[13px] font-semibold text-[#444]">可用词组</span>
+                <span className="text-[13px] font-semibold text-v2-text-secondary">可用词组</span>
                 <div className="relative ml-auto">
                   <button
                     onClick={() => setLevelMenuOpen(v => !v)}
@@ -202,7 +202,7 @@ function AnalysisContent() {
                   </button>
                   {levelMenuOpen && (
                     <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
-                      <p className="text-[11px] text-[#A89990] px-2.5 pt-0.5 pb-1">目标水平</p>
+                      <p className="text-[11px] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
                       {LEVELS.map(lv => (
                         <button
                           key={lv}
@@ -226,7 +226,7 @@ function AnalysisContent() {
                   const openItem = og === gi ? g.items[oi] : null
                   return (
                     <div key={gi}>
-                      <p className="text-[11px] font-medium text-[#888888] mb-2">{g.group}</p>
+                      <p className="text-[11px] font-medium text-v2-text-muted mb-2">{g.group}</p>
                       <div className="flex flex-wrap gap-2">
                         {g.items.map((p, ii) => {
                           const isOpen = openPhrase === `${gi}-${ii}`
@@ -263,7 +263,7 @@ function AnalysisContent() {
             </GradCard>
 
             <button
-              className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-[#444] active:scale-[0.97] transition-transform duration-150"
+              className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
               style={LIGHTER_BORDER}
               onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}`)}
             >

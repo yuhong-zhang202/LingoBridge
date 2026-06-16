@@ -86,7 +86,7 @@ export default function FeedbackPage() {
             </p>
             <button
               onClick={() => router.push('/')}
-              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-[#444]"
+              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-v2-text-secondary"
               style={GRADIENT_BORDER_STYLE}
             >
               回首页
@@ -104,7 +104,7 @@ export default function FeedbackPage() {
             </p>
             <button
               onClick={() => router.push('/')}
-              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-[#444]"
+              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-v2-text-secondary"
               style={GRADIENT_BORDER_STYLE}
             >
               回首页
@@ -148,7 +148,7 @@ export default function FeedbackPage() {
             <div className="flex items-center justify-center gap-3 mb-3">
               <span className="text-[12px] text-[#CCCCCC]">← 跳过</span>
               <span className="text-[12px] text-[#CCCCCC]">—</span>
-              <span className="text-[12px] text-[#888]">收藏 →</span>
+              <span className="text-[12px] text-v2-text-muted">收藏 →</span>
             </div>
 
             <div className="flex gap-3 mb-4">
@@ -163,8 +163,8 @@ export default function FeedbackPage() {
                 className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full active:scale-[0.97] transition-transform duration-150"
                 style={GRADIENT_BORDER_STYLE}
               >
-                <Heart size={16} className="text-[#555]" />
-                <span className="text-[13px] font-semibold text-[#444]">收藏</span>
+                <Heart size={16} className="text-v2-text-secondary" />
+                <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>
               </button>
             </div>
 

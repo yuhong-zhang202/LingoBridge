@@ -56,7 +56,7 @@ export default function ReviewPage(): JSX.Element {
       <div className="relative z-10">
         <div className="flex items-center justify-between h-[52px] px-5">
           <button onClick={close} aria-label="关闭复习" className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
-            <X size={15} className="text-[#888]" />
+            <X size={15} className="text-v2-text-muted" />
           </button>
           {!loading && !error && queue.length > 0 && current < queue.length && (
             <span className="text-[13px] text-[#AAAAAA]">{current + 1} / {queue.length}</span>

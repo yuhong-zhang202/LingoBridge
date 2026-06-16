@@ -43,7 +43,7 @@ export default function NoMatchView({ primaryDimension, primaryPointName }: Prop
           </p>
           <button
             onClick={() => router.push('/')}
-            className="px-5 py-2 rounded-full text-[13px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
+            className="px-5 py-2 rounded-full text-[13px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
             style={GRADIENT_BORDER_STYLE}
           >
             切换角度讲述 →

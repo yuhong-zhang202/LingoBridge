@@ -107,9 +107,9 @@ export default function RecordingPage() {
           onClick={() => router.back()}
           className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center"
         >
-          <X size={14} className="text-[#333]" />
+          <X size={14} className="text-v2-text-primary" />
         </button>
-        <span className="text-[15px] font-semibold text-[#111]">{transcribing ? '转写中' : '正在录音'}</span>
+        <span className="text-[15px] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
         <div className="w-[30px]" />
       </div>
 
@@ -122,16 +122,16 @@ export default function RecordingPage() {
           <>
             <div className="flex flex-col items-center gap-2.5">
               <Waveform active />
-              <span className="text-[13px] text-[#888] italic">listening...</span>
+              <span className="text-[13px] text-v2-text-muted italic">listening...</span>
             </div>
 
             <div className="surface px-4 py-3 max-w-[260px] text-center">
-              <p className="text-[13px] text-[#444] leading-relaxed">
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed">
                 正在聆听，说完点下方「完成录音」自动转写
               </p>
             </div>
 
-            <span className="text-[22px] font-semibold text-[#111] tracking-[2px]">{fmt(seconds)}</span>
+            <span className="text-[22px] font-semibold text-v2-text-primary tracking-[2px]">{fmt(seconds)}</span>
 
             <p className="text-[12px] text-[#CCCCCC] text-center px-8 leading-relaxed">
               建议说 30–60 秒，说得越具体效果越好 ✨

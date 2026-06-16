@@ -72,13 +72,13 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
           )}
         </div>
 
-        <p className="text-[16px] font-bold text-[#111] leading-snug">{enText}</p>
+        <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{enText}</p>
         {zhText && <p className="text-[12px] text-[#AAAAAA] mt-0.5">{zhText}</p>}
 
         <div className="flex items-center justify-end mt-3">
           <button
             onClick={(e) => { e.stopPropagation(); onPractice() }}
-            className="flex items-center gap-1 text-[12px] font-semibold text-[#444] px-3 py-1.5 rounded-full flex-shrink-0"
+            className="flex items-center gap-1 text-[12px] font-semibold text-v2-text-secondary px-3 py-1.5 rounded-full flex-shrink-0"
             style={GRADIENT_BORDER_STYLE}
           >
             题目分析

@@ -57,7 +57,7 @@ export default function PronounceCapturePopup({ heard, onSave, onClose }: Pronou
         <button
           onClick={submit}
           disabled={!value.trim()}
-          className="flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[12px] font-medium text-[#444] active:scale-[0.97] transition-transform disabled:opacity-50"
+          className="flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[12px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform disabled:opacity-50"
           style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 9999 }}
         >
           <Bookmark size={12} className="text-brand-primary" />收藏

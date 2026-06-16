@@ -34,7 +34,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
     return (
       <button
         onClick={onClick}
-        className={cn(BASE, 'bg-white text-[#444] font-semibold', className)}
+        className={cn(BASE, 'bg-white text-v2-text-secondary font-semibold', className)}
         style={GRADIENT_BORDER_STYLE}
       >
         {children}
@@ -44,7 +44,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
 
   const variantClass = variant === 'ghost'
     ? 'bg-transparent border border-[#E5E5E5] text-[#AAAAAA]'
-    : 'bg-white border border-[#E5E5E5] text-[#444]'
+    : 'bg-white border border-[#E5E5E5] text-v2-text-secondary'
 
   return (
     <button

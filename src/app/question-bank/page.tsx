@@ -30,12 +30,12 @@ export default function QuestionBankPage() {
 
       {!isEmpty && (
         <div className="px-5 pt-4 pb-0 flex-shrink-0">
-          <div className="flex rounded-[10px] p-[3px] bg-[#F4F4F4]">
+          <div className="flex rounded-[10px] p-[3px] bg-bg-inner">
             {TABS.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${activeTab === tab ? 'bg-white text-[#111] font-semibold shadow-sm' : 'text-[#888] font-medium'}`}
+                className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
               >
                 {tab}
               </button>

@@ -80,7 +80,7 @@ export default function HomePage() {
         </div>
       ) : (
         <div className="flex items-center h-[52px] px-5 relative z-10">
-          <span className="text-[16px] font-bold text-[#111]">
+          <span className="text-[16px] font-bold text-v2-text-primary">
             LingoBridge
           </span>
         </div>
@@ -130,23 +130,23 @@ export default function HomePage() {
             <div className="text-center w-full">
               {!ieltsMode ? (
                 <>
-                  <h1 className="text-[20px] font-bold text-[#111] tracking-tight">
+                  <h1 className="text-[20px] font-bold text-v2-text-primary tracking-tight">
                     说说你的故事
                   </h1>
-                  <p className="text-[13px] text-[#888] mt-2">
+                  <p className="text-[13px] text-v2-text-muted mt-2">
                     精准匹配雅思口语题目
                   </p>
                 </>
               ) : (
                 <>
-                  <h1 className="w-full text-center text-[20px] font-bold text-[#111] tracking-tight leading-snug min-h-[28px]">
+                  <h1 className="w-full text-center text-[20px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
                     {loading
                       ? '换一题中…'
                       : question
                         ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh)
                         : ''}
                   </h1>
-                  <p className="text-[13px] text-[#888] mt-2">
+                  <p className="text-[13px] text-v2-text-muted mt-2">
                     聊聊你的看法
                   </p>
                   <button
@@ -169,7 +169,7 @@ export default function HomePage() {
                 {/* 主按钮：开始录音 */}
                 <Link href="/recording" className="block">
                   <button className="btn-gradient w-full h-[50px]">
-                    <Mic2 size={16} className="text-[#555]" />
+                    <Mic2 size={16} className="text-v2-text-secondary" />
                     开始录音
                   </button>
                 </Link>

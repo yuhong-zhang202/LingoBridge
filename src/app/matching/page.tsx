@@ -166,7 +166,7 @@ function MatchingContent() {
         {/* 故事预览 */}
         <div className="bg-bg-muted rounded-[14px] px-3.5 py-2.5 mb-5 flex items-center gap-2">
           <Sparkles size={13} className="text-[#AAAAAA] flex-shrink-0" />
-          <span className="text-[12px] text-[#888] italic truncate">
+          <span className="text-[12px] text-v2-text-muted italic truncate">
             「{story ? story.slice(0, 24) + (story.length > 24 ? '…' : '') : '未收到故事'}」
           </span>
         </div>
@@ -190,9 +190,9 @@ function MatchingContent() {
           <>
             {/* 匹配标题 + 识别出的维度 */}
             <div className="mb-4">
-              <h2 className="text-[20px] font-bold text-[#111]">匹配到 {totalVisible} 道当季真题</h2>
+              <h2 className="text-[20px] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
               {result.primary && (
-                <p className="text-[12px] text-[#888] mt-1">
+                <p className="text-[12px] text-v2-text-muted mt-1">
                   识别维度：{result.primary.dimension} · {result.primary.pointName}
                   {result.secondary && ` ／ ${result.secondary.dimension} · ${result.secondary.pointName}`}
                 </p>

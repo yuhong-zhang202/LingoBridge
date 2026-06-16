@@ -156,7 +156,7 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px]">
-          <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-[#C47A6A] active:opacity-60">
+          <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-error active:opacity-60">
             <ArrowLeft size={15} />重复
           </button>
           <span className="text-[12px] text-[#D8D2CA]">左右滑动</span>

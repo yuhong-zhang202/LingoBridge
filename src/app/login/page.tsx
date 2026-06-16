@@ -101,7 +101,7 @@ export default function LoginPage() {
               className={`rounded-full px-4 py-3.5 text-[12px] font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ${
                 codeBtnDisabled
                   ? 'bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
-                  : 'text-[#444]'
+                  : 'text-v2-text-secondary'
               }`}
               style={codeBtnDisabled ? undefined : GRADIENT_BORDER_STYLE}
             >

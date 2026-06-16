@@ -23,12 +23,12 @@ export default function TopBar({
             onClick={() => router.back()}
             className="w-[30px] h-[30px] rounded-full bg-white flex items-center justify-center shadow-sm"
           >
-            <ChevronLeft size={15} className="text-[#333]" />
+            <ChevronLeft size={15} className="text-v2-text-primary" />
           </button>
         )}
       </div>
       {title && (
-        <span className="text-[16px] font-semibold text-[#111]">
+        <span className="text-[16px] font-semibold text-v2-text-primary">
           {title}
         </span>
       )}

@@ -225,7 +225,7 @@ function PracticeContent(): JSX.Element {
         <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
           <span className="text-[11px] text-[#AAAAAA] flex-shrink-0">Part {scaffold?.part ?? 1}</span>
           <div className="w-px h-3 bg-[#DDDDDD] flex-shrink-0" />
-          <span className="text-[12px] font-medium text-[#444] flex-1 truncate min-w-0">
+          <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
             {scaffold?.displayEn ?? '加载中…'}
           </span>
         </div>
@@ -341,7 +341,7 @@ function PracticeContent(): JSX.Element {
               onClick={onStartRecord}
             >
               <Mic size={19} className="text-brand-primary" />
-              <span className="text-[14px] font-medium text-[#444]">{micLabel}</span>
+              <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
             </button>
           )}
         </div>

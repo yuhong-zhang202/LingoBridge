@@ -49,10 +49,10 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
       <div style={PROG}>
         <div className="bg-white rounded-[20px] px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[13px] font-medium text-[#6B5B52]">你的故事已覆盖</span>
+            <span className="text-[13px] font-medium text-v2-text-secondary">你的故事已覆盖</span>
             <div>
-              <span className="text-[18px] font-semibold text-[#2C2420]">{totalMatched}</span>
-              <span className="text-[12px] text-[#A89990]"> / {totalMapped} 题</span>
+              <span className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}</span>
+              <span className="text-[12px] text-v2-text-muted"> / {totalMapped} 题</span>
             </div>
           </div>
           {(() => {
@@ -82,8 +82,8 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
 
       {matchedQ.length > 0 && <>
         <button onClick={() => setMatchedOpen(v => !v)} className="flex items-center gap-1.5">
-          <span className="text-[12px] font-medium text-[#6B5B52]">可以练习 · {matchedQ.length} 道</span>
-          <ChevronDown size={12} className={`text-[#6B5B52] transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
+          <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
+          <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
         {matchedOpen && <div className="flex flex-col gap-2">
           {matchedQ.map(q => (
@@ -99,12 +99,12 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
               <div className="flex-1 px-[14px] py-[10px] flex items-center gap-[10px]">
                 <div className="flex-1 min-w-0">
                   <PartTag label={`Part ${q.part}`} />
-                  <p className="text-[13px] font-semibold text-[#111] leading-tight mt-1">{q.displayText}</p>
+                  <p className="text-[13px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); router.push(`/analysis?questionId=${q.id}&storyId=1`) }}
                   style={GRADIENT_BORDER_STYLE}
-                  className="text-[11px] font-medium text-[#444] px-[10px] py-[3px] rounded-full flex-shrink-0"
+                  className="text-[11px] font-medium text-v2-text-secondary px-[10px] py-[3px] rounded-full flex-shrink-0"
                 >练习</button>
               </div>
             </div>

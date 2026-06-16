@@ -14,7 +14,7 @@ export default function AiBubble({ text }: { text: string }): JSX.Element {
         className="px-3.5 py-2.5"
         style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,.07)', borderRadius: '6px 16px 16px 16px' }}
       >
-        <p className="text-[14px] text-[#1A1A1A] leading-[1.6]">{text}</p>
+        <p className="text-[14px] text-v2-text-primary leading-[1.6]">{text}</p>
       </div>
     </div>
   )
