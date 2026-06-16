@@ -13,9 +13,17 @@ import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import type { QBQuestion } from '@/lib/types'
 
-const PROG  = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
-const BAR   = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
-const BAR_H = 'linear-gradient(to right, rgba(212,135,90,0.9), rgba(123,166,153,0.9))'
+const PROG = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
+const BAR  = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
+
+const SEG_N = 24
+const segColor = (t: number): string => {
+  const r = Math.round(212 + (123 - 212) * t)
+  const g = Math.round(135 + (166 - 135) * t)
+  const b = Math.round(90  + (153 - 90)  * t)
+  const a = (0.70 + (0.50 - 0.70) * t).toFixed(2)
+  return `rgba(${r},${g},${b},${a})`
+}
 
 interface Props {
   mappedQuestions: QBQuestion[]
@@ -47,12 +55,21 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
               <span className="text-[12px] text-[#A89990]"> / {totalMapped} 题</span>
             </div>
           </div>
-          <div className="h-2 rounded-full bg-bg-muted overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${totalMapped ? (totalMatched / totalMapped) * 100 : 0}%`, background: BAR_H }}
-            />
-          </div>
+          {(() => {
+            const pct = totalMapped ? totalMatched / totalMapped : 0
+            const filledSeg = Math.round(pct * SEG_N)
+            return (
+              <div className="flex gap-[3px]">
+                {Array.from({ length: SEG_N }, (_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 h-1 rounded-[2px]"
+                    style={{ background: i < filledSeg ? segColor(i / Math.max(filledSeg - 1, 1)) : '#EEEBE6' }}
+                  />
+                ))}
+              </div>
+            )
+          })()}
           {totalMatched === 0
             ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
             : <p className="text-[11px] text-[#C4B5A9] mt-1.5">每一段都是你自己的答题素材</p>}
