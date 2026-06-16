@@ -29,7 +29,7 @@ export default function NoMatchView({ primaryDimension, primaryPointName }: Prop
       </p>
 
       {isValue && (
-        <div className="w-full bg-white rounded-[14px] border border-black/[0.05] px-4 py-4 mb-8 text-left">
+        <div className="w-full bg-white rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-4 mb-8 text-left">
           <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[4px] rounded-full inline-block mb-3">
             {primaryDimension} · {primaryPointName}
           </span>

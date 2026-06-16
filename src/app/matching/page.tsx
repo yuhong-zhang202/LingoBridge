@@ -201,7 +201,7 @@ function MatchingContent() {
 
             {/* 副维度降级说明 */}
             {result.matchedViaSecondary && result.secondary && (
-              <div className="bg-white rounded-[14px] px-4 py-3 mb-4 border border-black/[0.05]">
+              <div className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-4 py-3 mb-4 border border-black/[0.05]">
                 <p className="text-[13px] text-v2-text-primary leading-snug mb-1">
                   暂时没匹配到完全契合的雅思真题
                 </p>

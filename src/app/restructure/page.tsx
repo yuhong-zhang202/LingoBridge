@@ -23,8 +23,8 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
 }) {
   return (
-    <div style={{ background: GRAD_BORDER, padding: 1, borderRadius: 21 }}>
-      <div className="bg-white rounded-[20px] px-5 pt-4 pb-5">
+    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: GRAD_BORDER, padding: 1, borderRadius: 17 }}>
+      <div className="bg-white rounded-[16px] px-5 pt-4 pb-5">
         {isEditing ? (
           <textarea
             value={text}
@@ -101,7 +101,7 @@ function RestructureContent() {
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[88px] relative z-10 flex flex-col gap-4">
 
         {/* 原始语料卡片 */}
-        <div className="bg-white rounded-[16px] border border-black/[0.05] px-5 pt-4 pb-5">
+        <div className="bg-white rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-5 pt-4 pb-5">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Quote size={13} className="text-gray-400" />
             <span className="text-[11px] font-medium text-gray-400">素材录入</span>

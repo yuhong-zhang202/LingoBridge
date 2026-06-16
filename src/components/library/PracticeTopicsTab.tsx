@@ -39,7 +39,7 @@ export default function PracticeTopicsTab({ topics }: Props) {
         ))}
       </div>
       {filtered.map(topic => (
-        <div key={topic.id} className="bg-white rounded-[16px] p-4" style={GRADIENT_BORDER_STYLE}>
+        <div key={topic.id} className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4" style={GRADIENT_BORDER_STYLE}>
           <div className="flex items-center justify-between mb-2.5">
             <PartTag label={topic.part} />
             <span className="text-[12px] text-v2-text-muted">{topic.lastPracticedAt}</span>

@@ -48,8 +48,8 @@ function StepNum({ n }: { n: number }) {
 /** 渐变描边卡片 — 极淡 1px 渐变 border + 白底内层 */
 function GradCard({ children }: { children: ReactNode }) {
   return (
-    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: GRAD_BORDER, padding: 1, borderRadius: 21 }}>
-      <div className="bg-white rounded-[20px] px-[22px] pt-[16px] pb-[22px]">{children}</div>
+    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: GRAD_BORDER, padding: 1, borderRadius: 17 }}>
+      <div className="bg-white rounded-[16px] px-[22px] pt-[16px] pb-[22px]">{children}</div>
     </div>
   )
 }

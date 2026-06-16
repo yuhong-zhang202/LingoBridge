@@ -28,7 +28,7 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
     <div className="flex flex-col gap-3 pt-3">
       {stories.map(story => (
         <SwipeToDelete key={story.id} borderRadius={16} onDelete={() => onDelete?.(story.id)}>
-        <div className="bg-white rounded-[16px] p-4" style={GRADIENT_BORDER_STYLE}>
+        <div className="bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4" style={GRADIENT_BORDER_STYLE}>
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               {story.inputType === 'voice' ? (
