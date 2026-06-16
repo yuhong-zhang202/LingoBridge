@@ -73,7 +73,7 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
         </div>
 
         <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{enText}</p>
-        {zhText && <p className="text-[12px] text-[#AAAAAA] mt-0.5">{zhText}</p>}
+        {zhText && <p className="text-[12px] text-v2-text-muted mt-0.5">{zhText}</p>}
 
         <div className="flex items-center justify-end mt-3">
           <button

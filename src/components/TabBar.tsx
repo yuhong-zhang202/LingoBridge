@@ -33,10 +33,10 @@ export default function TabBar() {
           >
             <Icon
               size={20}
-              className={active ? 'text-v2-text-primary' : 'text-[#BBBBBB]'}
+              className={active ? 'text-v2-text-primary' : 'text-text-4'}
             />
             <span className={`text-[10px] font-medium ${
-              active ? 'text-v2-text-primary' : 'text-[#BBBBBB]'
+              active ? 'text-v2-text-primary' : 'text-text-4'
             }`}>
               {label}
             </span>

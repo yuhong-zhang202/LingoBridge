@@ -160,7 +160,7 @@ export default function RecordingPage() {
           <button
             onClick={handleRerecord}
             disabled={transcribing}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-[#AAAAAA] disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] font-medium text-v2-text-muted disabled:opacity-50"
           >
             <RotateCcw size={15} />
             重录

@@ -69,7 +69,7 @@ export default function FeedbackPage() {
       <TopBar
         title="反馈卡片"
         right={loaded && total > 0 && !done
-          ? <span className="text-[13px] text-[#AAAAAA]">{Math.min(index + 1, total)} / {total}</span>
+          ? <span className="text-[13px] text-v2-text-muted">{Math.min(index + 1, total)} / {total}</span>
           : undefined}
       />
       <StepBar currentStep="practice" />

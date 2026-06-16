@@ -165,7 +165,7 @@ function MatchingContent() {
 
         {/* 故事预览 */}
         <div className="bg-bg-muted rounded-[14px] px-3.5 py-2.5 mb-5 flex items-center gap-2">
-          <Sparkles size={13} className="text-[#AAAAAA] flex-shrink-0" />
+          <Sparkles size={13} className="text-v2-text-muted flex-shrink-0" />
           <span className="text-[12px] text-v2-text-muted italic truncate">
             「{story ? story.slice(0, 24) + (story.length > 24 ? '…' : '') : '未收到故事'}」
           </span>

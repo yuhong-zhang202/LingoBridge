@@ -212,7 +212,7 @@ function PracticeContent(): JSX.Element {
                   console.warn('[Practice] 记录练习场次失败', e))
                 router.push('/feedback')
               }}
-            className="text-[13px] text-[#AAAAAA]"
+            className="text-[13px] text-v2-text-muted"
           >
             结束
           </button>
@@ -223,7 +223,7 @@ function PracticeContent(): JSX.Element {
       {/* 题目条：固定在流程轴下方，不随对话滚动 */}
       <div className="flex-shrink-0 px-5 pt-2 pb-3">
         <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-          <span className="text-[11px] text-[#AAAAAA] flex-shrink-0">Part {scaffold?.part ?? 1}</span>
+          <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
           <div className="w-px h-3 bg-[#DDDDDD] flex-shrink-0" />
           <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
             {scaffold?.displayEn ?? '加载中…'}

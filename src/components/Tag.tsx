@@ -48,7 +48,7 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
   }
 
   const variantClass = variant === 'gray'
-    ? 'bg-transparent border border-[#E5E5E5] text-[#AAAAAA]'
+    ? 'bg-transparent border border-[#E5E5E5] text-v2-text-muted'
     : 'bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38]'
 
   return (

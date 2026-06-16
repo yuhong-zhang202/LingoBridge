@@ -177,7 +177,7 @@ export default function HomePage() {
                 {/* 文字输入入口 */}
                 <button
                   onClick={() => setShowTextInput(true)}
-                  className="w-full text-center text-[13px] text-[#AAAAAA] mt-3 cursor-pointer"
+                  className="w-full text-center text-[13px] text-v2-text-muted mt-3 cursor-pointer"
                 >
                   或用文字输入
                 </button>

@@ -43,7 +43,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
   }
 
   const variantClass = variant === 'ghost'
-    ? 'bg-transparent border border-[#E5E5E5] text-[#AAAAAA]'
+    ? 'bg-transparent border border-[#E5E5E5] text-v2-text-muted'
     : 'bg-white border border-[#E5E5E5] text-v2-text-secondary'
 
   return (
