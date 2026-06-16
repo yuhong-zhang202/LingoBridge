@@ -172,7 +172,7 @@ export default function LibraryPage() {
 
             {/* 1) 标题区 */}
             <div className="animate-fade-up" style={{ margin: '6px 2px 18px', animationDelay: '0.02s' }}>
-              <h1 className="text-[23px] font-bold text-v2-text-primary tracking-[-0.3px]">你的积累</h1>
+              <h1 className="text-[23px] font-bold text-v2-text-primary tracking-[-0.3px]">素材积累</h1>
               <p className="text-[13px] text-v2-text-muted mt-[5px]">
                 已攒下 <span className="text-brand-primary-dark font-semibold">{totalCount}</span> 条，慢慢成你自己的表达库
               </p>
