@@ -164,7 +164,7 @@ function MatchingContent() {
       <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10">
 
         {/* 故事预览 */}
-        <div className="surface px-3.5 py-2.5 mb-5 flex items-center gap-2">
+        <div className="bg-bg-muted rounded-[14px] px-3.5 py-2.5 mb-5 flex items-center gap-2">
           <Sparkles size={13} className="text-[#AAAAAA] flex-shrink-0" />
           <span className="text-[12px] text-[#888] italic truncate">
             「{story ? story.slice(0, 24) + (story.length > 24 ? '…' : '') : '未收到故事'}」
