@@ -15,9 +15,9 @@ interface TagProps {
   className?: string
 }
 
-const GRAD_BORDER = 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))'
+const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.35), rgba(168,210,196,0.35))'
 const GRAD_TEXT: CSSProperties = {
-  background: 'linear-gradient(135deg, #E8883A, #7BBF74)',
+  background: 'linear-gradient(135deg, #D4875A, #7BA699)',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
 }

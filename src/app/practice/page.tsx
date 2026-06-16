@@ -327,8 +327,7 @@ function PracticeContent(): JSX.Element {
               <button
                 onClick={() => void handleUserTurn()}
                 aria-label="发送"
-                className="flex-shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center text-white active:scale-90 transition-transform"
-                style={{ background: 'linear-gradient(135deg, #E0A06A, #C98C72)' }}
+                className="flex-shrink-0 w-[38px] h-[38px] btn-gradient-circle text-brand-primary"
               >
                 <Send size={18} />
               </button>

@@ -149,12 +149,12 @@ function AnalysisContent() {
               <div className="flex items-center gap-2 mb-2.5">
                 <PartTag label={`Part ${data.question.part}`} />
                 {data.question.dimension && (
-                  <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
+                  <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[5px] rounded-full">
                     {data.question.dimension}
                   </span>
                 )}
                 {data.question.isNew && (
-                  <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
+                  <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[5px] rounded-full">
                     当季新题
                   </span>
                 )}
