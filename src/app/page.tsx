@@ -2,10 +2,11 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mic2, RotateCw, Lightbulb, ArrowRight, Loader2 } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
+import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 
@@ -17,6 +18,18 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const { question, loading, next } = useSwitchQuestion()
+
+  // 文字输入派生状态
+  const len = textStory.trim().length
+  const pct = Math.min(100, (len / 90) * 100)
+  const richnessFilled = Math.round((pct / 100) * 18)
+  const isRich = pct >= 80
+  const richState =
+    len === 0   ? '越具体匹配越准' :
+    pct < 30    ? '还比较简单，多展开一些' :
+    pct < 80    ? '渐入佳境，再补点细节' :
+                  '很丰富啦 ✨ 可以开始匹配'
+  const canSubmit = len >= 10
 
   const handleTextSubmit = useCallback(async (): Promise<void> => {
     // 第一层：即时预检，不调 API
@@ -53,14 +66,28 @@ export default function HomePage() {
       <div className="ambient-light" />
 
       {/* 顶部栏 */}
-      <div className="flex items-center h-[52px] px-5 relative z-10">
-        <span className="text-[16px] font-bold text-[#111]">
-          LingoBridge
-        </span>
-      </div>
+      {showTextInput ? (
+        <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
+          <button
+            onClick={() => setShowTextInput(false)}
+            aria-label="返回"
+            className="w-[30px] h-[30px] rounded-full bg-bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex items-center justify-center"
+          >
+            <ChevronLeft size={15} className="text-text-2" />
+          </button>
+          <span className="text-[15px] font-semibold text-text-1">写下你的故事</span>
+          <div className="w-[30px]" />
+        </div>
+      ) : (
+        <div className="flex items-center h-[52px] px-5 relative z-10">
+          <span className="text-[16px] font-bold text-[#111]">
+            LingoBridge
+          </span>
+        </div>
+      )}
 
       {/* 主体 */}
-      <div className={`flex-1 min-h-0 flex flex-col items-center px-7 relative z-10 overflow-y-auto ${showTextInput ? 'pt-3 pb-[120px]' : 'pt-6 pb-[72px]'}`}>
+      <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[120px]' : 'items-center px-7 pt-6 pb-[72px]'}`}>
 
         {/* 分段控件：故事模式 / 雅思题模式（在 Orb 上方） */}
         {!showTextInput && (
@@ -159,64 +186,54 @@ export default function HomePage() {
 
             {showTextInput && (
               <div className="w-full animate-fade-up">
-                {/* 引导：Orb + 纯文本（方案 A） */}
-                <div className="w-full flex items-center gap-[14px] mb-[22px]">
-                  <Orb size={64} pulse={false} />
-                  <p className="flex-1 text-[15px] leading-[1.5] text-v2-text-primary">分享生活小事，我帮你变成口语素材～</p>
-                </div>
-
-                {/* 故事输入卡（方案 B：白底细边框 + 内置录音入口 + 圆形发送按钮） */}
-                <div className="w-full bg-white border border-black/[0.06] rounded-[18px] px-4 pt-4 pb-3">
+                {/* 输入卡 */}
+                <div className="w-full bg-bg-surface border border-black/[0.06] rounded-[18px] pt-[18px] px-4 pb-[13px]">
                   <textarea
                     value={textStory}
                     onChange={e => setTextStory(e.target.value)}
-                    placeholder={'用中文写下你的故事……\n比如：上周末我去了附近的公园，空气很好，待了很久，整个人都放松下来。'}
-                    className="w-full min-h-[180px] bg-transparent text-[15px] text-v2-text-primary leading-[1.75] placeholder:text-[#CCCCCC] resize-none outline-none"
+                    placeholder={'用中文聊聊最近的一件小事，尽量说具体些……\n\n和谁一起、做了什么、当时心里什么感觉，都可以写进来。'}
+                    className="w-full min-h-[244px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-text-4"
                     autoFocus
                   />
-                  <div className="flex items-center justify-between pt-2">
-                    {/* 左下：改用录音 */}
+                  <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">
                     <button
                       onClick={() => setShowTextInput(false)}
-                      className="flex items-center gap-1.5 text-[13px] text-[#AAAAAA] active:opacity-60"
+                      className="flex items-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-60"
                     >
                       <Mic2 size={15} />
                       改用录音
                     </button>
-                    {/* 右下：圆形发送 / 开始匹配 */}
                     <button
-                      disabled={textStory.trim().length < 10 || submitting}
+                      disabled={!canSubmit || submitting}
                       onClick={() => void handleTextSubmit()}
                       aria-label="开始匹配题目"
                       className={
-                        textStory.trim().length >= 10 && !submitting
+                        canSubmit && !submitting
                           ? 'btn-gradient-circle w-[42px] h-[42px]'
-                          : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-[#EEEEEE] cursor-not-allowed'
+                          : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-bg-muted cursor-not-allowed'
                       }
                     >
                       {submitting ? (
-                        <Loader2 size={18} className="text-[#CCCCCC] animate-spin" />
+                        <Loader2 size={18} className="text-text-4 animate-spin" />
                       ) : (
-                        <ArrowRight size={18} className={textStory.trim().length >= 10 ? 'text-brand-primary-dark' : 'text-[#CCCCCC]'} />
+                        <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-text-4'} />
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* 通用提示：怎样的素材更好用（方案 A，保持现状） */}
-                <div className="w-full mt-6">
-                  <div className="flex items-center gap-1.5 mb-[11px]">
-                    <Lightbulb size={14} className="text-[#C0996F]" />
-                    <span className="text-[13px] font-medium text-v2-text-secondary">怎样的素材更好用</span>
+                {/* 丰富度 */}
+                <div className="mt-[22px] px-1">
+                  <div className="flex items-baseline justify-between mb-[11px]">
+                    <span className="text-[12px] text-v2-text-muted tracking-[0.3px]">丰富度</span>
+                    <span className={`text-[13px] ${isRich ? 'text-brand-accent font-medium' : 'text-v2-text-secondary'}`}>{richState}</span>
                   </div>
-                  <div className="flex items-start gap-2.5 mb-[9px]">
-                    <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">1</span>
-                    <p className="text-[13px] text-v2-text-secondary leading-relaxed">同一段真实经历，细节越全，能套用的题越多</p>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="flex-shrink-0 w-[18px] h-[18px] rounded-full border border-[#EADFCD] bg-[#FBF7F0] flex items-center justify-center text-[11px] text-[#B89B7E] mt-[1px]">2</span>
-                    <p className="text-[13px] text-v2-text-secondary leading-relaxed">好用的素材通常会带到：时间、人物、发生的事、你的做法和感受</p>
-                  </div>
+                  <SegmentDots total={18} filled={richnessFilled} />
+                </div>
+
+                {/* 要素提示行 */}
+                <div className="mt-4 px-1 text-[12.5px] leading-[1.7] text-v2-text-muted">
+                  试着带到：<span className="text-v2-text-secondary font-medium">时间 · 人物 · 发生的事 · 你的做法和感受</span>
                 </div>
               </div>
             )}
