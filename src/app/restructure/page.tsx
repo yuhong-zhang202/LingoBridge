@@ -14,7 +14,7 @@ import Card from '@/components/Card'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 import { MOCK_RAW_STORY } from '@/data/restructure'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 
@@ -162,14 +162,13 @@ function RestructureContent() {
               {saveError && (
                 <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
               )}
-              <button
-                className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary mb-3 active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
-                style={GRADIENT_BORDER_STYLE}
+              <GradientButton
                 onClick={() => void handleMatchClick()}
                 disabled={isSaving}
+                className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium mb-3"
               >
                 {isSaving ? '保存中…' : '开始匹配题目 →'}
-              </button>
+              </GradientButton>
               <button
                 className="w-full flex items-center justify-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70 transition-opacity"
                 onClick={() => void runRestructure()}

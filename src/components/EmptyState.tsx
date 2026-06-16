@@ -6,7 +6,7 @@
  */
 'use client'
 import Orb from '@/components/Orb'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
@@ -45,13 +45,9 @@ export default function EmptyState({
         </p>
       )}
       {ctaLabel && onCta && (
-        <button
-          onClick={onCta}
-          className="mt-5 px-6 py-2.5 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
-          style={GRADIENT_BORDER_STYLE}
-        >
+        <GradientButton onClick={onCta} className="mt-5 px-6 py-2.5 rounded-full text-[14px] font-medium">
           {ctaLabel}
-        </button>
+        </GradientButton>
       )}
     </div>
   )

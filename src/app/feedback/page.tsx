@@ -12,7 +12,7 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import FeedbackCard from '@/components/FeedbackCard'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 import { getSessionPolishes, clearSessionPolishes, addSavedPhrase } from '@/lib/storage'
 import type { SessionPolish } from '@/lib/types'
 
@@ -84,13 +84,7 @@ export default function FeedbackPage() {
             <p className="text-[13px] text-v2-text-muted leading-relaxed max-w-[240px]">
               练习时点句子左上角的 🔨，就能把更好的表达攒到这里。
             </p>
-            <button
-              onClick={() => router.push('/')}
-              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-v2-text-secondary"
-              style={GRADIENT_BORDER_STYLE}
-            >
-              回首页
-            </button>
+            <GradientButton onClick={() => router.push('/')} className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium">回首页</GradientButton>
           </div>
         )}
 
@@ -102,13 +96,7 @@ export default function FeedbackPage() {
             <p className="text-[13px] text-v2-text-muted leading-relaxed max-w-[240px]">
               你留下了 {savedCount} 句更好的表达，慢慢就攒成你自己的表达库。
             </p>
-            <button
-              onClick={() => router.push('/')}
-              className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium text-v2-text-secondary"
-              style={GRADIENT_BORDER_STYLE}
-            >
-              回首页
-            </button>
+            <GradientButton onClick={() => router.push('/')} className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium">回首页</GradientButton>
           </div>
         )}
 
@@ -158,14 +146,10 @@ export default function FeedbackPage() {
               >
                 <X size={15} className="text-[#CCCCCC]" />
               </button>
-              <button
-                onClick={collect}
-                className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full active:scale-[0.97] transition-transform duration-150"
-                style={GRADIENT_BORDER_STYLE}
-              >
+              <GradientButton onClick={collect} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
                 <Heart size={16} className="text-v2-text-secondary" />
                 <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>
-              </button>
+              </GradientButton>
             </div>
 
             <p className="text-[12px] text-[#CCCCCC] text-center">还有 {total - index - 1} 张卡片</p>

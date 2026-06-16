@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { RefreshCw, MessageSquare } from 'lucide-react'
 import Orb from '@/components/Orb'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 import { submitFeedback } from '@/lib/db/feedback'
 
 export default function Error({ error, reset }: { error: Error; reset: () => void }): JSX.Element {
@@ -49,13 +49,12 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
       </p>
 
       {/* 重试：圆角矩形渐变按钮 */}
-      <button
+      <GradientButton
         onClick={reset}
-        className="mt-7 w-full max-w-[280px] flex items-center justify-center gap-1.5 rounded-[14px] py-3.5 text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
-        style={GRADIENT_BORDER_STYLE}
+        className="mt-7 w-full max-w-[280px] flex items-center justify-center gap-1.5 rounded-[14px] py-3.5 text-[14px] font-medium"
       >
         <RefreshCw size={15} />重试
-      </button>
+      </GradientButton>
 
       {/* 返回首页：文字 */}
       <button
@@ -84,14 +83,13 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
             placeholder="发生了什么？写一句给我们"
             className="w-full rounded-[12px] border border-black/[0.08] bg-white px-3.5 py-3 text-[13px] text-v2-text-primary placeholder:text-v2-text-muted resize-none outline-none focus:border-black/[0.16]"
           />
-          <button
+          <GradientButton
             onClick={() => void send()}
             disabled={!text.trim() || sending}
-            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium text-v2-text-secondary disabled:opacity-50 active:scale-[0.97] transition-transform duration-150"
-            style={GRADIENT_BORDER_STYLE}
+            className="mt-2.5 w-full rounded-[12px] py-2.5 text-[13px] font-medium"
           >
             {sending ? '发送中…' : '发送'}
-          </button>
+          </GradientButton>
           {failed && <p className="mt-1.5 text-[12px] text-error">没发出去，再试一次</p>}
         </div>
       )}

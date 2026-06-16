@@ -6,9 +6,9 @@
  */
 'use client'
 import { useRouter } from 'next/navigation'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
+import GradientButton from '@/components/GradientButton'
 
 interface Props {
   primaryDimension: string
@@ -41,13 +41,9 @@ export default function NoMatchView({ primaryDimension, primaryPointName }: Prop
           <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-3">
             如果你愿意，可以尝试从这个角度讲述，也许会遇到更贴合的题目。
           </p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-5 py-2 rounded-full text-[13px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
-            style={GRADIENT_BORDER_STYLE}
-          >
+          <GradientButton onClick={() => router.push('/')} className="px-5 py-2 rounded-full text-[13px] font-medium">
             切换角度讲述 →
-          </button>
+          </GradientButton>
         </Card>
       )}
 
