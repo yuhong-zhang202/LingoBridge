@@ -8,7 +8,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import type { QBQuestion } from '@/lib/types'
@@ -101,11 +100,12 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
                   <PartTag label={`Part ${q.part}`} />
                   <p className="text-[13px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
                 </div>
-                <button
+                <Chip
+                  variant="gradient"
+                  size="sm"
                   onClick={(e) => { e.stopPropagation(); router.push(`/analysis?questionId=${q.id}&storyId=1`) }}
-                  style={GRADIENT_BORDER_STYLE}
-                  className="text-[11px] font-medium text-v2-text-secondary px-[10px] py-[3px] rounded-full flex-shrink-0"
-                >练习</button>
+                  className="font-medium flex-shrink-0"
+                >练习</Chip>
               </div>
             </div>
           ))}

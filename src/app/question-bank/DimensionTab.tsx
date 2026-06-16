@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import Chip from '@/components/Chip'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
@@ -102,14 +103,14 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                   <p className="text-[14px] font-semibold text-v2-text-muted">{dim}</p>
                   <p className="text-[11.5px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
                 </div>
-                <button
+                <Chip
+                  variant="gradient"
                   onClick={() => router.push('/')}
-                  style={GRADIENT_BORDER_STYLE}
-                  className="text-[11.5px] font-semibold text-text-2 px-3 py-[5px] rounded-full inline-flex items-center gap-[3px] flex-shrink-0"
+                  className="text-[11.5px] px-3 gap-[3px] flex-shrink-0"
                 >
                   分享经历
                   <ChevronRight size={12} className="text-brand-primary-dark" />
-                </button>
+                </Chip>
               </div>
             )
           }
@@ -146,13 +147,14 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                       : <Circle size={14} className="text-text-4 flex-shrink-0" />}
                     <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-text-4'}`}>{q.displayText}</p>
                     {q.matched && (
-                      <button
+                      <Chip
+                        variant="gradient"
+                        size="sm"
                         onClick={() => router.push(`/analysis?questionId=${q.id}&storyId=1`)}
-                        style={GRADIENT_BORDER_STYLE}
-                        className="text-[11px] font-medium text-text-2 px-[10px] py-[3px] rounded-full flex-shrink-0"
+                        className="font-medium flex-shrink-0"
                       >
                         练习
-                      </button>
+                      </Chip>
                     )}
                   </div>
                 ))}
