@@ -1,7 +1,7 @@
 'use client'
 import { Bookmark, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE_FULL, BRAND_GRADIENT_SOFT } from '@/lib/constants'
 
 interface FeedbackCardProps {
   part: 'Part 1' | 'Part 2' | 'Part 3'
@@ -25,13 +25,11 @@ function speak(text: string): void {
   window.speechSynthesis.speak(utt)
 }
 
-const PILL_GRAD = 'linear-gradient(135deg, rgba(232,136,58,0.45), rgba(123,191,116,0.45))'
-
 function InfoTag({ text, letterSpacing }: { text: string; letterSpacing?: number }) {
   return (
     <div
       className="flex-shrink-0"
-      style={{ width: 56, height: 24, background: PILL_GRAD, borderRadius: 9999, padding: 1 }}
+      style={{ width: 56, height: 24, background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}
     >
       <div
         className="w-full h-full flex items-center justify-center"

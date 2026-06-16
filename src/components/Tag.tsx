@@ -7,6 +7,7 @@
 'use client'
 import type { ReactNode, CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
+import { BRAND_GRADIENT_SOFT } from '@/lib/constants'
 
 interface TagProps {
   label: string
@@ -15,7 +16,6 @@ interface TagProps {
   className?: string
 }
 
-const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.35), rgba(168,210,196,0.35))'
 const GRAD_TEXT: CSSProperties = {
   background: 'linear-gradient(135deg, #D4875A, #7BA699)',
   WebkitBackgroundClip: 'text',
@@ -34,7 +34,7 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
     return (
       <div
         className={cn('inline-flex', className)}
-        style={{ background: GRAD_BORDER, padding: 1, borderRadius: 999 }}
+        style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: 999 }}
       >
         <div
           className="inline-flex items-center gap-1.5"

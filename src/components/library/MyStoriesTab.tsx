@@ -1,12 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { Mic2, Keyboard, MoreHorizontal, ChevronRight } from 'lucide-react'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT_SOFT } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
 import EmptyState from '@/components/EmptyState'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
-
-const PILL_GRAD = 'linear-gradient(135deg, rgba(232,136,58,0.45), rgba(123,191,116,0.45))'
 
 interface Props { stories: MyStory[]; onDelete?: (id: string) => void }
 
@@ -32,14 +30,14 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               {story.inputType === 'voice' ? (
-                <div className="flex-shrink-0 inline-flex" style={{ background: PILL_GRAD, borderRadius: 9999, padding: 1 }}>
+                <div className="flex-shrink-0 inline-flex" style={{ background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
                   <div className="flex items-center gap-1 bg-white" style={{ borderRadius: 9999, padding: '2px 8px' }}>
                     <Mic2 size={11} className="text-brand-primary-dark" />
                     <span className="text-[11px] font-medium text-brand-primary-dark">{story.duration}</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex-shrink-0 inline-flex" style={{ background: PILL_GRAD, borderRadius: 9999, padding: 1 }}>
+                <div className="flex-shrink-0 inline-flex" style={{ background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
                   <div className="flex items-center gap-1 bg-white" style={{ borderRadius: 9999, padding: '2px 8px' }}>
                     <Keyboard size={11} className="text-brand-primary-dark" />
                     <span className="text-[11px] font-medium text-brand-primary-dark">文本</span>

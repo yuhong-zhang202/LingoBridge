@@ -13,17 +13,15 @@ import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import { MOCK_RAW_STORY } from '@/data/restructure'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
-
-const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 
 function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
 }) {
   return (
-    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: GRAD_BORDER, padding: 1, borderRadius: 17 }}>
+    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: BRAND_GRADIENT, padding: 1, borderRadius: 17 }}>
       <div className="bg-white rounded-[16px] px-5 pt-4 pb-5">
         {isEditing ? (
           <textarea

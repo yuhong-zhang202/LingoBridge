@@ -15,11 +15,10 @@ import PartTag from '@/components/PartTag'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
 import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
+import { BRAND_GRADIENT_SOFT } from '@/lib/constants'
 
-const GRAD_BORDER = 'linear-gradient(135deg, rgba(232,136,58,0.35), rgba(123,191,116,0.35))'
-const GRAD_NUM    = 'linear-gradient(135deg, rgba(232,136,58,0.40), rgba(123,191,116,0.40))'
 const LIGHTER_BORDER: CSSProperties = {
-  background: 'linear-gradient(white,white) padding-box,linear-gradient(135deg,rgba(232,136,58,0.35),rgba(123,191,116,0.35)) border-box',
+  background: `linear-gradient(white,white) padding-box, ${BRAND_GRADIENT_SOFT} border-box`,
   border: '1.5px solid transparent',
 }
 
@@ -38,7 +37,7 @@ const LEVELS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0']
 /** 序号圆圈：外层极淡渐变描边 + 内层白底 + 灰色数字 */
 function StepNum({ n }: { n: number }) {
   return (
-    <div style={{ background: GRAD_NUM, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
+    <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
         <span className="text-[11px] font-bold leading-none text-[#A0A09A]">{n}</span>
       </div>
@@ -49,7 +48,7 @@ function StepNum({ n }: { n: number }) {
 /** 渐变描边卡片 — 极淡 1px 渐变 border + 白底内层 */
 function GradCard({ children }: { children: ReactNode }) {
   return (
-    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: GRAD_BORDER, padding: 1, borderRadius: 17 }}>
+    <div className="shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: 17 }}>
       <div className="bg-white rounded-[16px] px-[22px] pt-[16px] pb-[22px]">{children}</div>
     </div>
   )

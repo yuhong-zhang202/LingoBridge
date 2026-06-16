@@ -16,7 +16,7 @@ import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import { listMyCorpus, getCorpusPointCodes, deleteCorpus } from '@/lib/db/corpus'
 import { getQuestionCountByObservations } from '@/lib/db/questions'
-import { DIMENSION_LABEL, GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { DIMENSION_LABEL, GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import { getSavedPhrases, getSavedWords, getSavedPronunciations } from '@/lib/storage'
 import { getDueCount } from '@/lib/db/phrase-cards'
 import { formatRelativeTime } from '@/lib/utils'
@@ -216,7 +216,7 @@ export default function LibraryPage() {
                     <span className="text-[10px] leading-tight font-bold text-v2-text-primary text-center break-words">wind down</span>
                     <div
                       className="w-[24px] h-[3px] rounded-full my-1"
-                      style={{ background: 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
+                      style={{ background: BRAND_GRADIENT }}
                     />
                     <span className="text-[8.5px] text-v2-text-muted text-center">放松下来</span>
                   </div>
