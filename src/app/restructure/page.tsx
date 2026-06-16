@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Quote, Sparkles, Pencil, Check, RefreshCw, Lightbulb } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
+import Card from '@/components/Card'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
@@ -99,13 +100,13 @@ function RestructureContent() {
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[88px] relative z-10 flex flex-col gap-4">
 
         {/* 原始语料卡片 */}
-        <div className="bg-white rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-5 pt-4 pb-5">
+        <Card className="px-5 pt-4 pb-5">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Quote size={13} className="text-v2-text-muted" />
             <span className="text-[11px] font-medium text-v2-text-muted">素材录入</span>
           </div>
           <p className="text-[14px] text-v2-text-secondary leading-relaxed">{rawStory}</p>
-        </div>
+        </Card>
 
         {/* 过渡区 */}
         <div className="flex items-center gap-2 px-1">
