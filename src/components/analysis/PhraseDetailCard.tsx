@@ -43,8 +43,8 @@ export default function PhraseDetailCard({ text, meaning, scene, group, level, i
       <p className="text-[12px] text-[#6B5B52] leading-relaxed">{scene}</p>
       {(group ?? level) && (
         <div className="flex items-center gap-2 mt-2.5">
-          {group && <span className="text-[10px] text-[#8A5320] bg-[#FAEEDA] border border-[#EFDCBE] rounded-full px-2 py-[2px]">{group}</span>}
-          {level && <span className="text-[10px] text-v2-text-muted bg-[#F4F2EC] rounded-full px-2 py-[2px]">雅思 {level}</span>}
+          {group && <span className="text-[10px] text-v2-text-secondary bg-bg-muted rounded-full px-2 py-[2px]">{group}</span>}
+          {level && <span className="text-[10px] text-v2-text-muted bg-bg-muted rounded-full px-2 py-[2px]">雅思 {level}</span>}
         </div>
       )}
       {onToggleSave && (

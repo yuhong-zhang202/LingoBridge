@@ -23,11 +23,12 @@ const LIGHTER_BORDER: CSSProperties = {
   border: '1.5px solid transparent',
 }
 
-/** 词组分组配色：按组循环（暖 / 中性 / 绿），浅柔色调 */
+/** 词组分组配色：按组循环（暖橙 / 标准绿 / 雾青蓝），浅柔色调。
+ *  暖橙复用 brand-primary；绿沿用全局标准强调绿；雾青为新增 token。*/
 const PHRASE_CHIP_STYLES = [
-  'bg-[#FAEEDA] text-[#8A5320] border-[#EFDCBE]',
-  'bg-[#F4F2EC] text-[#6B5B52] border-black/[0.05]',
-  'bg-[#EAF3DE] text-[#3B6D11] border-[#C8DDB9]',
+  'bg-phrase-warm-bg text-brand-primary-dark border-brand-primary-light',
+  'bg-[#EDF6EB] text-[#3D7A38] border-[#C0DDB9]',
+  'bg-phrase-blue-bg text-phrase-blue-text border-phrase-blue-border',
 ]
 
 /** 可选雅思口语目标水平 */
@@ -194,7 +195,7 @@ function AnalysisContent() {
                   <button
                     onClick={() => setLevelMenuOpen(v => !v)}
                     disabled={phrasesLoading}
-                    className="flex items-center gap-1 text-[12px] text-[#8A5320] bg-white border border-[#EFDCBE] rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+                    className="flex items-center gap-1 text-[12px] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
                   >
                     雅思 {level}
                     <ChevronDown size={13} className={`transition-transform duration-150 ${levelMenuOpen ? 'rotate-180' : ''}`} />
@@ -206,7 +207,7 @@ function AnalysisContent() {
                         <button
                           key={lv}
                           onClick={() => { setLevelMenuOpen(false); if (lv !== level) changeLevel(lv) }}
-                          className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-[#F4F2EC] ${lv === level ? 'text-[#B5663A] font-medium' : 'text-[#4B4540]'}`}
+                          className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
                         >
                           {lv}
                           {lv === level && <Check size={13} className="ml-auto text-brand-primary" />}

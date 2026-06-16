@@ -37,6 +37,10 @@
 | `v2-text-primary` | `#2C2420` | 正文主色 |
 | `v2-text-secondary` | `#6B5B52` | 次要文字 |
 | `v2-text-muted` | `#A89990` | 辅助文字、字数统计、时间戳 |
+| `phrase-warm-bg` | `#F7EBE1` | analysis 词组分组色（暖橙底）；文字/描边复用 `brand-primary-dark` / `brand-primary-light` |
+| `phrase-blue-bg` | `#E9EEF4` | analysis 词组分组色（雾青蓝底） |
+| `phrase-blue-text` | `#4A6178` | analysis 词组分组色（雾青蓝文字） |
+| `phrase-blue-border` | `#CCD8E6` | analysis 词组分组色（雾青蓝描边） |
 
 ### v1 备用 Token（仅旧页面维护，新页面禁用）
 
@@ -408,6 +412,8 @@ border-radius: 14px
 若有对应项目 token 则优先使用 token，没有则使用以上色值。
 此规范适用于所有页面，新页面开发时必须遵守。
 
+> 例外：analysis 页「可用词组」chip 按分组循环使用 暖橙 / 标准绿 / 雾青蓝 三色（见 `PHRASE_CHIP_STYLES` 与 `phrase-*` token），这是唯一允许的多色场景——它编码「词组分组」而非「强调」。其余强调标签仍只能用绿。
+
 ### StepBar 步骤条
 
 流程步骤：`story → restructure → matching → analysis → practice`
@@ -548,5 +554,6 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
-*最后更新：2026-06-16（统一页面背景为 `#F8F5F1`；主基准页引用修正为 `feedback/page.tsx`）*
+*最后更新：2026-06-16（analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外）*
+*2026-06-16：统一页面背景为 `#F8F5F1`；主基准页引用修正为 `feedback/page.tsx`*
 *2026-05-30：统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页*

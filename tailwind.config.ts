@@ -40,6 +40,11 @@ const config: Config = {
         'v2-text-primary':      '#2C2420',
         'v2-text-secondary':    '#6B5B52',
         'v2-text-muted':        '#A89990',
+        /* analysis 词组分组色（暖橙复用 brand-*；绿沿用全局绿 hex；雾青为本组新增）*/
+        'phrase-warm-bg':       '#F7EBE1',
+        'phrase-blue-bg':       '#E9EEF4',
+        'phrase-blue-text':     '#4A6178',
+        'phrase-blue-border':   '#CCD8E6',
       },
       borderRadius: {
         'xl2': '24px',
