@@ -12,6 +12,7 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
+import Tag from '@/components/Tag'
 import Card from '@/components/Card'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
@@ -145,16 +146,8 @@ function AnalysisContent() {
             <div className="card px-[22px] pt-[16px] pb-[22px]">
               <div className="flex items-center gap-2 mb-2.5">
                 <PartTag label={`Part ${data.question.part}`} />
-                {data.question.dimension && (
-                  <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[5px] rounded-full">
-                    {data.question.dimension}
-                  </span>
-                )}
-                {data.question.isNew && (
-                  <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[5px] rounded-full">
-                    当季新题
-                  </span>
-                )}
+                {data.question.dimension && <Tag variant="green" label={data.question.dimension} />}
+                {data.question.isNew && <Tag variant="green" label="当季新题" />}
               </div>
               <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
               <p className="text-[12px] text-v2-text-muted">{data.question.zh}</p>

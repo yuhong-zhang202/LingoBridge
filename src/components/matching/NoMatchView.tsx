@@ -8,6 +8,7 @@
 import { useRouter } from 'next/navigation'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Card from '@/components/Card'
+import Tag from '@/components/Tag'
 
 interface Props {
   primaryDimension: string
@@ -31,9 +32,7 @@ export default function NoMatchView({ primaryDimension, primaryPointName }: Prop
 
       {isValue && (
         <Card className="w-full px-4 py-4 mb-8 text-left">
-          <span className="text-[11px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[10px] py-[4px] rounded-full inline-block mb-3">
-            {primaryDimension} · {primaryPointName}
-          </span>
+          <Tag variant="green" label={`${primaryDimension} · ${primaryPointName}`} className="mb-3" />
           <p className="text-[14px] font-semibold text-v2-text-primary leading-snug mb-2">
             这类故事的背后，常常藏着一次
             <span className="text-brand-primary-dark">「说实话、表明态度」</span>

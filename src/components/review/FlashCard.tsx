@@ -7,6 +7,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { RotateCw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react'
+import Tag from '@/components/Tag'
 import type { PhraseCard } from '@/lib/types'
 
 // 超过此位移（px）判定为一次有效滑动
@@ -66,7 +67,7 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
       )}
       <div className="px-[22px] pt-[18px] pb-[18px] min-h-[300px] flex flex-col">
         {card.group && (
-          <span className="self-start text-[11px] text-[#3D7A38] bg-[#EDF6EB] border border-[#C0DDB9] rounded-full px-2.5 py-[3px]">{card.group}</span>
+          <Tag variant="green" label={card.group} className="self-start" />
         )}
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           {back ? (

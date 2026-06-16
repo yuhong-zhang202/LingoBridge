@@ -4,6 +4,7 @@ import { Mic2, Keyboard, MoreHorizontal, ChevronRight } from 'lucide-react'
 import { BRAND_GRADIENT_SOFT } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
 import Card from '@/components/Card'
+import Tag from '@/components/Tag'
 import EmptyState from '@/components/EmptyState'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
 
@@ -54,11 +55,7 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
           </p>
           {(story.dimension || story.matchedCount > 0) && (
             <div className="flex items-center gap-2">
-              {story.dimension && (
-                <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
-                  {story.dimension}
-                </span>
-              )}
+              {story.dimension && <Tag variant="green" label={story.dimension} />}
               {story.matchedCount > 0 && (
                 <>
                   <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>

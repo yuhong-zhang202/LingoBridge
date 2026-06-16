@@ -7,6 +7,7 @@
 'use client'
 import { ArrowRight } from 'lucide-react'
 import PartTag from '@/components/PartTag'
+import Tag from '@/components/Tag'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { MatchedQuestion } from '@/lib/types'
 
@@ -54,14 +55,8 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
       <div className="flex-1 p-4">
         <div className="flex items-center gap-2 mb-2.5">
           <PartTag label={`Part ${question.part}`} />
-          <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
-            {question.dimension}
-          </span>
-          {question.is_new && (
-            <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
-              新题
-            </span>
-          )}
+          <Tag variant="green" label={question.dimension} />
+          {question.is_new && <Tag variant="green" label="新题" />}
           {!isPrimaryMatch && !isHighMatch && (
             <span
               className="text-[10px] font-medium px-[8px] py-[3px] rounded-full"
