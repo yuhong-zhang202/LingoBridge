@@ -16,6 +16,7 @@ import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import { MOCK_RAW_STORY } from '@/data/restructure'
+import { takeHandoff } from '@/lib/handoff'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 
 function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
@@ -44,7 +45,17 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
 
 function RestructureContent() {
   const router   = useRouter()
-  const rawStory = useSearchParams().get('rawText') ?? MOCK_RAW_STORY
+  const params   = useSearchParams()
+  // 故事正文从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
+  // 旧链接兜底：回退读 rawText；都为空则用 MOCK_RAW_STORY。
+  const [rawStory] = useState<string>(() => {
+    const h = params.get('h')
+    if (h) {
+      const v = takeHandoff(h)
+      if (v !== null) return v
+    }
+    return params.get('rawText') ?? MOCK_RAW_STORY
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [aiText,    setAiText]    = useState('')
   const [isEditing, setIsEditing] = useState(false)

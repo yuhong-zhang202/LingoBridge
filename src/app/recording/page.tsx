@@ -14,6 +14,7 @@ import Toast from '@/components/Toast'
 import RequireAccountGate from '@/components/RequireAccountGate'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
+import { putHandoff } from '@/lib/handoff'
 
 export default function RecordingPage() {
   const router = useRouter()
@@ -80,7 +81,7 @@ export default function RecordingPage() {
           }
         }
       } catch { /* API 错误放行，restructure 页面兜底 */ }
-      router.push(`/restructure?rawText=${encodeURIComponent(data.text)}`)
+      router.push(`/restructure?h=${putHandoff(data.text)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '转写失败，请重试')
       setTranscribing(false)

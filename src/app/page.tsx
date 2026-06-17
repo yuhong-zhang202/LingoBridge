@@ -10,6 +10,7 @@ import FeedbackButton from '@/components/FeedbackButton'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
+import { putHandoff } from '@/lib/handoff'
 
 export default function HomePage() {
   const router = useRouter()
@@ -54,9 +55,9 @@ export default function HomePage() {
         }
       }
       // API 错误或 usable=true，放行（restructure 页会再跑一次，属已知开销）
-      router.push(`/restructure?rawText=${encodeURIComponent(textStory)}`)
+      router.push(`/restructure?h=${putHandoff(textStory)}`)
     } catch {
-      router.push(`/restructure?rawText=${encodeURIComponent(textStory)}`)
+      router.push(`/restructure?h=${putHandoff(textStory)}`)
     } finally {
       setSubmitting(false)
     }
