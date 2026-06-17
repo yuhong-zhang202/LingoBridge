@@ -135,14 +135,20 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
     return { ok: false }
   }
 
+  // 默认只打长度，避免模型输出（可能含故事片段）泄漏到日志；LLM_DEBUG=1 时再带完整内容
+  function logPayload(jsonText: string, raw: string): Record<string, unknown> {
+    const base = { jsonTextLen: jsonText.length, rawLen: raw.length }
+    return process.env.LLM_DEBUG === '1' ? { ...base, jsonText, raw } : base
+  }
+
   // —— 第一次 ——
   const raw1 = await rawCall(call.messages)
   const json1 = extractJson(raw1)
   const r1 = parseValidate(json1)
   if (r1.ok) return r1.value
 
-  // —— 退回让模型自己修，重试一次（同时打印实际被 parse 的 jsonText，不要只打 raw）——
-  console.warn(`${label} JSON 解析/校验失败，退回模型重试`, { jsonText: json1, raw: raw1 })
+  // —— 退回让模型自己修，重试一次 ——
+  console.warn(`${label} JSON 解析/校验失败，退回模型重试`, logPayload(json1, raw1))
   const retryMessages: Msg[] = [
     ...call.messages,
     { role: 'assistant', content: raw1 },
@@ -155,9 +161,9 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
 
   // —— 重试仍失败 ——
   if (fallback) {
-    console.warn(`${label} 重试后仍失败，使用 fallback`, { jsonText: json1, raw: raw1 })
+    console.warn(`${label} 重试后仍失败，使用 fallback`, logPayload(json1, raw1))
     return fallback(raw1, json1)
   }
-  console.error(`${label} JSON 解析失败（已重试）`, { jsonText: json2, raw: raw2 })
+  console.error(`${label} JSON 解析失败（已重试）`, logPayload(json2, raw2))
   throw new Error(`${label} JSON 解析失败（已重试）`)
 }
