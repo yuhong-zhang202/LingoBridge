@@ -21,6 +21,7 @@ const config: Config = {
         'bg-page':  '#F8F5F1',
         'bg-card':  '#FFFFFF',
         'bg-inner': '#F4F4F4',
+        /* 语义状态色（跨版本通用，v2 页面可用）*/
         'success':  '#5BA08A',
         'warning':  '#C4965A',
         'error':    '#C47A6A',
