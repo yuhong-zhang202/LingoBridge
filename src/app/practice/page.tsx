@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
+import EmptyState from '@/components/EmptyState'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { setSessionPolishes, addSavedPronunciation } from '@/lib/storage'
@@ -39,6 +40,7 @@ function PracticeContent(): JSX.Element {
   const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
   const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
   const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number } | null>(null)
+  const [retryKey, setRetryKey]           = useState(0)
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
@@ -71,7 +73,7 @@ function PracticeContent(): JSX.Element {
       }
     })()
     return () => { cancelled = true }
-  }, [questionId, storyId])
+  }, [questionId, storyId, retryKey])
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
   const handleUserTurn = useCallback(async () => {
@@ -222,9 +224,9 @@ function PracticeContent(): JSX.Element {
 
       {/* 题目条：固定在流程轴下方，不随对话滚动 */}
       <div className="flex-shrink-0 px-5 pt-2 pb-3">
-        <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
+        <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
           <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
-          <div className="w-px h-3 bg-[#DDDDDD] flex-shrink-0" />
+          <div className="w-px h-3 bg-black/10 flex-shrink-0" />
           <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
             {scaffold?.displayEn ?? '加载中…'}
           </span>
@@ -236,7 +238,13 @@ function PracticeContent(): JSX.Element {
           <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
         )}
         {phase === 'error' && (
-          <div className="text-center text-[13px] text-v2-text-muted py-16">{error}</div>
+          <EmptyState
+            title="教练没接上"
+            subtitle="刚才好像没连上，点下面再试一次就好。"
+            ctaLabel="重试"
+            onCta={() => { setPhase('init'); setRetryKey(k => k + 1) }}
+            orbSize={100}
+          />
         )}
 
         {/* 对话列表 */}

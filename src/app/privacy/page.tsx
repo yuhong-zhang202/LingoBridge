@@ -29,6 +29,13 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-5">
+          <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">第三方 AI 处理</h2>
+          <p className="text-[13px] text-v2-text-secondary leading-relaxed">
+            为了把你的录音转成文字、并生成匹配题目与练习反馈，你的录音与文字会发送给我们使用的第三方 AI 服务进行处理：语音转写由豆包（字节跳动）完成，内容分析与反馈由通义千问（阿里云）完成。我们仅为提供上述功能而发送这些数据，不向任何第三方出售。
+          </p>
+        </section>
+
+        <section className="mb-5">
           <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">存储</h2>
           <p className="text-[13px] text-v2-text-secondary leading-relaxed">
             数据存储于 Supabase。仅你本人（按账户隔离）可访问自己的故事与练习记录。

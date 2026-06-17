@@ -58,10 +58,7 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
           <Tag variant="green" label={question.dimension} />
           {question.is_new && <Tag variant="green" label="新题" />}
           {!isPrimaryMatch && !isHighMatch && (
-            <span
-              className="text-[10px] font-medium px-[8px] py-[3px] rounded-full"
-              style={{ background: 'rgba(212,135,90,0.10)', color: '#D4875A', border: '1px solid rgba(212,135,90,0.28)' }}
-            >
+            <span className="text-[10px] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
               需切换角度
             </span>
           )}

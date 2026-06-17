@@ -114,14 +114,14 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
 
       {unmatchedQ.length > 0 && <>
         <button onClick={() => setUnmatchedOpen(v => !v)} className="flex items-center gap-1.5">
-          <span className="text-[12px] font-medium text-text-4">等待语料 · {unmatchedQ.length} 道</span>
-          <ChevronDown size={12} className={`text-text-4 transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
+          <span className="text-[12px] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
+          <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
         </button>
         {unmatchedOpen && <div className="flex flex-col gap-2">
           {unmatchedQ.map(q => (
-            <div key={q.id} className="bg-[#FAFAF8] rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
-              <span className="text-[11px] font-medium border border-black/[0.06] text-[#CCC] px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
-              <p className="text-[13px] text-text-4 flex-1">{q.displayText}</p>
+            <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
+              <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              <p className="text-[13px] text-v2-text-muted flex-1">{q.displayText}</p>
             </div>
           ))}
         </div>}

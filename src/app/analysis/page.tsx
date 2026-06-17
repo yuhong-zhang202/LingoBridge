@@ -13,6 +13,7 @@ import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
+import EmptyState from '@/components/EmptyState'
 import Card from '@/components/Card'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
@@ -65,6 +66,7 @@ function AnalysisContent() {
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
+  const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
@@ -83,7 +85,7 @@ function AnalysisContent() {
       }
     })()
     return () => { cancelled = true }
-  }, [questionId])
+  }, [questionId, retryKey])
 
   function changeLevel(newLevel: string) {
     const prevLevel = level
@@ -138,7 +140,15 @@ function AnalysisContent() {
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4">
 
         {loading && <div className="text-center text-[14px] text-v2-text-muted py-20">AI 分析中…</div>}
-        {!loading && error && <div className="text-center text-[14px] text-v2-text-muted py-20">{error}</div>}
+        {!loading && error && (
+          <EmptyState
+            title="分析没生成出来"
+            subtitle="刚才好像没连上，点下面再试一次就好。"
+            ctaLabel="重试"
+            onCta={() => setRetryKey(k => k + 1)}
+            orbSize={100}
+          />
+        )}
 
         {!loading && !error && data && (
           <>

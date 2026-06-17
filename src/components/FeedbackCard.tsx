@@ -35,7 +35,7 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing?: number
         className="w-full h-full flex items-center justify-center"
         style={{ background: '#FFF', borderRadius: 9999 }}
       >
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#B5663A', lineHeight: 1, letterSpacing }}>
+        <span className="text-brand-primary-dark" style={{ fontSize: 11, fontWeight: 500, lineHeight: 1, letterSpacing }}>
           {text}
         </span>
       </div>

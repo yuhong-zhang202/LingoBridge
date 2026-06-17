@@ -98,7 +98,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 key={dim}
                 className="bg-white/[0.55] rounded-[16px] flex items-center gap-[11px] px-[15px] py-[14px]"
               >
-                <div className="w-[7px] h-[7px] rounded-full bg-text-4 flex-shrink-0" />
+                <div className="w-[7px] h-[7px] rounded-full bg-v2-text-muted flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-v2-text-muted">{dim}</p>
                   <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
@@ -144,8 +144,8 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                   <div key={q.id} className="flex items-center gap-2.5 px-4 py-2.5 border-t border-black/[0.04]">
                     {q.matched
                       ? <CheckCircle2 size={14} className="text-brand-accent flex-shrink-0" />
-                      : <Circle size={14} className="text-text-4 flex-shrink-0" />}
-                    <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-text-4'}`}>{q.displayText}</p>
+                      : <Circle size={14} className="text-v2-text-muted flex-shrink-0" />}
+                    <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-v2-text-muted'}`}>{q.displayText}</p>
                     {q.matched && (
                       <Chip
                         variant="gradient"

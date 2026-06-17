@@ -1,12 +1,13 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
+import GradientButton from '@/components/GradientButton'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
 import FeedbackButton from '@/components/FeedbackButton'
+import FirstUseConsent from '@/components/FirstUseConsent'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
@@ -19,7 +20,7 @@ export default function HomePage() {
   const [ieltsMode, setIeltsMode] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
-  const { question, loading, next } = useSwitchQuestion()
+  const { question, loading, error, next } = useSwitchQuestion()
 
   // 文字输入派生状态
   const len = textStory.trim().length
@@ -75,9 +76,9 @@ export default function HomePage() {
             aria-label="返回"
             className="w-[30px] h-[30px] rounded-full bg-bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex items-center justify-center"
           >
-            <ChevronLeft size={15} className="text-text-2" />
+            <ChevronLeft size={15} className="text-v2-text-secondary" />
           </button>
-          <span className="text-[15px] font-semibold text-text-1">写下你的故事</span>
+          <span className="text-[15px] font-semibold text-v2-text-primary">写下你的故事</span>
           <div className="w-[30px]" />
         </div>
       ) : (
@@ -142,13 +143,19 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <h1 className="w-full text-center text-[20px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
-                    {loading
-                      ? '换一题中…'
-                      : question
-                        ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh)
-                        : ''}
-                  </h1>
+                  {!loading && error ? (
+                    <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">
+                      没取到题，点下面换一题重试
+                    </p>
+                  ) : (
+                    <h1 className="w-full text-center text-[20px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
+                      {loading
+                        ? '换一题中…'
+                        : question
+                          ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh)
+                          : ''}
+                    </h1>
+                  )}
                   <p className="text-[13px] text-v2-text-muted mt-2">
                     聊聊你的看法
                   </p>
@@ -170,12 +177,13 @@ export default function HomePage() {
             {!showTextInput && (
               <>
                 {/* 主按钮：开始录音 */}
-                <Link href="/recording" className="block">
-                  <button className="btn-gradient w-full h-[50px]">
-                    <Mic2 size={16} className="text-v2-text-secondary" />
-                    开始录音
-                  </button>
-                </Link>
+                <GradientButton
+                  onClick={() => router.push('/recording')}
+                  className="w-full h-[50px] flex items-center justify-center gap-1.5 text-[14px] font-medium"
+                >
+                  <Mic2 size={16} className="text-v2-text-secondary" />
+                  开始录音
+                </GradientButton>
 
                 {/* 文字输入入口 */}
                 <button
@@ -195,7 +203,7 @@ export default function HomePage() {
                     value={textStory}
                     onChange={e => setTextStory(e.target.value)}
                     placeholder={'用中文聊聊最近的一件小事，尽量说具体些……\n\n和谁一起、做了什么、当时心里什么感觉，都可以写进来。'}
-                    className="w-full min-h-[244px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-text-4"
+                    className="w-full min-h-[244px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
                     autoFocus
                   />
                   <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">
@@ -217,9 +225,9 @@ export default function HomePage() {
                       }
                     >
                       {submitting ? (
-                        <Loader2 size={18} className="text-text-4 animate-spin" />
+                        <Loader2 size={18} className="text-v2-text-muted animate-spin" />
                       ) : (
-                        <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-text-4'} />
+                        <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-v2-text-muted'} />
                       )}
                     </button>
                   </div>
@@ -250,6 +258,7 @@ export default function HomePage() {
 
       <div className="flex-shrink-0"><TabBar /></div>
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
+      <FirstUseConsent />
     </div>
   )
 }

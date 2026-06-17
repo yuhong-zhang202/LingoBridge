@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface OrbProps {
@@ -73,7 +73,7 @@ const PARTICLE_ANIM = PARTICLES.map((_, i) => ({
 // Orb core breathe frequency
 const CORE_FREQ = 0.95
 
-export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
+function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
   const s  = size / 300
   const cx = size / 2
 
@@ -239,3 +239,5 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
     </div>
   )
 }
+
+export default memo(Orb)

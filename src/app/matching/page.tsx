@@ -12,6 +12,7 @@ import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
+import EmptyState from '@/components/EmptyState'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
 import NoMatchView from '@/components/matching/NoMatchView'
 import { saveExtraction } from '@/lib/db/corpus'
@@ -75,6 +76,7 @@ function MatchingContent() {
   const [activeTab, setActiveTab] = useState<PartTab>('全部')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
 
   // 切换 Tab 时收起折叠
   useEffect(() => { setExpanded(false) }, [activeTab])
@@ -105,7 +107,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true }
-  }, [corpusId])
+  }, [corpusId, retryKey])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {
@@ -167,7 +169,13 @@ function MatchingContent() {
         )}
 
         {!loading && error && (
-          <div className="text-center text-[14px] text-v2-text-muted py-20">{error}</div>
+          <EmptyState
+            title="题目没匹配出来"
+            subtitle="刚才好像没连上，点下面再试一次就好。"
+            ctaLabel="重试"
+            onCta={() => setRetryKey(k => k + 1)}
+            orbSize={100}
+          />
         )}
 
         {!loading && !error && result && result.noMatch && (

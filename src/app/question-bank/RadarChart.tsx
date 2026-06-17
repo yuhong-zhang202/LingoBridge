@@ -26,19 +26,19 @@ export default function RadarChart({ dimensions, size = 200 }: Props) {
 
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" className="mx-auto block">
-      {[0.33, 0.66, 1].map((l, i) => <path key={i} d={gridPath(l)} fill="none" stroke="#EEEBE6" strokeWidth="0.5" />)}
+      {[0.33, 0.66, 1].map((l, i) => <path key={i} d={gridPath(l)} fill="none" className="stroke-bg-muted" strokeWidth="0.5" />)}
       {angles.map((a, i) => {
         const [x, y] = xy(a, R)
-        return <line key={i} x1={CX} y1={CY} x2={x.toFixed(1)} y2={y.toFixed(1)} stroke="#EEEBE6" strokeWidth="0.5" />
+        return <line key={i} x1={CX} y1={CY} x2={x.toFixed(1)} y2={y.toFixed(1)} className="stroke-bg-muted" strokeWidth="0.5" />
       })}
-      <path d={dataPath} fill="rgba(212,135,90,0.08)" stroke="#D4875A" strokeWidth="1.2" />
+      <path d={dataPath} fill="rgba(212,135,90,0.08)" className="stroke-brand-primary" strokeWidth="1.2" />
       {dimensions.map((d, i) => {
         const [x, y] = xy(angles[i], R * Math.max(d.value, 0.04))
-        return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="3" fill={d.value > 0 ? '#D4875A' : '#CCC'} />
+        return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="3" className={d.value > 0 ? 'fill-brand-primary' : 'fill-v2-text-muted'} />
       })}
       {dimensions.map((d, i) => {
         const [x, y] = xy(angles[i], LABEL_R)
-        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" fill={d.value > 0 ? '#2C2420' : '#A89990'} fontFamily="'PingFang SC',sans-serif">{d.name}</text>
+        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" className={d.value > 0 ? 'fill-v2-text-primary' : 'fill-v2-text-muted'} fontFamily="'PingFang SC',sans-serif">{d.name}</text>
       })}
     </svg>
   )

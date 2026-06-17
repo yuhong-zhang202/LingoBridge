@@ -144,9 +144,9 @@ export default function LibraryPage() {
               aria-label="返回积累主页"
               className="w-[30px] h-[30px] rounded-full bg-bg-surface shadow-sm flex items-center justify-center"
             >
-              <ChevronLeft size={15} className="text-text-2" />
+              <ChevronLeft size={15} className="text-v2-text-secondary" />
             </button>
-            <span className="text-[15px] font-semibold text-text-1">{VIEW_TITLE[view]}</span>
+            <span className="text-[15px] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
             <div className="w-[30px]" />
           </div>
 
@@ -204,12 +204,12 @@ export default function LibraryPage() {
                   aria-hidden="true"
                 >
                   <div
-                    className="absolute w-[60px] h-[80px] rounded-[13px]"
-                    style={{ background: '#FBF4EC', boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(-3px,3px) rotate(-9deg)' }}
+                    className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-muted"
+                    style={{ boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(-3px,3px) rotate(-9deg)' }}
                   />
                   <div
-                    className="absolute w-[60px] h-[80px] rounded-[13px]"
-                    style={{ background: '#F4F8F3', boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(4px,1px) rotate(5deg)' }}
+                    className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-muted"
+                    style={{ boxShadow: SOFT_SM, top: 6, left: 7, transform: 'translate(4px,1px) rotate(5deg)' }}
                   />
                   <div
                     className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-1.5"
@@ -348,7 +348,7 @@ export default function LibraryPage() {
                 <p className="text-[11px] text-v2-text-muted mt-[0.5px]">已匹配 {matchedTotal} 道题 · 可回看与重练</p>
               </div>
               <span className="text-[13px] font-semibold text-v2-text-muted">{stories.length}</span>
-              <ChevronRight size={16} className="text-text-4" />
+              <ChevronRight size={16} className="text-v2-text-muted" />
             </button>
           </div>
         </>
