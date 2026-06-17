@@ -6,6 +6,7 @@ import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
+import FeedbackButton from '@/components/FeedbackButton'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
@@ -79,10 +80,11 @@ export default function HomePage() {
           <div className="w-[30px]" />
         </div>
       ) : (
-        <div className="flex items-center h-[52px] px-5 relative z-10">
+        <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
           <span className="text-[16px] font-bold text-v2-text-primary">
             LingoBridge
           </span>
+          <FeedbackButton />
         </div>
       )}
 
