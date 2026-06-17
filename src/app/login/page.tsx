@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import Orb from '@/components/Orb'
+import FeedbackPopup from '@/components/FeedbackPopup'
 import {
   registerWithPassword,
   loginWithPassword,
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetMsg,   setResetMsg]   = useState<string | null>(null)
   const [resetting,  setResetting]  = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
   const extractMsg = (e: unknown, fallback: string): string => {
     if (typeof e === 'object' && e !== null && 'message' in e) {
@@ -197,7 +199,15 @@ export default function LoginPage() {
               autoComplete="email"
               className="w-full bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors mb-3"
             />
-            {resetMsg && <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-3 px-1">{resetMsg}</p>}
+            {resetMsg && <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-2 px-1">{resetMsg}</p>}
+            <div className="flex justify-center mb-3">
+              <button
+                onClick={() => { setForgotOpen(false); setContactOpen(true) }}
+                className="text-[12px] text-brand-primary underline active:opacity-60"
+              >
+                仍收不到？联系开发者人工重置
+              </button>
+            </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setForgotOpen(false)}
@@ -216,6 +226,8 @@ export default function LoginPage() {
           </div>
         </div>
       )}
+
+      <FeedbackPopup open={contactOpen} onClose={() => setContactOpen(false)} source="password" />
     </div>
   )
 }
