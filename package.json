@@ -7,7 +7,8 @@
     "dev:log": "next dev 2>&1 | tee -a dev.log",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:secrets": "node --env-file=.env.local scripts/check-no-secrets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
