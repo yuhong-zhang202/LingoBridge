@@ -50,7 +50,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
     <div>
       {/* 概览卡 */}
       <div
-        className="rounded-[20px] px-[18px] pt-[18px] pb-4"
+        className="rounded-[16px] px-[18px] pt-[18px] pb-4"
         style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 18 }}
       >
         <h2 className="text-[16px] font-bold text-v2-text-primary tracking-[-0.2px]">故事版图</h2>

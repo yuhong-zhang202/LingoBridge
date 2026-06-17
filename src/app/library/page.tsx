@@ -181,7 +181,7 @@ export default function LibraryPage() {
             {/* 2) 复习闪卡 Hero */}
             <Link href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>
               <div
-                className="rounded-[20px] p-[18px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
+                className="rounded-[16px] p-[18px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
                 style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 16 }}
               >
                 {/* 右上暖光（更淡更小 + 轻柔脉动） */}
@@ -247,7 +247,7 @@ export default function LibraryPage() {
               style={{ animationDelay: '0.18s' }}
             >
               <div
-                className="rounded-[20px] p-4 bg-bg-surface active:scale-[0.99] transition-transform"
+                className="rounded-[16px] p-4 bg-bg-surface active:scale-[0.99] transition-transform"
                 style={{ boxShadow: SOFT, marginBottom: 14 }}
               >
                 <div className="flex items-center gap-[13px] mb-[13px]">

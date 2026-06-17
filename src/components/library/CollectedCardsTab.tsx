@@ -38,7 +38,7 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
   }
 
   return (
-    <div className="relative overflow-hidden rounded-[20px]">
+    <div className="relative overflow-hidden rounded-[16px]">
       {/* 删除区域：铺满容器，圆角由外层 overflow-hidden 统一裁切，无独立圆角 */}
       <button
         className="absolute inset-0 flex items-center justify-end"

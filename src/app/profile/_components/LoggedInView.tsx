@@ -115,7 +115,7 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
 
       {/* ── 我的画像卡 */}
       <div
-        className="rounded-[20px] px-[18px] pt-4 pb-3.5 mb-3"
+        className="rounded-[16px] px-[18px] pt-4 pb-3.5 mb-3"
         style={GRADIENT_BORDER_STYLE_FULL}
       >
         <div className="flex justify-between items-start mb-1">

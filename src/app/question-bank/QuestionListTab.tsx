@@ -46,7 +46,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
   return (
     <div className="flex flex-col gap-4">
       <div style={PROG}>
-        <div className="bg-white rounded-[20px] px-4 pt-4 pb-3">
+        <div className="bg-white rounded-[16px] px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] font-medium text-v2-text-secondary">你的故事已覆盖</span>
             <div>

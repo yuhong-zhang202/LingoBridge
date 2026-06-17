@@ -117,7 +117,7 @@ export default function FeedbackPage() {
               {/* 背景叠卡（还有下一张时显示） */}
               {index + 1 < total && (
                 <div
-                  className="absolute inset-0 bg-white rounded-[20px] shadow-sm"
+                  className="absolute inset-0 bg-white rounded-[16px] shadow-sm"
                   style={{ transform: 'rotate(2.5deg) scale(0.96) translateY(8px)', opacity: 0.5, zIndex: 0 }}
                 />
               )}

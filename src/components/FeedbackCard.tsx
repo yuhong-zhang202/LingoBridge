@@ -67,7 +67,7 @@ export default function FeedbackCard(props: FeedbackCardProps) {
   return (
     <div
       className={cn(compact ? 'px-[16px] pt-[14px] pb-[18px]' : 'px-[14px] pt-[14px] pb-[16px]', className)}
-      style={{ ...GRADIENT_BORDER_STYLE_FULL, borderRadius: 20 }}
+      style={{ ...GRADIENT_BORDER_STYLE_FULL, borderRadius: 16 }}
     >
       <div className="flex items-center justify-between mb-1.5">
         <InfoTag text="原句" letterSpacing={2} />
