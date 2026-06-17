@@ -122,6 +122,23 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
     [spec.options, selectedKey],
   )
 
+  // 提交校验：按选中类型分三类
+  // 选填类（选了就能交）：analysis_inaccurate / match_inaccurate
+  // 必填文字类：suggestion / bug / other
+  // 必填邮箱类（文字仍选填）：contact_dev / password_reset
+  const requiresText  = selectedKey === 'suggestion' || selectedKey === 'bug' || selectedKey === 'other'
+  const requiresEmail = selectedKey === 'contact_dev' || selectedKey === 'password_reset'
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const canSubmit =
+    !!selectedKey &&
+    (!requiresText  || text.trim().length > 0) &&
+    (!requiresEmail || EMAIL_RE.test(email.trim())) &&
+    !submitting
+
+  const textPlaceholder = requiresText
+    ? '请描述你的建议或遇到的问题'
+    : '补充说明（选填）'
+
   const handleSubmit = useCallback(async () => {
     if (!selectedKey) { setErr('请先选择一项'); return }
     setErr(null)
@@ -190,7 +207,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
                 <textarea
                   value={text}
                   onChange={e => setText(e.target.value)}
-                  placeholder="补充说明（选填）"
+                  placeholder={textPlaceholder}
                   rows={3}
                   className="w-full bg-transparent text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none resize-none leading-relaxed"
                 />
@@ -211,8 +228,8 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
 
               <GradientButton
                 onClick={() => void handleSubmit()}
-                disabled={submitting}
-                className="w-full mt-4 py-2.5 rounded-full text-[13px] font-medium"
+                disabled={!canSubmit}
+                className="w-full mt-4 py-2.5 rounded-full text-[13px] font-medium disabled:cursor-not-allowed"
               >
                 {submitting ? '提交中…' : '提交反馈'}
               </GradientButton>
