@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
@@ -55,7 +56,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ text })
   } catch (e) {
     logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    console.error('[transcribe API] error', e)
+    logErr('[transcribe API]', e)
     if (isAppError(e)) {
       return NextResponse.json({ error: e.message, code: e.code }, { status: 500 })
     }

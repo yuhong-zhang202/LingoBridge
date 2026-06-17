@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { matchByStory } from '@/services/matching'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
@@ -29,7 +30,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json(result)
   } catch (e) {
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    console.error('[matching API] error', e)
+    logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
 }

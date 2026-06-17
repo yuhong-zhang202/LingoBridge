@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
@@ -72,7 +73,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     return NextResponse.json(body)
   } catch (e) {
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    console.error('[analysis API] error', e)
+    logErr('[analysis API]', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }
 }

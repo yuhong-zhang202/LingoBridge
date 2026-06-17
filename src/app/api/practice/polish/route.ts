@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -19,7 +20,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await polishSentence(sentence, aiQuestion, level)
     return NextResponse.json(result)
   } catch (e) {
-    console.error('[polish API] error', e)
+    logErr('[polish API]', e)
     return NextResponse.json({ error: '优化失败' }, { status: 500 })
   }
 }

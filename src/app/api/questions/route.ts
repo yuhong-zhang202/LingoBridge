@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { getQuestions, getQuestionsByObservation, getRandomSwitchQuestion } from '@/lib/db/questions'
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const questions = await getQuestions(part)
     return NextResponse.json({ questions })
   } catch (err) {
-    console.error('[questions API] error', err)
+    logErr('[questions API]', err)
     return NextResponse.json({ error: '获取题目失败' }, { status: 500 })
   }
 }

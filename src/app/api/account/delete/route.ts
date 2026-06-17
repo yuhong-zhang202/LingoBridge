@@ -7,6 +7,7 @@
  */
 import 'server-only'
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -51,7 +52,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('[account/delete] failed', e)
+    logErr('[account/delete]', e)
     return NextResponse.json({ error: '删除失败，请稍后再试' }, { status: 500 })
   }
 }

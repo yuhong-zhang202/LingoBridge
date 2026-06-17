@@ -5,6 +5,7 @@
  * @created  2026-06-07
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
@@ -42,7 +43,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     return NextResponse.json({ phrases })
   } catch (e) {
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    console.error('[phrases API] error', e)
+    logErr('[phrases API]', e)
     return NextResponse.json({ error: '生成词组失败' }, { status: 500 })
   }
 }

@@ -5,6 +5,7 @@
  * @created  2026-06-04
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { getSupabase } from '@/lib/supabase'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
@@ -184,7 +185,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       recentLogs: recent,
     })
   } catch (e) {
-    console.error('[dashboard API] error', e)
+    logErr('[dashboard API]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : '查询失败' }, { status: 500 })
   }
 }

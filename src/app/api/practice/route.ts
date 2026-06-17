@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
@@ -38,7 +39,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ scaffold, reply })
   } catch (e) {
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    console.error('[practice API] error', e)
+    logErr('[practice API]', e)
     return NextResponse.json({ error: '对话失败' }, { status: 500 })
   }
 }

@@ -5,6 +5,7 @@
  * @created  2026-06-11
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { generatePronunciationTip } from '@/services/pronounce'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -19,7 +20,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await generatePronunciationTip(intended, heard, context)
     return NextResponse.json(result)
   } catch (e) {
-    console.error('[pronounce API] error', e)
+    logErr('[pronounce API]', e)
     return NextResponse.json({ error: '生成发音提示失败' }, { status: 500 })
   }
 }
