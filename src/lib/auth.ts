@@ -1,46 +1,63 @@
 /**
  * @module   auth
- * @desc     邮箱验证码登录 — 匿名账号升级（updateUser，user_id 不变保住试用数据）/
- *           已注册走 signInWithOtp + verifyOtp。所有日志严禁出现邮箱/验证码。
+ * @desc     手机号验证码登录（Supabase phone OTP，短信走 Twilio Verify 后台配置）—
+ *           匿名账号升级（updateUser({ phone })，user_id 不变保住试用数据）/
+ *           已注册走 signInWithOtp + verifyOtp。所有日志严禁出现手机号/验证码。
  * @author   LingoBridge
  * @created  2026-06-17
  */
 import type { AppError } from '@/types/errors'
 import { getSupabase, ensureSession } from '@/lib/supabase'
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const E164_RE = /^\+[1-9]\d{6,14}$/
 
 function appError(code: string, message: string, cause?: unknown): AppError {
   return { code, message, cause }
 }
 
 /**
- * 脱敏邮箱 — 本地名只留首字符，如 a***@gmail.com；无 @ 原样返回。
+ * 脱敏手机号 — E.164 输入，中间四位替换为 ****，如 +8613812345678 → +86 138****5678。
+ * 国家码默认匹配前 1–3 位（中国大陆 +86 为最常见 case）；不规则输入原样返回。
  */
-export function maskEmail(email: string): string {
-  const at = email.indexOf('@')
-  if (at <= 0) return email
-  return `${email[0]}***${email.slice(at)}`
+export function maskPhone(phone: string): string {
+  if (!E164_RE.test(phone)) return phone
+  // 简单切分：去掉首位 '+'，按 国家码(2–3) + 余下 拆
+  const body = phone.slice(1)
+  // 中国大陆 +86 13 位（86 + 11），其它默认前 1 位为国家码、剩余按尾 4 位脱敏
+  let cc: string
+  let rest: string
+  if (body.startsWith('86') && body.length === 13) {
+    cc = '86'
+    rest = body.slice(2)
+  } else {
+    // 通用：取前 1 位作国家码；剩余至少 4 位才脱敏，否则原样
+    cc = body.slice(0, 1)
+    rest = body.slice(1)
+  }
+  if (rest.length < 8) return phone
+  const head = rest.slice(0, rest.length - 8)
+  const tail = rest.slice(-4)
+  return `+${cc} ${head}****${tail}`
 }
 
 /**
- * 发送邮箱验证码。
- * 先尝试 updateUser 把邮箱绑到当前匿名账号（user_id 不变保住试用数据）；
- * 若邮箱已被注册，自动改走 signInWithOtp 登录原账号。
- * @returns convert = 首次绑定（匿名→邮箱）；login = 老用户登录原账号
- * @throws AppError INVALID_EMAIL / SEND_FAILED
+ * 发送短信验证码。
+ * 先尝试 updateUser 把手机号绑到当前匿名账号（user_id 不变保住试用数据）；
+ * 若手机号已被注册，自动改走 signInWithOtp 登录原账号。
+ * @returns convert = 首次绑定（匿名→手机号）；login = 老用户登录原账号
+ * @throws AppError INVALID_PHONE / SEND_FAILED
  */
-export async function sendEmailCode(email: string): Promise<{ mode: 'convert' | 'login' }> {
-  const normalized = email.trim()
-  if (!EMAIL_RE.test(normalized)) {
-    throw appError('INVALID_EMAIL', '请输入正确的邮箱')
+export async function sendPhoneCode(phone: string): Promise<{ mode: 'convert' | 'login' }> {
+  const normalized = phone.trim()
+  if (!E164_RE.test(normalized)) {
+    throw appError('INVALID_PHONE', '请输入正确的手机号')
   }
   await ensureSession()
   const supabase = getSupabase()
-  const { error } = await supabase.auth.updateUser({ email: normalized })
+  const { error } = await supabase.auth.updateUser({ phone: normalized })
   if (!error) return { mode: 'convert' }
 
-  // 邮箱已注册识别：v2 OTP 流程下 status 422、或 message 含 already/registered/exists
+  // 手机号已注册识别：v2 OTP 流程下 status 422、或 message 含 already/registered/exists
   const msg = error.message?.toLowerCase() ?? ''
   const status = (error as { status?: number }).status
   const alreadyRegistered = status === 422 || msg.includes('already') || msg.includes('registered') || msg.includes('exists')
@@ -48,7 +65,7 @@ export async function sendEmailCode(email: string): Promise<{ mode: 'convert' | 
     throw appError('SEND_FAILED', '发送失败，请稍后再试', error)
   }
   const { error: otpErr } = await supabase.auth.signInWithOtp({
-    email: normalized,
+    phone: normalized,
     options: { shouldCreateUser: false },
   })
   if (otpErr) {
@@ -59,16 +76,16 @@ export async function sendEmailCode(email: string): Promise<{ mode: 'convert' | 
 
 /**
  * 校验验证码并完成登录。
- * mode='convert' 走 email_change（确认匿名账号升级）；mode='login' 走 email（老用户登录）。
+ * mode='convert' 走 phone_change（确认匿名账号升级）；mode='login' 走 sms（老用户登录）。
  * @throws AppError INVALID_CODE
  */
-export async function verifyEmailCode(email: string, code: string, mode: 'convert' | 'login'): Promise<void> {
+export async function verifyPhoneCode(phone: string, code: string, mode: 'convert' | 'login'): Promise<void> {
   if (!/^\d{6}$/.test(code)) {
     throw appError('INVALID_CODE', '请输入 6 位数字验证码')
   }
-  const type = mode === 'login' ? 'email' : 'email_change'
+  const type = mode === 'login' ? 'sms' : 'phone_change'
   const { error } = await getSupabase().auth.verifyOtp({
-    email: email.trim(),
+    phone: phone.trim(),
     token: code,
     type,
   })
@@ -79,13 +96,13 @@ export async function verifyEmailCode(email: string, code: string, mode: 'conver
 
 /**
  * 读取当前账号信息。
- * @returns { email, isAnonymous } 或 null（无 user）
+ * @returns { phone, isAnonymous } 或 null（无 user）
  */
-export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean } | null> {
+export async function getAccount(): Promise<{ phone: string | null; isAnonymous: boolean } | null> {
   const { data } = await getSupabase().auth.getUser()
   if (!data.user) return null
   return {
-    email: data.user.email ?? null,
+    phone: data.user.phone ?? null,
     isAnonymous: data.user.is_anonymous ?? false,
   }
 }

@@ -1,6 +1,6 @@
 /**
  * @module   LoginPage
- * @desc     登录页 — 邮箱验证码登录，匿名账号升级保留试用数据；底部同意说明 + 隐私政策链接
+ * @desc     登录页 — 手机号验证码登录（Twilio Verify），匿名账号升级保留试用数据；底部同意说明 + 隐私政策链接
  * @author   LingoBridge
  * @created  2026-06-03
  */
@@ -10,14 +10,21 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Orb from '@/components/Orb'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { sendEmailCode, verifyEmailCode } from '@/lib/auth'
+import { sendPhoneCode, verifyPhoneCode } from '@/lib/auth'
 import { useCountdown } from '@/hooks/useCountdown'
+
+/** 把用户输入归一化为 E.164：以 '+' 起头视为完整国际号；否则默认中国大陆 +86 并去前导 0。 */
+function toE164(raw: string): string {
+  const cleaned = raw.replace(/[\s-]/g, '')
+  if (cleaned.startsWith('+')) return cleaned
+  return `+86${cleaned.replace(/^0+/, '')}`
+}
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail]       = useState('')
+  const [phone, setPhone]       = useState('')
   const [code, setCode]         = useState('')
-  const [emailErr, setEmailErr] = useState<string | null>(null)
+  const [phoneErr, setPhoneErr] = useState<string | null>(null)
   const [codeErr, setCodeErr]   = useState<string | null>(null)
   const [mode, setMode]         = useState<'convert' | 'login' | null>(null)
   const [sending, setSending]   = useState(false)
@@ -32,19 +39,19 @@ export default function LoginPage() {
   }
 
   const handleSendCode = useCallback(async () => {
-    setEmailErr(null)
+    setPhoneErr(null)
     setCodeErr(null)
     setSending(true)
     try {
-      const result = await sendEmailCode(email)
+      const result = await sendPhoneCode(toE164(phone))
       setMode(result.mode)
       start(60)
     } catch (e) {
-      setEmailErr(extractMsg(e, '发送失败，请重试'))
+      setPhoneErr(extractMsg(e, '发送失败，请重试'))
     } finally {
       setSending(false)
     }
-  }, [email, start])
+  }, [phone, start])
 
   const handleLogin = useCallback(async () => {
     setCodeErr(null)
@@ -54,16 +61,17 @@ export default function LoginPage() {
     }
     setLogging(true)
     try {
-      await verifyEmailCode(email, code, mode)
+      await verifyPhoneCode(toE164(phone), code, mode)
       router.push('/')
     } catch (e) {
       setCodeErr(extractMsg(e, '登录失败，请重试'))
     } finally {
       setLogging(false)
     }
-  }, [email, code, mode, router])
+  }, [phone, code, mode, router])
 
   const codeBtnDisabled = running || sending
+  const isIntl = phone.trim().startsWith('+')
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -76,23 +84,29 @@ export default function LoginPage() {
             欢迎来到 LingoBridge
           </h1>
           <p className="text-[13px] text-v2-text-secondary mt-1.5">
-            绑定邮箱，保存你的练习进度
+            绑定手机号，保存你的练习进度
           </p>
         </div>
 
         <div className="w-full">
 
-          {/* 邮箱输入框 */}
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="请输入邮箱"
-            autoComplete="email"
-            className="w-full bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors mb-3"
-          />
-          {emailErr && (
-            <p className="text-[12px] text-error -mt-2 mb-2 px-1">{emailErr}</p>
+          {/* 手机号输入框（含 +86 区号提示） */}
+          <div className="relative mb-3">
+            {!isIntl && (
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-v2-text-muted pointer-events-none">+86</span>
+            )}
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="请输入手机号"
+              className={`w-full bg-white border border-[#EEEEEE] rounded-[16px] py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors ${isIntl ? 'px-4' : 'pl-[52px] pr-4'}`}
+            />
+          </div>
+          {phoneErr && (
+            <p className="text-[12px] text-error -mt-2 mb-2 px-1">{phoneErr}</p>
           )}
 
           {/* 验证码行 */}
@@ -136,7 +150,7 @@ export default function LoginPage() {
           <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
             继续即表示同意我们的
             <Link href="/privacy" className="text-brand-primary underline">《隐私政策》</Link>
-            。我们仅用邮箱保存你的学习进度。
+            。我们仅用手机号保存你的学习进度。
           </p>
 
           {/* 暂不登录 */}
