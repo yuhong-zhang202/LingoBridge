@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import TopBar from '@/components/TopBar'
 import Toast from '@/components/Toast'
-import { getAccount, logout, maskPhone } from '@/lib/auth'
+import { getAccount, logout, maskEmail } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
 
 /** 清掉所有 lingobridge: 开头的 localStorage 键（收藏/会话暂存等） */
@@ -26,7 +26,7 @@ function clearLocalUserData(): void {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [phone, setPhone] = useState<string | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -34,12 +34,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getAccount().then((acct) => {
-      setLoggedIn(!!acct && !acct.isAnonymous && !!acct.phone)
-      setPhone(acct?.phone ?? null)
-    }).catch(() => { setLoggedIn(false); setPhone(null) })
+      setLoggedIn(!!acct && !acct.isAnonymous && !!acct.email)
+      setEmail(acct?.email ?? null)
+    }).catch(() => { setLoggedIn(false); setEmail(null) })
   }, [])
 
-  const displayPhone = loggedIn ? (phone ? maskPhone(phone) : '我的账号') : '未登录'
+  const displayEmail = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const handleConfirmDelete = useCallback(async (): Promise<void> => {
     setDeleting(true)
@@ -74,8 +74,8 @@ export default function SettingsPage() {
         <section className="mb-6">
           <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
           <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
-            <span className="text-[13px] text-v2-text-secondary">手机号</span>
-            <span className="text-[14px] text-v2-text-primary">{displayPhone}</span>
+            <span className="text-[13px] text-v2-text-secondary">邮箱</span>
+            <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
           </div>
         </section>
 

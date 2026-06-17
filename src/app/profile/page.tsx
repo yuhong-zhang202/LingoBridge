@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
-import { getAccount, logout, maskPhone } from '@/lib/auth'
+import { getAccount, logout, maskEmail } from '@/lib/auth'
 import { getSavedPhrases } from '@/lib/storage'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
@@ -41,16 +41,16 @@ export default function ProfilePage(): JSX.Element {
 
   // Supabase session 异步读，初始值 false/null，挂载后同步实际状态
   const [loggedIn, setLoggedIn] = useState(false)
-  const [phone,    setPhone]    = useState<string | null>(null)
+  const [email,    setEmail]    = useState<string | null>(null)
   const [bookmarkCount, setBookmarkCount] = useState(profileData.bookmarkCount)
 
   useEffect(() => {
     getAccount().then(acct => {
-      setLoggedIn(!!acct && !acct.isAnonymous && !!acct.phone)
-      setPhone(acct?.phone ?? null)
+      setLoggedIn(!!acct && !acct.isAnonymous && !!acct.email)
+      setEmail(acct?.email ?? null)
     }).catch(() => {
       setLoggedIn(false)
-      setPhone(null)
+      setEmail(null)
     })
   }, [])
 
@@ -62,13 +62,13 @@ export default function ProfilePage(): JSX.Element {
   const { targetBand, stats, version } = profileData
 
   const displayName = loggedIn
-    ? (phone ? maskPhone(phone) : '我的账号')
+    ? (email ? maskEmail(email) : '我的账号')
     : '未登录'
 
   const handleLogout = async () => {
     await logout()
     setLoggedIn(false)
-    setPhone(null)
+    setEmail(null)
   }
 
   const settingsButton = (

@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         <section className="mb-5">
           <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">我们收集什么</h2>
           <p className="text-[13px] text-v2-text-secondary leading-relaxed">
-            手机号（用于登录与保存你的练习进度），以及你录入的故事与练习记录（录音/文字、整理后的故事、匹配题目、AI 反馈等）。
+            邮箱（用于登录与保存你的练习进度），以及你录入的故事与练习记录（录音/文字、整理后的故事、匹配题目、AI 反馈等）。
           </p>
         </section>
 

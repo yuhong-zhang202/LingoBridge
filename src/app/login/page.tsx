@@ -1,6 +1,7 @@
 /**
  * @module   LoginPage
- * @desc     登录页 — 手机号验证码登录（Twilio Verify），匿名账号升级保留试用数据；底部同意说明 + 隐私政策链接
+ * @desc     登录页 — 邮箱 + 密码（不发验证码）。注册升级匿名账号保住试用数据；
+ *           老用户登录走 signInWithPassword；忘记密码触发重置邮件 → /reset-password。
  * @author   LingoBridge
  * @created  2026-06-03
  */
@@ -8,28 +9,30 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import Orb from '@/components/Orb'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { sendPhoneCode, verifyPhoneCode } from '@/lib/auth'
-import { useCountdown } from '@/hooks/useCountdown'
+import {
+  registerWithPassword,
+  loginWithPassword,
+  sendPasswordReset,
+} from '@/lib/auth'
 
-/** 把用户输入归一化为 E.164：以 '+' 起头视为完整国际号；否则默认中国大陆 +86 并去前导 0。 */
-function toE164(raw: string): string {
-  const cleaned = raw.replace(/[\s-]/g, '')
-  if (cleaned.startsWith('+')) return cleaned
-  return `+86${cleaned.replace(/^0+/, '')}`
-}
+type Mode = 'register' | 'login'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [phone, setPhone]       = useState('')
-  const [code, setCode]         = useState('')
-  const [phoneErr, setPhoneErr] = useState<string | null>(null)
-  const [codeErr, setCodeErr]   = useState<string | null>(null)
-  const [mode, setMode]         = useState<'convert' | 'login' | null>(null)
-  const [sending, setSending]   = useState(false)
-  const [logging, setLogging]   = useState(false)
-  const { count, running, start } = useCountdown()
+  const [mode, setMode]   = useState<Mode>('register')
+  const [email, setEmail] = useState('')
+  const [pwd, setPwd]     = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+  const [err, setErr]     = useState<string | null>(null)
+  const [info, setInfo]   = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetMsg,   setResetMsg]   = useState<string | null>(null)
+  const [resetting,  setResetting]  = useState(false)
 
   const extractMsg = (e: unknown, fallback: string): string => {
     if (typeof e === 'object' && e !== null && 'message' in e) {
@@ -37,41 +40,52 @@ export default function LoginPage() {
     }
     return fallback
   }
-
-  const handleSendCode = useCallback(async () => {
-    setPhoneErr(null)
-    setCodeErr(null)
-    setSending(true)
-    try {
-      const result = await sendPhoneCode(toE164(phone))
-      setMode(result.mode)
-      start(60)
-    } catch (e) {
-      setPhoneErr(extractMsg(e, '发送失败，请重试'))
-    } finally {
-      setSending(false)
+  const extractCode = (e: unknown): string | null => {
+    if (typeof e === 'object' && e !== null && 'code' in e) {
+      const c = (e as { code: unknown }).code
+      return typeof c === 'string' ? c : null
     }
-  }, [phone, start])
+    return null
+  }
 
-  const handleLogin = useCallback(async () => {
-    setCodeErr(null)
-    if (!mode) {
-      setCodeErr('请先获取验证码')
-      return
-    }
-    setLogging(true)
+  const switchMode = (m: Mode) => {
+    setMode(m); setErr(null); setInfo(null)
+  }
+
+  const handleSubmit = useCallback(async () => {
+    setErr(null); setInfo(null)
+    setSubmitting(true)
     try {
-      await verifyPhoneCode(toE164(phone), code, mode)
+      if (mode === 'register') {
+        await registerWithPassword(email, pwd)
+      } else {
+        await loginWithPassword(email, pwd)
+      }
       router.push('/')
     } catch (e) {
-      setCodeErr(extractMsg(e, '登录失败，请重试'))
+      if (extractCode(e) === 'EMAIL_EXISTS') {
+        setMode('login')
+        setInfo('该邮箱已注册，已切换到登录。请输入密码后登录。')
+      } else {
+        setErr(extractMsg(e, mode === 'register' ? '创建账号失败' : '登录失败'))
+      }
     } finally {
-      setLogging(false)
+      setSubmitting(false)
     }
-  }, [phone, code, mode, router])
+  }, [mode, email, pwd, router])
 
-  const codeBtnDisabled = running || sending
-  const isIntl = phone.trim().startsWith('+')
+  const handleSendReset = useCallback(async () => {
+    setResetMsg(null)
+    setResetting(true)
+    try {
+      await sendPasswordReset(resetEmail)
+      setResetMsg('重置链接已发到你的邮箱，请查收（也看下垃圾箱）。仍收不到？请到「我的 → 帮助与反馈」联系我们手动重置。')
+    } catch (e) {
+      setResetMsg(extractMsg(e, '发送失败，请稍后再试'))
+    } finally {
+      setResetting(false)
+    }
+  }, [resetEmail])
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
@@ -79,92 +93,129 @@ export default function LoginPage() {
 
         <Orb size={220} pulse={false} />
 
-        <div className="text-center mt-6 mb-8">
+        <div className="text-center mt-6 mb-6">
           <h1 className="text-[20px] font-semibold text-v2-text-primary">
             欢迎来到 LingoBridge
           </h1>
           <p className="text-[13px] text-v2-text-secondary mt-1.5">
-            绑定手机号，保存你的练习进度
+            {mode === 'register' ? '创建账号，保存你的练习进度' : '登录'}
           </p>
+        </div>
+
+        {/* mode 切换 */}
+        <div className="flex justify-center gap-1 mb-5 bg-bg-muted rounded-full p-1 w-[240px]">
+          {(['register', 'login'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => switchMode(m)}
+              className={`flex-1 text-[13px] py-1.5 rounded-full transition-colors ${
+                mode === m ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'
+              }`}
+            >
+              {m === 'register' ? '创建账号' : '登录'}
+            </button>
+          ))}
         </div>
 
         <div className="w-full">
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="邮箱"
+            autoComplete="email"
+            className="w-full bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors mb-3"
+          />
 
-          {/* 手机号输入框（含 +86 区号提示） */}
-          <div className="relative mb-3">
-            {!isIntl && (
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-v2-text-muted pointer-events-none">+86</span>
-            )}
+          <div className="relative mb-1.5">
             <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="请输入手机号"
-              className={`w-full bg-white border border-[#EEEEEE] rounded-[16px] py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors ${isIntl ? 'px-4' : 'pl-[52px] pr-4'}`}
-            />
-          </div>
-          {phoneErr && (
-            <p className="text-[12px] text-error -mt-2 mb-2 px-1">{phoneErr}</p>
-          )}
-
-          {/* 验证码行 */}
-          <div className="flex gap-2">
-            <input
-              type="tel"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              placeholder="验证码"
-              className="flex-1 bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors"
+              type={showPwd ? 'text' : 'password'}
+              value={pwd}
+              onChange={e => setPwd(e.target.value)}
+              placeholder="密码（至少 6 位）"
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+              className="w-full bg-white border border-[#EEEEEE] rounded-[16px] pl-4 pr-12 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors"
             />
             <button
-              onClick={() => void handleSendCode()}
-              disabled={codeBtnDisabled}
-              className={`rounded-full px-4 py-3.5 text-[12px] font-medium whitespace-nowrap active:scale-[0.97] transition-all duration-150 ${
-                codeBtnDisabled
-                  ? 'bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
-                  : 'text-v2-text-secondary'
-              }`}
-              style={codeBtnDisabled ? undefined : GRADIENT_BORDER_STYLE}
+              type="button"
+              onClick={() => setShowPwd(v => !v)}
+              aria-label={showPwd ? '隐藏密码' : '显示密码'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-v2-text-muted"
             >
-              {running ? `${count}s 后重发` : '发送验证码'}
+              {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {codeErr && (
-            <p className="text-[12px] text-error mt-1.5 px-1">{codeErr}</p>
+
+          {info && <p className="text-[12px] text-v2-text-secondary mt-1 mb-1.5 px-1">{info}</p>}
+          {err && <p className="text-[12px] text-error mt-1 mb-1.5 px-1">{err}</p>}
+
+          {/* 忘记密码（仅登录模式） */}
+          {mode === 'login' && (
+            <div className="flex justify-end mt-1 mb-2">
+              <button
+                onClick={() => { setForgotOpen(true); setResetEmail(email); setResetMsg(null) }}
+                className="text-[12px] text-v2-text-muted active:opacity-60"
+              >
+                忘记密码？
+              </button>
+            </div>
           )}
 
-          {/* 登录按钮 */}
           <button
-            onClick={() => void handleLogin()}
-            disabled={logging}
-            className="btn-gradient w-full h-[50px] mt-5 disabled:opacity-50"
+            onClick={() => void handleSubmit()}
+            disabled={submitting}
+            className="btn-gradient w-full h-[50px] mt-4 disabled:opacity-50"
           >
-            {logging ? '登录中…' : '登录'}
+            {submitting ? '处理中…' : (mode === 'register' ? '创建账号' : '登录')}
           </button>
 
-          {/* 同意说明 */}
           <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
             继续即表示同意我们的
             <Link href="/privacy" className="text-brand-primary underline">《隐私政策》</Link>
-            。我们仅用手机号保存你的学习进度。
+            。我们仅用邮箱保存你的学习进度。
           </p>
 
-          {/* 暂不登录 */}
           <div className="flex justify-center mt-2">
-            <button
-              onClick={() => router.push('/')}
-              className="text-[13px] text-v2-text-muted"
-            >
+            <button onClick={() => router.push('/')} className="text-[13px] text-v2-text-muted">
               暂不登录，先看看
             </button>
           </div>
-
         </div>
       </div>
+
+      {/* 忘记密码模态 */}
+      {forgotOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setForgotOpen(false)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 pb-7 animate-fade-up">
+            <h3 className="text-[16px] font-semibold text-v2-text-primary text-center mb-2">重置密码</h3>
+            <p className="text-[12px] text-v2-text-muted text-center mb-3">填邮箱，发送重置链接到你的邮箱</p>
+            <input
+              type="email"
+              value={resetEmail}
+              onChange={e => setResetEmail(e.target.value)}
+              placeholder="邮箱"
+              autoComplete="email"
+              className="w-full bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors mb-3"
+            />
+            {resetMsg && <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-3 px-1">{resetMsg}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setForgotOpen(false)}
+                className="btn-ghost flex-1 h-[48px] active:scale-[0.97] transition-transform duration-150"
+              >
+                关闭
+              </button>
+              <button
+                onClick={() => void handleSendReset()}
+                disabled={resetting}
+                className="btn-gradient flex-1 h-[48px] disabled:opacity-50"
+              >
+                {resetting ? '发送中…' : '发送重置链接'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
