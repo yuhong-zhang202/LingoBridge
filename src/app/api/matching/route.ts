@@ -1,20 +1,25 @@
 /**
  * @module   api/matching
- * @desc     POST 接口：收整理后故事 → 萃取观察点 → 返回真实匹配题目（密钥只在服务端）
+ * @desc     POST 接口：按 corpusId 服务端读取整理后故事 → 萃取观察点 → 返回真实匹配题目（故事正文不进 URL）
  * @author   LingoBridge
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
 import { matchByStory } from '@/services/matching'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    const body = (await req.json()) as { cleanedText?: unknown }
-    const cleanedText = typeof body.cleanedText === 'string' ? body.cleanedText.trim() : ''
+    const body = (await req.json()) as { corpusId?: unknown }
+    const corpusId = typeof body.corpusId === 'string' ? body.corpusId.trim() : ''
+    if (!corpusId) {
+      return NextResponse.json({ error: 'corpusId 不能为空' }, { status: 400 })
+    }
+    const cleanedText = (await getCorpusByIdServer(corpusId))?.trim() ?? ''
     if (!cleanedText) {
-      return NextResponse.json({ error: 'cleanedText 不能为空' }, { status: 400 })
+      return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
     }
     const result = await matchByStory(cleanedText)
     // extractCorpus 内未向上暴露 usage，按语料字数估算输入 token（中文约 0.8 token/字 + 系统提示约 1200）

@@ -7,7 +7,6 @@
 'use client'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
@@ -69,7 +68,6 @@ function GroupHeader({ label, count, variant }: {
 function MatchingContent() {
   const router = useRouter()
   const params = useSearchParams()
-  const story    = params.get('story')    ?? ''
   const corpusId = params.get('corpusId') ?? ''
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -82,7 +80,7 @@ function MatchingContent() {
   useEffect(() => { setExpanded(false) }, [activeTab])
 
   useEffect(() => {
-    if (!story) { setLoading(false); setError('没有收到故事内容'); return }
+    if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
     let cancelled = false
     ;(async () => {
       setLoading(true); setError(null)
@@ -90,7 +88,7 @@ function MatchingContent() {
         const res = await fetch('/api/matching', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cleanedText: story, corpusId }),
+          body: JSON.stringify({ corpusId }),
         })
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as FunnelResult
@@ -107,7 +105,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true }
-  }, [story, corpusId])
+  }, [corpusId])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {
@@ -163,14 +161,6 @@ function MatchingContent() {
       <StepBar currentStep="matching" />
 
       <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10">
-
-        {/* 故事预览 */}
-        <div className="bg-bg-muted rounded-[14px] px-3.5 py-2.5 mb-5 flex items-center gap-2">
-          <Sparkles size={13} className="text-v2-text-muted flex-shrink-0" />
-          <span className="text-[12px] text-v2-text-muted italic truncate">
-            「{story ? story.slice(0, 24) + (story.length > 24 ? '…' : '') : '未收到故事'}」
-          </span>
-        </div>
 
         {loading && (
           <div className="text-center text-[14px] text-v2-text-muted py-20">正在匹配题目…</div>

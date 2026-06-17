@@ -83,7 +83,7 @@ function RestructureContent() {
     try {
       const corpus = await createCorpus({ source: 'voice', rawText: rawStory })
       await updateCorpusCleaned(corpus.id, aiText)
-      router.push(`/matching?story=${encodeURIComponent(aiText)}&corpusId=${corpus.id}`)
+      router.push(`/matching?corpusId=${corpus.id}`)
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
       setIsSaving(false)
