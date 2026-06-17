@@ -11,6 +11,7 @@ import { Search, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, V
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import CollectedCardsTab from '@/components/library/CollectedCardsTab'
+import RequireAccountGate from '@/components/RequireAccountGate'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
@@ -133,6 +134,7 @@ export default function LibraryPage() {
           50%      { transform: translateY(-5px); }
         }
       `}</style>
+      <RequireAccountGate>
       {view !== 'hub' ? (
         <>
           {/* 二级页返回栏 */}
@@ -351,6 +353,7 @@ export default function LibraryPage() {
           </div>
         </>
       )}
+      </RequireAccountGate>
 
       <TabBar />
     </div>

@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
+import RequireAccountGate from '@/components/RequireAccountGate'
 import DimensionTab from './DimensionTab'
 import QuestionListTab from './QuestionListTab'
 import { useQuestionBank } from './useQuestionBank'
@@ -28,6 +29,7 @@ export default function QuestionBankPage() {
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <TopBar title="当季题库" />
 
+      <RequireAccountGate>
       {!isEmpty && (
         <div className="px-5 pt-4 pb-0 flex-shrink-0">
           <div className="flex rounded-[10px] p-[3px] bg-bg-inner">
@@ -78,6 +80,8 @@ export default function QuestionBankPage() {
           />
         )}
       </div>
+
+      </RequireAccountGate>
 
       <div className="relative z-20 flex-shrink-0"><TabBar /></div>
     </div>

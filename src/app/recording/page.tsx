@@ -11,6 +11,7 @@ import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
 import Toast from '@/components/Toast'
+import RequireAccountGate from '@/components/RequireAccountGate'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 
@@ -114,6 +115,7 @@ export default function RecordingPage() {
         <div className="w-[30px]" />
       </div>
 
+      <RequireAccountGate>
       {/* 中心内容 */}
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-7 relative z-10 gap-4 py-4">
 
@@ -168,6 +170,7 @@ export default function RecordingPage() {
           </button>
         </div>
       </div>
+      </RequireAccountGate>
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </div>
   )

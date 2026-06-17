@@ -11,6 +11,17 @@ const SESSION_KEY = 'lingobridge:session_polishes'
 const SAVED_KEY = 'lingobridge:saved_phrases'
 const SAVED_WORDS_KEY = 'lingobridge:saved_words'
 const SAVED_PRON_KEY = 'lingobridge:saved_pronunciations'
+const TRIAL_DONE_KEY = 'lingobridge:trial_done'
+
+// ── 试用墙：到达 /feedback 即视为「免费一圈走完」──
+export function markTrialDone(): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(TRIAL_DONE_KEY, '1')
+}
+export function isTrialDone(): boolean {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem(TRIAL_DONE_KEY) === '1'
+}
 
 // ── 本场暂存：practice → feedback ──
 export function setSessionPolishes(items: SessionPolish[]): void {

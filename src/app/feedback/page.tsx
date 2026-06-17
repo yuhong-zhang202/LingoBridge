@@ -13,7 +13,7 @@ import TabBar from '@/components/TabBar'
 import { StepBar } from '@/components/StepBar'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'
-import { getSessionPolishes, clearSessionPolishes, addSavedPhrase } from '@/lib/storage'
+import { getSessionPolishes, clearSessionPolishes, addSavedPhrase, markTrialDone } from '@/lib/storage'
 import type { SessionPolish } from '@/lib/types'
 
 const partLabel = (p: 1 | 2 | 3) => `Part ${p}` as 'Part 1' | 'Part 2' | 'Part 3'
@@ -31,8 +31,8 @@ export default function FeedbackPage() {
   const startXRef  = useRef(0)
   const isDragging = useRef(false)
 
-  // 进页面读本场暂存
-  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
+  // 进页面读本场暂存；同时标记「免费一圈走完」给试用墙用
+  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true); markTrialDone() }, [])
 
   const total   = cards.length
   const current = cards[index]
