@@ -1,23 +1,25 @@
 /**
  * @module   LoginPage
- * @desc     登录页 — 方案A 温暖欢迎型，mock UI 登录态（绑定手机号存 localStorage）
+ * @desc     登录页 — 邮箱验证码登录，匿名账号升级保留试用数据；底部同意说明 + 隐私政策链接
  * @author   LingoBridge
  * @created  2026-06-03
  */
 'use client'
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Orb from '@/components/Orb'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { sendVerifyCode, verifyCode } from '@/lib/auth'
+import { sendEmailCode, verifyEmailCode } from '@/lib/auth'
 import { useCountdown } from '@/hooks/useCountdown'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [phone, setPhone]       = useState('')
+  const [email, setEmail]       = useState('')
   const [code, setCode]         = useState('')
-  const [phoneErr, setPhoneErr] = useState<string | null>(null)
+  const [emailErr, setEmailErr] = useState<string | null>(null)
   const [codeErr, setCodeErr]   = useState<string | null>(null)
+  const [mode, setMode]         = useState<'convert' | 'login' | null>(null)
   const [sending, setSending]   = useState(false)
   const [logging, setLogging]   = useState(false)
   const { count, running, start } = useCountdown()
@@ -30,30 +32,36 @@ export default function LoginPage() {
   }
 
   const handleSendCode = useCallback(async () => {
-    setPhoneErr(null)
+    setEmailErr(null)
+    setCodeErr(null)
     setSending(true)
     try {
-      await sendVerifyCode(phone)
+      const result = await sendEmailCode(email)
+      setMode(result.mode)
       start(60)
     } catch (e) {
-      setPhoneErr(extractMsg(e, '发送失败，请重试'))
+      setEmailErr(extractMsg(e, '发送失败，请重试'))
     } finally {
       setSending(false)
     }
-  }, [phone, start])
+  }, [email, start])
 
   const handleLogin = useCallback(async () => {
     setCodeErr(null)
+    if (!mode) {
+      setCodeErr('请先获取验证码')
+      return
+    }
     setLogging(true)
     try {
-      await verifyCode(phone, code)
+      await verifyEmailCode(email, code, mode)
       router.push('/')
     } catch (e) {
       setCodeErr(extractMsg(e, '登录失败，请重试'))
     } finally {
       setLogging(false)
     }
-  }, [phone, code, router])
+  }, [email, code, mode, router])
 
   const codeBtnDisabled = running || sending
 
@@ -68,28 +76,31 @@ export default function LoginPage() {
             欢迎来到 LingoBridge
           </h1>
           <p className="text-[13px] text-v2-text-secondary mt-1.5">
-            绑定手机号，保存你的练习进度
+            绑定邮箱，保存你的练习进度
           </p>
         </div>
 
         <div className="w-full">
 
-          {/* 手机号输入框 */}
+          {/* 邮箱输入框 */}
           <input
-            type="tel"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            placeholder="请输入手机号"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="请输入邮箱"
+            autoComplete="email"
             className="w-full bg-white border border-[#EEEEEE] rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-[#CCCCCC] outline-none focus:border-brand-primary transition-colors mb-3"
           />
-          {phoneErr && (
-            <p className="text-[12px] text-error -mt-2 mb-2 px-1">{phoneErr}</p>
+          {emailErr && (
+            <p className="text-[12px] text-error -mt-2 mb-2 px-1">{emailErr}</p>
           )}
 
           {/* 验证码行 */}
           <div className="flex gap-2">
             <input
               type="tel"
+              inputMode="numeric"
+              autoComplete="one-time-code"
               value={code}
               onChange={e => setCode(e.target.value)}
               placeholder="验证码"
@@ -121,8 +132,15 @@ export default function LoginPage() {
             {logging ? '登录中…' : '登录'}
           </button>
 
+          {/* 同意说明 */}
+          <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
+            继续即表示同意我们的
+            <Link href="/privacy" className="text-brand-primary underline">《隐私政策》</Link>
+            。我们仅用邮箱保存你的学习进度。
+          </p>
+
           {/* 暂不登录 */}
-          <div className="flex justify-center mt-3">
+          <div className="flex justify-center mt-2">
             <button
               onClick={() => router.push('/')}
               className="text-[13px] text-v2-text-muted"

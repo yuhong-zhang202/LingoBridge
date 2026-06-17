@@ -1,81 +1,98 @@
 /**
  * @module   auth
- * @desc     UI 登录态管理 — 当前为 mock 实现，仅维护手机号（存 localStorage）；
- *           上架前替换为 Supabase phone OTP + 匿名账号升级（updateUser + verifyOtp），
- *           届时只改本文件，user_id 不变、数据自动保留。
+ * @desc     邮箱验证码登录 — 匿名账号升级（updateUser，user_id 不变保住试用数据）/
+ *           已注册走 signInWithOtp + verifyOtp。所有日志严禁出现邮箱/验证码。
  * @author   LingoBridge
- * @created  2026-06-03
+ * @created  2026-06-17
  */
 import type { AppError } from '@/types/errors'
+import { getSupabase, ensureSession } from '@/lib/supabase'
 
-const PHONE_KEY = 'lingobridge:phone'
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-/**
- * 发送验证码（mock：校验手机号格式通过后直接 resolve，不调任何后端）
- * @param phone  手机号（中国大陆 11 位，1 开头）
- * @throws       AppError { code: 'INVALID_PHONE' } — 格式不合法时
- */
-export async function sendVerifyCode(phone: string): Promise<void> {
-  if (typeof window === 'undefined') return
-  if (!/^1\d{10}$/.test(phone)) {
-    throw {
-      code: 'INVALID_PHONE',
-      message: '请输入正确的手机号（11 位数字，1 开头）',
-    } satisfies AppError
-  }
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[auth] mock 发送验证码 ${phone}，任意6位数字均可通过`)
-  }
+function appError(code: string, message: string, cause?: unknown): AppError {
+  return { code, message, cause }
 }
 
 /**
- * 验证验证码（mock：6 位数字即通过，写手机号到 localStorage）
- * @param phone  手机号
- * @param code   验证码（6 位数字）
- * @throws       AppError { code: 'INVALID_CODE' } — 格式不合法时
+ * 脱敏邮箱 — 本地名只留首字符，如 a***@gmail.com；无 @ 原样返回。
  */
-export async function verifyCode(phone: string, code: string): Promise<void> {
-  if (typeof window === 'undefined') return
+export function maskEmail(email: string): string {
+  const at = email.indexOf('@')
+  if (at <= 0) return email
+  return `${email[0]}***${email.slice(at)}`
+}
+
+/**
+ * 发送邮箱验证码。
+ * 先尝试 updateUser 把邮箱绑到当前匿名账号（user_id 不变保住试用数据）；
+ * 若邮箱已被注册，自动改走 signInWithOtp 登录原账号。
+ * @returns convert = 首次绑定（匿名→邮箱）；login = 老用户登录原账号
+ * @throws AppError INVALID_EMAIL / SEND_FAILED
+ */
+export async function sendEmailCode(email: string): Promise<{ mode: 'convert' | 'login' }> {
+  const normalized = email.trim()
+  if (!EMAIL_RE.test(normalized)) {
+    throw appError('INVALID_EMAIL', '请输入正确的邮箱')
+  }
+  await ensureSession()
+  const supabase = getSupabase()
+  const { error } = await supabase.auth.updateUser({ email: normalized })
+  if (!error) return { mode: 'convert' }
+
+  // 邮箱已注册识别：v2 OTP 流程下 status 422、或 message 含 already/registered/exists
+  const msg = error.message?.toLowerCase() ?? ''
+  const status = (error as { status?: number }).status
+  const alreadyRegistered = status === 422 || msg.includes('already') || msg.includes('registered') || msg.includes('exists')
+  if (!alreadyRegistered) {
+    throw appError('SEND_FAILED', '发送失败，请稍后再试', error)
+  }
+  const { error: otpErr } = await supabase.auth.signInWithOtp({
+    email: normalized,
+    options: { shouldCreateUser: false },
+  })
+  if (otpErr) {
+    throw appError('SEND_FAILED', '发送失败，请稍后再试', otpErr)
+  }
+  return { mode: 'login' }
+}
+
+/**
+ * 校验验证码并完成登录。
+ * mode='convert' 走 email_change（确认匿名账号升级）；mode='login' 走 email（老用户登录）。
+ * @throws AppError INVALID_CODE
+ */
+export async function verifyEmailCode(email: string, code: string, mode: 'convert' | 'login'): Promise<void> {
   if (!/^\d{6}$/.test(code)) {
-    throw {
-      code: 'INVALID_CODE',
-      message: '请输入 6 位数字验证码',
-    } satisfies AppError
+    throw appError('INVALID_CODE', '请输入 6 位数字验证码')
   }
-  localStorage.setItem(PHONE_KEY, phone)
+  const type = mode === 'login' ? 'email' : 'email_change'
+  const { error } = await getSupabase().auth.verifyOtp({
+    email: email.trim(),
+    token: code,
+    type,
+  })
+  if (error) {
+    throw appError('INVALID_CODE', '验证码错误或已过期', error)
+  }
 }
 
 /**
- * 读取已绑定的手机号
- * @returns  手机号字符串，或 null（未登录）
+ * 读取当前账号信息。
+ * @returns { email, isAnonymous } 或 null（无 user）
  */
-export function getPhone(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(PHONE_KEY)
+export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean } | null> {
+  const { data } = await getSupabase().auth.getUser()
+  if (!data.user) return null
+  return {
+    email: data.user.email ?? null,
+    isAnonymous: data.user.is_anonymous ?? false,
+  }
 }
 
 /**
- * 是否已绑定手机号（UI 登录态）
- * @returns  true = 有登录态
+ * 退出登录。
  */
-export function isLoggedIn(): boolean {
-  return getPhone() !== null
-}
-
-/**
- * 退出登录 — 清除本地手机号
- */
-export function logout(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(PHONE_KEY)
-}
-
-/**
- * 脱敏手机号 — 把中间四位替换为 ****
- * @param phone  原始手机号
- * @returns      脱敏后字符串，如 '138****5678'；非 11 位原样返回
- */
-export function maskPhone(phone: string): string {
-  if (phone.length !== 11) return phone
-  return `${phone.slice(0, 3)}****${phone.slice(7)}`
+export async function logout(): Promise<void> {
+  await getSupabase().auth.signOut()
 }

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
-import { isLoggedIn, getPhone, logout, maskPhone } from '@/lib/auth'
+import { getAccount, logout, maskEmail } from '@/lib/auth'
 import { getSavedPhrases } from '@/lib/storage'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
@@ -39,14 +39,19 @@ const profileData = {
 export default function ProfilePage(): JSX.Element {
   const router = useRouter()
 
-  // localStorage 只能在客户端读，初始值 false/null，挂载后同步实际状态
+  // Supabase session 异步读，初始值 false/null，挂载后同步实际状态
   const [loggedIn, setLoggedIn] = useState(false)
-  const [phone,    setPhone]    = useState<string | null>(null)
+  const [email,    setEmail]    = useState<string | null>(null)
   const [bookmarkCount, setBookmarkCount] = useState(profileData.bookmarkCount)
 
   useEffect(() => {
-    setLoggedIn(isLoggedIn())
-    setPhone(getPhone())
+    getAccount().then(acct => {
+      setLoggedIn(!!acct && !acct.isAnonymous && !!acct.email)
+      setEmail(acct?.email ?? null)
+    }).catch(() => {
+      setLoggedIn(false)
+      setEmail(null)
+    })
   }, [])
 
   // deps=[loggedIn]：登录态变化时重读收藏数，保证练习后数字及时更新
@@ -57,13 +62,13 @@ export default function ProfilePage(): JSX.Element {
   const { targetBand, stats, version } = profileData
 
   const displayName = loggedIn
-    ? (phone ? maskPhone(phone) : '我的账号')
+    ? (email ? maskEmail(email) : '我的账号')
     : '未登录'
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     setLoggedIn(false)
-    setPhone(null)
+    setEmail(null)
   }
 
   const settingsButton = (
@@ -109,7 +114,7 @@ export default function ProfilePage(): JSX.Element {
         {loggedIn && (
           <div className="text-center mt-5 mb-2">
             <button
-              onClick={handleLogout}
+              onClick={() => void handleLogout()}
               className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
             >
               退出登录
