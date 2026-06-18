@@ -6,7 +6,7 @@
  * @created  2026-06-18
  */
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
@@ -29,17 +29,6 @@ function nextMonthFirstLabel(): string {
   const d = new Date()
   const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
   return `${next.getMonth() + 1} 月 ${next.getDate()} 日`
-}
-
-async function pickAnyIeltsQuestionId(): Promise<string | null> {
-  try {
-    const res = await fetch('/api/questions?mode=switch')
-    if (!res.ok) return null
-    const data = (await res.json()) as { question?: { id?: string } | null }
-    return data.question?.id ?? null
-  } catch {
-    return null
-  }
 }
 
 export default function QuotaReached({ variant, asOverlay, onClose, className }: Props) {
@@ -66,11 +55,8 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
     return () => { cancelled = true }
   }, [variant])
 
-  const handlePracticeIelts = useCallback(async () => {
-    const qid = await pickAnyIeltsQuestionId()
-    if (qid) router.push(`/analysis?questionId=${qid}&storyId=1&review=1`)
-    else router.push('/question-bank')
-  }, [router])
+  // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
+  const handlePracticeIelts = () => router.push('/question-bank')
 
   const body = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
@@ -83,7 +69,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
       <div className="flex flex-col items-center gap-2.5 mt-5">
         {!reviewDone && (
           <GradientButton
-            onClick={() => void handlePracticeIelts()}
+            onClick={handlePracticeIelts}
             className="px-6 py-2.5 rounded-full text-[14px] font-medium"
           >
             练雅思题

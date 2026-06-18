@@ -18,6 +18,7 @@ import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
 import LoggedInView from './_components/LoggedInView'
 import FeatureListCard from './_components/FeatureListCard'
+import QuotaCard from './_components/QuotaCard'
 
 // ── Mock 数据（带注释的字段为占位，其余字段仅作初始值、由 useEffect 覆写为真实数据）
 const profileData = {
@@ -106,6 +107,9 @@ export default function ProfilePage(): JSX.Element {
             targetBand={targetBand}
           />
         )}
+
+        {/* ── 本月额度卡（仅登录态） */}
+        {loggedIn && <QuotaCard />}
 
         {/* ── 功能列表卡（两态均显示） */}
         <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
