@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from 'next'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-jakarta',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'LingoBridge',
@@ -22,6 +30,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#F8F5F1',
+  viewportFit: 'cover',   // 让 env(safe-area-inset-*) 在 iOS standalone 下生效
 }
 
 export default function RootLayout({
@@ -30,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh">
+    <html lang="zh" className={jakarta.variable}>
       <body className="bg-bg-page">
         <div className="h-dvh w-full flex justify-center bg-bg-page overflow-hidden">
           <div

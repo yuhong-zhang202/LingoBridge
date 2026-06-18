@@ -35,3 +35,9 @@ dev.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# next-pwa 构建产物
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/worker-*.js

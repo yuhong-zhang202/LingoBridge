@@ -6,7 +6,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: [
-          'Plus Jakarta Sans',
+          'var(--font-jakarta)',
           'PingFang SC',
           'Noto Sans SC',
           'sans-serif',

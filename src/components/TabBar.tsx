@@ -16,7 +16,7 @@ export default function TabBar() {
     <div
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.06] flex items-center justify-around z-30"
       style={{
-        height: 56,
+        height: 'calc(56px + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
