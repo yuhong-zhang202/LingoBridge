@@ -2,7 +2,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
-import GradientButton from '@/components/GradientButton'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
@@ -201,13 +200,13 @@ export default function HomePage() {
             {!showTextInput && (
               <>
                 {/* 主按钮：开始录音 */}
-                <GradientButton
+                <button
                   onClick={() => router.push('/recording')}
-                  className="w-full h-[50px] flex items-center justify-center gap-1.5 text-[14px] font-medium"
+                  className="btn-gradient mx-auto w-[280px] h-[50px]"
                 >
                   <Mic2 size={16} className="text-v2-text-secondary" />
                   开始录音
-                </GradientButton>
+                </button>
 
                 {/* 文字输入入口 */}
                 <button
