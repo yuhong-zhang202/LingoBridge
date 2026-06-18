@@ -1,6 +1,7 @@
 /**
  * @module   PronounceCapturePopup
- * @desc     练习页"发音纠错"卡片 — 挂在被点气泡下方，填入真正想说的词并收藏
+ * @desc     练习页"发音纠错"卡片 — 挂在被点气泡下方，填入真正想说的词并收藏；
+ *           按「配对」intended__heard 去重，命中已收藏配对时按钮变禁用「已收藏」
  * @author   LingoBridge
  * @created  2026-06-11
  */
@@ -11,16 +12,21 @@ import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL } from '@/lib/constan
 
 interface PronounceCapturePopupProps {
   heard: string
+  /** 全局已收藏的纠错 id 快照（intended__heard 小写），用于「同一配对去重」判定 */
+  savedIds: string[]
   onSave: (intended: string) => void
   onClose: () => void
 }
 
-export default function PronounceCapturePopup({ heard, onSave, onClose }: PronounceCapturePopupProps): JSX.Element {
+export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose }: PronounceCapturePopupProps): JSX.Element {
   const [value, setValue] = useState('')
 
+  const trimmed = value.trim()
+  // 命中已收藏配对（与 storage 的 id 规则一致：intended 小写 + '__' + heard 小写）
+  const already = trimmed.length > 0 && savedIds.includes(`${trimmed.toLowerCase()}__${heard.toLowerCase()}`)
+
   function submit(): void {
-    const v = value.trim()
-    if (v) onSave(v)
+    if (trimmed && !already) onSave(trimmed)
   }
 
   return (
@@ -56,11 +62,12 @@ export default function PronounceCapturePopup({ heard, onSave, onClose }: Pronou
         />
         <button
           onClick={submit}
-          disabled={!value.trim()}
-          className="flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[12px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform disabled:opacity-50"
+          disabled={!trimmed || already}
+          className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[12px] font-medium active:scale-[0.97] transition-transform disabled:opacity-50 ${already ? 'text-brand-primary' : 'text-v2-text-secondary'}`}
           style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 9999 }}
         >
-          <Bookmark size={12} className="text-brand-primary" />收藏
+          <Bookmark size={12} className={already ? 'fill-brand-primary text-brand-primary' : 'text-brand-primary'} />
+          {already ? '已收藏' : '收藏'}
         </button>
       </div>
     </div>

@@ -13,7 +13,8 @@ import { StepBar } from '@/components/StepBar'
 import EmptyState from '@/components/EmptyState'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { setSessionPolishes, addSavedPronunciation } from '@/lib/storage'
+import { setSessionPolishes, addSavedPronunciation, getSavedPronunciations } from '@/lib/storage'
+import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
@@ -43,16 +44,25 @@ function PracticeContent(): JSX.Element {
   const [polishLoading, setPolishLoading] = useState(false)
   const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
   const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
-  const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number } | null>(null)
+  const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number; savedIds: string[] } | null>(null)
   const [retryKey, setRetryKey]           = useState(0)
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const pronounceRef = useRef<HTMLDivElement>(null)
   const { start, stop, audioLevel } = useAudioRecorder()
 
   // 自动滚到底
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, phase])
+
+  // 弹出发音纠错卡时滚动到可视区，避免被底部输入区遮挡
+  useEffect(() => {
+    if (!capture) return
+    requestAnimationFrame(() => {
+      pronounceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    })
+  }, [capture])
 
   // 进页面：构建脚手架 + 拿开场白
   useEffect(() => {
@@ -205,7 +215,7 @@ function PracticeContent(): JSX.Element {
   const lastMsg = messages[messages.length - 1]
   const isCapped = userTurnCount >= PRACTICE_TURN_LIMIT && lastMsg?.role === 'assistant'
 
-  const finishToFeedback = useCallback(() => {
+  const handleEnd = useCallback(() => {
     setSessionPolishes(polishHistory)
     void recordPracticeSession(questionId || null, isReview).catch((e) =>
       console.warn('[Practice] 记录练习场次失败', e))
@@ -220,22 +230,7 @@ function PracticeContent(): JSX.Element {
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <TopBar
-        title="练习对话"
-        right={
-          <button
-            onClick={() => {
-                setSessionPolishes(polishHistory)
-                void recordPracticeSession(questionId || null, isReview).catch((e) =>
-                  console.warn('[Practice] 记录练习场次失败', e))
-                router.push('/feedback')
-              }}
-            className="text-[13px] text-v2-text-muted"
-          >
-            结束
-          </button>
-        }
-      />
+      <TopBar title="练习对话" />
       <StepBar currentStep="practice" />
 
       {/* 题目条：固定在流程轴下方，不随对话滚动 */}
@@ -249,7 +244,7 @@ function PracticeContent(): JSX.Element {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pt-0 pb-[100px] relative z-10">
+      <div className={`flex-1 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
         {phase === 'init' && (
           <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
         )}
@@ -270,18 +265,29 @@ function PracticeContent(): JSX.Element {
             : <Fragment key={i}>
                 <UserBubble
                   text={m.content}
-                  onWordTap={(word) => setCapture({ heard: word, context: m.content, msgIndex: i })}
+                  onWordTap={(word) => setCapture({
+                    heard: word,
+                    context: m.content,
+                    msgIndex: i,
+                    savedIds: getSavedPronunciations().map(p => p.id),
+                  })}
                   onPolish={() => {
                     const prev = messages[i - 1]
-                    void handlePolish(m.content, prev?.role === 'assistant' ? prev.content : undefined)
+                    const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
+                    // 用"这句话上"做过的发音纠错把听成的词换成真正想说的词，再去优化
+                    const fixes = getSavedPronunciations().filter(c => c.context === m.content)
+                    void handlePolish(applyPronunciationFixes(m.content, fixes), aiQuestion)
                   }}
                 />
                 {capture?.msgIndex === i && (
-                  <PronounceCapturePopup
-                    heard={capture.heard}
-                    onSave={handleSavePronunciation}
-                    onClose={() => setCapture(null)}
-                  />
+                  <div ref={pronounceRef}>
+                    <PronounceCapturePopup
+                      heard={capture.heard}
+                      savedIds={capture.savedIds}
+                      onSave={handleSavePronunciation}
+                      onClose={() => setCapture(null)}
+                    />
+                  </div>
                 )}
               </Fragment>
         )}
@@ -317,7 +323,7 @@ function PracticeContent(): JSX.Element {
           <div className="flex flex-col items-center gap-3">
             <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
             <button
-              onClick={finishToFeedback}
+              onClick={handleEnd}
               className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
               style={GRADIENT_BORDER_STYLE}
             >
@@ -381,6 +387,12 @@ function PracticeContent(): JSX.Element {
               <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
             </button>
           )}
+          <button
+            onClick={handleEnd}
+            className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform"
+          >
+            结束
+          </button>
         </div>
         </>
         )}
