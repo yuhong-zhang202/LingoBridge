@@ -8,6 +8,36 @@
 import { getSupabase, ensureSession } from '../supabase'
 import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 
+/** 故事链路月额度（自然月） */
+export const STORY_MONTHLY_LIMIT = 10
+
+/** createCorpus 触发月度上限时抛出，UI 据此切到「额度用完」态。 */
+export class StoryQuotaExceededError extends Error {
+  constructor() {
+    super('故事额度已用完')
+    this.name = 'StoryQuotaExceededError'
+  }
+}
+
+/** 当月 1 日 0 点（本地时区）的 ISO 字符串。 */
+function monthStartISO(): string {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
+}
+
+/**
+ * 统计当月创建的语料数（RLS 自动按当前用户过滤），用于触发故事链路月额度。
+ */
+export async function countCorpusThisMonth(): Promise<number> {
+  await ensureSession()
+  const { count, error } = await getSupabase()
+    .from('corpus')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', monthStartISO())
+  if (error) throw new Error(`读取本月语料数失败：${error.message}`)
+  return count ?? 0
+}
+
 interface CorpusRow {
   id: string
   user_id: string
@@ -42,6 +72,9 @@ function mapCorpusRow(row: CorpusRow): Corpus {
 export async function createCorpus(input: { source: CorpusSource; rawText: string }): Promise<Corpus> {
   const userId = await ensureSession()
   const supabase = getSupabase()
+  // 服务端兜底：超出本月额度即拦截，与首页 UI 守卫互为兜底
+  const monthCount = await countCorpusThisMonth()
+  if (monthCount >= STORY_MONTHLY_LIMIT) throw new StoryQuotaExceededError()
   const { data, error } = await supabase
     .from('corpus')
     .insert({ user_id: userId, source: input.source, raw_text: input.rawText })

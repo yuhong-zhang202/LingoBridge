@@ -10,6 +10,9 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Chip from '@/components/Chip'
+import QuotaReached from '@/components/QuotaReached'
+import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { getAccount } from '@/lib/auth'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
@@ -43,6 +46,20 @@ interface Props {
 export default function DimensionTab({ scoreById, progressById, corpusCount, dimensionSummaries, totalMapped, totalMatched }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState<Dimension | null>(null)
+  const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
+
+  /** 复练入口拦截：登录用户超过月度额度 → 弹 QuotaReached 雅思变体覆盖层 */
+  async function gotoPractice(qid: string): Promise<void> {
+    try {
+      const acct = await getAccount()
+      const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
+      if (loggedIn) {
+        const n = await countReviewPracticeThisMonth()
+        if (n >= IELTS_MONTHLY_LIMIT) { setReviewQuotaShown(true); return }
+      }
+    } catch { /* 静默 */ }
+    router.push(`/analysis?questionId=${qid}&storyId=1&review=1`)
+  }
   const dimsCov = dimensionSummaries.filter((d) => (progressById[DIM_EN[d.dimension]]?.lit ?? 0) > 0).length
   const sorted = [...dimensionSummaries].sort((a, b) => (progressById[DIM_EN[b.dimension]]?.lit ?? 0) - (progressById[DIM_EN[a.dimension]]?.lit ?? 0))
 
@@ -150,7 +167,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                       <Chip
                         variant="gradient"
                         size="sm"
-                        onClick={() => router.push(`/analysis?questionId=${q.id}&storyId=1`)}
+                        onClick={() => void gotoPractice(q.id)}
                         className="font-medium flex-shrink-0"
                       >
                         练习
@@ -162,6 +179,9 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
           )
         })}
       </div>
+      {reviewQuotaShown && (
+        <QuotaReached variant="ielts" asOverlay onClose={() => setReviewQuotaShown(false)} />
+      )}
     </div>
   )
 }

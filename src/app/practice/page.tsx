@@ -15,6 +15,9 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { setSessionPolishes, addSavedPronunciation } from '@/lib/storage'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
+
+/** 用户发言达此轮数后温柔收尾，不再允许新录音 */
+const PRACTICE_TURN_LIMIT = 8
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
@@ -29,6 +32,7 @@ function PracticeContent(): JSX.Element {
   const questionId = params.get('questionId') ?? ''
   const storyId = params.get('storyId') ?? ''
   const level = params.get('level') ?? '6.0'
+  const isReview = params.get('review') === '1'
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -195,6 +199,18 @@ function PracticeContent(): JSX.Element {
 
   const recordCap = scaffold?.part === 2 ? 150 : 90
   const nearLimit = phase === 'recording' && recordCap - elapsed <= 20
+
+  // 满 8 轮温柔收尾：用户已说够 8 次且最后一条是教练回复 → 隐藏录音条，显示「查看反馈」收尾区
+  const userTurnCount = messages.filter(m => m.role === 'user').length
+  const lastMsg = messages[messages.length - 1]
+  const isCapped = userTurnCount >= PRACTICE_TURN_LIMIT && lastMsg?.role === 'assistant'
+
+  const finishToFeedback = useCallback(() => {
+    setSessionPolishes(polishHistory)
+    void recordPracticeSession(questionId || null, isReview).catch((e) =>
+      console.warn('[Practice] 记录练习场次失败', e))
+    router.push('/feedback')
+  }, [polishHistory, questionId, isReview, router])
   const capHint =
     scaffold?.part === 2
       ? '真实雅思 Part 2 约 2 分钟会被喊停，可以开始收尾啦'
@@ -210,7 +226,7 @@ function PracticeContent(): JSX.Element {
           <button
             onClick={() => {
                 setSessionPolishes(polishHistory)
-                void recordPracticeSession(questionId || null).catch((e) =>
+                void recordPracticeSession(questionId || null, isReview).catch((e) =>
                   console.warn('[Practice] 记录练习场次失败', e))
                 router.push('/feedback')
               }}
@@ -297,6 +313,19 @@ function PracticeContent(): JSX.Element {
         className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.05] z-20 px-[14px]"
         style={{ paddingTop: 18, paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
       >
+        {isCapped ? (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
+            <button
+              onClick={finishToFeedback}
+              className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
+              style={GRADIENT_BORDER_STYLE}
+            >
+              查看反馈
+            </button>
+          </div>
+        ) : (
+        <>
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
         {nearLimit && (
           <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning">
@@ -353,6 +382,8 @@ function PracticeContent(): JSX.Element {
             </button>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   )

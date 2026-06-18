@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
@@ -8,10 +8,13 @@ import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
 import FeedbackButton from '@/components/FeedbackButton'
 import FirstUseConsent from '@/components/FirstUseConsent'
+import QuotaReached from '@/components/QuotaReached'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
+import { getAccount } from '@/lib/auth'
+import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 
 export default function HomePage() {
   const router = useRouter()
@@ -20,7 +23,23 @@ export default function HomePage() {
   const [ieltsMode, setIeltsMode] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
   const { question, loading, error, next } = useSwitchQuestion()
+
+  // 登录用户：挂载时核当月语料数，达上限即把首页主区切换为「额度用完」态
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const acct = await getAccount()
+        const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
+        if (!loggedIn) return
+        const n = await countCorpusThisMonth()
+        if (!cancelled && n >= STORY_MONTHLY_LIMIT) setStoryQuotaReached(true)
+      } catch { /* 静默：不挡正常流程 */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // 文字输入派生状态
   const len = textStory.trim().length
@@ -90,7 +109,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 主体 */}
+      {/* 主体：故事额度用完时整块替换为 QuotaReached（不展示录音/文字入口） */}
+      {storyQuotaReached ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center relative z-10 overflow-y-auto pb-[72px]">
+          <QuotaReached variant="story" />
+        </div>
+      ) : (
       <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[120px]' : 'items-center px-7 pt-6 pb-[72px]'}`}>
 
         {/* 分段控件：故事模式 / 雅思题模式（在 Orb 上方） */}
@@ -254,7 +278,8 @@ export default function HomePage() {
 
         {/* 剩余空白沉到底部（仅故事/录音态需要；文字态内容长，否则会压住可滚动空间） */}
         {!showTextInput && <div className="flex-1" />}
-      </div>{/* end 主体 */}
+      </div>
+      )}
 
       <div className="flex-shrink-0"><TabBar /></div>
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />

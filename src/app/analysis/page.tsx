@@ -58,6 +58,7 @@ function AnalysisContent() {
   const params     = useSearchParams()
   const questionId = params.get('questionId') ?? ''
   const storyId    = params.get('storyId') ?? ''
+  const review     = params.get('review') === '1'
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -264,7 +265,7 @@ function AnalysisContent() {
             <button
               className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
               style={LIGHTER_BORDER}
-              onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}`)}
+              onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`)}
             >
               开始练习 →
             </button>

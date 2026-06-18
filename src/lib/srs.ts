@@ -5,9 +5,9 @@
  * @created  2026-06-12
  */
 
-// 盒子 1..5 → 下次间隔（天），递增（艾宾浩斯遗忘曲线）
-const BOX_INTERVAL_DAYS: Record<number, number> = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 15 }
-const MAX_BOX = 5
+// 盒子 1..7 → 下次间隔（天），递增（艾宾浩斯遗忘曲线，长尾延伸到 60 天）
+const BOX_INTERVAL_DAYS: Record<number, number> = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 15, 6: 30, 7: 60 }
+const MAX_BOX = 7
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /**

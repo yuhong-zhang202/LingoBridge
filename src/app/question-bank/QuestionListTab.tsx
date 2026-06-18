@@ -10,6 +10,9 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
+import QuotaReached from '@/components/QuotaReached'
+import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { getAccount } from '@/lib/auth'
 import type { QBQuestion } from '@/lib/types'
 
 const PROG = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
@@ -37,6 +40,20 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
   const [matchedOpen, setMatchedOpen] = useState(true)
   const [unmatchedOpen, setUnmatchedOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
+
+  /** 复练入口拦截：登录用户超过月度额度 → 弹 QuotaReached 雅思变体覆盖层 */
+  async function gotoPractice(qid: string): Promise<void> {
+    try {
+      const acct = await getAccount()
+      const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
+      if (loggedIn) {
+        const n = await countReviewPracticeThisMonth()
+        if (n >= IELTS_MONTHLY_LIMIT) { setReviewQuotaShown(true); return }
+      }
+    } catch { /* 静默 */ }
+    router.push(`/analysis?questionId=${qid}&storyId=1&review=1`)
+  }
 
   const partChips = ['全部', ...availableParts.map(p => `Part ${p}`)]
   const filtered   = part === '全部' ? mappedQuestions : mappedQuestions.filter(q => `Part ${q.part}` === part)
@@ -103,7 +120,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
                 <Chip
                   variant="gradient"
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/analysis?questionId=${q.id}&storyId=1`) }}
+                  onClick={(e) => { e.stopPropagation(); void gotoPractice(q.id) }}
                   className="font-medium flex-shrink-0"
                 >练习</Chip>
               </div>
@@ -126,6 +143,9 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           ))}
         </div>}
       </>}
+      {reviewQuotaShown && (
+        <QuotaReached variant="ielts" asOverlay onClose={() => setReviewQuotaShown(false)} />
+      )}
     </div>
   )
 }
