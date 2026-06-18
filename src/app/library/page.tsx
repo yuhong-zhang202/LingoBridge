@@ -278,10 +278,7 @@ export default function LibraryPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px]"
-                      style={{ background: '#EDF6EB', border: '1px solid #C0DDB9', color: '#3D7A38' }}
-                    >更地道</span>
+                    <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38]">更地道</span>
                     <span className="text-[12px] text-v2-text-primary font-medium truncate flex-1">
                       {latestCard?.aiOptimized ?? ''}
                     </span>
