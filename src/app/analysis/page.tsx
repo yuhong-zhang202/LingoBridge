@@ -14,7 +14,9 @@ import { StepBar } from '@/components/StepBar'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import EmptyState from '@/components/EmptyState'
+import OfflineState from '@/components/OfflineState'
 import Card from '@/components/Card'
+import Skeleton from '@/components/Skeleton'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
 import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
@@ -142,15 +144,63 @@ function AnalysisContent() {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4">
 
-        {loading && <div className="text-center text-[14px] text-v2-text-muted py-20">AI 分析中…</div>}
+        {loading && (
+          <>
+            {/* 题目卡骨架 */}
+            <Card className="px-[22px] pt-[16px] pb-[22px]">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-12 h-[18px] rounded-full" />
+                <Skeleton className="w-14 h-[18px] rounded-full" />
+              </div>
+              <Skeleton className="w-[90%] h-[14px] mt-3" />
+              <Skeleton className="w-1/2 h-3 mt-2" />
+            </Card>
+
+            {/* 答题侧重点骨架 */}
+            <GradCard>
+              <Skeleton className="w-24 h-3.5" />
+              <div className="flex flex-col gap-4 mt-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <Skeleton className="w-6 h-6 rounded-full flex-shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="w-3/4 h-[14px]" />
+                      <Skeleton className="w-[90%] h-3 mt-2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GradCard>
+
+            {/* 可用词组骨架 */}
+            <GradCard>
+              <div className="flex items-center justify-between">
+                <Skeleton className="w-20 h-3.5" />
+                <Skeleton className="w-16 h-6 rounded-full" />
+              </div>
+              <div className="flex flex-col gap-3 mt-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i}>
+                    <Skeleton className="w-1/3 h-3" />
+                    <Skeleton className="w-[92%] h-[14px] mt-2" />
+                  </div>
+                ))}
+              </div>
+            </GradCard>
+          </>
+        )}
         {!loading && error && (
-          <EmptyState
-            title="分析没生成出来"
-            subtitle="刚才好像没连上，点下面再试一次就好。"
-            ctaLabel="重试"
-            onCta={() => setRetryKey(k => k + 1)}
-            orbSize={100}
-          />
+          typeof navigator !== 'undefined' && !navigator.onLine ? (
+            <OfflineState onRetry={() => setRetryKey(k => k + 1)} />
+          ) : (
+            <EmptyState
+              title="分析没生成出来"
+              subtitle="刚才好像没连上，点下面再试一次就好。"
+              ctaLabel="重试"
+              onCta={() => setRetryKey(k => k + 1)}
+              orbSize={100}
+            />
+          )
         )}
 
         {!loading && !error && data && (

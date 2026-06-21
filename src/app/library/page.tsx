@@ -10,6 +10,9 @@ import Link from 'next/link'
 import { Search, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
+import Card from '@/components/Card'
+import Skeleton from '@/components/Skeleton'
+import OfflineState from '@/components/OfflineState'
 import CollectedCardsTab from '@/components/library/CollectedCardsTab'
 import RequireAccountGate from '@/components/RequireAccountGate'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
@@ -153,9 +156,29 @@ export default function LibraryPage() {
           <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 relative z-10">
             {view === 'stories' && (
               loading
-                ? <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
+                ? (
+                  <div className="flex flex-col gap-3 pt-3">
+                    {[0, 1, 2].map((i) => (
+                      <Card key={i} variant="gradient" className="p-4">
+                        <div className="flex items-center justify-between mb-2.5">
+                          <Skeleton className="w-16 h-5 rounded-full" />
+                          <Skeleton className="w-4 h-4 rounded-full" />
+                        </div>
+                        <Skeleton className="w-full h-[14px]" />
+                        <Skeleton className="w-[88%] h-[14px] mt-2" />
+                        <Skeleton className="w-[60%] h-[14px] mt-2" />
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <Skeleton className="w-14 h-[22px] rounded-full" />
+                          <Skeleton className="w-24 h-3" />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )
                 : error
-                  ? <p className="text-[13px] text-error text-center pt-16">{error}</p>
+                  ? (typeof navigator !== 'undefined' && !navigator.onLine
+                      ? <OfflineState onRetry={() => window.location.reload()} />
+                      : <p className="text-[13px] text-error text-center pt-16">{error}</p>)
                   : <MyStoriesTab stories={stories} onDelete={(id) => {
                       setStories(prev => prev.filter(s => s.id !== id))
                       deleteCorpus(id).catch(e => console.error('[LibraryPage] 删除语料失败', e))

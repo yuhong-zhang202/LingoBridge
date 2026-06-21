@@ -13,6 +13,8 @@ import TopBar from '@/components/TopBar'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
+import Skeleton from '@/components/Skeleton'
+import OfflineState from '@/components/OfflineState'
 import { getQuestionById } from '@/lib/db/questions'
 import { listCorpusByQuestion, type CorpusMatch, type MatchLevel } from '@/lib/db/matches'
 import { formatRelativeTime } from '@/lib/utils'
@@ -136,19 +138,53 @@ function PracticeQuestionContent(): JSX.Element {
 
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4">
         {loading && (
-          <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
+          <>
+            {/* 题目卡骨架 */}
+            <div className="bg-white rounded-[18px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-5">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-12 h-[18px] rounded-full" />
+                <Skeleton className="w-20 h-3" />
+              </div>
+              <Skeleton className="w-3/4 h-[15px] mt-3" />
+              <Skeleton className="w-1/2 h-3 mt-2.5" />
+            </div>
+
+            {/* 区标题骨架 */}
+            <div className="flex items-center justify-between mt-1">
+              <Skeleton className="w-24 h-3.5" />
+              <Skeleton className="w-8 h-3" />
+            </div>
+
+            {/* 语料卡骨架 ×3 */}
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-[14px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-4">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="w-[52px] h-[18px] rounded-full" />
+                    <Skeleton className="w-[70px] h-2.5" />
+                  </div>
+                  <Skeleton className="w-[94%] h-3 mt-3" />
+                  <Skeleton className="w-[65%] h-3 mt-2" />
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {!loading && error && (
-          <div className="flex flex-col items-center pt-16 gap-3">
-            <p className="text-[13px] text-error text-center">{error}</p>
-            <button
-              onClick={() => setReloadKey((k) => k + 1)}
-              className="flex items-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70"
-            >
-              <RefreshCw size={13} />重试
-            </button>
-          </div>
+          typeof navigator !== 'undefined' && !navigator.onLine ? (
+            <OfflineState onRetry={() => setReloadKey((k) => k + 1)} />
+          ) : (
+            <div className="flex flex-col items-center pt-16 gap-3">
+              <p className="text-[13px] text-error text-center">{error}</p>
+              <button
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="flex items-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70"
+              >
+                <RefreshCw size={13} />重试
+              </button>
+            </div>
+          )
         )}
 
         {!loading && !error && question && (

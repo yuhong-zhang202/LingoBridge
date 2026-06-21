@@ -14,6 +14,8 @@ import DimensionTab from './DimensionTab'
 import QuestionListTab from './QuestionListTab'
 import { useQuestionBank } from './useQuestionBank'
 import EmptyState from '@/components/EmptyState'
+import Skeleton from '@/components/Skeleton'
+import OfflineState from '@/components/OfflineState'
 
 type ActiveTab = '维度设计' | '题目列表'
 const TABS: ActiveTab[] = ['维度设计', '题目列表']
@@ -48,10 +50,44 @@ export default function QuestionBankPage() {
 
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10">
         {qb.loading && (
-          <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
+          <div className="flex flex-col gap-4">
+            {/* 进度卡骨架 */}
+            <div className="bg-white rounded-[16px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] px-4 pt-4 pb-3">
+              <div className="flex items-center justify-between mb-3">
+                <Skeleton className="w-28 h-3.5" />
+                <Skeleton className="w-16 h-4" />
+              </div>
+              <Skeleton className="w-full h-2 rounded-full" />
+              <Skeleton className="w-2/5 h-3 mt-2.5" />
+            </div>
+
+            {/* 筛选 chips 骨架 */}
+            <div className="flex gap-2">
+              <Skeleton className="w-12 h-[26px] rounded-full" />
+              <Skeleton className="w-16 h-[26px] rounded-full" />
+              <Skeleton className="w-16 h-[26px] rounded-full" />
+            </div>
+
+            {/* 题目行骨架 ×4 */}
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-[14px] border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.05)] px-[14px] py-[12px] flex items-center gap-[10px]">
+                  <div className="flex-1">
+                    <Skeleton className="w-12 h-[16px] rounded-full" />
+                    <Skeleton className="w-[80%] h-3 mt-2" />
+                  </div>
+                  <Skeleton className="w-12 h-7 rounded-full flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
         {qb.error && (
-          <p className="text-[13px] text-error text-center pt-16">{qb.error}</p>
+          typeof navigator !== 'undefined' && !navigator.onLine ? (
+            <OfflineState onRetry={() => window.location.reload()} />
+          ) : (
+            <p className="text-[13px] text-error text-center pt-16">{qb.error}</p>
+          )
         )}
         {isEmpty && (
           <EmptyState

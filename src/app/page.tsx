@@ -6,6 +6,7 @@ import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
 import FirstUseConsent from '@/components/FirstUseConsent'
+import MicPermissionSheet from '@/components/MicPermissionSheet'
 import QuotaReached from '@/components/QuotaReached'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
@@ -22,7 +23,20 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [storyQuotaReached, setStoryQuotaReached] = useState(false)
+  const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const { question, loading, error, next } = useSwitchQuestion()
+
+  // 点「开始录音」先探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）
+  async function handleStartRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
+      router.push(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')
+    } catch (err) {
+      const name = (err as DOMException)?.name
+      setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
+    }
+  }
 
   // 登录用户：挂载时核当月语料数，达上限即把首页主区切换为「额度用完」态
   useEffect(() => {
@@ -200,7 +214,7 @@ export default function HomePage() {
               <>
                 {/* 主按钮：开始录音 */}
                 <button
-                  onClick={() => router.push(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')}
+                  onClick={() => void handleStartRecording()}
                   className="btn-gradient mx-auto w-[280px] h-[50px]"
                 >
                   <Mic2 size={16} className="text-v2-text-secondary" />
@@ -282,6 +296,12 @@ export default function HomePage() {
       <div className="flex-shrink-0"><TabBar /></div>
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
       <FirstUseConsent />
+      <MicPermissionSheet
+        open={micSheet !== null}
+        reason={micSheet ?? 'denied'}
+        onUseText={() => { setMicSheet(null); setShowTextInput(true) }}
+        onDismiss={() => setMicSheet(null)}
+      />
     </div>
   )
 }

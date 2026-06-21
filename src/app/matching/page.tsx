@@ -12,7 +12,9 @@ import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
+import Skeleton from '@/components/Skeleton'
 import EmptyState from '@/components/EmptyState'
+import OfflineState from '@/components/OfflineState'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
 import NoMatchView from '@/components/matching/NoMatchView'
 import { saveExtraction } from '@/lib/db/corpus'
@@ -168,17 +170,51 @@ function MatchingContent() {
       <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10">
 
         {loading && (
-          <div className="text-center text-[14px] text-v2-text-muted py-20">正在匹配题目…</div>
+          <div className="pt-2">
+            {/* 标题骨架 */}
+            <div className="mb-4">
+              <Skeleton className="w-3/5 h-[20px]" />
+              <Skeleton className="w-2/5 h-3 mt-2.5" />
+            </div>
+
+            {/* Part 筛选骨架 */}
+            <div className="flex gap-2 mb-5">
+              <Skeleton className="w-12 h-[26px] rounded-full" />
+              <Skeleton className="w-16 h-[26px] rounded-full" />
+              <Skeleton className="w-16 h-[26px] rounded-full" />
+            </div>
+
+            {/* 题卡骨架 ×3 */}
+            <div className="flex flex-col gap-2.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-[14px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-4">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-12 h-[18px] rounded-full" />
+                    <Skeleton className="w-14 h-[18px] rounded-full" />
+                  </div>
+                  <Skeleton className="w-[90%] h-[15px] mt-3" />
+                  <Skeleton className="w-1/2 h-3 mt-2" />
+                  <div className="flex justify-end mt-3">
+                    <Skeleton className="w-20 h-7 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {!loading && error && (
-          <EmptyState
-            title="题目没匹配出来"
-            subtitle="刚才好像没连上，点下面再试一次就好。"
-            ctaLabel="重试"
-            onCta={() => setRetryKey(k => k + 1)}
-            orbSize={100}
-          />
+          typeof navigator !== 'undefined' && !navigator.onLine ? (
+            <OfflineState onRetry={() => setRetryKey(k => k + 1)} />
+          ) : (
+            <EmptyState
+              title="题目没匹配出来"
+              subtitle="刚才好像没连上，点下面再试一次就好。"
+              ctaLabel="重试"
+              onCta={() => setRetryKey(k => k + 1)}
+              orbSize={100}
+            />
+          )
         )}
 
         {!loading && !error && result && result.noMatch && (
