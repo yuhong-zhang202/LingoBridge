@@ -18,6 +18,7 @@ import GradientButton from '@/components/GradientButton'
 import { MOCK_RAW_STORY } from '@/data/restructure'
 import { takeHandoff } from '@/lib/handoff'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
+import { upsertMatch } from '@/lib/db/matches'
 
 function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
@@ -46,6 +47,7 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
 function RestructureContent() {
   const router   = useRouter()
   const params   = useSearchParams()
+  const qid      = params.get('qid')
   // 故事正文从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
   // 旧链接兜底：回退读 rawText；都为空则用 MOCK_RAW_STORY。
   const [rawStory] = useState<string>(() => {
@@ -94,7 +96,13 @@ function RestructureContent() {
     try {
       const corpus = await createCorpus({ source: 'voice', rawText: rawStory })
       await updateCorpusCleaned(corpus.id, aiText)
-      router.push(`/matching?corpusId=${corpus.id}`)
+      if (qid) {
+        // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转
+        await upsertMatch(corpus.id, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
+        router.push(`/analysis?questionId=${qid}&storyId=${corpus.id}`)   // 雅思流：跳过匹配，直达分析
+      } else {
+        router.push(`/matching?corpusId=${corpus.id}`)                    // 故事流：照旧去匹配
+      }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
       setIsSaving(false)
@@ -178,7 +186,7 @@ function RestructureContent() {
                 disabled={isSaving}
                 className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium mb-3"
               >
-                {isSaving ? '保存中…' : '开始匹配题目 →'}
+                {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}
               </GradientButton>
               <button
                 className="w-full flex items-center justify-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70 transition-opacity"

@@ -6,9 +6,47 @@
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
-import { matchByStory } from '@/services/matching'
+import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
+import { getSupabaseServer } from '@/lib/supabase-server'
+import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+
+/** 相关性分数 → 匹配档位（与 matching 页分组判定一致，无 score 视为高匹配；< SCORE_LOW 不展示亦不入库） */
+function levelForScore(score: number | undefined): 'high' | 'mid' | 'low' | null {
+  const s = score ?? 100
+  if (s >= SCORE_HIGH) return 'high'
+  if (s >= SCORE_MID) return 'mid'
+  if (s >= SCORE_LOW) return 'low'
+  return null
+}
+
+/**
+ * 把匹配结果落库：对每个匹配题 upsert 一行（corpus_id,question_id 冲突即更新）。
+ * 使用 service_role client，user_id 取自 corpus 行；调用方需 catch，写库失败不阻断匹配返回。
+ */
+async function persistMatches(corpusId: string, result: FunnelMatchResult): Promise<void> {
+  const supabase = getSupabaseServer()
+  const { data: corpusRow, error: cErr } = await supabase
+    .from('corpus')
+    .select('user_id')
+    .eq('id', corpusId)
+    .maybeSingle()
+  if (cErr) throw cErr
+  const userId = (corpusRow as { user_id: string } | null)?.user_id
+  if (!userId) return
+
+  const rows = result.questions
+    .map((q) => ({ q, level: levelForScore(q.relevanceScore) }))
+    .filter((x): x is { q: typeof x.q; level: 'high' | 'mid' | 'low' } => x.level !== null)
+    .map((x) => ({ user_id: userId, corpus_id: corpusId, question_id: x.q.id, match_level: x.level }))
+  if (rows.length === 0) return
+
+  const { error } = await supabase
+    .from('corpus_question_matches')
+    .upsert(rows, { onConflict: 'corpus_id,question_id' })
+  if (error) throw error
+}
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
@@ -23,6 +61,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
     }
     const result = await matchByStory(cleanedText)
+    // 持久化匹配结果供反查；写库失败不阻断匹配返回
+    await persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e))
     // extractCorpus 内未向上暴露 usage，按语料字数估算输入 token（中文约 0.8 token/字 + 系统提示约 1200）
     const promptTokens = Math.round(cleanedText.length * 0.8 + 1200)
     const completionTokens = 100

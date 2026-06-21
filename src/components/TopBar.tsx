@@ -8,12 +8,14 @@ interface TopBarProps {
   title?: string
   showBack?: boolean
   right?: ReactNode
+  showFeedback?: boolean
 }
 
 export default function TopBar({
   title,
   showBack = true,
   right,
+  showFeedback = true,
 }: TopBarProps) {
   const router = useRouter()
   return (
@@ -42,7 +44,7 @@ export default function TopBar({
       )}
       <div className="flex items-center gap-2 justify-end">
         {right}
-        <FeedbackButton />
+        {showFeedback && <FeedbackButton />}
       </div>
     </div>
   )

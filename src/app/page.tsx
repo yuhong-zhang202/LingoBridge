@@ -5,7 +5,6 @@ import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
-import FeedbackButton from '@/components/FeedbackButton'
 import FirstUseConsent from '@/components/FirstUseConsent'
 import QuotaReached from '@/components/QuotaReached'
 import SegmentDots from '@/app/question-bank/SegmentDots'
@@ -59,6 +58,7 @@ export default function HomePage() {
       return
     }
     setSubmitting(true)
+    const qidParam = ieltsMode && question ? `&qid=${question.id}` : ''
     try {
       // 第二层：让 restructure 判断 usable
       const res = await fetch('/api/restructure', {
@@ -74,13 +74,13 @@ export default function HomePage() {
         }
       }
       // API 错误或 usable=true，放行（restructure 页会再跑一次，属已知开销）
-      router.push(`/restructure?h=${putHandoff(textStory)}`)
+      router.push(`/restructure?h=${putHandoff(textStory)}${qidParam}`)
     } catch {
-      router.push(`/restructure?h=${putHandoff(textStory)}`)
+      router.push(`/restructure?h=${putHandoff(textStory)}${qidParam}`)
     } finally {
       setSubmitting(false)
     }
-  }, [textStory, router])
+  }, [textStory, router, ieltsMode, question])
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -104,7 +104,6 @@ export default function HomePage() {
           <span className="text-[16px] font-bold text-v2-text-primary">
             LingoBridge
           </span>
-          <FeedbackButton />
         </div>
       )}
 
@@ -201,7 +200,7 @@ export default function HomePage() {
               <>
                 {/* 主按钮：开始录音 */}
                 <button
-                  onClick={() => router.push('/recording')}
+                  onClick={() => router.push(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')}
                   className="btn-gradient mx-auto w-[280px] h-[50px]"
                 >
                   <Mic2 size={16} className="text-v2-text-secondary" />

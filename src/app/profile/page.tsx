@@ -87,7 +87,7 @@ export default function ProfilePage(): JSX.Element {
 
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
-      <TopBar title="我的" showBack={false} right={settingsButton} />
+      <TopBar title="我的" showBack={false} right={settingsButton} showFeedback={false} />
 
       <div className="flex-1 overflow-y-auto px-5 relative z-10">
 

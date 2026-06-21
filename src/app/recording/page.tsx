@@ -5,8 +5,8 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
@@ -16,8 +16,9 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 
-export default function RecordingPage() {
+function RecordingContent() {
   const router = useRouter()
+  const qid = useSearchParams().get('qid')
   const [seconds, setSeconds] = useState(0)
   const secondsRef = useRef(0)
   const [transcribing, setTranscribing] = useState(false)
@@ -81,12 +82,12 @@ export default function RecordingPage() {
           }
         }
       } catch { /* API 错误放行，restructure 页面兜底 */ }
-      router.push(`/restructure?h=${putHandoff(data.text)}`)
+      router.push(`/restructure?h=${putHandoff(data.text)}${qid ? `&qid=${qid}` : ''}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '转写失败，请重试')
       setTranscribing(false)
     }
-  }, [stop, router])
+  }, [stop, router, qid])
 
   const handleRerecord = useCallback(async () => {
     await stop()
@@ -175,4 +176,8 @@ export default function RecordingPage() {
       <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
     </div>
   )
+}
+
+export default function RecordingPage() {
+  return <Suspense><RecordingContent /></Suspense>
 }
