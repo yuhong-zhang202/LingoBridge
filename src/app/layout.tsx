@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: 'LingoBridge',
   description: '把你的故事变成雅思口语素材',
   manifest: '/manifest.json',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
