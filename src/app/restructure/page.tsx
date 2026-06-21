@@ -66,7 +66,7 @@ function RestructureContent() {
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const runRestructure = useCallback(async () => {
+  const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setIsEditing(false)
     setError(null)
@@ -76,19 +76,26 @@ function RestructureContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rawText: rawStory }),
+        signal,
       })
       if (!res.ok) throw new Error('整理失败')
       const data = (await res.json()) as { cleanedText: string; usable: boolean }
+      if (signal?.aborted) return
       setAiText(data.cleanedText)
       setUsable(data.usable ?? true)
     } catch (e) {
+      if (signal?.aborted) return          // 中断不算错误，忽略
       setError(e instanceof Error ? e.message : '整理失败，请重试')
     } finally {
-      setIsLoading(false)
+      if (!signal?.aborted) setIsLoading(false)
     }
   }, [rawStory])
 
-  useEffect(() => { void runRestructure() }, [runRestructure])
+  useEffect(() => {
+    const ac = new AbortController()
+    void runRestructure(ac.signal)
+    return () => ac.abort()
+  }, [runRestructure])
 
   async function handleMatchClick(): Promise<void> {
     setIsSaving(true)

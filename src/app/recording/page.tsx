@@ -36,6 +36,10 @@ function RecordingContent() {
   // 进页面即开始录音
   useEffect(() => { void start() }, [start])
 
+  // 卸载（用户跳页）时中断未完成的转写/整理请求，防护卸载后 setState
+  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => () => abortRef.current?.abort(), [])
+
   const handleFinish = useCallback(async () => {
     setError(null)
     // 第一层：录音过短，提示继续说而非上传（保持录音中）
@@ -44,13 +48,15 @@ function RecordingContent() {
       return
     }
     setTranscribing(true)
+    const ac = new AbortController()
+    abortRef.current = ac
     try {
       const blob = await stop()
       if (!blob) throw new Error('没有录到声音，请重试')
       if (blob.size > 10 * 1024 * 1024) throw new Error('录音过长，请分段录制') // ENGINEERING §9
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form })
+      const res = await fetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
         throw new Error(
@@ -60,6 +66,7 @@ function RecordingContent() {
         )
       }
       const data = (await res.json()) as { text: string }
+      if (ac.signal.aborted) return
       // 第一层：即时预检（不调 API）
       if (isGarbageInput(data.text)) {
         setToastMsg(GARBAGE_TOAST_MSG)
@@ -72,6 +79,7 @@ function RecordingContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rawText: data.text }),
+          signal: ac.signal,
         })
         if (checkRes.ok) {
           const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean }
@@ -81,9 +89,11 @@ function RecordingContent() {
             return
           }
         }
-      } catch { /* API 错误放行，restructure 页面兜底 */ }
+      } catch { /* API 错误（含中断）放行，restructure 页面兜底 */ }
+      if (ac.signal.aborted) return          // 已跳页则不再导航
       router.push(`/restructure?h=${putHandoff(data.text)}${qid ? `&qid=${qid}` : ''}`)
     } catch (e) {
+      if (ac.signal.aborted) return          // 中断不算错误，忽略
       setError(e instanceof Error ? e.message : '转写失败，请重试')
       setTranscribing(false)
     }

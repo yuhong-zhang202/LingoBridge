@@ -84,6 +84,7 @@ function MatchingContent() {
   useEffect(() => {
     if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
     let cancelled = false
+    const ac = new AbortController()
     ;(async () => {
       setLoading(true); setError(null)
       try {
@@ -91,6 +92,7 @@ function MatchingContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ corpusId }),
+          signal: ac.signal,
         })
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as FunnelResult
@@ -101,12 +103,13 @@ function MatchingContent() {
             .catch((err: unknown) => console.warn('[MatchingPage] saveExtraction 失败，跳过', err))
         }
       } catch (e) {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
         if (!cancelled) setError(e instanceof Error ? e.message : '匹配失败')
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; ac.abort() }
   }, [corpusId, retryKey])
 
   // 动态 Part 标签：只显示有结果的 Part

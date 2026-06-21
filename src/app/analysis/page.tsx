@@ -72,20 +72,22 @@ function AnalysisContent() {
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
     let cancelled = false
+    const ac = new AbortController()
     ;(async () => {
       setLoading(true); setError(null)
       try {
-        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`)
+        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
       } catch (e) {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
         if (!cancelled) setError(e instanceof Error ? e.message : '生成分析失败')
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; ac.abort() }
   }, [questionId, retryKey])
 
   function changeLevel(newLevel: string) {

@@ -6,6 +6,7 @@
  * @created  2026-06-04
  */
 import { useState, useEffect } from 'react'
+import { notFound } from 'next/navigation'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
 import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
@@ -39,17 +40,22 @@ const MINI_STATS = (d: DashboardData) => [
  * API 用量看板主页
  */
 export default function DashboardPage() {
+  // 开发者成本看板，无管理员鉴权 → 生产环境屏蔽，仅开发可见
+  if (process.env.NODE_ENV === 'production') notFound()
+
   const [range, setRange]               = useState<Range>('7d')
   const [selectedService, setSelected]  = useState<string | null>(null)
   const [data, setData]                 = useState<DashboardData | null>(null)
   const [loading, setLoading]           = useState(true)
 
   useEffect(() => {
+    const ac = new AbortController()
     setLoading(true)
-    fetch(`/api/dashboard?range=${range}`)
+    fetch(`/api/dashboard?range=${range}`, { signal: ac.signal })
       .then(r => r.json())
-      .then((d: DashboardData) => { setData(d); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then((d: DashboardData) => { if (ac.signal.aborted) return; setData(d); setLoading(false) })
+      .catch(() => { if (ac.signal.aborted) return; setLoading(false) })  // 中断不算错误，忽略
+    return () => ac.abort()
   }, [range])
 
   return (

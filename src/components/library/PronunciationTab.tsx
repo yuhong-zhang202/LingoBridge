@@ -54,11 +54,13 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
   useEffect(() => {
     if (data) return
     let cancelled = false
+    const ac = new AbortController()
     setLoading(true)
     fetch('/api/pronounce', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ intended: item.intended, heard: item.heard, context: item.context }),
+      signal: ac.signal,
     })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('请求失败'))))
       .then((tip: PronunciationTip) => {
@@ -70,9 +72,9 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
           tip: tip.tip,
         })
       })
-      .catch(() => { /* 失败静默，下次打开再试 */ })
+      .catch(() => { /* 失败静默（含中断），下次打开再试 */ })
       .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+    return () => { cancelled = true; ac.abort() }
   }, [data, item])
 
   return (

@@ -68,12 +68,14 @@ function PracticeContent(): JSX.Element {
   useEffect(() => {
     if (!questionId) { setPhase('error'); setError('缺少题目'); return }
     let cancelled = false
+    const ac = new AbortController()
     ;(async () => {
       try {
         const res = await fetch('/api/practice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ questionId, storyId, messages: [], level }),
+          signal: ac.signal,
         })
         if (!res.ok) throw new Error('对话初始化失败')
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
@@ -83,10 +85,11 @@ function PracticeContent(): JSX.Element {
           setPhase('idle')
         }
       } catch (e) {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
         if (!cancelled) { setPhase('error'); setError(e instanceof Error ? e.message : '对话初始化失败') }
       }
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; ac.abort() }
   }, [questionId, storyId, retryKey])
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复

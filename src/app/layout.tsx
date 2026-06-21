@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
+import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -27,8 +28,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: '#F8F5F1',
   viewportFit: 'cover',   // 让 env(safe-area-inset-*) 在 iOS standalone 下生效
 }
@@ -50,6 +49,7 @@ export default function RootLayout({
             {children}
           </div>
         </div>
+        <SwUpdatePrompt />
       </body>
     </html>
   )
