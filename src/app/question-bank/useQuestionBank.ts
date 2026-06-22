@@ -98,8 +98,6 @@ export function useQuestionBank(): UseQuestionBankReturn {
         return { dimension: label, total: qs.length, matched: qs.filter((q) => q.matched).length, questions: qs }
       })
 
-      console.log('[useQuestionBank] mapped=', mapped.length, 'matched=', matched, 'parts=', parts, 'userCodes=', userCodes.length)
-
       setMappedQuestions(mapped)
       setDimensionSummaries(summaries)
       setTotalMapped(mapped.length)

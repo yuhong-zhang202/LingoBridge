@@ -75,7 +75,6 @@ export default function ProfilePage(): JSX.Element {
   const settingsButton = (
     <button
       onClick={() => {
-        console.log('[ProfilePage] navigate to /settings')
         router.push('/settings')
       }}
       aria-label="设置"

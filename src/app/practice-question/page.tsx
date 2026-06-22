@@ -15,9 +15,12 @@ import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
+import MicPermissionSheet from '@/components/MicPermissionSheet'
+import GradientButton from '@/components/GradientButton'
 import { getQuestionById } from '@/lib/db/questions'
 import { listCorpusByQuestion, type CorpusMatch, type MatchLevel } from '@/lib/db/matches'
 import { formatRelativeTime } from '@/lib/utils'
+import { putHandoff } from '@/lib/handoff'
 import type { QuestionWithLinks } from '@/lib/types'
 
 // 选中态竖条渐变 —— 数值与 MatchedQuestionCard 完全一致
@@ -104,6 +107,21 @@ function PracticeQuestionContent(): JSX.Element {
   const [error, setError]         = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
+  const [textOpen, setTextOpen] = useState(false)
+  const [textVal, setTextVal]   = useState('')
+
+  // 点「添加语料」先探测麦克风：有权限照常进录音页，没权限弹 sheet（逻辑照搬首页 handleStartRecording）
+  async function handleAddCorpus() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
+      router.push(`/recording?qid=${qId}`)
+    } catch (err) {
+      const name = (err as DOMException)?.name
+      setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -213,7 +231,7 @@ function PracticeQuestionContent(): JSX.Element {
             {items.length === 0 ? (
               <>
                 <p className="text-[13px] text-v2-text-muted text-center py-2">还没有能匹配这道题的语料</p>
-                <AddCorpusCard prominent onClick={() => router.push(`/recording?qid=${qId}`)} />
+                <AddCorpusCard prominent onClick={() => void handleAddCorpus()} />
               </>
             ) : (
               <div className="flex flex-col gap-2">
@@ -226,12 +244,56 @@ function PracticeQuestionContent(): JSX.Element {
                     onPractice={() => router.push(`/analysis?questionId=${qId}&storyId=${item.id}`)}
                   />
                 ))}
-                <AddCorpusCard onClick={() => router.push(`/recording?qid=${qId}`)} />
+                <AddCorpusCard onClick={() => void handleAddCorpus()} />
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* 麦克风权限弹层：没权限时引导去设置或改用文字 */}
+      <MicPermissionSheet
+        open={micSheet !== null}
+        reason={micSheet ?? 'denied'}
+        onUseText={() => { setMicSheet(null); setTextOpen(true) }}
+        onDismiss={() => setMicSheet(null)}
+      />
+
+      {/* 极简文字输入回退：提交后复用 putHandoff → /restructure?h=…&qid= 链路（带本题 qid） */}
+      {textOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+          <div className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter">
+            <h3 className="text-[17px] font-semibold text-v2-text-primary">用文字写下你的故事</h3>
+            <p className="text-[13px] text-v2-text-secondary mt-1">用中文聊聊一件具体的小事，越具体匹配越准。</p>
+            <textarea
+              value={textVal}
+              onChange={(e) => setTextVal(e.target.value)}
+              placeholder={'和谁一起、做了什么、当时心里什么感觉，都可以写进来……'}
+              className="w-full min-h-[180px] resize-none mt-3 bg-bg-page border border-black/[0.06] rounded-[14px] p-3.5 outline-none text-[15px] leading-[1.8] text-v2-text-primary placeholder:text-v2-text-muted"
+              autoFocus
+            />
+            <div className="mt-4">
+              <GradientButton
+                disabled={textVal.trim().length < 10}
+                onClick={() => {
+                  const key = putHandoff(textVal)
+                  if (!key) return
+                  router.push(`/restructure?h=${key}&qid=${qId}`)
+                }}
+                className="w-full py-3 rounded-full text-[14px] font-medium"
+              >
+                开始分析 →
+              </GradientButton>
+            </div>
+            <button
+              onClick={() => setTextOpen(false)}
+              className="w-full text-center text-[14px] text-v2-text-muted mt-3 active:opacity-60"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

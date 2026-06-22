@@ -72,7 +72,9 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   const startedAt = Date.now()
   const requestId = crypto.randomUUID()
 
-  console.log('[Transcription] send', { requestId, format, bytes: arrayBuf.byteLength })
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Transcription] send', { requestId, format, bytes: arrayBuf.byteLength })
+  }
 
   try {
     const res = await fetch(DOUBAO_ASR_ENDPOINT, {
@@ -115,7 +117,9 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
       throw err
     }
 
-    console.log('[Transcription] done', { ms: Date.now() - startedAt, logId, chars: text.length })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Transcription] done', { ms: Date.now() - startedAt, logId, chars: text.length })
+    }
     return text
   } finally {
     clearTimeout(timeout)

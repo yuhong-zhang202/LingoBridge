@@ -157,12 +157,14 @@ export async function coachReply(
     // qwen 顽固爱用破折号，prompt 压不住；统一替换成逗号，前后空格一并收拢避免双空格
     const reply = rawReply.replace(/\s*[—–]\s*/g, ', ')
 
-    console.log('[Practice] reply', {
-      ms: Date.now() - startedAt,
-      turns: messages.length,
-      promptTokens: data.usage?.prompt_tokens,
-      completionTokens: data.usage?.completion_tokens,
-    })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Practice] reply', {
+        ms: Date.now() - startedAt,
+        turns: messages.length,
+        promptTokens: data.usage?.prompt_tokens,
+        completionTokens: data.usage?.completion_tokens,
+      })
+    }
     return reply
   } finally {
     clearTimeout(timeout)
