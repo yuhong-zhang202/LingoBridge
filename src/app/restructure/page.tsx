@@ -19,6 +19,7 @@ import { MOCK_RAW_STORY } from '@/data/restructure'
 import { takeHandoff } from '@/lib/handoff'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 
 function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
@@ -96,6 +97,8 @@ function RestructureContent() {
     void runRestructure(ac.signal)
     return () => ac.abort()
   }, [runRestructure])
+  // A13 防重入：「重新整理」「重试」两个按钮共用一个 ref 守卫，连点只发一次 AI 整理
+  const [reRestructure] = useAsyncAction(runRestructure)
 
   async function handleMatchClick(): Promise<void> {
     setIsSaving(true)
@@ -150,7 +153,7 @@ function RestructureContent() {
           <div className="flex flex-col items-center py-6 gap-3">
             <p className="text-[13px] text-red-400">{error}</p>
             <button
-              onClick={() => void runRestructure()}
+              onClick={() => void reRestructure()}
               className="flex items-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70"
             >
               <RefreshCw size={13} />重试
@@ -197,7 +200,7 @@ function RestructureContent() {
               </GradientButton>
               <button
                 className="w-full flex items-center justify-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70 transition-opacity"
-                onClick={() => void runRestructure()}
+                onClick={() => void reRestructure()}
               >
                 <RefreshCw size={13} />重新整理
               </button>
