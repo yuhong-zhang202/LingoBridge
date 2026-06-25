@@ -152,6 +152,8 @@ function PracticeContent(): JSX.Element {
       setPolishLoading(false)
     }
   }, [scaffold])
+  // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
+  const [runPolish] = useAsyncAction(handlePolish)
 
   // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"存进 localStorage
   const handleSavePronunciation = useCallback((intended: string) => {
@@ -282,7 +284,7 @@ function PracticeContent(): JSX.Element {
                     const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
                     // 用"这句话上"做过的发音纠错把听成的词换成真正想说的词，再去优化
                     const fixes = getSavedPronunciations().filter(c => c.context === m.content)
-                    void handlePolish(applyPronunciationFixes(m.content, fixes), aiQuestion)
+                    void runPolish(applyPronunciationFixes(m.content, fixes), aiQuestion)
                   }}
                 />
                 {capture?.msgIndex === i && (
