@@ -15,6 +15,7 @@ import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
@@ -70,6 +71,8 @@ function AnalysisContent() {
   const [phrasesLoading, setPhrasesLoading] = useState(false)
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
   const [retryKey, setRetryKey] = useState(0)
+  // A15 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新分析
+  const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
 
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
@@ -191,13 +194,13 @@ function AnalysisContent() {
         )}
         {!loading && error && (
           typeof navigator !== 'undefined' && !navigator.onLine ? (
-            <OfflineState onRetry={() => setRetryKey(k => k + 1)} />
+            <OfflineState onRetry={retry} />
           ) : (
             <EmptyState
               title="分析没生成出来"
               subtitle="刚才好像没连上，点下面再试一次就好。"
               ctaLabel="重试"
-              onCta={() => setRetryKey(k => k + 1)}
+              onCta={retry}
               orbSize={100}
             />
           )
