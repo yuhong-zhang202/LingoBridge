@@ -28,13 +28,13 @@ export default function QuestionBankPage() {
   const isEmpty = !qb.loading && !qb.error && qb.corpusCount === 0
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative min-h-screen bg-bg-page flex flex-col lg:pl-[256px]">
       <TopBar title="当季题库" />
 
       <RequireAccountGate>
       {!isEmpty && (
-        <div className="px-5 pt-4 pb-0 flex-shrink-0">
-          <div className="flex rounded-[10px] p-[3px] bg-bg-inner">
+        <div className="px-5 pt-4 pb-0 flex-shrink-0 lg:px-10 lg:pt-6 lg:max-w-[1100px] lg:w-full lg:mx-auto">
+          <div className="flex rounded-[10px] p-[3px] bg-bg-inner lg:max-w-[360px]">
             {TABS.map(tab => (
               <button
                 key={tab}
@@ -48,7 +48,7 @@ export default function QuestionBankPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10">
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 lg:px-10 lg:pb-10 lg:max-w-[1100px] lg:w-full lg:mx-auto">
         {qb.loading && (
           <div className="flex flex-col gap-4">
             {/* 进度卡骨架 */}

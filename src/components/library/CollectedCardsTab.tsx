@@ -84,7 +84,7 @@ export default function CollectedCardsTab({ cards: initialCards }: Props) {
 
   // px-1（4px/side）补偿 library px-5 与 feedback px-6 的宽度差，使卡片内文字换行一致
   return (
-    <div className="flex flex-col gap-3 pt-3 px-1">
+    <div className="flex flex-col gap-3 pt-3 px-1 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
       {cards.map(card => (
         <SwipeCard
           key={card.id}

@@ -85,10 +85,11 @@ export default function ProfilePage(): JSX.Element {
   )
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px] lg:pb-0 lg:pl-[256px]">
       <TopBar title="我的" showBack={false} right={settingsButton} showFeedback={false} />
 
-      <div className="flex-1 overflow-y-auto px-5 relative z-10">
+      {/* 无设计稿：桌面端保守处理 —— 现有内容居中加宽，不新增区块 */}
+      <div className="flex-1 overflow-y-auto px-5 relative z-10 lg:px-10 lg:pt-2 lg:max-w-[680px] lg:w-full lg:mx-auto">
 
         {/* ── 1. 用户头像区 */}
         <div className="flex flex-col items-center pt-6 pb-5">

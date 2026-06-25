@@ -46,7 +46,7 @@ export default function RootLayout({
         <div className="h-dvh w-full flex justify-center bg-bg-page overflow-hidden">
           <div
             id="app-root-container"
-            className="relative w-full max-w-[430px] h-dvh bg-bg-page overflow-y-auto"
+            className="relative w-full max-w-[430px] lg:max-w-none h-dvh bg-bg-page overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {children}

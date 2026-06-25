@@ -46,6 +46,7 @@ interface Props {
 export default function DimensionTab({ scoreById, progressById, corpusCount, dimensionSummaries, totalMapped, totalMatched }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState<Dimension | null>(null)
+  const [sel, setSel] = useState<Dimension>('情绪内核')   // 桌面端「按维度看题目」选中维度
   const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
 
   /** 复练入口拦截：登录用户超过月度额度 → 弹 QuotaReached 雅思变体覆盖层 */
@@ -65,6 +66,8 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
 
   return (
     <div>
+      {/* 桌面端：雷达总览卡 + 各维度覆盖排行卡 两栏（参照 web.html dim-overview） */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
       {/* 概览卡 */}
       <div
         className="rounded-[16px] px-[18px] pt-[18px] pb-4"
@@ -91,6 +94,39 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
         </div>
       </div>
 
+      {/* 各维度覆盖 · 从多到少 —— 桌面端专属右栏 */}
+      <div className="hidden lg:block bg-bg-surface rounded-[16px] px-[18px] pt-[18px] pb-4" style={{ boxShadow: SOFT_SM, marginBottom: 18 }}>
+        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">各维度覆盖 · 从多到少</p>
+        <div className="flex flex-col gap-3">
+          {sorted.map((d, idx) => {
+            const id = DIM_EN[d.dimension]
+            const lit = progressById[id]?.lit ?? 0
+            const total = progressById[id]?.total ?? 0
+            const cov = total ? lit / total : 0
+            const isLeast = idx === sorted.length - 1 && lit === 0
+            return (
+              <div key={d.dimension} className="flex items-center gap-2.5">
+                <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-v2-text-primary">{d.dimension}</div>
+                  {isLeast ? (
+                    <div className="text-[11px] text-v2-text-muted mt-1">还几乎空白 · 下次从这儿讲一个故事 →</div>
+                  ) : (
+                    <div className="h-1.5 rounded-full bg-bg-muted mt-1.5 overflow-hidden">
+                      <div className="h-full rounded-full bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
+                    </div>
+                  )}
+                </div>
+                <span className="text-[12px] text-v2-text-secondary flex-shrink-0">{lit} / {total}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      </div>
+
+      {/* 移动端：六个维度可折叠卡（桌面端改用下面的「按维度看题目」选择器 + 面板） */}
+      <div className="lg:hidden">
       {/* 分组小标题 */}
       <p
         className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px]"
@@ -179,6 +215,69 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
           )
         })}
       </div>
+      </div>
+
+      {/* 桌面端：按维度看题目 —— chip 选择器 + 单维度题目面板（参照 web.html DimTab 下半部） */}
+      <div className="hidden lg:block">
+        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">按维度看题目</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {dimensionSummaries.map(s => (
+            <Chip key={s.dimension} variant="ghost" active={sel === s.dimension} onClick={() => setSel(s.dimension)}>
+              {s.dimension}
+            </Chip>
+          ))}
+        </div>
+        {(() => {
+          const sum = dimensionSummaries.find(s => s.dimension === sel) ?? dimensionSummaries[0]
+          if (!sum) return null
+          const id = DIM_EN[sum.dimension]
+          const lit = progressById[id]?.lit ?? 0
+          const total = progressById[id]?.total ?? 0
+          const done = sum.questions.filter(q => q.matched)
+          const todo = sum.questions.filter(q => !q.matched)
+          const remain = Math.max(0, total - lit)
+          const segFilled = Math.max(lit > 0 ? 1 : 0, Math.round(12 * (total ? lit / total : 0)))
+          return (
+            <div className="bg-bg-surface rounded-[16px] px-[22px] pt-[18px] pb-2" style={{ boxShadow: SOFT_SM }}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="text-[16px] font-bold text-v2-text-primary">{sum.dimension}</div>
+                  <div className="text-[12px] text-v2-text-muted mt-1">{DIM_DESC[sum.dimension]}</div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <div className="text-[11px] text-v2-text-muted">已收集</div>
+                  <div className="text-[16px] font-semibold text-v2-text-primary">{lit} / {total}</div>
+                  <div className="mt-1.5"><SegmentDots total={12} filled={segFilled} /></div>
+                </div>
+              </div>
+              {done.map(q => (
+                <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
+                  <CheckCircle2 size={16} className="text-brand-accent flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] text-v2-text-primary leading-snug">{q.displayText}</div>
+                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                  </div>
+                  <Chip variant="gradient" size="sm" onClick={() => void gotoPractice(q.id)} className="font-medium flex-shrink-0">练习</Chip>
+                </div>
+              ))}
+              {todo.map(q => (
+                <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
+                  <Circle size={16} className="text-v2-text-muted flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] text-v2-text-muted leading-snug">{q.displayText}</div>
+                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                  </div>
+                  <span className="text-[12px] text-v2-text-muted flex-shrink-0">还没讲到</span>
+                </div>
+              ))}
+              <div className="text-[12px] text-v2-text-muted text-center pt-3 pb-1.5 border-t border-black/[0.04]">
+                还有 <b className="text-v2-text-secondary">{remain}</b> 道 · 讲更多故事来点亮 →
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+
       {reviewQuotaShown && (
         <QuotaReached variant="ielts" asOverlay onClose={() => setReviewQuotaShown(false)} />
       )}

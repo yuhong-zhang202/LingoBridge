@@ -84,7 +84,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
-        {matchedOpen && <div className="flex flex-col gap-2">
+        {matchedOpen && <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2.5">
           {matchedQ.map(q => (
             <div
               key={q.id}

@@ -114,7 +114,7 @@ export default function PronunciationTab(): JSX.Element | null {
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-3">
+    <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
       {items.map(it => (
         <SwipeToDelete
           key={it.id}

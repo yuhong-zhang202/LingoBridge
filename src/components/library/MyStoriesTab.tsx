@@ -25,7 +25,7 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-3">
+    <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
       {stories.map(story => (
         <SwipeToDelete key={story.id} borderRadius={16} onDelete={() => onDelete?.(story.id)}>
         <Card variant="gradient" className="p-4">

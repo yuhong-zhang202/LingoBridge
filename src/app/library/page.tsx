@@ -52,6 +52,7 @@ const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60
 
 export default function LibraryPage() {
   const [view, setView]           = useState<View>('hub')
+  const [dtab, setDtab]           = useState<'cards' | 'phrases' | 'pron' | 'stories'>('cards')   // 桌面端 inline tab
   const [stories, setStories]     = useState<MyStory[]>([])
   const [cards, setCards]         = useState<CollectedCard[]>([])
   const [wordsCount, setWordsCount] = useState(0)
@@ -124,7 +125,7 @@ export default function LibraryPage() {
 
   return (
     <div
-      className="relative flex flex-col bg-bg-page overflow-hidden"
+      className="relative flex flex-col bg-bg-page overflow-hidden lg:pl-[256px]"
       style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
       <style>{`
@@ -193,7 +194,8 @@ export default function LibraryPage() {
         <>
           <TopBar title="素材库" right={<Search size={18} className="text-v2-text-muted" />} />
 
-          <div className="flex-1 min-h-0 overflow-y-auto relative z-10" style={{ padding: '8px 22px 0' }}>
+          {/* 移动端 hub（桌面端用下面的 inline 布局，故 lg:hidden） */}
+          <div className="flex-1 min-h-0 overflow-y-auto relative z-10 lg:hidden" style={{ padding: '8px 22px 0' }}>
 
             {/* 1) 标题区 */}
             <div className="animate-fade-up" style={{ margin: '6px 2px 18px', animationDelay: '0.02s' }}>
@@ -370,6 +372,55 @@ export default function LibraryPage() {
               <span className="text-[13px] font-semibold text-v2-text-muted">{stories.length}</span>
               <ChevronRight size={16} className="text-v2-text-muted" />
             </button>
+          </div>
+
+          {/* 桌面端 inline 素材库（参照 web.html LibraryCollections）：标题 + 今日复习 hero + tab + 2 栏卡片网格 */}
+          <div className="hidden lg:block flex-1 min-h-0 overflow-y-auto px-10 pt-6 pb-10 max-w-[1100px] w-full mx-auto relative z-10">
+            <div className="mb-5">
+              <h1 className="text-[23px] font-bold text-v2-text-primary tracking-[-0.3px]">我的素材库</h1>
+              <p className="text-[13px] text-v2-text-muted mt-1">语料、收藏卡片、词组与发音，集中在这里管理和复习。</p>
+            </div>
+
+            {/* 今日复习 hero —— 复用 /review 入口 */}
+            <Link href="/review" className="block mb-6">
+              <div className="rounded-[16px] px-[22px] py-5 flex items-center gap-5 active:scale-[0.99] transition-transform" style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT }}>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习</span>
+                  <p className="text-[18px] font-bold text-v2-text-primary mt-1">
+                    {dueCount > 0
+                      ? <><span className="text-brand-primary-dark">{dueCount}</span> 张词卡，等你翻一翻</>
+                      : '今天没有要复习的卡'}
+                  </p>
+                  <p className="text-[13px] text-v2-text-secondary mt-1">把收藏的词组记牢——一天几张，不费劲。</p>
+                </div>
+                <span className="inline-flex items-center gap-[3px] rounded-full px-5 py-2.5 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
+                  <span className="text-v2-text-secondary">开始复习</span>
+                  <span className="text-brand-primary-dark">›</span>
+                </span>
+              </div>
+            </Link>
+
+            {/* tab 条 */}
+            <div className="flex gap-6 mb-5 border-b border-black/[0.06]">
+              {([['cards', '收藏卡片', cards.length], ['phrases', '词组收藏', wordsCount], ['pron', '发音', pronCount], ['stories', '我的语料', stories.length]] as const).map(([id, label, ct]) => (
+                <button
+                  key={id}
+                  onClick={() => setDtab(id)}
+                  className={`pb-2.5 -mb-px flex items-center gap-1.5 text-[14px] font-medium border-b-2 transition-colors ${dtab === id ? 'text-v2-text-primary border-brand-primary' : 'text-v2-text-muted border-transparent hover:text-v2-text-secondary'}`}
+                >
+                  {label}<span className="text-[12px] text-v2-text-muted">{ct}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* 当前 tab 内容（复用现有子组件，列表在 lg 下两栏） */}
+            {dtab === 'cards' && <CollectedCardsTab cards={cards} />}
+            {dtab === 'phrases' && <SavedWordsTab />}
+            {dtab === 'pron' && <PronunciationTab />}
+            {dtab === 'stories' && <MyStoriesTab stories={stories} onDelete={(id) => {
+              setStories(prev => prev.filter(s => s.id !== id))
+              deleteCorpus(id).catch(e => console.error('[LibraryPage] 删除语料失败', e))
+            }} />}
           </div>
         </>
       )}

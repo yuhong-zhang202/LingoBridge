@@ -57,11 +57,11 @@ export default function SavedWordsTab(): JSX.Element | null {
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-3">
+    <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
       {/* 记忆卡片入口 */}
       <Link
         href="/review"
-        className="flex items-center gap-2.5 bg-white rounded-[14px] border border-black/[0.05] px-4 py-3 active:scale-[0.99] transition-transform duration-150"
+        className="flex items-center gap-2.5 bg-white rounded-[14px] border border-black/[0.05] px-4 py-3 active:scale-[0.99] transition-transform duration-150 lg:col-span-2"
       >
         <Layers size={16} className="text-brand-primary" />
         <span className="text-[13px] font-medium text-v2-text-primary">
