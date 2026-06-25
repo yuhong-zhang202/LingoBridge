@@ -15,6 +15,7 @@ import Chip from '@/components/Chip'
 import Skeleton from '@/components/Skeleton'
 import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
 import NoMatchView from '@/components/matching/NoMatchView'
 import { saveExtraction } from '@/lib/db/corpus'
@@ -79,6 +80,8 @@ function MatchingContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
+  // A12 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新匹配
+  const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
 
   // 切换 Tab 时收起折叠
   useEffect(() => { setExpanded(false) }, [activeTab])
@@ -205,13 +208,13 @@ function MatchingContent() {
 
         {!loading && error && (
           typeof navigator !== 'undefined' && !navigator.onLine ? (
-            <OfflineState onRetry={() => setRetryKey(k => k + 1)} />
+            <OfflineState onRetry={retry} />
           ) : (
             <EmptyState
               title="题目没匹配出来"
               subtitle="刚才好像没连上，点下面再试一次就好。"
               ctaLabel="重试"
-              onCta={() => setRetryKey(k => k + 1)}
+              onCta={retry}
               orbSize={100}
             />
           )
