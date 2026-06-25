@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import FlashCard from '@/components/review/FlashCard'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { listDueCards, gradeCard } from '@/lib/db/phrase-cards'
 import type { PhraseCard } from '@/lib/types'
 
@@ -45,6 +46,8 @@ export default function ReviewPage(): JSX.Element {
     if (!remembered) setQueue(q => [...q, { ...card, box: 1 }])  // 没记住：排到队尾本轮再练（从第 1 格起）
     setCurrent(c => c + 1)
   }, [queue, current])
+  // A11 防重入：同一张卡连点/双击评级只算一次（避免重复写库 + setCurrent 多加跳卡）
+  const [gradeOne] = useAsyncAction(handleGrade)
 
   const close = (): void => router.back()
 
@@ -92,7 +95,7 @@ export default function ReviewPage(): JSX.Element {
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <FlashCard key={`${queue[current].id}-${current}`} card={queue[current]} onGrade={handleGrade} />
+            <FlashCard key={`${queue[current].id}-${current}`} card={queue[current]} onGrade={(r) => void gradeOne(r)} />
           </div>
         )}
       </div>
