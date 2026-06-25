@@ -12,6 +12,7 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import EmptyState from '@/components/EmptyState'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { setSessionPolishes, addSavedPronunciation, getSavedPronunciations } from '@/lib/storage'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
@@ -224,6 +225,8 @@ function PracticeContent(): JSX.Element {
       console.warn('[Practice] 记录练习场次失败', e))
     router.push('/feedback')
   }, [polishHistory, questionId, isReview, router])
+  // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
+  const [endSession] = useAsyncAction(handleEnd)
   const capHint =
     scaffold?.part === 2
       ? '真实雅思 Part 2 约 2 分钟会被喊停，可以开始收尾啦'
@@ -326,7 +329,7 @@ function PracticeContent(): JSX.Element {
           <div className="flex flex-col items-center gap-3">
             <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
             <button
-              onClick={handleEnd}
+              onClick={() => void endSession()}
               className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
               style={GRADIENT_BORDER_STYLE}
             >
@@ -391,7 +394,7 @@ function PracticeContent(): JSX.Element {
             </button>
           )}
           <button
-            onClick={handleEnd}
+            onClick={() => void endSession()}
             className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform"
           >
             结束
