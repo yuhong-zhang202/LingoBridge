@@ -1,7 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import Toast from '@/components/Toast'
@@ -97,12 +97,12 @@ export default function HomePage() {
   }, [textStory, router, ieltsMode, question])
 
   return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
+    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden lg:pl-[256px]">
       <div className="ambient-light" />
 
-      {/* 顶部栏 */}
+      {/* 顶部栏（桌面端隐藏：侧栏已有 Logo） */}
       {showTextInput ? (
-        <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
+        <div className="flex items-center justify-between h-[52px] px-5 relative z-10 lg:hidden">
           <button
             onClick={() => setShowTextInput(false)}
             aria-label="返回"
@@ -114,7 +114,7 @@ export default function HomePage() {
           <div className="w-[30px]" />
         </div>
       ) : (
-        <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
+        <div className="flex items-center justify-between h-[52px] px-5 relative z-10 lg:hidden">
           <span className="text-[16px] font-bold text-v2-text-primary">
             LingoBridge
           </span>
@@ -127,7 +127,9 @@ export default function HomePage() {
           <QuotaReached variant="story" />
         </div>
       ) : (
-      <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[120px]' : 'items-center px-7 pt-6 pb-[72px]'}`}>
+      <>
+      {/* 移动端：竖排布局（桌面端用下面的 2 栏 hero） */}
+      <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto lg:hidden ${showTextInput ? 'px-6 pt-5 pb-[120px]' : 'items-center px-7 pt-6 pb-[72px]'}`}>
 
         {/* 分段控件：故事模式 / 雅思题模式（在 Orb 上方） */}
         {!showTextInput && (
@@ -291,6 +293,99 @@ export default function HomePage() {
         {/* 剩余空白沉到底部（仅故事/录音态需要；文字态内容长，否则会压住可滚动空间） */}
         {!showTextInput && <div className="flex-1" />}
       </div>
+
+      {/* 桌面端：2 栏 hero（参照 web.html home-hero）——左 文案+操作，右 Orb */}
+      <div className="hidden lg:flex flex-1 min-h-0 items-center px-10 relative z-10 overflow-y-auto">
+        <div className="grid grid-cols-2 items-center gap-12 max-w-6xl w-full mx-auto">
+          {/* 左：分段 + 标题 + 副标题 + 操作 */}
+          <div className="flex flex-col items-start max-w-md">
+            {/* 分段控件（复用 ieltsMode） */}
+            <div className="bg-bg-muted rounded-full p-1 inline-flex w-[228px] mb-8">
+              <button
+                onClick={() => setIeltsMode(false)}
+                className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${!ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
+              >
+                我的故事
+              </button>
+              <button
+                onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
+              >
+                雅思题
+              </button>
+            </div>
+
+            {/* 标题 + 副标题 */}
+            {!ieltsMode ? (
+              <>
+                <h1 className="text-[34px] font-bold text-v2-text-primary tracking-tight leading-tight">说说你的故事</h1>
+                <p className="text-[15px] text-v2-text-secondary leading-relaxed mt-3 max-w-md">不用背模板。把真实经历讲出来，AI 帮你拆解逻辑、匹配到合适的雅思口语题目。</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-[28px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[40px]">
+                  {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
+                </h1>
+                <p className="text-[15px] text-v2-text-secondary leading-relaxed mt-3">聊聊你的看法</p>
+                <button onClick={() => void next()} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
+                  <RotateCw size={13} />换一题
+                </button>
+              </>
+            )}
+
+            {/* 操作区：默认（开始录音 + 或用文字输入）/ 文字面板 */}
+            {!showTextInput ? (
+              <div className="flex items-center gap-4 mt-8">
+                <button onClick={() => void handleStartRecording()} className="btn-gradient w-[200px] h-[52px]">
+                  <Mic2 size={16} className="text-v2-text-secondary" />
+                  开始录音
+                </button>
+                <button onClick={() => setShowTextInput(true)} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
+                  <Pencil size={14} />
+                  或用文字输入
+                </button>
+              </div>
+            ) : (
+              <div className="w-full mt-8 animate-fade-up">
+                <div className="w-full bg-bg-surface border border-black/[0.06] rounded-[18px] pt-[18px] px-4 pb-[13px]">
+                  <textarea
+                    value={textStory}
+                    onChange={e => setTextStory(e.target.value)}
+                    placeholder={'用中文聊聊最近的一件小事，尽量说具体些……\n\n和谁一起、做了什么、当时心里什么感觉，都可以写进来。'}
+                    className="w-full min-h-[180px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">
+                    <button onClick={() => setShowTextInput(false)} className="flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
+                      <Mic2 size={15} />
+                      改用录音
+                    </button>
+                    <button
+                      disabled={!canSubmit || submitting}
+                      onClick={() => void handleTextSubmit()}
+                      aria-label="开始匹配题目"
+                      className={canSubmit && !submitting ? 'btn-gradient-circle w-[42px] h-[42px]' : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-bg-muted cursor-not-allowed'}
+                    >
+                      {submitting ? <Loader2 size={18} className="text-v2-text-muted animate-spin" /> : <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-v2-text-muted'} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline justify-between px-1">
+                  <span className="text-[12px] text-v2-text-muted tracking-[0.3px]">丰富度</span>
+                  <span className={`text-[13px] ${isRich ? 'text-brand-accent font-medium' : 'text-v2-text-secondary'}`}>{richState}</span>
+                </div>
+                <div className="mt-2 px-1"><SegmentDots total={18} filled={richnessFilled} /></div>
+              </div>
+            )}
+          </div>
+
+          {/* 右：Orb */}
+          <div className="flex items-center justify-center">
+            <Orb size={360} pulse={false} />
+          </div>
+        </div>
+      </div>
+      </>
       )}
 
       <div className="flex-shrink-0"><TabBar /></div>
