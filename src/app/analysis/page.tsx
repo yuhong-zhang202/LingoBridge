@@ -145,7 +145,7 @@ function AnalysisContent() {
       <TopBar title="题目分析" />
       <StepBar currentStep="analysis" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10">
 
         {loading && (
           <>
@@ -218,6 +218,9 @@ function AnalysisContent() {
               <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
               <p className="text-[12px] text-v2-text-muted">{data.question.zh}</p>
             </Card>
+
+            {/* 桌面端：答题侧重点 | 可用词组 两栏（参照 web.html analysis-view）；移动端单列堆叠 */}
+            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
 
             {/* 答题侧重点 */}
             <GradCard>
@@ -316,6 +319,7 @@ function AnalysisContent() {
               </div>
               )}
             </GradCard>
+            </div>{/* /两栏 wrapper */}
 
             <button
               className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
@@ -328,7 +332,8 @@ function AnalysisContent() {
         )}
       </div>
 
-      <TabBar />
+      {/* 流程页桌面端沉浸：隐藏侧栏 */}
+      <div className="lg:hidden"><TabBar /></div>
     </div>
   )
 }
