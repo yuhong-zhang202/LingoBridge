@@ -124,9 +124,12 @@ function RestructureContent() {
       <TopBar title="整理确认" />
       <StepBar currentStep="restructure" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[88px] relative z-10 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[88px] relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10 lg:pb-10">
 
-        {/* 原始语料卡片 */}
+        {/* 桌面端：原话 | 整理后 两栏（参照 web.html restructure-view）；移动端仍单列堆叠 */}
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+
+        {/* 原始语料卡片（左栏） */}
         <Card className="px-5 pt-4 pb-5">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Quote size={13} className="text-v2-text-muted" />
@@ -135,8 +138,11 @@ function RestructureContent() {
           <p className="text-[14px] text-v2-text-secondary leading-relaxed">{rawStory}</p>
         </Card>
 
-        {/* 过渡区 */}
-        <div className="flex items-center gap-2 px-1">
+        {/* 右栏：过渡 + AI 整理结果 */}
+        <div className="flex flex-col gap-4">
+
+        {/* 过渡区（桌面两栏下隐藏） */}
+        <div className="flex items-center gap-2 px-1 lg:hidden">
           <div className="flex-1 h-px bg-bg-muted" />
           <Sparkles size={12} className="text-v2-text-muted" />
           <span className="text-[11px] text-v2-text-muted">语料梳理</span>
@@ -207,9 +213,12 @@ function RestructureContent() {
             </div>
           </>
         )}
+        </div>{/* /右栏 */}
+        </div>{/* /两栏 wrapper */}
       </div>
 
-      <div className="flex-shrink-0"><TabBar /></div>
+      {/* 流程页桌面端沉浸：隐藏侧栏 */}
+      <div className="flex-shrink-0 lg:hidden"><TabBar /></div>
     </div>
   )
 }
