@@ -301,8 +301,8 @@ export default function HomePage() {
           aria-hidden
           className="hidden lg:block absolute pointer-events-none"
           style={{
-            right: '10%',
-            bottom: '-12%',
+            right: '14%',
+            bottom: '-18%',
             width: '640px',
             height: '640px',
             borderRadius: '50%',
@@ -312,7 +312,7 @@ export default function HomePage() {
             zIndex: 0,
           }}
         />
-        <div className="grid grid-cols-2 items-start gap-16 w-full max-w-[1100px] mx-auto pt-[8vh] relative z-10">
+        <div className="grid grid-cols-2 items-start gap-16 w-full max-w-[1100px] mx-auto pt-[14vh] relative z-10">
           {/* 左：分段 + 标题 + 副标题 + 操作 */}
           <div className="flex flex-col items-start max-w-md">
             {/* 分段控件（复用 ieltsMode） */}
@@ -397,7 +397,7 @@ export default function HomePage() {
 
           {/* 右：Orb（放大 + 下移 + 略向文案靠拢，沉到右下） */}
           <div className="flex justify-center lg:justify-start">
-            <div className="translate-y-[72px]">
+            <div className="translate-x-[-48px] translate-y-[110px]">
               <Orb size={430} pulse={false} />
             </div>
           </div>
