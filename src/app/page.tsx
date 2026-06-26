@@ -302,7 +302,7 @@ export default function HomePage() {
           className="hidden lg:block absolute pointer-events-none"
           style={{
             right: '14%',
-            bottom: '-18%',
+            bottom: '-12%',
             width: '640px',
             height: '640px',
             borderRadius: '50%',
@@ -397,7 +397,7 @@ export default function HomePage() {
 
           {/* 右：Orb（放大 + 下移 + 略向文案靠拢，沉到右下） */}
           <div className="flex justify-center lg:justify-start">
-            <div className="translate-x-[-48px] translate-y-[110px]">
+            <div className="translate-x-[-48px] translate-y-[70px]">
               <Orb size={430} pulse={false} />
             </div>
           </div>
