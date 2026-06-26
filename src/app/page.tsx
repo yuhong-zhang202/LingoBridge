@@ -295,8 +295,8 @@ export default function HomePage() {
       </div>
 
       {/* 桌面端：2 栏 hero（参照 web.html home-hero）——左 文案+操作，右 Orb */}
-      <div className="hidden lg:flex flex-1 min-h-0 items-center px-10 relative z-10 overflow-y-auto">
-        <div className="grid grid-cols-2 items-center gap-12 max-w-6xl w-full mx-auto">
+      <div className="hidden lg:flex flex-1 min-h-0 items-center px-16 relative z-10 overflow-y-auto">
+        <div className="grid grid-cols-2 items-center gap-16 w-full">
           {/* 左：分段 + 标题 + 副标题 + 操作 */}
           <div className="flex flex-col items-start max-w-md">
             {/* 分段控件（复用 ieltsMode） */}
@@ -381,7 +381,7 @@ export default function HomePage() {
 
           {/* 右：Orb */}
           <div className="flex items-center justify-center">
-            <Orb size={360} pulse={false} />
+            <Orb size={400} pulse={false} />
           </div>
         </div>
       </div>
