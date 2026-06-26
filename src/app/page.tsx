@@ -295,8 +295,24 @@ export default function HomePage() {
       </div>
 
       {/* 桌面端：2 栏 hero（参照 web.html home-hero）——左 文案+操作，右 Orb */}
-      <div className="hidden lg:flex flex-1 min-h-0 items-center px-16 relative z-10 overflow-y-auto">
-        <div className="grid grid-cols-2 items-center gap-16 w-full">
+      <div className="hidden lg:flex flex-1 min-h-0 items-start px-16 relative z-10 overflow-hidden">
+        {/* 桌面专属：暖色弥散光晕（橙→黄绿，去绿），从 Orb 向左上漫，触及文案 */}
+        <div
+          aria-hidden
+          className="hidden lg:block absolute pointer-events-none"
+          style={{
+            right: '10%',
+            bottom: '-12%',
+            width: '640px',
+            height: '640px',
+            borderRadius: '50%',
+            background:
+              'radial-gradient(circle, rgba(240,188,160,0.15), rgba(188,210,168,0.07) 45%, transparent 70%)',
+            filter: 'blur(72px)',
+            zIndex: 0,
+          }}
+        />
+        <div className="grid grid-cols-2 items-start gap-16 w-full max-w-[1100px] mx-auto pt-[8vh] relative z-10">
           {/* 左：分段 + 标题 + 副标题 + 操作 */}
           <div className="flex flex-col items-start max-w-md">
             {/* 分段控件（复用 ieltsMode） */}
@@ -379,9 +395,11 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 右：Orb */}
-          <div className="flex items-center justify-center">
-            <Orb size={400} pulse={false} />
+          {/* 右：Orb（放大 + 下移 + 略向文案靠拢，沉到右下） */}
+          <div className="flex justify-center lg:justify-start">
+            <div className="translate-y-[72px]">
+              <Orb size={430} pulse={false} />
+            </div>
           </div>
         </div>
       </div>
