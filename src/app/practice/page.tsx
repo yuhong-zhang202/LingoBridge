@@ -252,7 +252,7 @@ function PracticeContent(): JSX.Element {
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
+      <div className={`flex-1 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
         {phase === 'init' && (
           <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
         )}
@@ -324,7 +324,7 @@ function PracticeContent(): JSX.Element {
 
       {/* 底部输入区 */}
       <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.05] z-20 px-[14px]"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] lg:max-w-3xl bg-bg-page border-t border-black/[0.05] z-20 px-[14px]"
         style={{ paddingTop: 18, paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
       >
         {isCapped ? (
