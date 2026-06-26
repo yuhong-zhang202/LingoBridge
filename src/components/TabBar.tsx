@@ -18,7 +18,7 @@ export default function TabBar() {
       // 移动端：底部横向 TabBar（原样不动）。lg：左侧 256px 竖向 sidebar（对齐 web.html app-shell）。
       // 内联 height/paddingBottom 不动；lg 用 !important 覆盖，移动端像素级不变。
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.06] flex items-center justify-around z-30
-        lg:top-0 lg:bottom-auto lg:left-0 lg:translate-x-0 lg:w-[256px] lg:max-w-none lg:!h-dvh lg:!pb-0 lg:flex-col lg:items-stretch lg:justify-start lg:gap-1 lg:px-4 lg:py-6 lg:border-t-0 lg:border-r lg:bg-bg-surface/70 lg:backdrop-blur-sm"
+        lg:top-0 lg:bottom-auto lg:left-0 lg:translate-x-0 lg:w-[256px] lg:max-w-none lg:!h-dvh lg:!pb-0 lg:flex-col lg:items-stretch lg:justify-start lg:gap-1 lg:px-4 lg:py-6 lg:border-t-0 lg:border-r"
       style={{
         height: 'calc(56px + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',
