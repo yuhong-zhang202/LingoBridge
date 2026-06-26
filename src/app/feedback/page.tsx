@@ -65,7 +65,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px] lg:pb-0">
       <TopBar
         title="反馈卡片"
         right={loaded && total > 0 && !done
@@ -74,7 +74,7 @@ export default function FeedbackPage() {
       />
       <StepBar currentStep="practice" />
 
-      <div className="flex-1 overflow-y-auto px-10 pt-6 pb-10 relative z-10">
+      <div className="flex-1 overflow-y-auto px-10 pt-6 pb-10 relative z-10 lg:max-w-xl lg:mx-auto lg:w-full">
 
         {/* 空态：这场没点过 🔨 */}
         {loaded && total === 0 && (
@@ -158,7 +158,8 @@ export default function FeedbackPage() {
         )}
       </div>
 
-      <div className="flex-shrink-0"><TabBar /></div>
+      {/* 流程页桌面端沉浸：隐藏侧栏 */}
+      <div className="flex-shrink-0 lg:hidden"><TabBar /></div>
     </div>
   )
 }
