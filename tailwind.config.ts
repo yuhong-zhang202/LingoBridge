@@ -18,7 +18,7 @@ const config: Config = {
         'text-2':   '#444444',
         'text-3':   '#888888',
         'text-4':   '#BBBBBB',
-        'bg-page':  '#F8F5F1',
+        'bg-page':  '#FBFAF7',
         'bg-card':  '#FFFFFF',
         'bg-inner': '#F4F4F4',
         /* 语义状态色（跨版本通用，v2 页面可用）*/
@@ -26,7 +26,7 @@ const config: Config = {
         'warning':  '#C4965A',
         'error':    '#C47A6A',
         /* v2 tokens */
-        'bg-base':              '#F8F5F1',
+        'bg-base':              '#FBFAF7',
         'bg-surface':           '#FFFFFF',
         'bg-muted':             '#EEEBE6',
         'brand-primary':        '#D4875A',
