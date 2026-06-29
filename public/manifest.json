@@ -4,8 +4,8 @@
   "description": "把你的故事变成雅思口语素材",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F8F5F1",
-  "theme_color": "#F8F5F1",
+  "background_color": "#FBFAF7",
+  "theme_color": "#FBFAF7",
   "orientation": "portrait",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

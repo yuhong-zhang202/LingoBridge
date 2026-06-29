@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#F8F5F1',
+  themeColor: '#FBFAF7',
   viewportFit: 'cover',   // 让 env(safe-area-inset-*) 在 iOS standalone 下生效
 }
 

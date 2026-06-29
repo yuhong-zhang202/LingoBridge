@@ -98,8 +98,6 @@ export default function HomePage() {
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden lg:pl-[256px]">
-      <div className="ambient-light" />
-
       {/* 顶部栏（桌面端隐藏：侧栏已有 Logo） */}
       {showTextInput ? (
         <div className="flex items-center justify-between h-[52px] px-5 relative z-10 lg:hidden">
