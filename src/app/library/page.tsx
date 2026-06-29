@@ -313,7 +313,7 @@ export default function LibraryPage() {
                     </>
                   ) : (
                     <p className="text-[12px] text-v2-text-muted text-center py-[3px]">
-                      练习后左滑卡片，改得更好的句子会出现在这里
+                      练习后右滑卡片，改得更好的句子会出现在这里
                     </p>
                   )}
                 </div>
