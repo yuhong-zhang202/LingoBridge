@@ -294,20 +294,28 @@ export default function LibraryPage() {
                   <span className="flex-shrink-0 self-start mt-0.5 mr-9 text-[19px] font-bold text-v2-text-primary">{cards.length}</span>
                 </div>
 
-                {/* 微预览 */}
+                {/* 微预览：有卡片显示最近一条；无卡片显示空状态提示 */}
                 <div className="bg-bg-page rounded-[14px] px-[13px] py-[11px]">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-bg-muted text-v2-text-muted">你的话</span>
-                    <span className="text-[12px] text-v2-text-secondary truncate flex-1">
-                      {latestCard?.originalSentence ?? ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38]">更地道</span>
-                    <span className="text-[12px] text-v2-text-primary font-medium truncate flex-1">
-                      {latestCard?.aiOptimized ?? ''}
-                    </span>
-                  </div>
+                  {latestCard ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-bg-muted text-v2-text-muted">你的话</span>
+                        <span className="text-[12px] text-v2-text-secondary truncate flex-1">
+                          {latestCard.originalSentence}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex-shrink-0 text-[10px] font-semibold rounded-full px-[7px] py-[2px] bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38]">更地道</span>
+                        <span className="text-[12px] text-v2-text-primary font-medium truncate flex-1">
+                          {latestCard.aiOptimized}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[12px] text-v2-text-muted text-center py-[3px]">
+                      练习后左滑卡片，改得更好的句子会出现在这里
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
