@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:https": "next dev --experimental-https",
     "dev:log": "next dev 2>&1 | tee -a dev.log",
     "build": "next build",
     "start": "next start",
