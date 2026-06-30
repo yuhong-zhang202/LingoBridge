@@ -1,7 +1,7 @@
 /**
  * @module   ProfilePage
- * @desc     「我的」页面 — Hero 连续打卡 + 双列副数据 + 画像雷达 + 功能列表；
- *           区分登录态，未登录时显示引导卡，隐藏打卡/数据/画像三张卡。
+ * @desc     「我的」页面 — 顶部导航 + 面包屑页头 + 头像；登录态左栏(打卡 hero/副数据/画像雷达)+右栏(额度卡/功能列表)，
+ *           未登录显示引导卡 + 功能列表并隐藏打卡/数据/画像。密面板风（对齐题库 v3）。
  * @author   LingoBridge
  * @created  2026-05-31
  */
@@ -10,8 +10,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
-import TopBar from '@/components/TopBar'
+import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
+import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import { getAccount, logout, maskEmail } from '@/lib/auth'
 import { getSavedPhrases } from '@/lib/storage'
 import OrbAvatar from './_components/OrbAvatar'
@@ -25,14 +26,9 @@ const profileData = {
   // 占位：暂无数据源（目标 Band 未持久化），等后续功能补全
   targetBand: 7.0,
   stats: { corpus: 12 },
-  portrait: {
-    corpusCount: 12,
-    dimensions: { emotion: 0.7, relationship: 0.5, space: 0.3, spirit: 0.6, growth: 0.4 },
-  },
   bookmarkCount: 24,
   version: 'v0.6.0',
 }
-
 
 /**
  * Profile 主页
@@ -74,61 +70,61 @@ export default function ProfilePage(): JSX.Element {
 
   const settingsButton = (
     <button
-      onClick={() => {
-        router.push('/settings')
-      }}
+      onClick={() => router.push('/settings')}
       aria-label="设置"
-      className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.97] transition-transform duration-150"
+      className="w-10 h-10 rounded-full grid place-items-center text-v2-text-secondary hover:bg-bg-muted transition-colors"
     >
-      <Settings size={15} color="#333" />
+      <Settings size={18} />
     </button>
   )
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px] lg:pb-0 lg:pl-[256px]">
-      <TopBar title="我的" showBack={false} right={settingsButton} showFeedback={false} />
+    <div className="min-h-screen bg-bg-page">
+      <TopNav containerClassName={MANAGE_CONTAINER} />
 
-      {/* 无设计稿：桌面端保守处理 —— 现有内容居中加宽，不新增区块 */}
-      <div className="flex-1 overflow-y-auto px-5 relative z-10 lg:px-10 lg:pt-2 lg:max-w-[680px] lg:w-full lg:mx-auto">
+      <main className={`${MANAGE_CONTAINER} pb-24 md:pb-12`}>
+        <ManageHeader title="我的" right={settingsButton} />
 
-        {/* ── 1. 用户头像区 */}
-        <div className="flex flex-col items-center pt-6 pb-5">
+        {/* 头像区 */}
+        <div className="flex flex-col items-center pt-1 pb-6">
           <OrbAvatar size={84} />
           <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{displayName}</p>
         </div>
 
-        {/* ── 未登录引导卡 */}
-        {!loggedIn && <LoginPrompt className="mb-3" />}
+        {loggedIn ? (
+          <>
+            {/* 登录态：左栏 打卡/副数据/画像 · 右栏 额度卡/功能列表 */}
+            <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-start">
+              <div>
+                <LoggedInView stats={stats} targetBand={targetBand} />
+              </div>
+              <div className="flex flex-col gap-3">
+                <QuotaCard />
+                <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
+              </div>
+            </div>
 
-        {/* ── 已登录态专属内容（条件挂载，LoggedInView 内部加载真实数据） */}
-        {loggedIn && (
-          <LoggedInView
-            stats={stats}
-            targetBand={targetBand}
-          />
-        )}
-
-        {/* ── 本月额度卡（仅登录态） */}
-        {loggedIn && <QuotaCard />}
-
-        {/* ── 功能列表卡（两态均显示） */}
-        <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
-
-        {/* ── 退出登录（仅登录态，置于页面最下方） */}
-        {loggedIn && (
-          <div className="text-center mt-5 mb-2">
-            <button
-              onClick={() => void handleLogout()}
-              className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
-            >
-              退出登录
-            </button>
+            {/* 退出登录（仅登录态，置于页面最下方） */}
+            <div className="text-center mt-6">
+              <button
+                onClick={() => void handleLogout()}
+                className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
+              >
+                退出登录
+              </button>
+            </div>
+          </>
+        ) : (
+          /* 未登录：引导卡 + 功能列表（隐藏打卡/数据/画像） */
+          <div className="max-w-[640px] mx-auto flex flex-col gap-3">
+            <LoginPrompt />
+            <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
           </div>
         )}
+      </main>
 
-      </div>
-
-      <div className="flex-shrink-0"><TabBar /></div>
+      {/* 移动端底部导航（桌面用顶栏，无侧栏） */}
+      <div className="md:hidden"><TabBar /></div>
     </div>
   )
 }

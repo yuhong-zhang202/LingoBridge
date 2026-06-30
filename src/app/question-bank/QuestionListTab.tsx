@@ -1,6 +1,6 @@
 /**
  * @module   QuestionListTab
- * @desc     题目列表 Tab — 进度卡 + 动态 Part 筛选 + 可练习 / 等待语料两区
+ * @desc     题目列表 Tab — 覆盖进度面板 + 动态 Part 筛选 + 可练习卡片(2 列) + 等待语料(折叠)。密面板风。
  * @author   LingoBridge
  * @created  2026-06-01
  */
@@ -8,14 +8,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
+import Card from '@/components/Card'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import type { QBQuestion } from '@/lib/types'
 
-const PROG = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
-const BAR  = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
+const BAR = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
 
 const SEG_N = 24
+// 进度细条按填充比例从暖橙渐变到副绿（数据可视化插值，非主题色值）
 const segColor = (t: number): string => {
   const r = Math.round(212 + (123 - 212) * t)
   const g = Math.round(135 + (166 - 135) * t)
@@ -44,36 +45,35 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
   const unmatchedQ = filtered.filter(q => !q.matched)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div style={PROG}>
-        <div className="bg-white rounded-[16px] px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[13px] font-medium text-v2-text-secondary">你的故事已覆盖</span>
-            <div>
-              <span className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}</span>
-              <span className="text-[12px] text-v2-text-muted"> / {totalMapped} 题</span>
-            </div>
+    <div className="flex flex-col gap-4 pb-2">
+      {/* 覆盖进度面板 */}
+      <Card variant="gradient" className="px-[22px] py-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[13px] font-medium text-v2-text-secondary">你的故事已覆盖</span>
+          <div>
+            <span className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}</span>
+            <span className="text-[12px] text-v2-text-muted"> / {totalMapped} 题</span>
           </div>
-          {(() => {
-            const pct = totalMapped ? totalMatched / totalMapped : 0
-            const filledSeg = Math.round(pct * SEG_N)
-            return (
-              <div className="flex gap-[3px]">
-                {Array.from({ length: SEG_N }, (_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-1 rounded-[2px]"
-                    style={{ background: i < filledSeg ? segColor(i / Math.max(filledSeg - 1, 1)) : '#EEEBE6' }}
-                  />
-                ))}
-              </div>
-            )
-          })()}
-          {totalMatched === 0
-            ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
-            : <p className="text-[11px] text-[#C4B5A9] mt-1.5">每一段都是你自己的答题素材</p>}
         </div>
-      </div>
+        {(() => {
+          const pct = totalMapped ? totalMatched / totalMapped : 0
+          const filledSeg = Math.round(pct * SEG_N)
+          return (
+            <div className="flex gap-[3px]">
+              {Array.from({ length: SEG_N }, (_, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 h-1 rounded-[2px] ${i < filledSeg ? '' : 'bg-bg-muted'}`}
+                  style={i < filledSeg ? { background: segColor(i / Math.max(filledSeg - 1, 1)) } : undefined}
+                />
+              ))}
+            </div>
+          )
+        })()}
+        {totalMatched === 0
+          ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
+          : <p className="text-[11px] text-v2-text-muted mt-1.5">每一段都是你自己的答题素材</p>}
+      </Card>
 
       <div className="flex gap-2 flex-wrap">
         {partChips.map(p => <Chip key={p} onClick={() => setPart(p)} variant="ghost" active={part === p}>{p}</Chip>)}
@@ -84,7 +84,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
-        {matchedOpen && <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2.5">
+        {matchedOpen && <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-2.5">
           {matchedQ.map(q => (
             <div
               key={q.id}
@@ -117,7 +117,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           <span className="text-[12px] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
         </button>
-        {unmatchedOpen && <div className="flex flex-col gap-2">
+        {unmatchedOpen && <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {unmatchedQ.map(q => (
             <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
               <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>

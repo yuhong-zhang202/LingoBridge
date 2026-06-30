@@ -1,14 +1,15 @@
 /**
  * @module   DimensionTab
- * @desc     维度设计 Tab — 雷达图 + 统计 + 六维度折叠面板（v3 单色系，数据由 useQuestionBank 传入）
+ * @desc     维度设计 Tab — 故事版图密面板（放大雷达 + 六维度 2 列卡片选择器 + 底部统计细条）
+ *           + 整行「选中维度详情」（题目 2 列）。对齐 questionbank v3；数据由 useQuestionBank 传入。
  * @author   LingoBridge
  * @created  2026-06-01
  */
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { Radar, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
+import Card from '@/components/Card'
 import Chip from '@/components/Chip'
 import QuotaReached from '@/components/QuotaReached'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
@@ -16,9 +17,6 @@ import { getAccount } from '@/lib/auth'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
-
-const SOFT    = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
-const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
 const DIM_EN: Record<Dimension, DimensionId> = {
   '情绪内核': 'emotion', '人际羁绊': 'relationship', '空间感知': 'space',
@@ -45,8 +43,7 @@ interface Props {
 
 export default function DimensionTab({ scoreById, progressById, corpusCount, dimensionSummaries, totalMapped, totalMatched }: Props) {
   const router = useRouter()
-  const [open, setOpen] = useState<Dimension | null>(null)
-  const [sel, setSel] = useState<Dimension>('情绪内核')   // 桌面端「按维度看题目」选中维度
+  const [sel, setSel] = useState<Dimension | null>(null)
   const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
 
   /** 复练入口拦截：登录用户超过月度额度 → 弹 QuotaReached 雅思变体覆盖层 */
@@ -61,222 +58,149 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
     } catch { /* 静默 */ }
     router.push(`/analysis?questionId=${qid}&storyId=1&review=1`)
   }
+
   const dimsCov = dimensionSummaries.filter((d) => (progressById[DIM_EN[d.dimension]]?.lit ?? 0) > 0).length
+  // 覆盖从多到少：既是雷达右侧网格的排序，也决定默认选中（最有内容的维度）
   const sorted = [...dimensionSummaries].sort((a, b) => (progressById[DIM_EN[b.dimension]]?.lit ?? 0) - (progressById[DIM_EN[a.dimension]]?.lit ?? 0))
+  const selDim: Dimension | undefined = sel ?? sorted[0]?.dimension ?? dimensionSummaries[0]?.dimension
+  const detail = dimensionSummaries.find((s) => s.dimension === selDim)
 
   return (
     <div>
-      {/* 桌面端：雷达总览卡 + 各维度覆盖排行卡 两栏（参照 web.html dim-overview） */}
-      <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
-      {/* 概览卡 */}
-      <div
-        className="rounded-[16px] px-[18px] pt-[18px] pb-4"
-        style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 18 }}
-      >
-        <h2 className="text-[16px] font-bold text-v2-text-primary tracking-[-0.2px]">故事版图</h2>
-        <p className="text-[12px] text-v2-text-muted mt-1 mb-[15px]">点亮的面越多，能聊的题越广</p>
-        <RadarChart dimensions={dimensionSummaries.map(d => ({ name: d.dimension, value: scoreById[DIM_EN[d.dimension]] ?? 0 }))} />
-        <div className="border-t border-black/[0.04] mt-2 pt-3 flex items-center justify-between">
-          <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{corpusCount}</p>
-            <p className="text-[10px] text-v2-text-muted">条语料</p>
-          </div>
-          <div className="w-px h-7 bg-black/[0.06]" />
-          <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{dimsCov}<span className="text-[11px] font-normal text-v2-text-muted"> / 6</span></p>
-            <p className="text-[10px] text-v2-text-muted">维度覆盖</p>
-          </div>
-          <div className="w-px h-7 bg-black/[0.06]" />
-          <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}<span className="text-[11px] font-normal text-v2-text-muted"> / {totalMapped}</span></p>
-            <p className="text-[10px] text-v2-text-muted">题目匹配</p>
-          </div>
+      {/* 故事版图：雷达(放大) + 六维度(2 列卡片选择器) + 底部统计细条 */}
+      <Card variant="gradient" className="px-[22px] py-5 mb-5">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-brand-primary inline-flex"><Radar size={18} /></span>
+          <h2 className="text-[16px] font-bold tracking-[-0.2px] text-v2-text-primary">故事版图</h2>
         </div>
-      </div>
+        <p className="text-[12px] text-v2-text-muted mb-4">点亮的面越多，能聊的题越广</p>
 
-      {/* 各维度覆盖 · 从多到少 —— 桌面端专属右栏 */}
-      <div className="hidden lg:block bg-bg-surface rounded-[16px] px-[18px] pt-[18px] pb-4" style={{ boxShadow: SOFT_SM, marginBottom: 18 }}>
-        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">各维度覆盖 · 从多到少</p>
-        <div className="flex flex-col gap-3">
-          {sorted.map((d, idx) => {
-            const id = DIM_EN[d.dimension]
-            const lit = progressById[id]?.lit ?? 0
-            const total = progressById[id]?.total ?? 0
-            const cov = total ? lit / total : 0
-            const isLeast = idx === sorted.length - 1 && lit === 0
-            return (
-              <div key={d.dimension} className="flex items-center gap-2.5">
-                <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-v2-text-primary">{d.dimension}</div>
-                  {isLeast ? (
-                    <div className="text-[11px] text-v2-text-muted mt-1">还几乎空白 · 下次从这儿讲一个故事 →</div>
-                  ) : (
-                    <div className="h-1.5 rounded-full bg-bg-muted mt-1.5 overflow-hidden">
-                      <div className="h-full rounded-full bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
-                    </div>
-                  )}
-                </div>
-                <span className="text-[12px] text-v2-text-secondary flex-shrink-0">{lit} / {total}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-      </div>
+        <div className="flex flex-col lg:flex-row gap-5 lg:gap-[26px] lg:items-stretch">
+          <div className="flex items-center justify-center flex-shrink-0 py-1">
+            <RadarChart size={280} dimensions={dimensionSummaries.map(d => ({ name: d.dimension, value: scoreById[DIM_EN[d.dimension]] ?? 0 }))} />
+          </div>
 
-      {/* 移动端：六个维度可折叠卡（桌面端改用下面的「按维度看题目」选择器 + 面板） */}
-      <div className="lg:hidden">
-      {/* 分组小标题 */}
-      <p
-        className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px]"
-        style={{ margin: '0 2px 12px' }}
-      >
-        六个维度
-      </p>
+          <div className="hidden lg:block w-px self-stretch bg-black/[0.06] my-1" />
 
-      {/* 维度卡列表 */}
-      <div className="flex flex-col gap-[11px]">
-        {sorted.map(summary => {
-          const dim = summary.dimension
-          const dimId = DIM_EN[dim]
-          const lit = progressById[dimId]?.lit ?? 0
-          const total = progressById[dimId]?.total ?? 0
-          const hasMatch = lit > 0
-          const isOpen = open === dim
-
-          if (!hasMatch) {
-            return (
-              <div
-                key={dim}
-                className="bg-white/[0.55] rounded-[16px] flex items-center gap-[11px] px-[15px] py-[14px]"
-              >
-                <div className="w-[7px] h-[7px] rounded-full bg-v2-text-muted flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-v2-text-muted">{dim}</p>
-                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
-                </div>
-                <Chip
-                  variant="gradient"
-                  onClick={() => router.push('/')}
-                  className="text-[11px] px-3 gap-[3px] flex-shrink-0"
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1 content-center">
+            {sorted.map((d, idx) => {
+              const dim = d.dimension
+              const lit = progressById[DIM_EN[dim]]?.lit ?? 0
+              const total = progressById[DIM_EN[dim]]?.total ?? 0
+              const cov = total ? lit / total : 0
+              const isLeast = idx === sorted.length - 1 && lit === 0
+              const selected = dim === selDim
+              return (
+                <div
+                  key={dim}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSel(dim)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(dim) } }}
+                  className={`text-left rounded-[11px] px-[14px] py-[13px] min-h-[84px] border transition-colors cursor-pointer ${selected ? 'bg-bg-muted border-transparent' : 'bg-bg-surface border-black/[0.05] hover:bg-bg-inner'}`}
                 >
-                  分享经历
-                  <ChevronRight size={12} className="text-brand-primary-dark" />
-                </Chip>
-              </div>
-            )
-          }
-
-          return (
-            <div
-              key={dim}
-              className="bg-bg-surface rounded-[16px] overflow-hidden"
-              style={{ boxShadow: SOFT_SM }}
-            >
-              <button
-                className="w-full flex items-center gap-[11px] px-[15px] py-[14px]"
-                onClick={() => setOpen(isOpen ? null : dim)}
-              >
-                <div className="w-[7px] h-[7px] rounded-full bg-brand-primary flex-shrink-0" />
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[14px] font-semibold text-v2-text-primary">{dim}</p>
-                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
-                </div>
-                <span className="text-[12px] font-semibold text-v2-text-secondary">{lit}/{total}</span>
-                <ChevronDown size={14} className={`text-v2-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <div style={{ padding: '0 15px 13px 41px' }}>
-                <SegmentDots total={12} filled={Math.max(1, Math.round((lit / total) * 12))} />
-              </div>
-
-              {isOpen && [...summary.questions]
-                .sort((a, b) => Number(b.matched) - Number(a.matched))
-                .map(q => (
-                  <div key={q.id} className="flex items-center gap-2.5 px-4 py-2.5 border-t border-black/[0.04]">
-                    {q.matched
-                      ? <CheckCircle2 size={14} className="text-brand-accent flex-shrink-0" />
-                      : <Circle size={14} className="text-v2-text-muted flex-shrink-0" />}
-                    <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-v2-text-muted'}`}>{q.displayText}</p>
-                    {q.matched && (
+                  <div className="flex items-center gap-[9px]">
+                    <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
+                    <span className={`flex-1 text-[14px] font-semibold ${lit > 0 ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>{dim}</span>
+                    <span className="text-[12px] font-medium text-v2-text-secondary">{lit} / {total}</span>
+                  </div>
+                  <div className="pl-4 mt-[3px]">
+                    {isLeast ? (
+                      <p className="text-[11px] text-v2-text-muted leading-[1.4]">还几乎空白 · 下次从这儿讲一个故事 →</p>
+                    ) : (
+                      <p className="text-[11.5px] text-v2-text-muted">{DIM_DESC[dim]}</p>
+                    )}
+                    {lit > 0 ? (
+                      <div className="h-[5px] rounded-[3px] bg-bg-muted mt-[9px] overflow-hidden">
+                        <div className="h-full rounded-[3px] bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
+                      </div>
+                    ) : (
                       <Chip
                         variant="gradient"
                         size="sm"
-                        onClick={() => void gotoPractice(q.id)}
-                        className="font-medium flex-shrink-0"
+                        onClick={(e) => { e.stopPropagation(); router.push('/') }}
+                        className="mt-2.5 gap-[3px]"
                       >
-                        练习
+                        分享经历
+                        <ChevronRight size={12} className="text-brand-primary-dark" />
                       </Chip>
                     )}
                   </div>
-                ))}
-            </div>
-          )
-        })}
-      </div>
-      </div>
-
-      {/* 桌面端：按维度看题目 —— chip 选择器 + 单维度题目面板（参照 web.html DimTab 下半部） */}
-      <div className="hidden lg:block">
-        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">按维度看题目</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {dimensionSummaries.map(s => (
-            <Chip key={s.dimension} variant="ghost" active={sel === s.dimension} onClick={() => setSel(s.dimension)}>
-              {s.dimension}
-            </Chip>
-          ))}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        {(() => {
-          const sum = dimensionSummaries.find(s => s.dimension === sel) ?? dimensionSummaries[0]
-          if (!sum) return null
-          const id = DIM_EN[sum.dimension]
-          const lit = progressById[id]?.lit ?? 0
-          const total = progressById[id]?.total ?? 0
-          const done = sum.questions.filter(q => q.matched)
-          const todo = sum.questions.filter(q => !q.matched)
-          const remain = Math.max(0, total - lit)
-          const segFilled = Math.max(lit > 0 ? 1 : 0, Math.round(12 * (total ? lit / total : 0)))
-          return (
-            <div className="bg-bg-surface rounded-[16px] px-[22px] pt-[18px] pb-2" style={{ boxShadow: SOFT_SM }}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="text-[16px] font-bold text-v2-text-primary">{sum.dimension}</div>
-                  <div className="text-[12px] text-v2-text-muted mt-1">{DIM_DESC[sum.dimension]}</div>
-                </div>
-                <div className="text-right flex-shrink-0 ml-4">
-                  <div className="text-[11px] text-v2-text-muted">已收集</div>
-                  <div className="text-[16px] font-semibold text-v2-text-primary">{lit} / {total}</div>
-                  <div className="mt-1.5"><SegmentDots total={12} filled={segFilled} /></div>
-                </div>
+
+        <div className="flex items-center border-t border-black/[0.05] mt-[18px] pt-[14px]">
+          <div className="flex-1 text-center">
+            <div className="text-[19px] font-bold text-v2-text-primary">{corpusCount}</div>
+            <div className="text-[11px] text-v2-text-muted mt-0.5">条语料</div>
+          </div>
+          <div className="w-px h-[30px] bg-black/[0.06]" />
+          <div className="flex-1 text-center">
+            <div className="text-[19px] font-bold text-v2-text-primary">{dimsCov}<small className="text-[11px] font-normal text-v2-text-muted"> / 6</small></div>
+            <div className="text-[11px] text-v2-text-muted mt-0.5">维度覆盖</div>
+          </div>
+          <div className="w-px h-[30px] bg-black/[0.06]" />
+          <div className="flex-1 text-center">
+            <div className="text-[19px] font-bold text-v2-text-primary">{totalMatched}<small className="text-[11px] font-normal text-v2-text-muted"> / {totalMapped}</small></div>
+            <div className="text-[11px] text-v2-text-muted mt-0.5">题目匹配</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* 选中维度详情：整行，题目 2 列 */}
+      {detail && (() => {
+        const lit = progressById[DIM_EN[detail.dimension]]?.lit ?? 0
+        const total = progressById[DIM_EN[detail.dimension]]?.total ?? 0
+        const done = detail.questions.filter(q => q.matched)
+        const todo = detail.questions.filter(q => !q.matched)
+        const remain = Math.max(0, total - lit)
+        const segFilled = Math.max(lit > 0 ? 1 : 0, Math.round(12 * (total ? lit / total : 0)))
+        return (
+          <Card className="px-[22px] py-5 mb-14">
+            <div className="flex items-start justify-between mb-1.5">
+              <div>
+                <div className="text-[17px] font-bold text-v2-text-primary">{detail.dimension}</div>
+                <div className="text-[12.5px] text-v2-text-muted mt-[3px]">{DIM_DESC[detail.dimension]}</div>
               </div>
+              <div className="text-right flex-shrink-0 ml-4">
+                <div className="text-[11px] text-v2-text-muted">已收集</div>
+                <div className="text-[16px] font-semibold text-v2-text-primary">{lit} / {total}</div>
+                <div className="mt-2 flex justify-end"><SegmentDots total={12} filled={segFilled} /></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-[30px] mt-1">
               {done.map(q => (
-                <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
+                <div key={q.id} className="flex items-center gap-[11px] py-[11px] border-t border-black/[0.05]">
                   <CheckCircle2 size={16} className="text-brand-accent flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-v2-text-primary leading-snug">{q.displayText}</div>
-                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                    <div className="text-[13.5px] text-v2-text-primary leading-[1.35]">{q.displayText}</div>
+                    <div className="text-[11.5px] text-v2-text-muted mt-0.5">{[q.displayTextZh, `Part ${q.part}`].filter(Boolean).join(' · ')}</div>
                   </div>
                   <Chip variant="gradient" size="sm" onClick={() => void gotoPractice(q.id)} className="font-medium flex-shrink-0">练习</Chip>
                 </div>
               ))}
               {todo.map(q => (
-                <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
+                <div key={q.id} className="flex items-center gap-[11px] py-[11px] border-t border-black/[0.05]">
                   <Circle size={16} className="text-v2-text-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-v2-text-muted leading-snug">{q.displayText}</div>
-                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                    <div className="text-[13.5px] text-v2-text-muted leading-[1.35]">{q.displayText}</div>
+                    <div className="text-[11.5px] text-v2-text-muted mt-0.5">{[q.displayTextZh, `Part ${q.part}`].filter(Boolean).join(' · ')}</div>
                   </div>
                   <span className="text-[12px] text-v2-text-muted flex-shrink-0">还没讲到</span>
                 </div>
               ))}
-              <div className="text-[12px] text-v2-text-muted text-center pt-3 pb-1.5 border-t border-black/[0.04]">
-                还有 <b className="text-v2-text-secondary">{remain}</b> 道 · 讲更多故事来点亮 →
-              </div>
             </div>
-          )
-        })()}
-      </div>
+
+            <div className="text-[12px] text-v2-text-muted text-center pt-[14px] pb-0.5 mt-1.5 border-t border-black/[0.05]">
+              还有 <b className="text-v2-text-secondary font-semibold">{remain}</b> 道 · 讲更多故事来点亮 →
+            </div>
+          </Card>
+        )
+      })()}
 
       {reviewQuotaShown && (
         <QuotaReached variant="ielts" asOverlay onClose={() => setReviewQuotaShown(false)} />

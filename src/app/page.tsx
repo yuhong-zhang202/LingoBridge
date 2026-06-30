@@ -15,7 +15,6 @@ import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
-import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import Toast from '@/components/Toast'
 import FirstUseConsent from '@/components/FirstUseConsent'
@@ -284,10 +283,20 @@ export default function HomePage() {
                 <div className="relative z-[1] flex flex-row items-center gap-10">
                   {/* 左：切换器 + 文案 + 操作 */}
                   <div className="flex-1 max-w-[560px]">
-                    {/* 我的故事 / 雅思题 切换器（原功能保留） */}
-                    <div className="inline-flex items-center gap-1 bg-bg-muted rounded-full p-1 mb-7">
-                      <Chip variant="ghost" active={!ieltsMode} onClick={() => setIeltsMode(false)}>我的故事</Chip>
-                      <Chip variant="ghost" active={ieltsMode} onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}>雅思题</Chip>
+                    {/* 我的故事 / 雅思题 切换器：App 标准分段控件（与题库页一致），单独占一行 */}
+                    <div className="flex w-[240px] rounded-[10px] p-[3px] bg-bg-inner mb-7">
+                      <button
+                        onClick={() => setIeltsMode(false)}
+                        className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${!ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
+                      >
+                        我的故事
+                      </button>
+                      <button
+                        onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                        className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
+                      >
+                        雅思题
+                      </button>
                     </div>
 
                     {showTextInput ? (
@@ -342,7 +351,7 @@ export default function HomePage() {
                           </button>
                         )}
                         <div className="mt-9 flex items-center gap-5 flex-wrap">
-                          <GradientButton onClick={() => void handleStartRecording()} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold">
+                          <GradientButton onClick={() => void handleStartRecording()} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                             <Mic2 size={18} />开始录音
                           </GradientButton>
                           <button onClick={() => setShowTextInput(true)} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
@@ -353,9 +362,9 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  {/* 右：Orb（继续用项目 Orb 组件，静态展示） */}
-                  <div className="flex-shrink-0 self-center flex justify-center w-[380px]">
-                    <Orb size={360} pulse={false} />
+                  {/* 右：Orb（继续用项目 Orb 组件，静态展示）—— 略缩小并从右边缘内收，垂直对齐文字块 */}
+                  <div className="flex-shrink-0 self-center flex justify-end w-[380px] pr-[28px]">
+                    <Orb size={340} pulse={false} />
                   </div>
                 </div>
               </section>
@@ -368,9 +377,9 @@ export default function HomePage() {
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                   {STEPS.map(({ Icon, accent, label, title, desc }) => (
-                    <Card key={label} className="p-7 transition-transform hover:-translate-y-0.5">
+                    <Card key={label} className="px-7 pt-[26px] pb-[24px] transition-transform hover:-translate-y-0.5">
                       <div className={`w-12 h-12 rounded-[14px] grid place-items-center ${accent ? 'bg-brand-accent-light text-brand-accent' : 'bg-bg-muted text-v2-text-secondary'}`}>
-                        <Icon size={22} />
+                        <Icon size={24} strokeWidth={2.25} />
                       </div>
                       <div className="mt-[22px] text-[12px] font-semibold tracking-[0.08em] uppercase text-v2-text-muted">{label}</div>
                       <h3 className="mt-2 text-[18px] font-semibold text-v2-text-primary">{title}</h3>
@@ -390,7 +399,7 @@ export default function HomePage() {
                   {TOPICS.map(({ Icon, title, meta }) => (
                     <Card key={title} className="p-[18px] flex items-center gap-4">
                       <div className="w-11 h-11 rounded-[12px] grid place-items-center bg-bg-muted text-v2-text-secondary flex-shrink-0">
-                        <Icon size={22} />
+                        <Icon size={24} strokeWidth={2.25} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[17px] font-semibold text-v2-text-primary truncate">{title}</div>
