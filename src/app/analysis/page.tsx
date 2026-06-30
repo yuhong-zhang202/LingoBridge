@@ -145,7 +145,7 @@ function AnalysisContent() {
       <TopBar title="题目分析" />
       <StepBar currentStep="analysis" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-8 relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10">
 
         {loading && (
           <>

@@ -33,7 +33,7 @@ export default function QuestionBankPage() {
 
       <RequireAccountGate>
       {!isEmpty && (
-        <div className="px-5 pt-4 pb-0 flex-shrink-0 lg:px-10 lg:pt-6 lg:max-w-[1100px] lg:w-full lg:mx-auto">
+        <div className="px-6 pt-4 pb-0 flex-shrink-0 lg:px-10 lg:pt-6 lg:max-w-[1100px] lg:w-full lg:mx-auto">
           <div className="flex rounded-[10px] p-[3px] bg-bg-inner lg:max-w-[360px]">
             {TABS.map(tab => (
               <button
@@ -48,7 +48,7 @@ export default function QuestionBankPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 lg:px-10 lg:pb-10 lg:max-w-[1100px] lg:w-full lg:mx-auto">
+      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-[72px] relative z-10 lg:px-10 lg:pb-10 lg:max-w-[1100px] lg:w-full lg:mx-auto">
         {qb.loading && (
           <div className="flex flex-col gap-4">
             {/* 进度卡骨架 */}

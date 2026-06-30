@@ -195,7 +195,7 @@ export default function LibraryPage() {
           <TopBar title="素材库" right={<Search size={18} className="text-v2-text-muted" />} />
 
           {/* 移动端 hub（桌面端用下面的 inline 布局，故 lg:hidden） */}
-          <div className="flex-1 min-h-0 overflow-y-auto relative z-10 lg:hidden" style={{ padding: '8px 22px 0' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto relative z-10 lg:hidden" style={{ padding: '8px 24px 0' }}>
 
             {/* 1) 标题区 */}
             <div className="animate-fade-up" style={{ margin: '6px 2px 18px', animationDelay: '0.02s' }}>
