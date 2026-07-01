@@ -7,13 +7,12 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2, Pencil, Sparkles, Puzzle, Target, PartyPopper, Smartphone, Mountain, User, ChevronRight } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2, Pencil, Sparkles, Target, MessageCircle, AudioLines } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
-import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import GradientButton from '@/components/GradientButton'
 import Toast from '@/components/Toast'
@@ -26,20 +25,44 @@ import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { PAGE_CONTAINER } from '@/lib/constants'
+import { PAGE_CONTAINER, BRAND_GRADIENT } from '@/lib/constants'
 
+// 三步流程（横向时间轴）：accent=true 用青色描边，其余用主橙色描边
 const STEPS = [
-  { Icon: Mic2,   accent: false, label: 'Step 01', title: '讲出真实经历', desc: '用中文或英文，说说发生过什么。卡壳也没关系，先把事讲完整。' },
-  { Icon: Puzzle, accent: true,  label: 'Step 02', title: 'AI 帮你拆逻辑', desc: '理清结构、补上自然的表达，把口水话变成考官想听的回答。' },
-  { Icon: Target, accent: false, label: 'Step 03', title: '匹配雅思题', desc: '一个故事，往往能对应好几道口语题——素材一次准备，反复复用。' },
+  { Icon: MessageCircle, accent: false, title: '分享真实经历', desc: '用中文或英文讲讲发生过什么，卡壳也没关系' },
+  { Icon: Target,        accent: true,  title: '匹配雅思题',   desc: 'AI 拆解故事角度，找到最贴合的当季真题' },
+  { Icon: AudioLines,    accent: false, title: '实时练习对话', desc: '和 AI 即兴对话，把素材讲成脱口而出的回答' },
 ] as const
 
-const TOPICS = [
-  { Icon: PartyPopper, title: 'Describe a celebration you remember', meta: 'Part 2 · 经历类' },
-  { Icon: Smartphone,  title: 'Talk about an app you use a lot',     meta: 'Part 1 · 日常类' },
-  { Icon: Mountain,    title: 'Describe a place in nature you like', meta: 'Part 2 · 地点类' },
-  { Icon: User,        title: 'A person who influenced you',         meta: 'Part 2 · 人物类' },
+// 六个维度（认知展示，无点击）
+const DIMENSIONS = [
+  { name: '情绪内核', desc: '如何与自己相处' },
+  { name: '人际羁绊', desc: '与他人如何联结' },
+  { name: '空间感知', desc: '居所、城市与远行' },
+  { name: '精神栖所', desc: '书影音与珍视的物件' },
+  { name: '成长演进', desc: '技能、蜕变与重要决定' },
+  { name: '价值底色', desc: '相信什么，看重什么' },
 ] as const
+
+// 静态六维雷达几何 —— 坐标算法与题库页 RadarChart 同款（CX/CY/R/LABEL_R、起于顶点 i*60°-90°）
+const RADAR = (() => {
+  const CX = 100, CY = 100, R = 65, LABEL_R = 83, N = 6
+  const ang = (i: number): number => i * (2 * Math.PI / N) - Math.PI / 2
+  const pt = (i: number, r: number): [number, number] => [CX + r * Math.cos(ang(i)), CY + r * Math.sin(ang(i))]
+  const path = (pts: [number, number][]): string =>
+    pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('') + 'Z'
+  // 装饰用不规则半径比例（情绪/人际/空间/精神/成长/价值）——高低起伏，看起来像真实数据而非满值正六边形
+  const RATIOS = [0.90, 0.65, 0.80, 0.58, 0.95, 0.72]
+  const dataVerts = RATIOS.map((f, i) => pt(i, R * f))
+  return {
+    cx: CX, cy: CY,
+    grid: [0.33, 0.66, 1].map(l => path(Array.from({ length: N }, (_, i) => pt(i, R * l)))),
+    axisEnds: Array.from({ length: N }, (_, i) => pt(i, R)),   // 坐标轴仍到满半径，样式不变
+    data: path(dataVerts),                                     // 不规则数据多边形
+    verts: dataVerts,                                          // 顶点圆落在各自数据半径上
+    labels: Array.from({ length: N }, (_, i) => pt(i, LABEL_R)),
+  }
+})()
 
 export default function HomePage() {
   const router = useRouter()
@@ -370,45 +393,67 @@ export default function HomePage() {
                 </div>
               </section>
 
-              {/* 三步 */}
-              <section className="mt-20">
-                <div className="mb-7">
-                  <h2 className="text-[28px] font-bold tracking-tight text-v2-text-primary">三步，把经历变成高分回答</h2>
+              {/* 三步 · 横向时间轴（去卡片化：圆形描边图标 + 渐变连接线 + 文字） */}
+              <section className="mt-32">
+                <div className="mb-9">
+                  <h2 className="text-[28px] font-bold tracking-tight text-v2-text-primary">三步，将真实经历转化为雅思语料</h2>
                   <p className="mt-2 text-[14px] text-v2-text-muted">这正是 LingoBridge 和背题库不一样的地方</p>
                 </div>
-                <div className="grid grid-cols-3 gap-6">
-                  {STEPS.map(({ Icon, accent, label, title, desc }) => (
-                    <Card key={label} className="px-7 pt-[26px] pb-[24px] transition-transform hover:-translate-y-0.5">
-                      <div className={`w-12 h-12 rounded-[14px] grid place-items-center ${accent ? 'bg-brand-accent-light text-brand-accent' : 'bg-bg-muted text-v2-text-secondary'}`}>
-                        <Icon size={24} strokeWidth={2.25} />
+                {/* 容器被压窄时纵向堆叠(flex-col)，lg 及以上横向时间轴 */}
+                <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-start lg:gap-0">
+                  {STEPS.map(({ Icon, accent, title, desc }, i) => (
+                    <Fragment key={title}>
+                      <div className="flex flex-col items-center text-center lg:w-[190px] lg:flex-shrink-0">
+                        <div className={`w-9 h-9 rounded-full bg-white border-[1.5px] grid place-items-center ${accent ? 'border-brand-accent' : 'border-brand-primary'}`}>
+                          <Icon size={18} strokeWidth={2} className={accent ? 'text-brand-accent' : 'text-brand-primary'} />
+                        </div>
+                        <h3 className="mt-3 text-[13.5px] font-semibold text-v2-text-primary">{title}</h3>
+                        <p className="mt-1.5 text-[11.5px] text-v2-text-secondary leading-relaxed max-w-[180px]">{desc}</p>
                       </div>
-                      <div className="mt-[22px] text-[12px] font-semibold tracking-[0.08em] uppercase text-v2-text-muted">{label}</div>
-                      <h3 className="mt-2 text-[18px] font-semibold text-v2-text-primary">{title}</h3>
-                      <p className="mt-3 text-[15px] leading-[1.7] text-v2-text-secondary">{desc}</p>
-                    </Card>
+                      {i < STEPS.length - 1 && (
+                        <div className="hidden lg:block flex-1 h-[1.5px] mt-[17px] mx-2 rounded-full" style={{ background: BRAND_GRADIENT }} />
+                      )}
+                    </Fragment>
                   ))}
                 </div>
               </section>
 
-              {/* 挑个话题 */}
-              <section className="mt-20">
-                <div className="mb-7">
-                  <h2 className="text-[28px] font-bold tracking-tight text-v2-text-primary">挑个话题，现在就试试</h2>
-                  <p className="mt-2 text-[14px] text-v2-text-muted">想不到讲什么？从这些常见话题起步</p>
+              {/* 六个维度 · 静态雷达 + 极简文字列表（去卡片化，纯认知展示） */}
+              <section className="mt-36">
+                <div className="mb-9">
+                  <h2 className="text-[28px] font-bold tracking-tight text-v2-text-primary">六个维度，连接不同类型的语料和题目</h2>
+                  <p className="mt-2 text-[14px] text-v2-text-muted">每讲一个故事，就点亮一个面——反向匹配雅思真题</p>
                 </div>
-                <div className="grid grid-cols-2 gap-5">
-                  {TOPICS.map(({ Icon, title, meta }) => (
-                    <Card key={title} className="p-[18px] flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-[12px] grid place-items-center bg-bg-muted text-v2-text-secondary flex-shrink-0">
-                        <Icon size={24} strokeWidth={2.25} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                  {/* 左：静态雷达图（装饰性示意，不绑定真实数据） */}
+                  <div className="flex justify-center">
+                    <svg viewBox="0 0 200 200" className="w-full max-w-[300px] h-auto" role="img" aria-label="六维故事版图示意">
+                      {RADAR.grid.map((d, i) => (
+                        <path key={i} d={d} fill="none" className="stroke-bg-muted" strokeWidth="0.5" />
+                      ))}
+                      {RADAR.axisEnds.map(([x, y], i) => (
+                        <line key={i} x1={RADAR.cx} y1={RADAR.cy} x2={x.toFixed(1)} y2={y.toFixed(1)} className="stroke-bg-muted" strokeWidth="0.5" />
+                      ))}
+                      <path d={RADAR.data} className="fill-brand-primary-light stroke-brand-primary" fillOpacity={0.3} strokeWidth="1.2" />
+                      {RADAR.verts.map(([x, y], i) => (
+                        <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="3" className="fill-brand-primary" />
+                      ))}
+                      {RADAR.labels.map(([x, y], i) => (
+                        <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" className="fill-v2-text-primary" fontFamily="'PingFang SC',sans-serif">
+                          {DIMENSIONS[i].name}
+                        </text>
+                      ))}
+                    </svg>
+                  </div>
+                  {/* 右：极简维度列表（无卡片、无图标底色块） */}
+                  <div>
+                    {DIMENSIONS.map(({ name, desc }, i) => (
+                      <div key={name} className={`flex items-baseline justify-between py-3.5 ${i < DIMENSIONS.length - 1 ? 'border-b border-black/[0.06]' : ''}`}>
+                        <span className="text-[15px] font-semibold text-v2-text-primary">{name}</span>
+                        <span className="text-[13px] text-v2-text-muted">{desc}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[17px] font-semibold text-v2-text-primary truncate">{title}</div>
-                        <div className="mt-1 text-[13px] font-medium tracking-[0.04em] uppercase text-v2-text-muted">{meta}</div>
-                      </div>
-                      <ChevronRight size={20} className="text-v2-text-muted flex-shrink-0" />
-                    </Card>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </section>
             </>
