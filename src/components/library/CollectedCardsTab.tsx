@@ -1,10 +1,13 @@
 'use client'
 import { useState, useRef } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Shuffle } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
+import Chip from '@/components/Chip'
+import SentenceOrderGame from '@/components/library/SentenceOrderGame'
 import type { CollectedCard } from '@/lib/types'
 import EmptyState from '@/components/EmptyState'
 import { removeSavedPhrase } from '@/lib/storage'
+import { chunkSentence } from '@/lib/phrase-chunk'
 
 interface Props { cards: CollectedCard[] }
 
@@ -13,8 +16,12 @@ const DEL_BG = 'linear-gradient(to right, rgba(212,83,79,0.0) 0%, rgba(212,83,79
 
 function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => void }) {
   const [offset, setOffset] = useState(0)
+  const [gameOpen, setGameOpen] = useState(false)
   const startX = useRef(0)
   const isLocked = useRef(false)
+
+  // 优化句切不出至少 3 块（短句）时不显示拼句练习入口，玩着意义不大
+  const canPlay = chunkSentence(card.aiOptimized).length >= 3
 
   const onTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX }
 
@@ -65,7 +72,23 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           date={card.collectedAt}
           collected
         />
+
+        {/* 拼句练习入口：优化句 FeedbackCard 下方 */}
+        {canPlay && (
+          <div className="mt-2 flex justify-end">
+            <Chip variant="ghost" size="sm" onClick={() => setGameOpen(true)}>
+              <Shuffle size={12} />拼句练习
+            </Chip>
+          </div>
+        )}
       </div>
+
+      <SentenceOrderGame
+        open={gameOpen}
+        originalSentence={card.originalSentence}
+        aiOptimized={card.aiOptimized}
+        onClose={() => setGameOpen(false)}
+      />
     </div>
   )
 }
