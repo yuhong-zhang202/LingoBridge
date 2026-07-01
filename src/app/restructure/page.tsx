@@ -178,7 +178,15 @@ function RestructureContent() {
                 这段内容可以再丰富一些，补充些细节后面练习效果会更好；当然也可以直接继续 ✨
               </p>
             )}
-            <div className="px-0.5 mt-[18px]">
+          </>
+        )}
+        </div>{/* /右栏 */}
+        </div>{/* /两栏 wrapper */}
+
+        {/* 动作区：提示 + CTA + 重新整理 —— 桌面端移到两栏下方居中，解决左下空白；移动端仍自然接在整理结果后 */}
+        {!isLoading && !error && (
+          <div className="lg:max-w-[680px] lg:mx-auto lg:w-full lg:mt-4">
+            <div className="px-0.5 mt-[18px] lg:mt-0">
               <div className="flex items-center gap-1.5 mb-2.5">
                 <Lightbulb size={13} className="text-brand-primary" />
                 <span className="text-[13px] font-medium text-v2-text-secondary">怎样的素材更好用</span>
@@ -193,7 +201,7 @@ function RestructureContent() {
               </div>
             </div>
 
-            <div className="pt-1">
+            <div className="pt-1 lg:max-w-[480px] lg:mx-auto lg:w-full">
               {saveError && (
                 <p className="text-[12px] text-red-400 text-center mb-2">{saveError}</p>
               )}
@@ -211,10 +219,8 @@ function RestructureContent() {
                 <RefreshCw size={13} />重新整理
               </button>
             </div>
-          </>
+          </div>
         )}
-        </div>{/* /右栏 */}
-        </div>{/* /两栏 wrapper */}
       </div>
 
       {/* 流程页桌面端沉浸：隐藏侧栏 */}

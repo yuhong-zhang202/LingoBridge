@@ -170,7 +170,7 @@ function MatchingContent() {
       <TopBar title="题目匹配" />
       <StepBar currentStep="matching" />
 
-      <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full lg:px-10 lg:pb-10">
+      <div className="flex-1 overflow-y-auto px-5 pb-[72px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full lg:px-10 lg:pb-10">
 
         {loading && (
           <div className="pt-2">

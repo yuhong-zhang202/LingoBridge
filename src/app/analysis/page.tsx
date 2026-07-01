@@ -145,7 +145,7 @@ function AnalysisContent() {
       <TopBar title="题目分析" />
       <StepBar currentStep="analysis" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-8 relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-8 relative z-10 flex flex-col gap-4 lg:max-w-5xl lg:mx-auto lg:w-full lg:px-10">
 
         {loading && (
           <>
@@ -322,7 +322,7 @@ function AnalysisContent() {
             </div>{/* /两栏 wrapper */}
 
             <button
-              className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
+              className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150 lg:max-w-[480px] lg:mx-auto"
               style={LIGHTER_BORDER}
               onClick={() => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`)}
             >
