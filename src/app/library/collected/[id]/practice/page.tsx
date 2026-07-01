@@ -32,7 +32,7 @@ export default function CollectedCardPracticePage(): JSX.Element {
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       {/* 顶栏：仅关闭按钮，无进度计数 */}
-      <div className="relative z-10 lg:max-w-[420px] lg:w-full lg:mx-auto">
+      <div className="relative z-10 lg:max-w-[480px] lg:w-full lg:mx-auto">
         <div className="flex items-center h-[52px] px-5">
           <button
             onClick={close}
@@ -44,14 +44,16 @@ export default function CollectedCardPracticePage(): JSX.Element {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-10 relative z-10 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-10 relative z-10 flex flex-col lg:max-w-[480px] lg:w-full lg:mx-auto">
         {!loaded ? null : item ? (
-          <div className="max-w-[340px] w-full mx-auto pt-6 lg:max-w-[420px]">
-            <SentenceOrderGame
-              originalSentence={item.original}
-              aiOptimized={item.optimized}
-              onComplete={close}
-            />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="max-w-[340px] w-full mx-auto lg:max-w-[420px]">
+              <SentenceOrderGame
+                originalSentence={item.original}
+                aiOptimized={item.optimized}
+                onComplete={close}
+              />
+            </div>
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">

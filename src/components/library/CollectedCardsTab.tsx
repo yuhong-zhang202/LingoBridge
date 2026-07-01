@@ -73,9 +73,9 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           collected
         />
 
-        {/* 拼句练习入口行：虚线与卡片主内容隔开，左时间戳 + 右入口 */}
+        {/* 拼句练习入口行：白底承接卡片下沿(挡住背后删除红) + 圆角与卡片连成同一块白面；虚线分隔，左时间戳右入口 */}
         {canPlay && (
-          <div className="mt-2.5 pt-2.5 border-t border-dashed border-black/[0.08] flex items-center justify-between">
+          <div className="mt-2.5 pt-2.5 bg-white rounded-b-[16px] border-t border-dashed border-black/[0.08] flex items-center justify-between">
             <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
             <Link href={`/library/collected/${card.id}/practice`}>
               <Chip variant="gradient" size="sm">
