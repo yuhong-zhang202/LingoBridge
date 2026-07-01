@@ -9,9 +9,10 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { PAGE_CONTAINER } from '@/lib/constants'
 
-/** 管理页统一内容容器：1200 居中，桌面 px-16(64) / 中小屏 px-8(32)，与顶栏内栏对齐 */
-export const MANAGE_CONTAINER = 'max-w-[1200px] mx-auto px-8 lg:px-16'
+/** 管理页统一内容容器 —— 直接引用全站唯一容器常量 PAGE_CONTAINER（宽度只在 constants.ts 改一处） */
+export const MANAGE_CONTAINER = PAGE_CONTAINER
 
 interface ManageHeaderProps {
   /** H1 标题，同时作为面包屑当前节点文字 */

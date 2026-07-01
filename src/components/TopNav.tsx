@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Mic, Bell } from 'lucide-react'
 import { getAccount } from '@/lib/auth'
+import { PAGE_CONTAINER } from '@/lib/constants'
 
 const NAV = [
   { href: '/',              label: '首页' },
@@ -21,11 +22,11 @@ const NAV = [
 ]
 
 interface TopNavProps {
-  /** 内栏容器 class，默认对齐首页（1080/px-14）；管理页传入 1200/px-16 与内容对齐 */
+  /** 内栏容器 class，默认走全站统一容器 PAGE_CONTAINER，使顶栏内栏与各页内容左右对齐 */
   containerClassName?: string
 }
 
-export default function TopNav({ containerClassName = 'max-w-[1080px] mx-auto px-5 lg:px-14' }: TopNavProps) {
+export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavProps) {
   const path = usePathname()
   // 头像首字母：登录用户取邮箱首字母，未登录/匿名回退「我」（与「我的」语义一致）
   const [initial, setInitial] = useState('我')

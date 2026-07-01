@@ -26,6 +26,7 @@ import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
+import { PAGE_CONTAINER } from '@/lib/constants'
 
 const STEPS = [
   { Icon: Mic2,   accent: false, label: 'Step 01', title: '讲出真实经历', desc: '用中文或英文，说说发生过什么。卡壳也没关系，先把事讲完整。' },
@@ -261,7 +262,7 @@ export default function HomePage() {
       {/* ============ 桌面端：顶部导航 + 开放式 Hero + 三步 + 挑个话题 ============ */}
       <div className="hidden lg:block min-h-screen bg-bg-page">
         <TopNav />
-        <main className="max-w-[1080px] mx-auto px-14 pb-20">
+        <main className={`${PAGE_CONTAINER} pb-20`}>
           {storyQuotaReached ? (
             <div className="py-20 flex justify-center">
               <QuotaReached variant="story" />

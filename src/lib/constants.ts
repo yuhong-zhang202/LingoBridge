@@ -7,6 +7,11 @@
 import type { CSSProperties } from 'react'
 import type { DimensionId, DimensionLabel } from '@/lib/types'
 
+// ── 网页版（桌面）内容区统一容器：全站唯一宽度来源，所有顶栏(TopNav)+浏览页(首页/题库/素材库/我的)引用此常量。
+//    max-w 收窄两侧留白、居中；桌面内边距走 lg:px-12，lg 断点(1024px)以下保持 px-8 → 移动端视觉不变。
+//    改内容区宽度只改这一处。手机端沉浸布局(max-w-[430px])与核心链路任务页的聚焦宽度不走这里。
+export const PAGE_CONTAINER = 'max-w-[1280px] mx-auto px-8 lg:px-12'
+
 // ── 模型名常量（千问 qwen-plus 稳定别名；qwen-flash 用于成本敏感、质量要求次之的环节）
 export const MODEL_RANKING     = 'qwen-plus'
 export const MODEL_PRACTICE    = 'qwen-plus'
