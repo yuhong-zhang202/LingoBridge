@@ -1,24 +1,23 @@
 /**
  * @module   SentenceOrderGame
- * @desc     拼句练习底部弹层 — 把 AI 优化句按词组打乱，用户点词块拼回原序，拼对后朗读；纯自主复习，无调度/写库
+ * @desc     拼句练习展示组件 — 把 AI 优化句按词组打乱，点词块拼回原序；每行各自独立虚线、拼对朗读。纯自主复习，无调度/写库
  * @author   LingoBridge
  * @created  2026-07-01
  */
 'use client'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { X, RotateCw } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { RotateCw, CheckCircle2 } from 'lucide-react'
 import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import { chunkSentence, shuffleChunks } from '@/lib/phrase-chunk'
 
 interface Props {
-  open: boolean
   originalSentence: string
   aiOptimized: string
-  onClose: () => void
+  onComplete: () => void   // 拼对后由外层决定跳转/关闭（页面里调用 router.back()）
 }
 
-// 带稳定 id 的词块（内容可能重复，靠 id 区分身份，判定对错仍按位置文本比较）
+// 带稳定 id 的词块（内容可能重复，靠 id 区分身份，判对仍按位置文本比较）
 interface Chunk {
   id: number
   text: string
@@ -34,20 +33,19 @@ function speak(text: string): void {
 }
 
 /**
- * 拼句练习弹层
- * @param open             是否显示
- * @param originalSentence 用户原句（顶部提示，帮助理解上下文）
+ * 拼句练习展示组件
+ * @param originalSentence 用户原句（顶部提示）
  * @param aiOptimized      AI 优化句（正确答案来源）
- * @param onClose          关闭回调
+ * @param onComplete       拼对后点「完成」的回调
  * @sideEffect             拼对后调用一次 speechSynthesis 朗读 aiOptimized
  */
-export default function SentenceOrderGame({ open, originalSentence, aiOptimized, onClose }: Props): JSX.Element | null {
+export default function SentenceOrderGame({ originalSentence, aiOptimized, onComplete }: Props): JSX.Element {
   const correctTexts = useMemo(() => chunkSentence(aiOptimized), [aiOptimized])
 
   const [pool, setPool] = useState<Chunk[]>([])
   const [answer, setAnswer] = useState<Chunk[]>([])
 
-  // 重来 / 打开时：重建词块并打乱进词库区，清空答题区
+  // 重来 / 首次：重建词块并打乱进词库区，清空拼句区
   const reset = useCallback(() => {
     const items: Chunk[] = correctTexts.map((text, id) => ({ id, text }))
     const order = shuffleChunks(items.map(it => String(it.id)))
@@ -55,96 +53,125 @@ export default function SentenceOrderGame({ open, originalSentence, aiOptimized,
     setAnswer([])
   }, [correctTexts])
 
-  useEffect(() => {
-    if (open) reset()
-  }, [open, reset])
+  useEffect(() => { reset() }, [reset])
 
   const allPlaced = pool.length === 0 && answer.length === correctTexts.length && correctTexts.length > 0
   const isCorrect = allPlaced && answer.every((c, i) => c.text === correctTexts[i])
 
-  // 拼对后自动朗读一次（isCorrect 由 false→true 时触发）
-  useEffect(() => {
-    if (isCorrect) speak(aiOptimized)
-  }, [isCorrect, aiOptimized])
+  // 拼对后自动朗读一次
+  useEffect(() => { if (isCorrect) speak(aiOptimized) }, [isCorrect, aiOptimized])
+
+  // 测量拼句区各视觉行的底部 y，给每行画一条独立虚线（宽度限于内容区、居中，不贯穿全屏）
+  const answerRef = useRef<HTMLDivElement>(null)
+  const [lineTops, setLineTops] = useState<number[]>([])
+
+  useLayoutEffect(() => {
+    const el = answerRef.current
+    if (!el || answer.length === 0) { setLineTops([]); return }
+    const measure = (): void => {
+      const chips = Array.from(el.querySelectorAll<HTMLElement>('[data-chip]'))
+      const rows: { top: number; bottom: number }[] = []
+      for (const c of chips) {
+        const top = c.offsetTop
+        const bottom = c.offsetTop + c.offsetHeight
+        const row = rows.find(r => Math.abs(r.top - top) < 4)
+        if (row) row.bottom = Math.max(row.bottom, bottom)
+        else rows.push({ top, bottom })
+      }
+      setLineTops(rows.map(r => r.bottom + 4))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [answer])
 
   const pickFromPool = (idx: number): void => {
     setAnswer(prev => [...prev, pool[idx]])
     setPool(prev => prev.filter((_, i) => i !== idx))
   }
-
   const returnToPool = (idx: number): void => {
-    if (isCorrect) return   // 拼对后答题区锁定
+    if (isCorrect) return   // 拼对后锁定，不允许再调整
     setPool(prev => [...prev, answer[idx]])
     setAnswer(prev => prev.filter((_, i) => i !== idx))
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="relative w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter"
-        onClick={e => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          aria-label="关闭"
-          className="absolute top-4 right-4 w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center"
-        >
-          <X size={15} className="text-v2-text-muted" />
-        </button>
+    <div className="w-full">
+      {/* 原句提示 + 说明 */}
+      <p className="text-[13px] text-v2-text-muted text-center leading-relaxed">{originalSentence}</p>
+      <p className="text-[13px] text-v2-text-secondary text-center mt-1.5">拼出 AI 优化后的说法</p>
 
-        <h3 className="text-[15px] font-semibold text-v2-text-primary">拼句练习</h3>
-        <p className="text-[13px] text-v2-text-muted mt-2 leading-relaxed pr-8">{originalSentence}</p>
+      {/* 拼句区：flex-wrap 摆放，每行底部各自一条居中虚线（绝对定位，不影响词块布局） */}
+      <div className="relative max-w-[280px] mx-auto mt-6 min-h-[48px]">
+        {answer.length === 0 ? (
+          <p className="text-[12px] text-v2-text-muted text-center pt-3">点下面的词块，按你觉得对的顺序拼回来</p>
+        ) : (
+          <>
+            <div ref={answerRef} className="flex flex-wrap justify-center gap-x-2 gap-y-4">
+              {answer.map((c, i) => {
+                const wrong = allPlaced && !isCorrect && c.text !== correctTexts[i]
+                const extra = isCorrect
+                  ? 'border-success text-success bg-success/10'
+                  : wrong ? 'border-error text-error bg-error/10' : ''
+                return (
+                  <span key={c.id} data-chip className="inline-flex">
+                    <Chip
+                      variant="default"
+                      size="md"
+                      onClick={isCorrect ? undefined : () => returnToPool(i)}
+                      className={extra}
+                    >
+                      {c.text}
+                    </Chip>
+                  </span>
+                )
+              })}
+            </div>
+            {lineTops.map((top, i) => (
+              <div
+                key={i}
+                className={`absolute left-0 right-0 border-b-2 ${isCorrect ? 'border-solid border-success' : 'border-dashed border-brand-primary-light'}`}
+                style={{ top }}
+              />
+            ))}
+          </>
+        )}
+      </div>
 
-        {/* 答题区 */}
-        <div className="min-h-[64px] flex flex-wrap gap-2 mt-4 p-3 rounded-[14px] bg-bg-page border border-black/[0.05]">
-          {answer.length === 0 ? (
-            <span className="text-[12px] text-v2-text-muted self-center">点下面的词块，按你觉得对的顺序拼回来</span>
-          ) : (
-            answer.map((c, i) => {
-              const wrong = allPlaced && !isCorrect && c.text !== correctTexts[i]
-              const extra = isCorrect
-                ? 'border-success text-success bg-success/10'
-                : wrong
-                  ? 'border-error text-error bg-error/10'
-                  : ''
-              return (
-                <Chip
-                  key={c.id}
-                  variant="default"
-                  size="md"
-                  onClick={isCorrect ? undefined : () => returnToPool(i)}
-                  className={extra}
-                >
-                  {c.text}
-                </Chip>
-              )
-            })
-          )}
+      {/* 成功提示条 */}
+      {isCorrect && (
+        <div className="max-w-[280px] mx-auto mt-5 flex items-center justify-center gap-1.5 rounded-[12px] bg-success/10 py-2.5">
+          <CheckCircle2 size={15} className="text-success" />
+          <span className="text-[13px] font-medium text-success">拼对啦 🎉</span>
         </div>
+      )}
 
-        {/* 词库区 */}
-        {pool.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
+      {/* 词库区 */}
+      {pool.length > 0 && (
+        <div className="mt-7">
+          <p className="text-[12px] text-v2-text-muted text-center mb-3">词库</p>
+          <div className="flex flex-wrap justify-center gap-2 max-w-[300px] mx-auto">
             {pool.map((c, i) => (
-              <Chip key={c.id} variant="ghost" size="md" onClick={() => pickFromPool(i)}>
+              <Chip key={c.id} variant="default" size="md" onClick={() => pickFromPool(i)}>
                 {c.text}
               </Chip>
             ))}
           </div>
-        )}
-
-        {isCorrect && (
-          <p className="text-[13px] text-success mt-4 text-center">拼对了，跟着读一遍吧 🎉</p>
-        )}
-
-        {/* 重来 */}
-        <div className="flex justify-center mt-5">
-          <GradientButton onClick={reset} className="px-6 py-2.5 rounded-full text-[13px] font-medium inline-flex items-center gap-1.5">
-            <RotateCw size={14} />重来
-          </GradientButton>
         </div>
+      )}
+
+      {/* 操作区：完成（拼对才可点）+ 重来 */}
+      <div className="mt-8 flex flex-col items-center gap-3">
+        <GradientButton
+          onClick={onComplete}
+          disabled={!isCorrect}
+          className="px-8 py-2.5 rounded-full text-[14px] font-medium"
+        >
+          完成
+        </GradientButton>
+        <button onClick={reset} className="btn-ghost px-5 py-2">
+          <RotateCw size={14} />重来
+        </button>
       </div>
     </div>
   )

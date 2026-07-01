@@ -1,9 +1,9 @@
 'use client'
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import { Trash2, Shuffle } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import Chip from '@/components/Chip'
-import SentenceOrderGame from '@/components/library/SentenceOrderGame'
 import type { CollectedCard } from '@/lib/types'
 import EmptyState from '@/components/EmptyState'
 import { removeSavedPhrase } from '@/lib/storage'
@@ -16,7 +16,6 @@ const DEL_BG = 'linear-gradient(to right, rgba(212,83,79,0.0) 0%, rgba(212,83,79
 
 function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => void }) {
   const [offset, setOffset] = useState(0)
-  const [gameOpen, setGameOpen] = useState(false)
   const startX = useRef(0)
   const isLocked = useRef(false)
 
@@ -69,26 +68,23 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           originalSentence={card.originalSentence}
           aiOptimized={card.aiOptimized}
           keywords={card.keywords ?? []}
-          date={card.collectedAt}
+          // 有拼句练习入口时时间戳挪到下方入口行，避免和入口行重复展示
+          date={canPlay ? '' : card.collectedAt}
           collected
         />
 
-        {/* 拼句练习入口：优化句 FeedbackCard 下方 */}
+        {/* 拼句练习入口行：虚线与卡片主内容隔开，左时间戳 + 右入口 */}
         {canPlay && (
-          <div className="mt-2 flex justify-end">
-            <Chip variant="ghost" size="sm" onClick={() => setGameOpen(true)}>
-              <Shuffle size={12} />拼句练习
-            </Chip>
+          <div className="mt-2.5 pt-2.5 border-t border-dashed border-black/[0.08] flex items-center justify-between">
+            <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+            <Link href={`/library/collected/${card.id}/practice`}>
+              <Chip variant="gradient" size="sm">
+                <Shuffle size={12} />拼句练习
+              </Chip>
+            </Link>
           </div>
         )}
       </div>
-
-      <SentenceOrderGame
-        open={gameOpen}
-        originalSentence={card.originalSentence}
-        aiOptimized={card.aiOptimized}
-        onClose={() => setGameOpen(false)}
-      />
     </div>
   )
 }
