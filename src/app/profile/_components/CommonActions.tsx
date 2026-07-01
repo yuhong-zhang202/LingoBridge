@@ -46,6 +46,7 @@ export default function CommonActions({ email }: { email: string | null }): JSX.
     <div>
       <div className="text-[12px] font-medium text-v2-text-muted mb-2.5 px-1">常用操作</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+        <QuotaActionCard onOpen={() => setModal('quota')} />
         <ActionCard
           icon={<KeyRound size={16} className="text-brand-primary-dark" />}
           iconBg="bg-brand-primary-light"
@@ -53,7 +54,6 @@ export default function CommonActions({ email }: { email: string | null }): JSX.
           subtitle="更新你的登录密码"
           onClick={() => setModal('password')}
         />
-        <QuotaActionCard onOpen={() => setModal('quota')} />
         <ActionCard
           icon={<MessageSquare size={16} className="text-v2-text-secondary" />}
           iconBg="bg-bg-muted"
