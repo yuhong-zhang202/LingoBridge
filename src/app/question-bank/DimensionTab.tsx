@@ -190,7 +190,15 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                     <div className="text-[13.5px] text-v2-text-muted leading-[1.35]">{q.displayText}</div>
                     <div className="text-[11.5px] text-v2-text-muted mt-0.5">{[q.displayTextZh, `Part ${q.part}`].filter(Boolean).join(' · ')}</div>
                   </div>
-                  <span className="text-[12px] text-v2-text-muted flex-shrink-0">还没讲到</span>
+                  <Chip
+                    variant="gradient"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); router.push('/') }}
+                    className="font-medium flex-shrink-0 gap-[3px]"
+                  >
+                    分享经历
+                    <ChevronRight size={12} className="text-brand-primary-dark" />
+                  </Chip>
                 </div>
               ))}
             </div>
