@@ -1,7 +1,7 @@
 /**
  * @module   ProfilePage
- * @desc     「我的」页面 — 顶部导航 + 面包屑页头 + 头像；登录态左栏(打卡 hero/副数据/画像雷达)+右栏(额度卡/功能列表)，
- *           未登录显示引导卡 + 功能列表并隐藏打卡/数据/画像。密面板风（对齐题库 v3）。
+ * @desc     「我的」页面 — 顶部导航 + 页头；登录态自上而下：身份卡(头像/邮箱/统计) → 常用操作(改密码/额度/反馈)
+ *           → 我的画像 + 功能列表(两栏等高，退出登录锚定栏底)；未登录展示引导卡 + 功能列表。
  * @author   LingoBridge
  * @created  2026-05-31
  */
@@ -14,18 +14,19 @@ import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import { getAccount, logout, maskEmail } from '@/lib/auth'
+import { getSupabase } from '@/lib/supabase'
 import { getSavedPhrases } from '@/lib/storage'
-import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
-import LoggedInView from './_components/LoggedInView'
 import FeatureListCard from './_components/FeatureListCard'
-import QuotaCard from './_components/QuotaCard'
+import IdentityCard from './_components/IdentityCard'
+import CommonActions from './_components/CommonActions'
+import PortraitCard from './_components/PortraitCard'
 
-// ── Mock 数据（带注释的字段为占位，其余字段仅作初始值、由 useEffect 覆写为真实数据）
+const MS_PER_DAY = 86_400_000
+
+// 占位数据：目标 Band 未持久化；bookmarkCount 为初始值，挂载后由 localStorage 覆写
 const profileData = {
-  // 占位：暂无数据源（目标 Band 未持久化），等后续功能补全
   targetBand: 7.0,
-  stats: { corpus: 12 },
   bookmarkCount: 24,
   version: 'v0.6.0',
 }
@@ -39,6 +40,7 @@ export default function ProfilePage(): JSX.Element {
   // Supabase session 异步读，初始值 false/null，挂载后同步实际状态
   const [loggedIn, setLoggedIn] = useState(false)
   const [email,    setEmail]    = useState<string | null>(null)
+  const [joinDays, setJoinDays] = useState<number | null>(null)
   const [bookmarkCount, setBookmarkCount] = useState(profileData.bookmarkCount)
 
   useEffect(() => {
@@ -49,6 +51,11 @@ export default function ProfilePage(): JSX.Element {
       setLoggedIn(false)
       setEmail(null)
     })
+    // 加入天数取自账号创建时间（前端只读，取不到则不展示）
+    getSupabase().auth.getUser().then(({ data }) => {
+      const created = data.user?.created_at
+      if (created) setJoinDays(Math.max(0, Math.floor((Date.now() - new Date(created).getTime()) / MS_PER_DAY)))
+    }).catch(() => { /* 忽略 */ })
   }, [])
 
   // deps=[loggedIn]：登录态变化时重读收藏数，保证练习后数字及时更新
@@ -56,7 +63,7 @@ export default function ProfilePage(): JSX.Element {
     setBookmarkCount(getSavedPhrases().length)
   }, [loggedIn])
 
-  const { targetBand, stats, version } = profileData
+  const { targetBand, version } = profileData
 
   const displayName = loggedIn
     ? (email ? maskEmail(email) : '我的账号')
@@ -85,37 +92,33 @@ export default function ProfilePage(): JSX.Element {
       <main className={`${MANAGE_CONTAINER} pb-24 md:pb-12`}>
         <ManageHeader title="我的" right={settingsButton} />
 
-        {/* 头像区 */}
-        <div className="flex flex-col items-center pt-1 pb-6">
-          <OrbAvatar size={84} />
-          <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{displayName}</p>
-        </div>
-
         {loggedIn ? (
           <>
-            {/* 登录态：左栏 打卡/副数据/画像 · 右栏 额度卡/功能列表 */}
-            <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-start">
-              <div>
-                <LoggedInView stats={stats} targetBand={targetBand} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <QuotaCard />
-                <FeatureListCard bookmarkCount={bookmarkCount} version={version} />
-              </div>
+            {/* 1. 身份卡 */}
+            <IdentityCard
+              displayName={displayName}
+              targetBand={targetBand}
+              joinDays={joinDays}
+              onEdit={() => router.push('/settings')}
+            />
+
+            {/* 2. 常用操作 */}
+            <div className="mb-8">
+              <CommonActions email={email} />
             </div>
 
-            {/* 退出登录（仅登录态，置于页面最下方） */}
-            <div className="text-center mt-6">
-              <button
-                onClick={() => void handleLogout()}
-                className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
-              >
-                退出登录
-              </button>
+            {/* 3. 我的画像 + 功能列表（两栏等高，退出登录锚定右栏底部） */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 items-stretch">
+              <PortraitCard />
+              <FeatureListCard
+                bookmarkCount={bookmarkCount}
+                version={version}
+                onLogout={() => void handleLogout()}
+              />
             </div>
           </>
         ) : (
-          /* 未登录：引导卡 + 功能列表（隐藏打卡/数据/画像） */
+          /* 未登录：引导卡 + 功能列表 */
           <div className="max-w-[640px] mx-auto flex flex-col gap-3">
             <LoginPrompt />
             <FeatureListCard bookmarkCount={bookmarkCount} version={version} />

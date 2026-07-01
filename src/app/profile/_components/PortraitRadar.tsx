@@ -55,10 +55,10 @@ export default function PortraitRadar({ values }: PortraitRadarProps): JSX.Eleme
 
   return (
     <svg
-      viewBox="0 0 240 178"
-      width={240}
-      height={178}
-      style={{ display: 'block', margin: '0 auto' }}
+      viewBox="-24 -6 288 188"
+      width={288}
+      height={188}
+      style={{ display: 'block', margin: '0 auto', maxWidth: '100%' }}
     >
       {/* 4 层网格五边形 */}
       {[0.25, 0.5, 0.75, 1.0].map(level => (
