@@ -128,7 +128,7 @@ export default function SentenceOrderGame({ originalSentence, aiOptimized, onSta
                       variant="default"
                       size="md"
                       onClick={solved ? undefined : () => returnToPool(i)}
-                      className={extra}
+                      className={`${extra} text-[15px] px-[16px] py-[9px]`}
                     >
                       {c.text}
                     </Chip>
@@ -153,7 +153,7 @@ export default function SentenceOrderGame({ originalSentence, aiOptimized, onSta
           <p className="text-[12px] text-v2-text-muted text-center mb-3">词库</p>
           <div className="flex flex-wrap justify-center gap-2.5">
             {pool.map((c, i) => (
-              <Chip key={c.id} variant="default" size="md" onClick={() => pickFromPool(i)}>
+              <Chip key={c.id} variant="default" size="md" onClick={() => pickFromPool(i)} className="text-[15px] px-[16px] py-[9px]">
                 {c.text}
               </Chip>
             ))}

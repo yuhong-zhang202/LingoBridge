@@ -82,18 +82,16 @@ export default function CollectedCardPracticePage(): JSX.Element {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 relative z-10 flex flex-col lg:max-w-[640px] lg:w-full lg:mx-auto">
         {!loaded ? null : current ? (
-          <>
-            <div className="pt-6">
-              <SentenceOrderGame
-                key={`${current.id}-${resetSignal}`}
-                originalSentence={current.original}
-                aiOptimized={current.optimized}
-                onStatus={setStatus}
-              />
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <SentenceOrderGame
+              key={`${current.id}-${resetSignal}`}
+              originalSentence={current.original}
+              aiOptimized={current.optimized}
+              onStatus={setStatus}
+            />
 
-            {/* 控制行：移动端沉底(mt-auto)，桌面端接内容下方(lg:mt-10) */}
-            <div className="mt-auto lg:mt-10 flex items-center justify-between gap-3">
+            {/* 控制行：重来 / 进度点 / 下一句 —— 与拼句区一起在可用高度内整体居中 */}
+            <div className="mt-10 w-full flex items-center justify-between gap-3">
               <button onClick={restart} className="btn-ghost px-4 py-2">
                 <RotateCw size={14} />重来
               </button>
@@ -112,7 +110,7 @@ export default function CollectedCardPracticePage(): JSX.Element {
                 <ArrowRight size={14} />
               </GradientButton>
             </div>
-          </>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <EmptyState title="没找到这张卡片" ctaLabel="返回" onCta={close} />

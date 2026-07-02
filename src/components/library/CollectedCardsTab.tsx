@@ -70,6 +70,8 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           keywords={card.keywords ?? []}
           // 有拼句练习入口时时间戳挪到下方入口行，避免和入口行重复展示
           date={canPlay ? '' : card.collectedAt}
+          // 有入口行时下边留直角，与入口行直角顶边严丝合缝拼成整块白面（消除圆角处透出的红线）
+          roundedBottom={!canPlay}
           collected
         />
 

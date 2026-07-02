@@ -14,6 +14,8 @@ interface FeedbackCardProps {
   collected?: boolean
   compact?: boolean
   className?: string
+  /** 下边是否圆角。false 时只圆上两角（下边留直角），用于与紧贴其下的入口行严丝合缝拼接 */
+  roundedBottom?: boolean
 }
 
 /** 用浏览器 TTS 读一句英文（与词组卡同一实现） */
@@ -62,12 +64,12 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
 }
 
 export default function FeedbackCard(props: FeedbackCardProps) {
-  const { originalSentence, aiOptimized, keywords, date, collected, compact, className } = props
+  const { originalSentence, aiOptimized, keywords, date, collected, compact, className, roundedBottom = true } = props
 
   return (
     <div
       className={cn(compact ? 'px-[16px] pt-[14px] pb-[18px]' : 'px-[14px] pt-[14px] pb-[16px]', className)}
-      style={{ ...GRADIENT_BORDER_STYLE_FULL, borderRadius: 16 }}
+      style={{ ...GRADIENT_BORDER_STYLE_FULL, borderRadius: roundedBottom ? 16 : '16px 16px 0 0' }}
     >
       <div className="flex items-center justify-between mb-1.5">
         <InfoTag text="原句" letterSpacing={2} />
