@@ -69,12 +69,14 @@ export const GRADIENT_BORDER_STYLE_FULL: CSSProperties = {
   border: '1.5px solid transparent',
 }
 
-// ── 浅色渐变描边（复用 BRAND_GRADIENT_SOFT 的 0.35 透明度，橙味更淡、不偏棕）
-// 用于：素材库里词组收藏/发音/我的语料卡等需要更轻的描边
-export const GRADIENT_BORDER_STYLE_SOFT: CSSProperties = {
+// ── 渐变描边 + 不透明白底（观感同 _FULL；底层再垫一层不透明白，挡住背后透色）
+// 用于：SwipeToDelete 包裹的卡（词组收藏/发音/我的语料）——半透明描边会把背后的删除红透出来染成红边，
+// 垫白底后描边只叠在白上，与收藏卡的描边一致、不再透红。
+export const GRADIENT_BORDER_STYLE_FULL_OPAQUE: CSSProperties = {
   background: [
     'linear-gradient(white, white) padding-box',
-    `${BRAND_GRADIENT_SOFT} border-box`,
+    'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80), rgba(188,210,168,0.75)) border-box',
+    'linear-gradient(white, white) border-box',
   ].join(','),
   border: '1.5px solid transparent',
 }
