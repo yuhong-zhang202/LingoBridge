@@ -10,7 +10,7 @@ import { Volume2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
 import { getSavedPronunciations, removeSavedPronunciation, updateSavedPronunciation } from '@/lib/storage'
-import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE_SOFT } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
 
 /** 用浏览器 TTS 读一个英文词 */
@@ -79,7 +79,7 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
   }, [data, item])
 
   return (
-    <div style={GRADIENT_BORDER_STYLE_FULL} className="rounded-[16px] px-[14px] py-[13px]">
+    <div style={GRADIENT_BORDER_STYLE_SOFT} className="rounded-[16px] px-[14px] py-[13px]">
       <WordRow label="想说的词" word={item.intended} ipa={data?.ipaIntended} />
       <WordRow label="被听成" word={item.heard} ipa={data?.ipaHeard} />
 

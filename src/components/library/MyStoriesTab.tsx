@@ -1,9 +1,8 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { Mic2, Keyboard, MoreHorizontal, ChevronRight } from 'lucide-react'
-import { BRAND_GRADIENT_SOFT } from '@/lib/constants'
+import { BRAND_GRADIENT_SOFT, GRADIENT_BORDER_STYLE_SOFT } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
-import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import EmptyState from '@/components/EmptyState'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
@@ -28,7 +27,7 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
     <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
       {stories.map(story => (
         <SwipeToDelete key={story.id} borderRadius={16} onDelete={() => onDelete?.(story.id)}>
-        <Card variant="gradient" className="p-4">
+        <div style={GRADIENT_BORDER_STYLE_SOFT} className="rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               {story.inputType === 'voice' ? (
@@ -69,7 +68,7 @@ export default function MyStoriesTab({ stories, onDelete }: Props) {
               )}
             </div>
           )}
-        </Card>
+        </div>
         </SwipeToDelete>
       ))}
     </div>

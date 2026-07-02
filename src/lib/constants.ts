@@ -68,3 +68,13 @@ export const GRADIENT_BORDER_STYLE_FULL: CSSProperties = {
   ].join(','),
   border: '1.5px solid transparent',
 }
+
+// ── 浅色渐变描边（复用 BRAND_GRADIENT_SOFT 的 0.35 透明度，橙味更淡、不偏棕）
+// 用于：素材库里词组收藏/发音/我的语料卡等需要更轻的描边
+export const GRADIENT_BORDER_STYLE_SOFT: CSSProperties = {
+  background: [
+    'linear-gradient(white, white) padding-box',
+    `${BRAND_GRADIENT_SOFT} border-box`,
+  ].join(','),
+  border: '1.5px solid transparent',
+}
