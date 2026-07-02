@@ -75,13 +75,14 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           collected
         />
 
-        {/* 拼句练习入口行：顶边与卡片直角下沿 0 间距贴合（间距全用 pt 落在白底内，无透明 margin 缝，杜绝透红）；虚线分隔，左时间戳右入口 */}
+        {/* 拼句练习入口行：对齐设计稿 .practice-entry-row（padding 11/18/14、1px 虚线上分隔）；顶边与卡片直角下沿 0 间距贴合，无透明缝、不透红 */}
         {canPlay && (
-          <div className="pt-3.5 bg-white rounded-b-[16px] border-t border-dashed border-black/[0.08] flex items-center justify-between">
-            <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+          <div className="px-[18px] pt-[11px] pb-[14px] bg-white rounded-b-[16px] border-t border-dashed border-black/[0.08] flex items-center justify-between">
+            <span className="text-[11px] text-v2-text-muted">{card.collectedAt}</span>
             <Link href={`/library/collected/${card.id}/practice`}>
-              <Chip variant="gradient" size="sm">
-                <Shuffle size={12} />拼句练习
+              {/* 对齐设计稿 .practice-chip：12px / padding 7×14 / gap 6，覆盖 Chip sm 内置小尺寸 */}
+              <Chip variant="gradient" size="sm" className="text-[12px] px-[14px] py-[7px] gap-1.5">
+                <Shuffle size={13} className="text-brand-accent" />拼句练习
               </Chip>
             </Link>
           </div>

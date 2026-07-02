@@ -84,10 +84,13 @@ export default function FeedbackCard(props: FeedbackCardProps) {
 
       <SentenceBlock text={aiOptimized} variant="ai" />
 
-      <div className="flex items-center justify-between mt-3">
-        <span className="text-[12px] text-v2-text-muted">{keywords.join(' · ')}</span>
-        <span className="text-[12px] text-v2-text-muted">{date}</span>
-      </div>
+      {/* 关键词 + 日期行：两者皆空时整行(连同 mt-3)不渲染，不占空间——避免收藏卡(date='')留一截空白 */}
+      {(keywords.length > 0 || date) && (
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-[12px] text-v2-text-muted">{keywords.join(' · ')}</span>
+          <span className="text-[12px] text-v2-text-muted">{date}</span>
+        </div>
+      )}
     </div>
   )
 }
