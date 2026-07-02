@@ -44,7 +44,7 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
   }
 
   return (
-    <div className="relative overflow-hidden rounded-[16px]">
+    <div className="relative overflow-hidden rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
       {/* 删除区域：铺满容器，圆角由外层 overflow-hidden 统一裁切，无独立圆角 */}
       <button
         className="absolute inset-0 flex items-center justify-end"
@@ -70,9 +70,8 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
           keywords={card.keywords ?? []}
           // 有拼句练习入口时时间戳挪到下方入口行，避免和入口行重复展示
           date={canPlay ? '' : card.collectedAt}
-          // 有入口行时下边留直角，与入口行直角顶边严丝合缝拼成整块白面（消除圆角处透出的红线）
-          roundedBottom={!canPlay}
-          collected
+          // 极简白卡样式（对齐设计稿）；边框/阴影由外层容器统一负责，卡与入口行连成整块白面
+          plain
         />
 
         {/* 拼句练习入口行：对齐设计稿 .practice-entry-row（padding 11/18/14、1px 虚线上分隔）；顶边与卡片直角下沿 0 间距贴合，无透明缝、不透红 */}
