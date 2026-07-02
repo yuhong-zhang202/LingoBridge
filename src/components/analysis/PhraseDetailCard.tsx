@@ -1,6 +1,6 @@
 'use client'
 import { Star, Volume2, Layers, Check } from 'lucide-react'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 
 function speak(text: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
@@ -26,7 +26,7 @@ interface Props {
 
 export default function PhraseDetailCard({ text, meaning, scene, group, level, isSaved, onToggleSave, inDeck, onAddToMemory }: Props) {
   return (
-    <div style={GRADIENT_BORDER_STYLE} className="rounded-[14px] px-3.5 py-3">
+    <div style={GRADIENT_BORDER_STYLE_FULL} className="rounded-[14px] px-3.5 py-3">
       <div className="relative mb-2">
         <p className="text-[13px] font-medium text-v2-text-primary pr-7">{text}</p>
         <button

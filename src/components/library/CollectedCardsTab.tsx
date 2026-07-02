@@ -8,6 +8,7 @@ import type { CollectedCard } from '@/lib/types'
 import EmptyState from '@/components/EmptyState'
 import { removeSavedPhrase } from '@/lib/storage'
 import { chunkSentence } from '@/lib/phrase-chunk'
+import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 
 interface Props { cards: CollectedCard[] }
 
@@ -44,7 +45,8 @@ function SwipeCard({ card, onDelete }: { card: CollectedCard; onDelete: () => vo
   }
 
   return (
-    <div className="relative overflow-hidden rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+    // 白底渐变描边（同「今日复习」卡 GRADIENT_BORDER_STYLE_FULL）；边框在不被裁的外层，内部白卡+入口行连成整块
+    <div className="relative overflow-hidden rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)]" style={GRADIENT_BORDER_STYLE_FULL}>
       {/* 删除区域：铺满容器，圆角由外层 overflow-hidden 统一裁切，无独立圆角 */}
       <button
         className="absolute inset-0 flex items-center justify-end"
