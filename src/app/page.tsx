@@ -329,8 +329,8 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              {/* ===== 模块一：Hero（导航紧跟顶部，固定内边距；标题打字机；右侧 Orb 放大） ===== */}
-              <section className="relative overflow-hidden pt-14 pb-8">
+              {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容居中，一屏一模块 ===== */}
+              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-12">
                 {/* 极淡氛围光（装饰，置于 Orb 背后） */}
                 <div
                   aria-hidden
@@ -407,8 +407,8 @@ export default function HomePage() {
                 </div>
               </section>
 
-              {/* ===== 模块二：我们能为你做什么（能力三卡） ===== */}
-              <section className="pt-24">
+              {/* ===== 模块二：我们能为你做什么（能力三卡）——整屏高、内容居中 ===== */}
+              <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <SectionHead
                   eyebrow="从一段经历到一次自信开口"
                   title={<>我们能为你做<span className="text-brand-primary">什么</span></>}
@@ -428,8 +428,8 @@ export default function HomePage() {
                 </div>
               </section>
 
-              {/* ===== 模块三：语料匹配题目怎么运作（漏斗 + 三步） ===== */}
-              <section className="pt-24">
+              {/* ===== 模块三：语料匹配题目怎么运作（漏斗 + 三步）——整屏高、内容居中 ===== */}
+              <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <SectionHead
                   eyebrow="语料匹配题目"
                   title={<>你的故事，怎么变成<span className="text-brand-primary">一道题</span></>}
@@ -474,7 +474,7 @@ export default function HomePage() {
 
               {/* ===== 模块四：重组语料怎么运作（Leo 对话示意 + 三点） ===== */}
               {/* TODO: 文案待确认 —— Leo 对话为占位示意；如需可复用真实 AiBubble/UserBubble 组件渲染 */}
-              <section className="pt-24">
+              <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <SectionHead
                   eyebrow="重组语料"
                   title={<>和 Leo 一起，把故事练成<span className="text-brand-primary">脱口而出</span></>}
@@ -529,7 +529,7 @@ export default function HomePage() {
 
               {/* ===== 模块五：信息复用怎么用（三卡等高） ===== */}
               {/* TODO: 文案待确认 —— 三张卡的示意内容为占位；如需可复用真实 拼句/复习卡/发音 组件缩略渲染 */}
-              <section className="pt-24 pb-24">
+              <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <SectionHead
                   eyebrow="信息复用"
                   title={<>收藏的内容，去<span className="text-brand-primary">素材库</span>继续巩固</>}
