@@ -92,17 +92,22 @@ export default function HomePage() {
   const [typed, setTyped] = useState('')
   const { question, loading, error, next } = useSwitchQuestion()
 
-  // 打字机：故事模式下 Hero 标题第二行逐字浮现（切回故事模式时重放）
+  // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）
   useEffect(() => {
-    if (ieltsMode) return
-    setTyped('')
+    if (ieltsMode) { setTyped(''); return }
     let i = 0
-    const id = window.setInterval(() => {
+    let timer = 0
+    const step = () => {
       i += 1
       setTyped(HERO_LINE2.slice(0, i))
-      if (i >= HERO_LINE2.length) window.clearInterval(id)
-    }, 140)
-    return () => window.clearInterval(id)
+      if (i >= HERO_LINE2.length) {
+        timer = window.setTimeout(() => { i = 0; setTyped(''); step() }, 2000)
+      } else {
+        timer = window.setTimeout(step, 160)
+      }
+    }
+    step()
+    return () => window.clearTimeout(timer)
   }, [ieltsMode])
 
   // 点「开始录音」先探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）
@@ -330,7 +335,7 @@ export default function HomePage() {
           ) : (
             <>
               {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
-              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[13vh] pb-12">
+              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[18vh] pb-12">
                 {/* 极淡氛围光（装饰，置于 Orb 背后） */}
                 <div
                   aria-hidden
@@ -341,7 +346,7 @@ export default function HomePage() {
                     filter: 'blur(60px)', zIndex: 0,
                   }}
                 />
-                <div className="relative z-[1] grid grid-cols-2 gap-10 items-center">
+                <div className="relative z-[1] grid grid-cols-2 gap-10 items-center pl-12">
                   {/* 左：切换器 + 文案 + 操作 */}
                   <div className="max-w-[560px]">
                     {/* 我的故事 / 雅思题 切换器（功能保留） */}
@@ -370,7 +375,8 @@ export default function HomePage() {
                         {!ieltsMode ? (
                           <h1 className="text-[56px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
                             分享你的经历
-                            <span className="block text-brand-primary">
+                            {/* 第二行右移约一个字，错开成阶梯（个 在 享 下方）；文字逐字打字机浮现 */}
+                            <span className="block text-brand-primary ml-[1em]">
                               {typed}
                               <span className="inline-block w-[3px] h-[0.82em] bg-brand-primary align-middle ml-1 animate-blink" />
                             </span>
