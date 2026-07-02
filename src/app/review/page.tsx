@@ -69,11 +69,8 @@ export default function ReviewPage(): JSX.Element {
           <div className="px-5">
             <div className="mt-1 h-1 rounded-full bg-bg-muted overflow-hidden">
               <div
-                className="h-full rounded-full transition-[width] duration-300"
-                style={{
-                  width: `${(current / queue.length) * 100}%`,
-                  background: 'linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9))',
-                }}
+                className="h-full rounded-full bg-brand-primary transition-[width] duration-300"
+                style={{ width: `${(current / queue.length) * 100}%` }}
               />
             </div>
           </div>

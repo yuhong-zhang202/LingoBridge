@@ -12,8 +12,8 @@ import type { PhraseCard } from '@/lib/types'
 
 // 超过此位移（px）判定为一次有效滑动
 const SWIPE_THRESHOLD = 90
-// 左侧竖渐变条（品牌橙→绿）
-const STRIP = 'linear-gradient(180deg, rgba(212,135,90,0.92), rgba(123,166,153,0.92))'
+// 左侧竖渐变条（橙→绿）—— 与题目匹配页题卡左侧条同色
+const STRIP = 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 
 // 朗读英文（系统语音）
 function speak(text: string): void {
