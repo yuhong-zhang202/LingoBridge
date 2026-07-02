@@ -329,8 +329,8 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容居中，一屏一模块 ===== */}
-              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-12">
+              {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
+              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[13vh] pb-12">
                 {/* 极淡氛围光（装饰，置于 Orb 背后） */}
                 <div
                   aria-hidden
