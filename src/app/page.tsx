@@ -8,6 +8,7 @@
  */
 'use client'
 import { useState, useCallback, useEffect, type ReactNode } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Mic2, RotateCw, ChevronLeft, ArrowRight, Loader2, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, RefreshCw } from 'lucide-react'
 import Orb from '@/components/Orb'
@@ -39,43 +40,6 @@ const FEATURES = [
   { Icon: MessageCircle, tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
   { Icon: Layers,        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ] as const
-
-// 模块三：3D 扭曲丝带漏斗几何 —— 一条连续的宽丝带绕成倒圆锥螺旋（3 圈=3 层），
-// 每小段画出「宽顶面」(外螺线↔内螺线之间) + 恒定高度的外沿厚度壁；按 a·sinθ 深度画家排序做前后遮挡。
-interface FunnelSeg { d: string; op: number; depth: number; wall: boolean }
-const SPIRAL: { segs: FunnelSeg[] } = (() => {
-  const cx = 130
-  const y0 = 58, drop = 208           // 顶心 y / 总下降
-  const a0 = 104, a1 = 16             // 外轮廓半径：顶→底（斜线=倒圆锥外形）
-  const w = 42, t = 13, F = 0.34      // 丝带宽(径向) / 外沿厚度(垂直) / 透视压扁
-  const thetaMax = 3 * 2 * Math.PI    // 3 圈 → 3 层
-  const steps = 150
-  const dt = thetaMax / steps
-  const f = (x: number): string => x.toFixed(1)
-  const pt = (th: number, rad: number, yc: number): { x: number; y: number } =>
-    ({ x: cx + rad * Math.cos(th), y: yc + rad * F * Math.sin(th) })
-  const segs: FunnelSeg[] = []
-  for (let k = 0; k < steps; k++) {
-    const th0 = k * dt, th1 = (k + 1) * dt
-    const r0 = th0 / thetaMax, r1 = th1 / thetaMax
-    const aO0 = a0 + (a1 - a0) * r0, aO1 = a0 + (a1 - a0) * r1     // 外沿半径
-    const aI0 = Math.max(aO0 - w, 5), aI1 = Math.max(aO1 - w, 5)   // 内沿半径（宽度恒定，底部并拢兜底）
-    const yc0 = y0 + drop * r0, yc1 = y0 + drop * r1
-    const O0 = pt(th0, aO0, yc0), O1 = pt(th1, aO1, yc1)
-    const I0 = pt(th0, aI0, yc0), I1 = pt(th1, aI1, yc1)
-    const s = (Math.sin(th0) + Math.sin(th1)) / 2
-    const op = +(0.6 + 0.4 * (s + 1) / 2).toFixed(2)              // 正面更实、背面更透→纵深
-    const depth = ((aO0 + aO1) / 2) * s                           // 画家排序键：越大越靠前
-    // 宽顶面（外螺线 O0→O1 ↔ 内螺线 I1→I0）
-    segs.push({ d: `M${f(O0.x)},${f(O0.y)} L${f(O1.x)},${f(O1.y)} L${f(I1.x)},${f(I1.y)} L${f(I0.x)},${f(I0.y)} Z`, op, depth, wall: false })
-    // 外沿厚度壁（仅正面可见），紧随其顶面之后绘制
-    if (s > 0) {
-      segs.push({ d: `M${f(O0.x)},${f(O0.y)} L${f(O1.x)},${f(O1.y)} L${f(O1.x)},${f(O1.y + t)} L${f(O0.x)},${f(O0.y + t)} Z`, op, depth: depth + 0.01, wall: true })
-    }
-  }
-  segs.sort((A, B) => A.depth - B.depth)
-  return { segs }
-})()
 
 const MATCH_STEPS = [
   { n: 1, dot: 'bg-brand-primary',      title: '先看你这段故事最核心讲的是什么', desc: '直接拿这个核心去题库里找最匹配的雅思题——一次就命中，直接推给你。' },
@@ -472,24 +436,15 @@ export default function HomePage() {
                   sub="不是关键词硬凑，我们分三步来找最适合你这段经历的题"
                 />
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
-                  {/* 左：3D 螺旋缠绕漏斗（design.md 橙→绿垂直渐变；画家算法排序做前后遮挡） */}
+                  {/* 左：漏斗示意图（品牌配色螺旋丝带，静态资源 public/funnel-spiral.png） */}
                   <div className="flex flex-col items-center">
-                    <svg viewBox="0 0 260 330" className="w-full max-w-[300px] h-auto" role="img" aria-label="三步匹配螺旋漏斗示意">
-                      <defs>
-                        {/* design.md 渐变色：从上到下 桃→米→薄荷绿（垂直） */}
-                        <linearGradient id="spiralGrad" gradientUnits="userSpaceOnUse" x1="130" y1="30" x2="130" y2="300">
-                          <stop offset="0%" stopColor="rgb(240,188,160)" />
-                          <stop offset="100%" stopColor="rgb(168,210,196)" />
-                        </linearGradient>
-                      </defs>
-                      {SPIRAL.segs.map((s, i) => (
-                        <g key={i}>
-                          <path d={s.d} fill="url(#spiralGrad)" fillOpacity={s.op} />
-                          {/* 外沿厚度壁叠一层中性暗调，做出立体侧边 */}
-                          {s.wall && <path d={s.d} className="fill-black" fillOpacity={0.12} />}
-                        </g>
-                      ))}
-                    </svg>
+                    <Image
+                      src="/funnel-spiral.png"
+                      alt="三步匹配漏斗示意"
+                      width={2124}
+                      height={2016}
+                      className="w-full max-w-[320px] h-auto"
+                    />
                     <p className="mt-5 max-w-[280px] text-center text-[12.5px] text-v2-text-muted leading-relaxed">
                       越往下，说明你的故事越「小众」——但每一层，我们都在认真找一道配得上它的题
                     </p>
