@@ -335,7 +335,7 @@ export default function HomePage() {
           ) : (
             <>
               {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
-              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[11vh] pb-12">
+              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[8vh] pb-12">
                 {/* 极淡氛围光（装饰，置于 Orb 背后） */}
                 <div
                   aria-hidden
@@ -347,8 +347,8 @@ export default function HomePage() {
                   }}
                 />
                 <div className="relative z-[1] grid grid-cols-2 gap-10 items-center pl-12">
-                  {/* 左：切换器 + 文案 + 操作（整体右移 pl-8） */}
-                  <div className="max-w-[560px] pl-8">
+                  {/* 左：切换器 + 文案 + 操作（整体再右移、更靠中 pl-16） */}
+                  <div className="max-w-[560px] pl-16">
                     {/* 我的故事 / 雅思题 切换器（功能保留） */}
                     <div className="flex w-[240px] rounded-[10px] p-[3px] bg-bg-muted mb-7">
                       <button
