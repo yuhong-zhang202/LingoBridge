@@ -57,7 +57,7 @@ const SPIRAL: { segs: FunnelSeg[] } = (() => {
   const segs: FunnelSeg[] = []
   for (let k = 0; k < steps; k++) {
     const p0 = surf(k * dt), p1 = surf((k + 1) * dt)
-    const t0 = 30 - 18 * p0.r, t1 = 30 - 18 * p1.r          // 壁厚从顶 30 收到底 12
+    const t0 = 22, t1 = 22                                  // 壁厚恒定：带子上下沿平行、粗细均匀，不随下降收窄
     const avgSin = (p0.s + p1.s) / 2
     segs.push({
       d: `M${f(p0.x)},${f(p0.y)} L${f(p1.x)},${f(p1.y)} L${f(p1.x)},${f(p1.y + t1)} L${f(p0.x)},${f(p0.y + t0)} Z`,
