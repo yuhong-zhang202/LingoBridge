@@ -40,25 +40,35 @@ const FEATURES = [
   { Icon: Layers,        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ] as const
 
-// 模块三：3D 分层漏斗几何（曲面锥体带，逐层收窄）——替换原扁平梯形，样式对齐参考图
-const FUNNEL3D = (() => {
+// 模块三：3D 螺旋缠绕漏斗几何 —— 连续下降的螺旋带(非闭环)，切成小段用画家算法按深度排序做前后遮挡
+interface FunnelSeg { d: string; top: string | null; op: number; depth: number }
+const SPIRAL: { segs: FunnelSeg[] } = (() => {
   const cx = 130
-  const F = 0.22   // 椭圆透视压扁比
-  const raw = [
-    { topY: 36,  topRx: 104, botY: 118, botRx: 72 },
-    { topY: 130, topRx: 66,  botY: 196, botRx: 40 },
-    { topY: 208, topRx: 36,  botY: 256, botRx: 14 },
-  ]
-  const bands = raw.map(b => {
-    const eT = +(b.topRx * F).toFixed(1)
-    const eB = +(b.botRx * F).toFixed(1)
-    return {
-      // 前弧下凸的锥台外表面（顶前弧 → 右壁 → 底前弧 → 闭合）
-      body: `M${cx - b.topRx},${b.topY} A${b.topRx},${eT} 0 0 1 ${cx + b.topRx},${b.topY} L${cx + b.botRx},${b.botY} A${b.botRx},${eB} 0 0 1 ${cx - b.botRx},${b.botY} Z`,
-      rim: { cx, cy: b.topY, rx: b.topRx, ry: eT },
-    }
-  })
-  return { cx, bands, stem: `M${cx - 13},256 L${cx + 13},256 L${cx + 3},288 L${cx - 3},288 Z` }
+  const y0 = 44, drop = 214, a0 = 104, a1 = 5, F = 0.32   // 顶心/总降/顶半径/底半径/透视压扁
+  const thetaMax = 3.2 * 2 * Math.PI                       // 3.2 圈
+  const steps = 168
+  const dt = thetaMax / steps
+  const surf = (th: number): { x: number; y: number; r: number; s: number; a: number } => {
+    const r = th / thetaMax
+    const a = a0 + (a1 - a0) * r
+    return { x: cx + a * Math.cos(th), y: y0 + drop * r + a * F * Math.sin(th), r, s: Math.sin(th), a }
+  }
+  const f = (x: number): string => x.toFixed(1)
+  const segs: FunnelSeg[] = []
+  for (let k = 0; k < steps; k++) {
+    const p0 = surf(k * dt), p1 = surf((k + 1) * dt)
+    const t0 = 30 - 18 * p0.r, t1 = 30 - 18 * p1.r          // 壁厚从顶 30 收到底 12
+    const avgSin = (p0.s + p1.s) / 2
+    segs.push({
+      d: `M${f(p0.x)},${f(p0.y)} L${f(p1.x)},${f(p1.y)} L${f(p1.x)},${f(p1.y + t1)} L${f(p0.x)},${f(p0.y + t0)} Z`,
+      // 仅正面段加顶沿高光条，暗示带子的顶面
+      top: avgSin > 0 ? `M${f(p0.x)},${f(p0.y)} L${f(p1.x)},${f(p1.y)} L${f(p1.x)},${f(p1.y + 5)} L${f(p0.x)},${f(p0.y + 5)} Z` : null,
+      op: +(0.55 + 0.45 * (avgSin + 1) / 2).toFixed(2),     // 正面更实、背面更透→前后纵深
+      depth: ((p0.a + p1.a) / 2) * avgSin,                  // 排序键：越大越靠前
+    })
+  }
+  segs.sort((A, B) => A.depth - B.depth)
+  return { segs }
 })()
 
 const MATCH_STEPS = [
@@ -456,25 +466,22 @@ export default function HomePage() {
                   sub="不是关键词硬凑，我们分三步来找最适合你这段经历的题"
                 />
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
-                  {/* 左：3D 分层漏斗（design.md 主渐变填充，对齐参考图的立体锥体） */}
+                  {/* 左：3D 螺旋缠绕漏斗（design.md 橙→绿垂直渐变；画家算法排序做前后遮挡） */}
                   <div className="flex flex-col items-center">
-                    <svg viewBox="0 0 260 300" className="w-full max-w-[300px] h-auto" role="img" aria-label="三步匹配漏斗示意">
+                    <svg viewBox="0 0 260 320" className="w-full max-w-[300px] h-auto" role="img" aria-label="三步匹配螺旋漏斗示意">
                       <defs>
-                        {/* design.md §渐变参数 主渐变（橙→绿→黄绿，135°） */}
-                        <linearGradient id="funnelGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="rgba(240,188,160,0.85)" />
-                          <stop offset="50%" stopColor="rgba(168,210,196,0.80)" />
-                          <stop offset="100%" stopColor="rgba(188,210,168,0.75)" />
+                        {/* design.md 渐变色：从上到下 橙→绿（垂直） */}
+                        <linearGradient id="spiralGrad" gradientUnits="userSpaceOnUse" x1="130" y1="40" x2="130" y2="292">
+                          <stop offset="0%" stopColor="rgb(240,188,160)" />
+                          <stop offset="100%" stopColor="rgb(168,210,196)" />
                         </linearGradient>
                       </defs>
-                      {FUNNEL3D.bands.map((b, i) => (
+                      {SPIRAL.segs.map((s, i) => (
                         <g key={i}>
-                          <path d={b.body} fill="url(#funnelGrad)" />
-                          {/* 顶口高光椭圆，做出立体开口 */}
-                          <ellipse cx={b.rim.cx} cy={b.rim.cy} rx={b.rim.rx} ry={b.rim.ry} className="fill-white" fillOpacity={0.28} />
+                          <path d={s.d} fill="url(#spiralGrad)" fillOpacity={s.op} />
+                          {s.top && <path d={s.top} className="fill-white" fillOpacity={0.35} />}
                         </g>
                       ))}
-                      <path d={FUNNEL3D.stem} fill="url(#funnelGrad)" />
                     </svg>
                     <p className="mt-5 max-w-[280px] text-center text-[12.5px] text-v2-text-muted leading-relaxed">
                       越往下，说明你的故事越「小众」——但每一层，我们都在认真找一道配得上它的题
