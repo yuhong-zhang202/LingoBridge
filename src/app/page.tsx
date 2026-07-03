@@ -42,9 +42,10 @@ const FEATURES = [
 ] as const
 
 const MATCH_STEPS = [
-  { n: 1, dot: 'bg-brand-primary',      title: '先看你这段故事最核心讲的是什么', desc: '直接拿这个核心去题库里找最匹配的雅思题——一次就命中，直接推给你。' },
-  { n: 2, dot: 'bg-brand-accent',       title: '没找到？换个角度再试一次',       desc: '如果最核心的重点暂时没有对应的题，我们会看看这段故事还能讲出什么别的重点，换个角度再匹配一次。' },
-  { n: 3, dot: 'bg-brand-primary-dark', title: '两个角度都没有？我们如实告诉你', desc: '不会为了凑数硬塞一道不搭边的题给你——而是坦诚说明，并且认可这段经历本身就很值得讲。' },
+  { n: 1, dot: 'bg-brand-primary',      title: '语料输入',             desc: '录音或文字均可。可选择"分享故事"或"讨论雅思题目"两种模式。想不到经历时，直接选题讨论，用中文口述思路即可。' },
+  { n: 2, dot: 'bg-brand-primary-dark', title: '匹配 Part 1 / Part 2', desc: '基于核心内容，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。' },
+  { n: 3, dot: 'bg-brand-accent',       title: '切换语料侧重点',        desc: '核心角度没有对应题目时，调整表达侧重，尝试匹配其他 Part 1、2 真题，扩大覆盖范围。' },
+  { n: 4, dot: 'bg-brand-accent',       title: '对话延伸 Part 3',       desc: '与 Leo 练习对话时，话题自然延伸至 Part 3，完成三部分全覆盖。' },
 ] as const
 
 // 模块四：Leo 对话示意（占位对话）+ 右侧三点说明
@@ -428,19 +429,19 @@ export default function HomePage() {
                 </div>
               </section>
 
-              {/* ===== 模块三：语料匹配题目怎么运作（漏斗 + 三步）——整屏高、内容居中 ===== */}
+              {/* ===== 模块三：语料匹配题目怎么运作（漏斗 + 四步）整屏高、内容居中 ===== */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <SectionHead
                   eyebrow="语料匹配题目"
-                  title={<>你的故事，怎么变成<span className="text-brand-primary">一道题</span></>}
-                  sub="不是关键词硬凑，我们分三步来找最适合你这段经历的题"
+                  title={<>一段语料，覆盖雅思口语<span className="text-brand-primary">三个部分</span></>}
+                  sub="系统逐层匹配、动态调整，帮你覆盖 Part 1、2、3 全部题型。"
                 />
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
                   {/* 左：漏斗示意图（品牌配色螺旋丝带，已抠除背景的透明 PNG）；靠右上偏移贴近文案 */}
                   <div className="flex flex-col">
                     <Image
                       src="/funnel-spiral.png"
-                      alt="三步匹配漏斗示意"
+                      alt="语料匹配漏斗示意"
                       width={2124}
                       height={2016}
                       className="w-full max-w-[400px] h-auto ml-auto translate-x-8 -translate-y-10"
@@ -459,9 +460,9 @@ export default function HomePage() {
                       </div>
                     ))}
                     <div className="bg-bg-muted rounded-[12px] px-4 py-3.5 text-[12.5px] text-v2-text-secondary leading-relaxed">
-                      <b className="text-v2-text-primary font-semibold">找到的题不止一道时</b>，我们会按「用这段故事能不能直接答上」从高到低帮你排好序，最顺手的排最前面。这套判断背后是我们总结的
-                      <b className="text-v2-text-primary font-semibold"> 六个维度 </b>
-                      ——情绪、人际、空间、精神世界、成长、价值观，帮 AI 更准确地读懂你故事里的重点。
+                      每道候选题按与语料的贴合度排序，优先展示最顺手的表达。判断依据是
+                      <b className="text-v2-text-primary font-semibold">六个维度</b>
+                      ：情绪、人际、空间、精神世界、成长、价值观。
                     </div>
                   </div>
                 </div>
