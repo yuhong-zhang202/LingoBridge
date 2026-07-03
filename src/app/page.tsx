@@ -443,7 +443,7 @@ export default function HomePage() {
                       alt="三步匹配漏斗示意"
                       width={2124}
                       height={2016}
-                      className="w-full max-w-[340px] h-auto ml-auto translate-x-8 -translate-y-10"
+                      className="w-full max-w-[400px] h-auto ml-auto translate-x-8 -translate-y-10"
                     />
                   </div>
 
