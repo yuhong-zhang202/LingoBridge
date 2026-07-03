@@ -40,12 +40,26 @@ const FEATURES = [
   { Icon: Layers,        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ] as const
 
-// 模块三：漏斗三层（色阶 primary → accent → primary-dark）
-const FUNNEL = [
-  { label: '先看核心', w: 300, bg: 'bg-brand-primary',      clip: 'polygon(0 0,100% 0,88% 100%,12% 100%)' },
-  { label: '换个角度', w: 236, bg: 'bg-brand-accent',       clip: 'polygon(0 0,100% 0,86% 100%,14% 100%)' },
-  { label: '如实告知', w: 172, bg: 'bg-brand-primary-dark', clip: 'polygon(0 0,100% 0,80% 100%,20% 100%)' },
-] as const
+// 模块三：3D 分层漏斗几何（曲面锥体带，逐层收窄）——替换原扁平梯形，样式对齐参考图
+const FUNNEL3D = (() => {
+  const cx = 130
+  const F = 0.22   // 椭圆透视压扁比
+  const raw = [
+    { topY: 36,  topRx: 104, botY: 118, botRx: 72 },
+    { topY: 130, topRx: 66,  botY: 196, botRx: 40 },
+    { topY: 208, topRx: 36,  botY: 256, botRx: 14 },
+  ]
+  const bands = raw.map(b => {
+    const eT = +(b.topRx * F).toFixed(1)
+    const eB = +(b.botRx * F).toFixed(1)
+    return {
+      // 前弧下凸的锥台外表面（顶前弧 → 右壁 → 底前弧 → 闭合）
+      body: `M${cx - b.topRx},${b.topY} A${b.topRx},${eT} 0 0 1 ${cx + b.topRx},${b.topY} L${cx + b.botRx},${b.botY} A${b.botRx},${eB} 0 0 1 ${cx - b.botRx},${b.botY} Z`,
+      rim: { cx, cy: b.topY, rx: b.topRx, ry: eT },
+    }
+  })
+  return { cx, bands, stem: `M${cx - 13},256 L${cx + 13},256 L${cx + 3},288 L${cx - 3},288 Z` }
+})()
 
 const MATCH_STEPS = [
   { n: 1, dot: 'bg-brand-primary',      title: '先看你这段故事最核心讲的是什么', desc: '直接拿这个核心去题库里找最匹配的雅思题——一次就命中，直接推给你。' },
@@ -442,17 +456,26 @@ export default function HomePage() {
                   sub="不是关键词硬凑，我们分三步来找最适合你这段经历的题"
                 />
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
-                  {/* 左：三层漏斗 */}
+                  {/* 左：3D 分层漏斗（design.md 主渐变填充，对齐参考图的立体锥体） */}
                   <div className="flex flex-col items-center">
-                    {FUNNEL.map(({ label, w, bg, clip }, i) => (
-                      <div
-                        key={label}
-                        className={`flex items-center justify-center text-white text-[13px] font-semibold ${bg} ${i > 0 ? 'mt-1' : ''}`}
-                        style={{ width: w, height: 76 - i * 6, clipPath: clip }}
-                      >
-                        {label}
-                      </div>
-                    ))}
+                    <svg viewBox="0 0 260 300" className="w-full max-w-[300px] h-auto" role="img" aria-label="三步匹配漏斗示意">
+                      <defs>
+                        {/* design.md §渐变参数 主渐变（橙→绿→黄绿，135°） */}
+                        <linearGradient id="funnelGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="rgba(240,188,160,0.85)" />
+                          <stop offset="50%" stopColor="rgba(168,210,196,0.80)" />
+                          <stop offset="100%" stopColor="rgba(188,210,168,0.75)" />
+                        </linearGradient>
+                      </defs>
+                      {FUNNEL3D.bands.map((b, i) => (
+                        <g key={i}>
+                          <path d={b.body} fill="url(#funnelGrad)" />
+                          {/* 顶口高光椭圆，做出立体开口 */}
+                          <ellipse cx={b.rim.cx} cy={b.rim.cy} rx={b.rim.rx} ry={b.rim.ry} className="fill-white" fillOpacity={0.28} />
+                        </g>
+                      ))}
+                      <path d={FUNNEL3D.stem} fill="url(#funnelGrad)" />
+                    </svg>
                     <p className="mt-5 max-w-[280px] text-center text-[12.5px] text-v2-text-muted leading-relaxed">
                       越往下，说明你的故事越「小众」——但每一层，我们都在认真找一道配得上它的题
                     </p>
