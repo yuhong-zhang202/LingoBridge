@@ -436,14 +436,14 @@ export default function HomePage() {
                   sub="不是关键词硬凑，我们分三步来找最适合你这段经历的题"
                 />
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
-                  {/* 左：漏斗示意图（品牌配色螺旋丝带，已抠除背景的透明 PNG） */}
-                  <div className="flex flex-col items-center">
+                  {/* 左：漏斗示意图（品牌配色螺旋丝带，已抠除背景的透明 PNG）；靠右上偏移贴近文案 */}
+                  <div className="flex flex-col">
                     <Image
                       src="/funnel-spiral.png"
                       alt="三步匹配漏斗示意"
                       width={2124}
                       height={2016}
-                      className="w-full max-w-[340px] h-auto"
+                      className="w-full max-w-[340px] h-auto ml-auto translate-x-8 -translate-y-10"
                     />
                   </div>
 
