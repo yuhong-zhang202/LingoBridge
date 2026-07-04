@@ -38,7 +38,7 @@ const HERO_LINE2 = '个性化雅思语料'
 // 模块二：能力三卡
 const FEATURES = [
   { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，AI 帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
-  { Icon: MessageCircle, img: undefined,                tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
+  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
   { Icon: Layers,        img: undefined,                tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ] as const
 
