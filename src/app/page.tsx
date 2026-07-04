@@ -18,6 +18,7 @@ import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
+import PartTag from '@/components/PartTag'
 import Toast from '@/components/Toast'
 import FirstUseConsent from '@/components/FirstUseConsent'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
@@ -378,9 +379,15 @@ export default function HomePage() {
                             </span>
                           </h1>
                         ) : (
-                          <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
-                            {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
-                          </h1>
+                          <>
+                            {/* 题目上方标注 Part（白底渐变边框） */}
+                            {!loading && !error && question && (
+                              <div className="mb-3"><PartTag label={`Part ${question.part}`} /></div>
+                            )}
+                            <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
+                              {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
+                            </h1>
+                          </>
                         )}
                         <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
                           {!ieltsMode ? '不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
