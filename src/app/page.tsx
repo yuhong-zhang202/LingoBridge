@@ -37,9 +37,9 @@ const HERO_LINE2 = '个性化雅思语料'
 // TODO: 文案待确认 —— 以下桌面营销模块文案取自参考稿占位，非最终产品文案
 // 模块二：能力三卡
 const FEATURES = [
-  { Icon: Target,        tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，AI 帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
-  { Icon: MessageCircle, tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
-  { Icon: Layers,        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
+  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，AI 帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
+  { Icon: MessageCircle, img: undefined,                tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
+  { Icon: Layers,        img: undefined,                tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ] as const
 
 const MATCH_STEPS = [
@@ -424,11 +424,16 @@ export default function HomePage() {
                   sub="不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达"
                 />
                 <div className="grid grid-cols-3 gap-6">
-                  {FEATURES.map(({ Icon, tint, title, lead, desc }) => (
+                  {FEATURES.map(({ Icon, img, tint, title, lead, desc }) => (
                     <Card key={title} className="px-6 pt-8 pb-7 text-center transition-transform duration-200 hover:-translate-y-1">
-                      <div className={`mx-auto mb-5 w-16 h-16 rounded-[18px] grid place-items-center ${tintClass(tint)}`}>
-                        <Icon size={28} strokeWidth={2} />
-                      </div>
+                      {img ? (
+                        /* 拼图图标（已抠除白底的透明 PNG），尺寸对齐原图标 64px */
+                        <Image src={img} alt="" width={128} height={128} className="mx-auto mb-5 w-16 h-16 object-contain" />
+                      ) : (
+                        <div className={`mx-auto mb-5 w-16 h-16 rounded-[18px] grid place-items-center ${tintClass(tint)}`}>
+                          <Icon size={28} strokeWidth={2} />
+                        </div>
+                      )}
                       <h3 className="text-[16px] font-semibold text-v2-text-primary">{title}</h3>
                       <p className="mt-2 text-[13.5px] font-semibold text-brand-primary-dark">{lead}</p>
                       <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">{desc}</p>
