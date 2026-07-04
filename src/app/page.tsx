@@ -28,10 +28,7 @@ import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { BRAND_GRADIENT } from '@/lib/constants'
-
-// 首页专用内容容器：比全站 PAGE_CONTAINER(1280) 更窄，宽屏下左右留白更多、内容更居中
-const HOME_CONTAINER = 'max-w-[1120px] mx-auto px-8 lg:px-12'
+import { BRAND_GRADIENT, PAGE_CONTAINER } from '@/lib/constants'
 
 // Hero 标题第二行（故事模式下打字机逐字浮现）
 const HERO_LINE2 = '个性化雅思语料'
@@ -324,9 +321,9 @@ export default function HomePage() {
 
       {/* ============ 桌面端：营销落地页（Hero + 能力三卡 + 匹配漏斗 + Leo 对话 + 信息复用） ============ */}
       <div className="hidden lg:block min-h-screen bg-bg-page">
-        {/* 首页内容容器比全站 PAGE_CONTAINER 更窄，左右留白更多、更居中；顶栏同宽以保持对齐 */}
-        <TopNav containerClassName={HOME_CONTAINER} />
-        <main className={HOME_CONTAINER}>
+        {/* 全站统一容器（顶栏与内容同宽对齐，两侧留白一致） */}
+        <TopNav />
+        <main className={PAGE_CONTAINER}>
           {storyQuotaReached ? (
             <div className="py-20 flex justify-center">
               <QuotaReached variant="story" />
@@ -372,7 +369,7 @@ export default function HomePage() {
                           <Tag variant="green" icon={<Sparkles size={15} />} label="从一个真实经历开始" className="mb-6" />
                         )}
                         {!ieltsMode ? (
-                          <h1 className="text-[56px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
+                          <h1 className="text-[48px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
                             分享你的经历
                             {/* 第二行右移约一个字，错开成阶梯（个 在 享 下方）；文字逐字打字机浮现 */}
                             <span className="block text-brand-primary ml-[1em]">
