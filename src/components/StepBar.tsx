@@ -1,8 +1,11 @@
+export type StepKey = 'story' | 'restructure' | 'matching' | 'analysis' | 'practice'
+
 interface StepBarProps {
-  currentStep: 'story' | 'restructure' | 'matching' | 'analysis' | 'practice'
+  currentStep: StepKey
 }
 
-const STEPS = [
+/** 核心链路 5 步（顺序即流程顺序）；桌面 FlowShellDesktop 顶部进度复用同一份数据与 key。 */
+export const STEPS: { key: StepKey; label: string }[] = [
   { key: 'story',       label: '故事' },
   { key: 'restructure', label: '整理' },
   { key: 'matching',    label: '题目' },
