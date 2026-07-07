@@ -26,7 +26,7 @@ import type { LibraryViewProps } from './types'
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 
 /** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
-const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases']
+const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron']
 
 export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
   const [tab, setTab] = useState<Tab>('cards')
@@ -112,7 +112,7 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
           {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
           {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
           {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
-          {tab === 'pron'    && <PronunciationTab />}
+          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
           {tab === 'stories' && (
             loading ? (
               <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
