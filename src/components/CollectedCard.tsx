@@ -10,7 +10,7 @@
  */
 'use client'
 import Link from 'next/link'
-import { Shuffle, Volume2 } from 'lucide-react'
+import { Shuffle, Volume2, Check } from 'lucide-react'
 import Chip from '@/components/Chip'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
 import { chunkSentence } from '@/lib/phrase-chunk'
@@ -24,6 +24,12 @@ interface CollectedCardProps {
   enableSwipe: boolean
   /** 删除回调 */
   onDelete: (id: string) => void
+  /** 桌面多选：是否在选择模式（浮出 checkbox、整卡点击切换、禁用内部交互）。移动端不传 */
+  selecting?: boolean
+  /** 桌面多选：本卡是否被选中 */
+  selected?: boolean
+  /** 桌面多选：切换选中态 */
+  onSelectToggle?: (id: string) => void
 }
 
 /** 用浏览器 TTS 读一句英文（与 FeedbackCard 同一实现） */
@@ -68,13 +74,40 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
   )
 }
 
-export default function CollectedCard({ card, enableSwipe, onDelete }: CollectedCardProps): JSX.Element {
+export default function CollectedCard({
+  card,
+  enableSwipe,
+  onDelete,
+  selecting = false,
+  selected = false,
+  onSelectToggle,
+}: CollectedCardProps): JSX.Element {
   // 优化句切不出至少 3 块（短句）时不显示拼句练习入口，玩着意义不大
   const canPlay = chunkSentence(card.aiOptimized).length >= 3
 
-  // 整卡：一层渐变描边（_OPAQUE 垫白底挡红）+ 圆角 16 + overflow-hidden，一次裹住卡内容 + 拼句行
+  // 整卡：一层渐变描边（_OPAQUE 垫白底挡红）+ 圆角 16 + overflow-hidden，一次裹住卡内容 + 拼句行。
+  // 选中态：换成主题色实线描边（并显式补 bg-white，否则去掉渐变内联样式后内壁会透出页面底色）。
+  // 选择模式：整个 body 设 pointer-events-none，让播放/拼句都失效、点击统一交给外层做「切换选中」。
   const body = (
-    <div className="rounded-[16px] overflow-hidden" style={GRADIENT_BORDER_STYLE_FULL_OPAQUE}>
+    <div
+      className={
+        `relative rounded-[16px] overflow-hidden ` +
+        (selected ? 'bg-white border-2 border-brand-primary ' : '') +
+        (selecting ? 'pointer-events-none' : '')
+      }
+      style={selected ? undefined : GRADIENT_BORDER_STYLE_FULL_OPAQUE}
+    >
+      {/* 选择模式：右上角浮出 checkbox（避开左上角「原句」标签） */}
+      {selecting && (
+        <div
+          className={
+            `absolute top-3 right-3 z-10 w-5 h-5 rounded-full flex items-center justify-center ` +
+            (selected ? 'bg-brand-primary' : 'bg-white border-2 border-black/[0.2]')
+          }
+        >
+          {selected && <Check size={14} strokeWidth={3} className="text-white" />}
+        </div>
+      )}
       {/* 卡内容主体（复刻 feedback 非 plain 版式与间距） */}
       <div className="px-[16px] pt-[14px] pb-[18px]">
         <div className="mb-1.5">
@@ -119,9 +152,12 @@ export default function CollectedCard({ card, enableSwipe, onDelete }: Collected
     )
   }
 
-  // 桌面端：裸渲染，外层 wrapper 提供圆角 + 阴影
+  // 桌面端：裸渲染，外层 wrapper 提供圆角 + 阴影；选择模式下整卡点击切换选中
   return (
-    <div className="rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+    <div
+      className={`rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${selecting ? 'cursor-pointer' : ''}`}
+      onClick={selecting ? () => onSelectToggle?.(card.id) : undefined}
+    >
       {body}
     </div>
   )

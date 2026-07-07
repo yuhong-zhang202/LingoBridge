@@ -5,16 +5,18 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { Search, Trash2 } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import RequireAccountGate from '@/components/RequireAccountGate'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
-import CollectedCardsTab from '@/components/library/CollectedCardsTab'
+import IconButton from '@/components/IconButton'
+import Toast from '@/components/Toast'
+import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
@@ -26,6 +28,12 @@ type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
   const [tab, setTab] = useState<Tab>('cards')
   const totalCount = stories.length + cards.length + wordsCount + pronCount
+  // 收藏卡片「选择」工具栏的 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归 CollectedCardsTab 所有）
+  const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
+  // cards tab 是否处于选择模式（由 CollectedCardsTab 通知）：用于禁用同排搜索图标
+  const [cardsSelecting, setCardsSelecting] = useState(false)
+  // 占位提示 Toast（搜索/其他 tab 多选删除「即将上线」）
+  const [hint, setHint] = useState<string | null>(null)
 
   const TABS = [
     { id: 'cards',   label: '收藏卡片', count: cards.length },
@@ -43,7 +51,6 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
           <ManageHeader
             title="我的素材库"
             subtitle={`已攒下 ${totalCount} 条，慢慢成你自己的表达库`}
-            right={<Search size={18} className="text-v2-text-muted" aria-label="搜索" />}
           />
 
           {/* 今日复习 hero —— 复用 /review 入口 */}
@@ -65,21 +72,39 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
             </Card>
           </Link>
 
-          {/* 四类 Tab 分段切换 */}
-          <div className="flex gap-[3px] p-[3px] bg-bg-inner rounded-[10px] w-fit max-w-full my-5 overflow-x-auto">
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
-              >
-                {t.label}<span className="text-[12px] text-v2-text-muted">{t.count}</span>
-              </button>
-            ))}
+          {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
+          <div className="flex items-center justify-between gap-3 my-5">
+            <div className="flex gap-[3px] p-[3px] bg-bg-inner rounded-[10px] w-fit max-w-full overflow-x-auto">
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                >
+                  {t.label}<span className="text-[12px] text-v2-text-muted">{t.count}</span>
+                </button>
+              ))}
+            </div>
+            {/* 右侧图标组：搜索（全局常驻）+ 垃圾桶/工具栏槽 */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <IconButton
+                icon={Search}
+                label="搜索"
+                disabled={tab === 'cards' && cardsSelecting}
+                onClick={() => setHint('搜索功能即将上线')}
+              />
+              {tab === 'cards' ? (
+                /* 收藏卡片 tab：CollectedCardsTab 把「选择」/工具栏 Portal 到这里 */
+                <div ref={toolbarSlotRef} className="flex items-center gap-2" />
+              ) : (
+                /* 其他 tab：多选删除尚未实现，点击弹占位 Toast */
+                <IconButton icon={Trash2} label="选择" onClick={() => setHint('多选删除即将上线')} />
+              )}
+            </div>
           </div>
 
           {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
-          {tab === 'cards'   && <CollectedCardsTab cards={cards} />}
+          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setCardsSelecting} />}
           {tab === 'phrases' && <SavedWordsTab />}
           {tab === 'pron'    && <PronunciationTab />}
           {tab === 'stories' && (
@@ -111,6 +136,9 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
           )}
         </main>
       </RequireAccountGate>
+
+      {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}
+      <Toast message={hint} onDismiss={() => setHint(null)} />
     </div>
   )
 }
