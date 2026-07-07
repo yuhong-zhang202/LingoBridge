@@ -27,7 +27,7 @@ function WordRow({ label, word, ipa }: { label: string; word: string; ipa?: stri
   return (
     <>
       <p className="text-[11px] text-v2-text-muted mb-[5px]">{label}</p>
-      <div className="flex items-center justify-between mb-[11px]">
+      <div className="flex items-center gap-1.5 mb-[11px]">
         <span className="text-[15px] text-v2-text-primary">
           <span className="font-medium">{word}</span>
           {ipa && <span className="ml-2 text-[12px] text-v2-text-secondary">{ipa}</span>}
@@ -35,7 +35,7 @@ function WordRow({ label, word, ipa }: { label: string; word: string; ipa?: stri
         <button
           onClick={() => speak(word)}
           aria-label="播放"
-          className="active:opacity-50 transition-opacity"
+          className="flex-shrink-0 active:opacity-50 transition-opacity"
         >
           <Volume2 size={14} className="text-v2-text-muted" />
         </button>

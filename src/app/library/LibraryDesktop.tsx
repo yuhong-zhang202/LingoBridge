@@ -25,15 +25,21 @@ import type { LibraryViewProps } from './types'
 
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 
+/** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
+const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases']
+
 export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
   const [tab, setTab] = useState<Tab>('cards')
   const totalCount = stories.length + cards.length + wordsCount + pronCount
-  // 收藏卡片「选择」工具栏的 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归 CollectedCardsTab 所有）
+  // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
-  // cards tab 是否处于选择模式（由 CollectedCardsTab 通知）：用于禁用同排搜索图标
-  const [cardsSelecting, setCardsSelecting] = useState(false)
-  // 占位提示 Toast（搜索/其他 tab 多选删除「即将上线」）
+  // 当前活跃 tab 是否处于选择模式（由各 tab 组件通知）：用于禁用同排搜索图标
+  const [activeSelecting, setActiveSelecting] = useState(false)
+  // 占位提示 Toast（搜索/未接入 tab 的多选删除「即将上线」）
   const [hint, setHint] = useState<string | null>(null)
+
+  const selectTab = (id: Tab) => { setTab(id); setActiveSelecting(false) }
+  const isSelectableTab = SELECTABLE_TABS.includes(tab)
 
   const TABS = [
     { id: 'cards',   label: '收藏卡片', count: cards.length },
@@ -78,7 +84,7 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
               {TABS.map(t => (
                 <button
                   key={t.id}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => selectTab(t.id)}
                   className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                 >
                   {t.label}<span className="text-[12px] text-v2-text-muted">{t.count}</span>
@@ -90,22 +96,22 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
               <IconButton
                 icon={Search}
                 label="搜索"
-                disabled={tab === 'cards' && cardsSelecting}
+                disabled={isSelectableTab && activeSelecting}
                 onClick={() => setHint('搜索功能即将上线')}
               />
-              {tab === 'cards' ? (
-                /* 收藏卡片 tab：CollectedCardsTab 把「选择」/工具栏 Portal 到这里 */
+              {isSelectableTab ? (
+                /* 已接入多选的 tab：对应 tab 组件把「选择」/工具栏 Portal 到这里 */
                 <div ref={toolbarSlotRef} className="flex items-center gap-2" />
               ) : (
-                /* 其他 tab：多选删除尚未实现，点击弹占位 Toast */
+                /* 未接入 tab：多选删除尚未实现，点击弹占位 Toast */
                 <IconButton icon={Trash2} label="选择" onClick={() => setHint('多选删除即将上线')} />
               )}
             </div>
           </div>
 
           {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
-          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setCardsSelecting} />}
-          {tab === 'phrases' && <SavedWordsTab />}
+          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
+          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
           {tab === 'pron'    && <PronunciationTab />}
           {tab === 'stories' && (
             loading ? (
