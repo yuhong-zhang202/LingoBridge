@@ -15,4 +15,6 @@ export interface LibraryViewProps {
   loading: boolean
   error: string | null
   onDeleteStory: (id: string) => void
+  /** 静默重拉语料列表（批量删除后刷新，不翻 loading 以免卸载列表组件） */
+  onRefresh: () => void
 }

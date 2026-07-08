@@ -6,7 +6,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Volume2, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
@@ -15,6 +15,7 @@ import SelectableCardWrapper from '@/components/library/SelectableCardWrapper'
 import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
+import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
 import { getSavedPronunciations, removeSavedPronunciation, updateSavedPronunciation } from '@/lib/storage'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
@@ -104,24 +105,31 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
 /**
  * toolbarSlotRef：桌面端把「选择」/多选工具栏 Portal 到 tab 栏右侧槽（LibraryDesktop 提供）；移动端不传。
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
+ * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
  */
 interface Props {
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
+  searchQuery?: string
 }
 
 const getPronId = (p: SavedPronunciation): string => p.id
+/** 可搜文本：想说的词 + 被听成 + 出处 */
+const getPronText = (p: SavedPronunciation): string => [p.intended, p.heard, p.context].join(' ')
 
-export default function PronunciationTab({ toolbarSlotRef, onSelectingChange }: Props): JSX.Element | null {
+export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, searchQuery }: Props): JSX.Element | null {
   const [pronunciations, setPronunciations] = useState<SavedPronunciation[]>([])
   const [loaded, setLoaded] = useState(false)
 
+  const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getPronText), [searchQuery])
   const sel = useSelectMode({
     initialItems: pronunciations,
     getId: getPronId,
     removeFn: removeSavedPronunciation,
     onSelectingChange,
+    filterFn,
   })
+  const searching = (searchQuery ?? '').trim() !== ''
 
   // Portal 落点在 LibraryDesktop 的 DOM 里，首帧 ref.current 尚未挂载；挂载后翻标志重渲染。移动端不传 ref → 恒 null → 无工具栏。
   const [slotReady, setSlotReady] = useState(false)
@@ -168,25 +176,29 @@ export default function PronunciationTab({ toolbarSlotRef, onSelectingChange }: 
         toolbarSlot
       )}
 
-      <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
-        {sel.visibleItems.map(it => (
-          <SelectableCardWrapper
-            key={it.id}
-            selecting={sel.selecting}
-            selected={sel.isSelected(it.id)}
-            onToggle={() => sel.toggleSelect(it.id)}
-            radius={16}
-            checkboxSide="right"
-          >
-            <SwipeToDelete
-              borderRadius={16}
-              onDelete={() => sel.removeImmediate(it.id)}
+      {searching && sel.visibleItems.length === 0 ? (
+        <div className="pt-3"><EmptyState title={searchEmptyTitle(searchQuery ?? '')} subtitle="换个关键词试试" /></div>
+      ) : (
+        <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
+          {sel.visibleItems.map(it => (
+            <SelectableCardWrapper
+              key={it.id}
+              selecting={sel.selecting}
+              selected={sel.isSelected(it.id)}
+              onToggle={() => sel.toggleSelect(it.id)}
+              radius={16}
+              checkboxSide="right"
             >
-              <PronunciationCard item={it} />
-            </SwipeToDelete>
-          </SelectableCardWrapper>
-        ))}
-      </div>
+              <SwipeToDelete
+                borderRadius={16}
+                onDelete={() => sel.removeImmediate(it.id)}
+              >
+                <PronunciationCard item={it} />
+              </SwipeToDelete>
+            </SelectableCardWrapper>
+          ))}
+        </div>
+      )}
 
       {/* 撤销 Toast（桌面多选删除专用；key 变化重置 5s 计时） */}
       {sel.pendingCount > 0 && (

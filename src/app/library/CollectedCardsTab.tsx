@@ -7,7 +7,7 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import CollectedCard from '@/components/CollectedCard'
@@ -15,28 +15,37 @@ import EmptyState from '@/components/EmptyState'
 import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
+import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
 import { removeSavedPhrase } from '@/lib/storage'
 import type { CollectedCard as CollectedCardData } from '@/lib/types'
 
 /**
  * toolbarSlotRef：桌面端把「选择」/多选工具栏 Portal 到 tab 栏右侧槽（LibraryDesktop 提供）；移动端不传。
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
+ * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
  */
 interface Props {
   cards: CollectedCardData[]
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
+  searchQuery?: string
 }
 
 const getCardId = (c: CollectedCardData): string => c.id
+/** 可搜文本：原句 + 优化句 + 题目 + 关键词 */
+const getCardText = (c: CollectedCardData): string =>
+  [c.originalSentence, c.aiOptimized, c.topicEn, (c.keywords ?? []).join(' ')].join(' ')
 
-export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingChange }: Props) {
+export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingChange, searchQuery }: Props) {
+  const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getCardText), [searchQuery])
   const sel = useSelectMode({
     initialItems: cards,
     getId: getCardId,
     removeFn: removeSavedPhrase,
     onSelectingChange,
+    filterFn,
   })
+  const searching = (searchQuery ?? '').trim() !== ''
 
   // Portal 落点在父组件（LibraryDesktop）的 DOM 里，首次 render 时 ref.current 尚未挂载；
   // 挂载后翻此标志触发重渲染，届时 toolbarSlotRef.current 已就绪。移动端不传 ref → 恒为 null → 不渲染工具栏。
@@ -86,21 +95,25 @@ export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingCh
         toolbarSlot
       )}
 
-      {/* 桌面端：两列 grid（多选删除） */}
+      {/* 桌面端：两列 grid（多选删除）；搜索无结果时回显空状态 */}
       <div className="hidden lg:block pt-3 px-1">
-        <div className="grid grid-cols-2 gap-3 items-start">
-          {sel.visibleItems.map(card => (
-            <CollectedCard
-              key={card.id}
-              card={card}
-              enableSwipe={false}
-              onDelete={sel.removeImmediate}
-              selecting={sel.selecting}
-              selected={sel.isSelected(card.id)}
-              onSelectToggle={sel.toggleSelect}
-            />
-          ))}
-        </div>
+        {searching && sel.visibleItems.length === 0 ? (
+          <EmptyState title={searchEmptyTitle(searchQuery ?? '')} subtitle="换个关键词试试" />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 items-start">
+            {sel.visibleItems.map(card => (
+              <CollectedCard
+                key={card.id}
+                card={card}
+                enableSwipe={false}
+                onDelete={sel.removeImmediate}
+                selecting={sel.selecting}
+                selected={sel.isSelected(card.id)}
+                onSelectToggle={sel.toggleSelect}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 撤销 Toast（桌面多选删除专用；key 变化重置 5s 计时） */}

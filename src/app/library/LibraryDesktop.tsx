@@ -16,6 +16,8 @@ import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
 import IconButton from '@/components/IconButton'
 import Toast from '@/components/Toast'
+import SearchBox from '@/components/library/SearchBox'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
@@ -26,19 +28,26 @@ import type { LibraryViewProps } from './types'
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 
 /** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
-const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron']
+const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
-export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
+export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh }: LibraryViewProps) {
   const [tab, setTab] = useState<Tab>('cards')
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
   // 当前活跃 tab 是否处于选择模式（由各 tab 组件通知）：用于禁用同排搜索图标
   const [activeSelecting, setActiveSelecting] = useState(false)
-  // 占位提示 Toast（搜索/未接入 tab 的多选删除「即将上线」）
+  // 占位提示 Toast（未接入 tab 的多选删除「即将上线」）
   const [hint, setHint] = useState<string | null>(null)
+  // 搜索：是否展开输入框 + 实时输入 + 300ms 防抖后下发给当前 tab 过滤（本批切 tab 即清空）
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [rawQuery, setRawQuery] = useState('')
+  const debouncedQuery = useDebouncedValue(rawQuery, 300)
+  // 搜索关闭时（含切 tab）立即下发空串，绕过防抖滞后，避免新 tab 被上一个查询短暂过滤
+  const searchQuery = searchOpen ? debouncedQuery : ''
 
-  const selectTab = (id: Tab) => { setTab(id); setActiveSelecting(false) }
+  const closeSearch = () => { setSearchOpen(false); setRawQuery('') }
+  const selectTab = (id: Tab) => { setTab(id); setActiveSelecting(false); closeSearch() }
   const isSelectableTab = SELECTABLE_TABS.includes(tab)
 
   const TABS = [
@@ -91,14 +100,18 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
                 </button>
               ))}
             </div>
-            {/* 右侧图标组：搜索（全局常驻）+ 垃圾桶/工具栏槽 */}
+            {/* 右侧：搜索框/搜索图标 + 垃圾桶/工具栏槽。三态：选择模式→搜索禁用+工具栏；搜索展开→输入框+垃圾桶并存；默认→图标+垃圾桶 */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <IconButton
-                icon={Search}
-                label="搜索"
-                disabled={isSelectableTab && activeSelecting}
-                onClick={() => setHint('搜索功能即将上线')}
-              />
+              {searchOpen && !activeSelecting ? (
+                <SearchBox value={rawQuery} onChange={setRawQuery} onClose={closeSearch} />
+              ) : (
+                <IconButton
+                  icon={Search}
+                  label="搜索"
+                  disabled={activeSelecting}
+                  onClick={() => setSearchOpen(true)}
+                />
+              )}
               {isSelectableTab ? (
                 /* 已接入多选的 tab：对应 tab 组件把「选择」/工具栏 Portal 到这里 */
                 <div ref={toolbarSlotRef} className="flex items-center gap-2" />
@@ -110,9 +123,9 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
           </div>
 
           {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
-          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
-          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
-          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} />}
+          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
+          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
+          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
           {tab === 'stories' && (
             loading ? (
               <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
@@ -137,7 +150,7 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
                 ? <OfflineState onRetry={() => window.location.reload()} />
                 : <p className="text-[13px] text-error text-center pt-16">{error}</p>
             ) : (
-              <MyStoriesTab stories={stories} onDelete={onDeleteStory} />
+              <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />
             )
           )}
         </main>

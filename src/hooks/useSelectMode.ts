@@ -18,6 +18,11 @@ interface UseSelectModeOptions<T> {
   removeFn: (id: string) => void
   /** 选择模式变化通知（供外层禁用同排搜索图标等） */
   onSelectingChange?: (selecting: boolean) => void
+  /**
+   * 可见性过滤（如搜索）——只影响 visibleItems / allSelected / toggleSelectAll，让全选/删除只作用于过滤结果。
+   * 不传（默认）时 visibleItems 仅按 pending 过滤，行为与不带搜索时完全一致。
+   */
+  filterFn?: (item: T) => boolean
 }
 
 interface UseSelectMode<T> {
@@ -49,7 +54,7 @@ interface DeleteBatch { ids: string[]; key: number }
  * @returns        选择态与操作方法（不含任何 JSX 或文案）
  * @sideEffect     removeFn 写持久层；window keydown 监听（Esc）；卸载时提交未撤销的待删
  */
-export default function useSelectMode<T>({ initialItems, getId, removeFn, onSelectingChange }: UseSelectModeOptions<T>): UseSelectMode<T> {
+export default function useSelectMode<T>({ initialItems, getId, removeFn, onSelectingChange, filterFn }: UseSelectModeOptions<T>): UseSelectMode<T> {
   const [items, setItems]           = useState<T[]>(initialItems)
   const [selecting, setSelecting]   = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -65,11 +70,11 @@ export default function useSelectMode<T>({ initialItems, getId, removeFn, onSele
     setItems(initialItems)
   }
 
-  // 显示列表：过滤掉待删的（不动 items 数组，撤销时原顺序天然恢复）
-  const visibleItems = useMemo(
-    () => (pending ? items.filter(it => !pending.ids.includes(getId(it))) : items),
-    [items, pending, getId],
-  )
+  // 显示列表：先隐藏待删（不动 items 数组，撤销时原顺序天然恢复），再按 filterFn（如搜索）过滤。
+  const visibleItems = useMemo(() => {
+    const afterPending = pending ? items.filter(it => !pending.ids.includes(getId(it))) : items
+    return filterFn ? afterPending.filter(filterFn) : afterPending
+  }, [items, pending, getId, filterFn])
   const allSelected = visibleItems.length > 0 && selectedIds.size === visibleItems.length
 
   /** 真删一批：持久化 + 从 items 移除 */
