@@ -6,6 +6,9 @@
  * @created  2026-07-08
  */
 
+/** tab 向 LibraryDesktop 上报的实时计数：matched=搜索匹配数，total=当前总数（均已扣除待删 pending） */
+export interface SearchCounts { matched: number; total: number }
+
 /**
  * 由搜索词构造一个 filterFn（喂给 useSelectMode）。空词返回 undefined = 不过滤。
  * @param query    搜索词

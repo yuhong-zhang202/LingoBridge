@@ -15,7 +15,7 @@ import SelectableCardWrapper from '@/components/library/SelectableCardWrapper'
 import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
-import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
+import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { getSavedPronunciations, removeSavedPronunciation, updateSavedPronunciation } from '@/lib/storage'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
@@ -106,18 +106,20 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
  * toolbarSlotRef：桌面端把「选择」/多选工具栏 Portal 到 tab 栏右侧槽（LibraryDesktop 提供）；移动端不传。
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
  * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
+ * onSearchCountsChange：上报实时（匹配数, 总数）供 tab 胶囊显示「匹配/总数」；移动端不传。
  */
 interface Props {
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
   searchQuery?: string
+  onSearchCountsChange?: (counts: SearchCounts) => void
 }
 
 const getPronId = (p: SavedPronunciation): string => p.id
 /** 可搜文本：想说的词 + 被听成 + 出处 */
 const getPronText = (p: SavedPronunciation): string => [p.intended, p.heard, p.context].join(' ')
 
-export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, searchQuery }: Props): JSX.Element | null {
+export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props): JSX.Element | null {
   const [pronunciations, setPronunciations] = useState<SavedPronunciation[]>([])
   const [loaded, setLoaded] = useState(false)
 
@@ -130,6 +132,11 @@ export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, se
     filterFn,
   })
   const searching = (searchQuery ?? '').trim() !== ''
+
+  // 上报实时计数（匹配=可见项，总数=扣除待删）供 tab 胶囊显示「匹配/总数」
+  useEffect(() => {
+    onSearchCountsChange?.({ matched: sel.visibleItems.length, total: sel.items.length - sel.pendingCount })
+  }, [sel.visibleItems.length, sel.items.length, sel.pendingCount, onSearchCountsChange])
 
   // Portal 落点在 LibraryDesktop 的 DOM 里，首帧 ref.current 尚未挂载；挂载后翻标志重渲染。移动端不传 ref → 恒 null → 无工具栏。
   const [slotReady, setSlotReady] = useState(false)

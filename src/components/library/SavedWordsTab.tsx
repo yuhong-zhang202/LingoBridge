@@ -18,7 +18,7 @@ import SelectableCardWrapper from '@/components/library/SelectableCardWrapper'
 import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
-import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
+import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { getSavedWords, removeSavedWord } from '@/lib/storage'
 import { getDueCount, listDeckWordIds, addPhraseCard } from '@/lib/db/phrase-cards'
 import type { SavedWord } from '@/lib/types'
@@ -27,18 +27,20 @@ import type { SavedWord } from '@/lib/types'
  * toolbarSlotRef：桌面端把「选择」/多选工具栏 Portal 到 tab 栏右侧槽（LibraryDesktop 提供）；移动端不传。
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
  * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
+ * onSearchCountsChange：上报实时（匹配数, 总数）供 tab 胶囊显示「匹配/总数」；移动端不传。
  */
 interface Props {
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
   searchQuery?: string
+  onSearchCountsChange?: (counts: SearchCounts) => void
 }
 
 const getWordId = (w: SavedWord): string => w.id
 /** 可搜文本：词组 + 释义 + 场景 + 分组 */
 const getWordText = (w: SavedWord): string => [w.text, w.meaning, w.scene, w.group].join(' ')
 
-export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searchQuery }: Props): JSX.Element | null {
+export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props): JSX.Element | null {
   const [words, setWords] = useState<SavedWord[]>([])
   const [loaded, setLoaded] = useState(false)
   const [deckIds, setDeckIds] = useState<Set<string>>(new Set())
@@ -53,6 +55,11 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
     filterFn,
   })
   const searching = (searchQuery ?? '').trim() !== ''
+
+  // 上报实时计数（匹配=可见项，总数=扣除待删）供 tab 胶囊显示「匹配/总数」
+  useEffect(() => {
+    onSearchCountsChange?.({ matched: sel.visibleItems.length, total: sel.items.length - sel.pendingCount })
+  }, [sel.visibleItems.length, sel.items.length, sel.pendingCount, onSearchCountsChange])
 
   // Portal 落点在 LibraryDesktop 的 DOM 里，首帧 ref.current 尚未挂载；挂载后翻标志重渲染。移动端不传 ref → 恒 null → 无工具栏。
   const [slotReady, setSlotReady] = useState(false)

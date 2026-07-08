@@ -15,7 +15,7 @@ import EmptyState from '@/components/EmptyState'
 import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
-import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
+import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { removeSavedPhrase } from '@/lib/storage'
 import type { CollectedCard as CollectedCardData } from '@/lib/types'
 
@@ -23,12 +23,14 @@ import type { CollectedCard as CollectedCardData } from '@/lib/types'
  * toolbarSlotRef：桌面端把「选择」/多选工具栏 Portal 到 tab 栏右侧槽（LibraryDesktop 提供）；移动端不传。
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
  * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
+ * onSearchCountsChange：上报实时（匹配数, 总数）供 tab 胶囊显示「匹配/总数」；移动端不传。
  */
 interface Props {
   cards: CollectedCardData[]
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
   searchQuery?: string
+  onSearchCountsChange?: (counts: SearchCounts) => void
 }
 
 const getCardId = (c: CollectedCardData): string => c.id
@@ -36,7 +38,7 @@ const getCardId = (c: CollectedCardData): string => c.id
 const getCardText = (c: CollectedCardData): string =>
   [c.originalSentence, c.aiOptimized, c.topicEn, (c.keywords ?? []).join(' ')].join(' ')
 
-export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingChange, searchQuery }: Props) {
+export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getCardText), [searchQuery])
   const sel = useSelectMode({
     initialItems: cards,
@@ -46,6 +48,11 @@ export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingCh
     filterFn,
   })
   const searching = (searchQuery ?? '').trim() !== ''
+
+  // 上报实时计数（匹配=可见项，总数=扣除待删）供 tab 胶囊显示「匹配/总数」
+  useEffect(() => {
+    onSearchCountsChange?.({ matched: sel.visibleItems.length, total: sel.items.length - sel.pendingCount })
+  }, [sel.visibleItems.length, sel.items.length, sel.pendingCount, onSearchCountsChange])
 
   // Portal 落点在父组件（LibraryDesktop）的 DOM 里，首次 render 时 ref.current 尚未挂载；
   // 挂载后翻此标志触发重渲染，届时 toolbarSlotRef.current 已就绪。移动端不传 ref → 恒为 null → 不渲染工具栏。

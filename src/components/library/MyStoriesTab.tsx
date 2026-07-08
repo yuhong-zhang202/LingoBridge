@@ -21,7 +21,7 @@ import IconButton from '@/components/IconButton'
 import Toast from '@/components/Toast'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import useSelectMode from '@/hooks/useSelectMode'
-import { makeSearchFilter, searchEmptyTitle } from '@/lib/search'
+import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { deleteCorpus } from '@/lib/db/corpus'
 
 /**
@@ -29,6 +29,7 @@ import { deleteCorpus } from '@/lib/db/corpus'
  * onRefresh：桌面批量删除后静默重拉列表。
  * toolbarSlotRef / onSelectingChange：桌面选择模式的 Portal 槽与状态通知（移动端不传）。
  * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
+ * onSearchCountsChange：上报实时（匹配数, 总数）供 tab 胶囊显示「匹配/总数」；移动端不传。
  */
 interface Props {
   stories: MyStory[]
@@ -37,6 +38,7 @@ interface Props {
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
   searchQuery?: string
+  onSearchCountsChange?: (counts: SearchCounts) => void
 }
 
 const getStoryId = (s: MyStory): string => s.id
@@ -45,7 +47,7 @@ const getStoryText = (s: MyStory): string => [s.content, s.inputType, s.dimensio
 /** stories 不走 5s 延迟真删，hook 的 removeFn 用不到；给个稳定空函数避免 effect 抖动 */
 const NOOP = (): void => {}
 
-export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlotRef, onSelectingChange, searchQuery }: Props) {
+export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
   const router = useRouter()
 
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getStoryText), [searchQuery])
@@ -57,6 +59,11 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
     filterFn,
   })
   const searching = (searchQuery ?? '').trim() !== ''
+
+  // 上报实时计数（匹配=可见项，总数=扣除待删）供 tab 胶囊显示「匹配/总数」
+  useEffect(() => {
+    onSearchCountsChange?.({ matched: sel.visibleItems.length, total: sel.items.length - sel.pendingCount })
+  }, [sel.visibleItems.length, sel.items.length, sel.pendingCount, onSearchCountsChange])
 
   // Portal 落点在 LibraryDesktop 的 DOM 里，首帧 ref.current 尚未挂载；挂载后翻标志重渲染。移动端不传 ref → 恒 null → 无工具栏。
   const [slotReady, setSlotReady] = useState(false)

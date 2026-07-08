@@ -45,6 +45,9 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
   const debouncedQuery = useDebouncedValue(rawQuery, 300)
   // 搜索关闭时（含切 tab）立即下发空串，绕过防抖滞后，避免新 tab 被上一个查询短暂过滤
   const searchQuery = searchOpen ? debouncedQuery : ''
+  const searching = searchQuery.trim() !== ''
+  // 当前 tab 上报的实时（匹配数, 总数）——搜索时用于把当前 tab 胶囊显示成「匹配/总数」
+  const [activeCounts, setActiveCounts] = useState<{ matched: number; total: number } | null>(null)
 
   const closeSearch = () => { setSearchOpen(false); setRawQuery('') }
   const selectTab = (id: Tab) => { setTab(id); setActiveSelecting(false); closeSearch() }
@@ -96,7 +99,14 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
                   onClick={() => selectTab(t.id)}
                   className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                 >
-                  {t.label}<span className="text-[12px] text-v2-text-muted">{t.count}</span>
+                  {t.label}
+                  {searching && t.id === tab && activeCounts ? (
+                    <span className="text-[12px] text-v2-text-secondary">
+                      {activeCounts.matched}<span className="text-v2-text-muted">/{activeCounts.total}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[12px] text-v2-text-muted">{t.count}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -123,9 +133,9 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
           </div>
 
           {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
-          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
-          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
-          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />}
+          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
           {tab === 'stories' && (
             loading ? (
               <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
@@ -150,7 +160,7 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
                 ? <OfflineState onRetry={() => window.location.reload()} />
                 : <p className="text-[13px] text-error text-center pt-16">{error}</p>
             ) : (
-              <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} />
+              <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />
             )
           )}
         </main>
