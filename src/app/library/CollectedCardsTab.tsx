@@ -74,9 +74,13 @@ export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingCh
       {/* 移动端：单列 flex + 左滑删除（无选择模式） */}
       {/* px-1（4px/side）补偿 library px-5 与 feedback px-6 的宽度差，使卡片内文字换行一致 */}
       <div className="lg:hidden flex flex-col gap-3 pt-3 px-1">
-        {sel.visibleItems.map(card => (
-          <CollectedCard key={card.id} card={card} enableSwipe onDelete={sel.removeImmediate} />
-        ))}
+        {searching && sel.visibleItems.length === 0 ? (
+          <EmptyState title={searchEmptyTitle(searchQuery ?? '')} subtitle="换个关键词试试" />
+        ) : (
+          sel.visibleItems.map(card => (
+            <CollectedCard key={card.id} card={card} enableSwipe onDelete={sel.removeImmediate} />
+          ))
+        )}
       </div>
 
       {/* 桌面端工具栏：Portal 到 tab 栏右侧槽，与 tab 栏同一行右对齐（未选择=「选择」；选择中=取消/已选N/全选/删除） */}

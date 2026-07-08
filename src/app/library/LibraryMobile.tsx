@@ -7,7 +7,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
+import { Search, X, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
@@ -18,6 +18,7 @@ import RequireAccountGate from '@/components/RequireAccountGate'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
+import useDebouncedValue from '@/hooks/useDebouncedValue'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import type { LibraryViewProps } from './types'
 
@@ -36,6 +37,12 @@ const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60
 
 export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
+  // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
+  const [mobileQuery, setMobileQuery] = useState('')
+  const debouncedQuery = useDebouncedValue(mobileQuery, 300)
+  // 空词立即置空（绕过防抖滞后）：切二级页/清空后新分类不会被上一个词短暂过滤
+  const searchQuery = mobileQuery.trim() === '' ? '' : debouncedQuery
+  const goView = (v: View) => { setView(v); setMobileQuery('') }
 
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   const matchedTotal = stories.reduce((sum, s) => sum + (s.matchedCount ?? 0), 0)
@@ -62,7 +69,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           {/* 二级页返回栏 */}
           <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
             <button
-              onClick={() => setView('hub')}
+              onClick={() => goView('hub')}
               aria-label="返回积累主页"
               className="w-[30px] h-[30px] rounded-full bg-bg-surface shadow-sm flex items-center justify-center"
             >
@@ -70,6 +77,31 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             </button>
             <span className="text-[15px] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
             <div className="w-[30px]" />
+          </div>
+
+          {/* 常驻搜索条（当前分类内搜索） */}
+          <div className="px-5 pb-2 relative z-10">
+            <div className="flex items-center gap-1.5 h-9 rounded-full bg-bg-muted px-3.5">
+              <Search size={15} className="flex-shrink-0 text-v2-text-muted" />
+              <input
+                value={mobileQuery}
+                onChange={e => setMobileQuery(e.target.value)}
+                placeholder="搜索…"
+                role="searchbox"
+                aria-label={`搜索${VIEW_TITLE[view]}`}
+                className="flex-1 min-w-0 bg-transparent text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none"
+              />
+              {mobileQuery && (
+                <button
+                  type="button"
+                  onClick={() => setMobileQuery('')}
+                  aria-label="清空搜索"
+                  className="flex-shrink-0 active:opacity-60 transition-opacity"
+                >
+                  <X size={14} className="text-v2-text-muted" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 relative z-10">
@@ -98,16 +130,16 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   ? (typeof navigator !== 'undefined' && !navigator.onLine
                       ? <OfflineState onRetry={() => window.location.reload()} />
                       : <p className="text-[13px] text-error text-center pt-16">{error}</p>)
-                  : <MyStoriesTab stories={stories} onDelete={onDeleteStory} />
+                  : <MyStoriesTab stories={stories} onDelete={onDeleteStory} searchQuery={searchQuery} />
             )}
-            {view === 'cards' && <CollectedCardsTab cards={cards} />}
-            {view === 'words' && <SavedWordsTab />}
-            {view === 'pron'  && <PronunciationTab />}
+            {view === 'cards' && <CollectedCardsTab cards={cards} searchQuery={searchQuery} />}
+            {view === 'words' && <SavedWordsTab searchQuery={searchQuery} />}
+            {view === 'pron'  && <PronunciationTab searchQuery={searchQuery} />}
           </div>
         </>
       ) : (
         <>
-          <TopBar title="素材库" right={<Search size={18} className="text-v2-text-muted" />} />
+          <TopBar title="素材库" />
 
           {/* 移动端 hub */}
           <div className="flex-1 min-h-0 overflow-y-auto relative z-10" style={{ padding: '8px 24px 0' }}>
@@ -184,7 +216,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {/* 3) 收藏卡片 */}
             <button
               type="button"
-              onClick={() => setView('cards')}
+              onClick={() => goView('cards')}
               className="w-full text-left block animate-fade-up"
               style={{ animationDelay: '0.18s' }}
             >
@@ -239,7 +271,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             <div className="grid grid-cols-2 gap-[13px] animate-fade-up" style={{ animationDelay: '0.26s', marginBottom: 20 }}>
               <button
                 type="button"
-                onClick={() => setView('words')}
+                onClick={() => goView('words')}
                 className="rounded-[16px] p-4 bg-bg-surface flex items-center gap-3 active:scale-[0.97] transition-transform text-left"
                 style={{ boxShadow: SOFT_SM }}
               >
@@ -259,7 +291,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
 
               <button
                 type="button"
-                onClick={() => setView('pron')}
+                onClick={() => goView('pron')}
                 className="rounded-[16px] p-4 bg-bg-surface flex items-center gap-3 active:scale-[0.97] transition-transform text-left"
                 style={{ boxShadow: SOFT_SM }}
               >
@@ -281,7 +313,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {/* 5) 我的语料 */}
             <button
               type="button"
-              onClick={() => setView('stories')}
+              onClick={() => goView('stories')}
               className="w-full flex items-center gap-[11px] px-[14px] py-[13px] rounded-[16px] bg-white/55 active:bg-white/90 animate-fade-up text-left"
               style={{ animationDelay: '0.34s' }}
             >
