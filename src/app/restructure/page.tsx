@@ -16,6 +16,7 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import type { RestructureViewProps } from './types'
 
 function RestructureContent() {
@@ -33,7 +34,9 @@ function RestructureContent() {
     return params.get('rawText') ?? MOCK_RAW_STORY
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [aiText,    setAiText]    = useState('')
+  const [aiText,     setAiText]     = useState('')
+  // AI 产出的原始整理文本基准；aiText 与它不一致 = 用户编辑过（未保存）
+  const [aiBaseline, setAiBaseline] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [usable,    setUsable]    = useState<boolean | null>(null)
@@ -56,6 +59,7 @@ function RestructureContent() {
       const data = (await res.json()) as { cleanedText: string; usable: boolean }
       if (signal?.aborted) return
       setAiText(data.cleanedText)
+      setAiBaseline(data.cleanedText)
       setUsable(data.usable ?? true)
     } catch (e) {
       if (signal?.aborted) return          // 中断不算错误，忽略
@@ -92,6 +96,13 @@ function RestructureContent() {
     }
   }, [rawStory, aiText, qid, router])
 
+  // 未保存 = 用户编辑过整理后文本；退出 / 重新整理前若有未保存内容先确认（仅桌面接线，移动端行为不变）。
+  const hasUnsaved = aiText !== aiBaseline
+  const [confirm, setConfirm] = useState<null | 'exit' | 'rerestructure'>(null)
+  const doExit = () => router.push('/')
+  const requestExit = () => { if (hasUnsaved) setConfirm('exit'); else doExit() }
+  const requestReRestructure = () => { if (hasUnsaved) setConfirm('rerestructure'); else void reRestructure() }
+
   const viewProps: RestructureViewProps = {
     rawStory,
     aiText,
@@ -106,17 +117,29 @@ function RestructureContent() {
     onToggleEdit: () => setIsEditing(v => !v),
     onReRestructure: () => void reRestructure(),
     onMatch: () => void handleMatchClick(),
-    onExit: () => router.push('/'),
+    onExit: doExit,
   }
 
   return (
     <>
       <div className="lg:hidden"><RestructureMobile {...viewProps} /></div>
-      {/* 桌面端：FlowShellDesktop 沉浸外壳（整理步激活）+ 两栏舞台 */}
+      {/* 桌面端：FlowShellDesktop 沉浸外壳（整理步激活）+ 两栏舞台。
+          ✕ / Esc③ / 重新整理 都走 request*：编辑过未保存时先弹确认。 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="restructure" onExit={viewProps.onExit}>
-          <RestructureDesktop {...viewProps} />
+        <FlowShellDesktop activeStep="restructure" onExit={requestExit}>
+          <RestructureDesktop {...viewProps} onExit={requestExit} onReRestructure={requestReRestructure} />
         </FlowShellDesktop>
+        <ConfirmDialog
+          open={confirm !== null}
+          title="还没保存哦"
+          description={confirm === 'rerestructure'
+            ? '重新整理会用新的整理结果覆盖你刚改过的内容，确定吗？'
+            : '你改过的内容还没保存，离开就没啦。确定要离开吗？'}
+          confirmText={confirm === 'rerestructure' ? '重新整理' : '离开'}
+          cancelText="留下继续"
+          onConfirm={() => { const c = confirm; setConfirm(null); if (c === 'exit') doExit(); else void reRestructure() }}
+          onCancel={() => setConfirm(null)}
+        />
       </div>
     </>
   )

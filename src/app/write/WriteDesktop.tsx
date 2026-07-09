@@ -33,8 +33,9 @@ export default function WriteDesktop({
         // ⌘/Ctrl+Enter 刻意允许从 textarea 内提交，故不拦截输入框
         if (s.canSubmit && !s.submitting) { e.preventDefault(); s.onSubmit() }
       } else if (e.key === 'Escape') {
-        // 编辑中（焦点在 textarea）按 Esc 不跳走丢正文，让位给输入框
-        if (t?.closest('input, textarea')) return
+        // ② 编辑中先退出编辑（blur），不退页；③ 焦点不在输入框才退出（未保存由外壳 requestExit 弹确认）
+        const el = t?.closest('textarea') as HTMLElement | null
+        if (el) { el.blur(); return }
         s.onExit()
       }
     }

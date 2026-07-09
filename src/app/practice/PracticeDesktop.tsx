@@ -9,9 +9,10 @@
  * @created  2026-07-09
  */
 'use client'
-import { useEffect, useRef, Fragment } from 'react'
+import { useEffect, useRef, useState, Fragment } from 'react'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
@@ -34,22 +35,31 @@ export default function PracticeDesktop({
 
   // 键盘：Space 空闲=开始录音 / 录音=发送；Esc 录音时取消。弹窗打开或焦点在输入框时不响应，避免误触
   // （发音纠错卡里要能正常打空格）。transcribing/replying 不允许。用 ref 持最新值，监听只订阅一次。
-  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend })
-  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend }
+  // 「结束」二次确认（仅手动结束入口；满 8 轮的「查看反馈」不弹）
+  const [confirmEnd, setConfirmEnd] = useState(false)
+
+  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture })
+  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const s = latest.current
+      // ① Esc 就近关浮层（换说法弹窗 / 发音纠错卡，含其输入框内也能关）→ 录音时取消 → 否则不退页（退出走顶栏 ✕）
+      if (e.key === 'Escape') {
+        if (s.showPolish) { s.onClosePolish(); return }
+        if (s.capture) { s.onCloseCapture(); return }
+        if (s.phase === 'recording') { s.onCancelRecord(); return }
+        return
+      }
+      // 其余键：输入框内让位、弹窗开时不响应
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       if (s.showPolish || s.capture) return
       if (e.code === 'Space') {
         // Space 交还给聚焦的原生控件（结束 / 换说法 / 发送等按钮）自行激活，不劫持去录音
         if (t?.closest('button, a, [role="button"]')) return
         if (s.phase === 'idle') { e.preventDefault(); s.onStartRecord() }
         else if (s.phase === 'recording') { e.preventDefault(); s.onSend() }
-      } else if (e.key === 'Escape') {
-        if (s.phase === 'recording') s.onCancelRecord()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -200,7 +210,7 @@ export default function PracticeDesktop({
                 )}
 
                 <button
-                  onClick={onEnd}
+                  onClick={() => setConfirmEnd(true)}
                   className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform hover:-translate-y-[1px]"
                 >
                   结束
@@ -212,6 +222,15 @@ export default function PracticeDesktop({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmEnd}
+        title="结束这场练习？"
+        description="结束后本场会保存进反馈，并计入本月练习额度。确定结束吗？"
+        confirmText="结束"
+        cancelText="继续练习"
+        onConfirm={() => { setConfirmEnd(false); onEnd() }}
+        onCancel={() => setConfirmEnd(false)}
+      />
     </div>
   )
 }

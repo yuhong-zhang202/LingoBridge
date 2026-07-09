@@ -26,10 +26,14 @@ export default function RestructureDesktop({
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
-      // 编辑态让位给输入框：光标在 textarea 里时不响应任何页面级键（避免 Esc 跳走丢正文）
-      if (t?.closest('input, textarea')) return
+      // ② 编辑态：Esc 先退出编辑（blur），其余键让位给输入框（编辑中不用 ⌘Enter 提交）
+      const editEl = t?.closest('input, textarea') as HTMLElement | null
+      if (editEl) {
+        if (e.key === 'Escape') editEl.blur()
+        return
+      }
       const s = latest.current
-      if (e.key === 'Escape') { s.onExit(); return }
+      if (e.key === 'Escape') { s.onExit(); return }   // ③ → requestExit（未保存弹确认）
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         if (!s.isLoading && !s.error && !s.isSaving) { e.preventDefault(); s.onMatch() }
       }

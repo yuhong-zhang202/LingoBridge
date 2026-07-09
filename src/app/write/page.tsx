@@ -17,6 +17,7 @@ import Toast from '@/components/Toast'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import WriteMobile from './WriteMobile'
 import WriteDesktop from './WriteDesktop'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import type { WriteViewProps, WriteQuestionContext } from './types'
 
 function WriteContent(): JSX.Element {
@@ -43,6 +44,11 @@ function WriteContent(): JSX.Element {
 
   const canSubmit = computeRichness(textStory).canSubmit
 
+  // 未保存退出确认（仅桌面接线；移动端仍走 doExit 直接退，行为不变）。
+  const [confirmExit, setConfirmExit] = useState(false)
+  const doExit = () => router.push('/')
+  const requestExit = () => { if (textStory.trim().length > 0) setConfirmExit(true); else doExit() }
+
   const viewProps: WriteViewProps = {
     textStory,
     onChangeText: setTextStory,
@@ -51,17 +57,27 @@ function WriteContent(): JSX.Element {
     onSubmit: submit,
     onSwitchToVoice: () => router.push(qid ? `/recording?qid=${qid}` : '/recording'),
     questionContext,
-    onExit: () => router.push('/'),
+    onExit: doExit,
   }
 
   return (
     <>
       <div className="lg:hidden"><WriteMobile {...viewProps} /></div>
-      {/* 桌面端：FlowShellDesktop 外壳（故事步激活）+ WriteDesktop 写作舞台 */}
+      {/* 桌面端：FlowShellDesktop 外壳（故事步激活）+ WriteDesktop 写作舞台。
+          ✕ 与 Esc③ 都走 requestExit：有未提交内容时先弹确认。 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="story" onExit={viewProps.onExit}>
-          <WriteDesktop {...viewProps} />
+        <FlowShellDesktop activeStep="story" onExit={requestExit}>
+          <WriteDesktop {...viewProps} onExit={requestExit} />
         </FlowShellDesktop>
+        <ConfirmDialog
+          open={confirmExit}
+          title="还没保存哦"
+          description="你写的内容还没提交，离开就没啦。确定要离开吗？"
+          confirmText="离开"
+          cancelText="留下继续"
+          onConfirm={() => { setConfirmExit(false); doExit() }}
+          onCancel={() => setConfirmExit(false)}
+        />
       </div>
       <Toast message={toastMsg} onDismiss={dismissToast} />
     </>
