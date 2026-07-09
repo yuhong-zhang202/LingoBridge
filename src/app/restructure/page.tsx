@@ -106,6 +106,7 @@ function RestructureContent() {
     onToggleEdit: () => setIsEditing(v => !v),
     onReRestructure: () => void reRestructure(),
     onMatch: () => void handleMatchClick(),
+    onExit: () => router.push('/'),
   }
 
   return (
@@ -113,7 +114,7 @@ function RestructureContent() {
       <div className="lg:hidden"><RestructureMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（整理步激活）+ 两栏舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="restructure" onExit={() => router.push('/')}>
+        <FlowShellDesktop activeStep="restructure" onExit={viewProps.onExit}>
           <RestructureDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

@@ -24,4 +24,6 @@ export interface RestructureViewProps {
   onReRestructure: () => void
   /** 保存语料并跳转（匹配 / 分析） */
   onMatch: () => void
+  /** 退出回首页（桌面 ✕ / Esc 一致，走 router.push('/')） */
+  onExit: () => void
 }

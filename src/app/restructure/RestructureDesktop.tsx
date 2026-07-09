@@ -6,6 +6,7 @@
  * @created  2026-07-08
  */
 'use client'
+import { useEffect, useRef } from 'react'
 import { Sparkles, Pencil, Check, RefreshCw } from 'lucide-react'
 import Card from '@/components/Card'
 import Orb from '@/components/Orb'
@@ -15,8 +16,25 @@ import type { RestructureViewProps } from './types'
 
 export default function RestructureDesktop({
   rawStory, aiText, isEditing, isLoading, error, usable, isSaving, saveError, qid,
-  onAiChange, onToggleEdit, onReRestructure, onMatch,
+  onAiChange, onToggleEdit, onReRestructure, onMatch, onExit,
 }: RestructureViewProps) {
+  // 键盘（仅 ≥1024px 桌面断点生效；CSS 双挂载需按视口过滤，避免隐藏视图误触）：
+  // ⌘/Ctrl+Enter = 主 CTA（非加载/错误/保存中才触发，避开裸 Enter 在 textarea 换行）；Esc = 退出（与 ✕ 一致）。
+  const latest = useRef({ isLoading, error, isSaving, onMatch, onExit })
+  latest.current = { isLoading, error, isSaving, onMatch, onExit }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!window.matchMedia('(min-width: 1024px)').matches) return
+      const s = latest.current
+      if (e.key === 'Escape') { s.onExit(); return }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        if (!s.isLoading && !s.error && !s.isSaving) { e.preventDefault(); s.onMatch() }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-4">
@@ -42,7 +60,7 @@ export default function RestructureDesktop({
 
   return (
     <div className="min-h-[calc(100vh-72px)] flex flex-col justify-center px-8 py-12">
-      <div className="max-w-[1000px] mx-auto w-full">
+      <div className="max-w-[960px] mx-auto w-full">
 
         {/* 旁白定调：温暖、口语、指路（左原话 / 右可改） */}
         <div className="mb-7 flex items-center justify-center gap-2 text-[13px] text-v2-text-muted">
@@ -107,6 +125,8 @@ export default function RestructureDesktop({
             {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}
           </GradientButton>
         </div>
+
+        <p className="mt-4 text-center text-[12px] text-v2-text-muted">⌘/Ctrl + Enter 继续 · Esc 退出</p>
       </div>
     </div>
   )
