@@ -26,7 +26,7 @@
 
 | Token | 色值 | 使用场景 |
 |---|---|---|
-| `bg-base` | `#F8F5F1` | v2 页面底层背景（设计稿参考值） |
+| `bg-base` | `#FBFAF7` | v2 页面底层背景（设计稿参考值） |
 | `bg-surface` | `#FFFFFF` | 卡片、面板、输入框表面 |
 | `bg-muted` | `#EEEBE6` | 次级区域、分隔填充、骨架屏 |
 | `brand-primary` | `#D4875A` | 主品牌色（暖橙）：主按钮描边、步骤条激活态、强调文字 |
@@ -46,7 +46,7 @@
 
 | Token | 色值 | 说明 |
 |---|---|---|
-| `bg-page` | `#F8F5F1` | 当前全局页面背景（已更新，见下节） |
+| `bg-page` | `#FBFAF7` | 当前全局页面背景（已更新，见下节） |
 | `bg-card` | `#FFFFFF` | 卡片背景 |
 | `bg-inner` | `#F4F4F4` | 内嵌区域 / `.surface` |
 | `text-1` | `#111111` | 主文字 |
@@ -105,7 +105,7 @@ position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
 
 ### 背景与卡片层次
 
-- **页面背景**：`bg-bg-page`（`#F8F5F1`），永远不用有色背景，禁止内联色值
+- **页面背景**：`bg-bg-page`（`#FBFAF7`），永远不用有色背景，禁止内联色值
 - **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`）+ 轻阴影（`.card` 类含 `box-shadow: 0 2px 12px rgba(0,0,0,0.06)`）
 - **强调卡片**（AI 输出内容）：白色背景 + 1px 渐变边框，使用 `GRADIENT_BORDER_STYLE_FULL` 常量
 
@@ -183,25 +183,25 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ### 全局页面背景
 
-**唯一来源：`bg-bg-page`（Tailwind `bg-page` token，值 `#F8F5F1`）**
+**唯一来源：`bg-bg-page`（Tailwind `bg-page` token，值 `#FBFAF7`）**
 
 | 位置 | 值 | 写法 |
 |---|---|---|
-| `html, body`（globals.css） | `#F8F5F1` | 硬编码（与 token 同步） |
-| Tailwind `bg-page` token | `#F8F5F1` | `bg-bg-page` |
-| `layout.tsx` themeColor | `#F8F5F1` | viewport meta（与 token 同步） |
-| TopBar（`TopBar.tsx`） | `#F8F5F1` | `bg-bg-page` ✓ |
-| TabBar（`TabBar.tsx`） | `#F8F5F1` | `bg-bg-page` ✓ |
-| 各页底部操作栏 | `#F8F5F1` | `bg-bg-page` ✓ |
-| 所有页面外层容器 | `#F8F5F1` | `bg-bg-page` ✓ |
+| `html, body`（globals.css） | `#FBFAF7` | 硬编码（与 token 同步） |
+| Tailwind `bg-page` token | `#FBFAF7` | `bg-bg-page` |
+| `layout.tsx` themeColor | `#FBFAF7` | viewport meta（与 token 同步） |
+| TopBar（`TopBar.tsx`） | `#FBFAF7` | `bg-bg-page` ✓ |
+| TabBar（`TabBar.tsx`） | `#FBFAF7` | `bg-bg-page` ✓ |
+| 各页底部操作栏 | `#FBFAF7` | `bg-bg-page` ✓ |
+| 所有页面外层容器 | `#FBFAF7` | `bg-bg-page` ✓ |
 
 **强制规则：**
 
 1. **新页面一律用 `bg-bg-page`**，顶栏、底栏、Tab 区、页面容器全部相同
 2. **禁止用 `bg-white` / `bg-[#FEFEFE]` / `bg-[#FFFFFF]` 作为页面级或栏级背景**（只有按钮的圆形底色除外）
-3. **卡片用 `bg-surface`（`#FFFFFF`）保持纯白**——比页面底色 `#F8F5F1` 更白，形成刻意的层次感，不算违规
+3. **卡片用 `bg-surface`（`#FFFFFF`）保持纯白**——比页面底色 `#FBFAF7` 更白，形成刻意的层次感，不算违规
 
-> **背景色统一原则**：TopBar/TabBar/底部操作栏是实心背景（`z-index ≥ 20`），实心栏叠加任何手工配制的渐变都配不准光晕浓度，会产生正向或反向色差。根治方案：**内页不用 ambient-light**，全页只用单一底色 `#F8F5F1`，彻底消除交界线。
+> **背景色统一原则**：TopBar/TabBar/底部操作栏是实心背景（`z-index ≥ 20`），实心栏叠加任何手工配制的渐变都配不准光晕浓度，会产生正向或反向色差。根治方案：**内页不用 ambient-light**，全页只用单一底色 `#FBFAF7`，彻底消除交界线。
 
 ### ambient-light 使用范围
 
@@ -212,11 +212,11 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 首页 | `/`（`src/app/page.tsx`） | 页面无固定顶栏，光晕可自然穿透 |
 | 录音页 | `/recording`（`src/app/recording/page.tsx`） | 顶栏为 `relative z-10`，光晕可自然穿透 |
 
-**所有其他页面禁止使用 `ambient-light`**。原因：这些页面使用 `TopBar`（`sticky z-30`）或其他实心顶栏，光晕会被遮挡，手工补偿渐变无法精确对齐，必然产生横向色差带。整页单一底色 `#F8F5F1` 是唯一无副作用的方案。
+**所有其他页面禁止使用 `ambient-light`**。原因：这些页面使用 `TopBar`（`sticky z-30`）或其他实心顶栏，光晕会被遮挡，手工补偿渐变无法精确对齐，必然产生横向色差带。整页单一底色 `#FBFAF7` 是唯一无副作用的方案。
 
 ### 卡片背景
 
-`#FFFFFF`（`bg-surface` / `bg-white`）——纯白，比页面底色 `#F8F5F1` 明显更亮，形成清晰的卡片层次感。
+`#FFFFFF`（`bg-surface` / `bg-white`）——纯白，比页面底色 `#FBFAF7` 明显更亮，形成清晰的卡片层次感。
 
 ### 组件背景
 
@@ -427,7 +427,7 @@ border-radius: 14px
 ### TabBar 底部导航
 
 ```
-背景：bg-bg-page（#F8F5F1）
+背景：bg-bg-page（#FBFAF7）
 高度：56px + env(safe-area-inset-bottom)
 边框：border-t border-black/[0.06]
 位置：fixed bottom-0，max-w-[430px]，居中
@@ -519,7 +519,7 @@ Accordion：accordionDown，200ms ease-out
 
 ### 背景色
 
-- 页面背景：`bg-bg-page`（当前 `#F8F5F1`）
+- 页面背景：`bg-bg-page`（当前 `#FBFAF7`）
 - 禁止直接写 `bg-white` 作为页面底色
 - 卡片保持 `bg-white`，形成层次感
 
@@ -557,6 +557,7 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
+*2026-07-09：文档页面底色由 `#F8F5F1` 同步为实际代码值 `#FBFAF7`（globals.css / layout.tsx / tailwind `bg-page`·`bg-base` 均为 `#FBFAF7`）；上方 06-16 历史记录保留不改。*
 *2026-06-17：卡片/标签/胶囊/渐变 CTA 统一为 `<Card>`/`<Tag>`/`<Chip>`/`<GradientButton>` 四组件并列为必用；卡片圆角全站统一为 16（删旧 .card 死样式）；示例 v1 色 #444/#AAAAAA 改 v2*
 *2026-06-16：禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则*
 *2026-06-16：analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外*
