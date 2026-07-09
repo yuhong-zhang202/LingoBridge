@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hero "雅思题" Tab 重设计 v2(仅供对照)</title>
+<style>
+  :root{
+    --bg-base: #F8F5F1;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #EEEBE6;
+    --brand-primary: #D4875A;
+    --brand-primary-light: #F2D5C0;
+    --brand-primary-dark: #B5663A;
+    --brand-accent: #7BA699;
+    --brand-accent-light: #C8DDD9;
+    --text-primary: #2C2420;
+    --text-secondary: #6B5B52;
+    --text-muted: #A89990;
+  }
+  * { box-sizing: border-box; }
+  body{ margin:0; background: var(--bg-base); color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  .container{ max-width: 1360px; margin: 0 auto; padding: 0 40px; }
+
+  .hero{ position: relative; overflow: hidden; padding-bottom: 72px; }
+  .ambient-light{
+    position:fixed; top:-160px; left:50%; transform:translateX(-50%); width:400px; height:400px;
+    background: radial-gradient(circle, rgba(240,188,160,0.18) 0%, rgba(168,210,196,0.13) 35%, rgba(188,210,168,0.08) 55%, transparent 72%);
+    filter: blur(60px); z-index:0; pointer-events:none;
+  }
+  .nav{ position:relative; z-index:2; display:flex; align-items:center; padding: 20px 0 0; }
+  .logo{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; margin-right:40px; }
+  .logo-mark{ width:32px;height:32px;border-radius:10px; background: var(--brand-primary); display:flex;align-items:center;justify-content:center; }
+  .nav-links{ display:flex; gap:28px; font-size:14px; color: var(--text-secondary); }
+  .nav-links span.active{ color: var(--text-primary); font-weight:600; }
+  .nav-right{ margin-left:auto; display:flex; align-items:center; gap:16px; }
+  .nav-icon{ width:34px;height:34px;border-radius:999px;background:#fff; display:flex;align-items:center;justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .avatar{ width:34px;height:34px;border-radius:999px;background: var(--brand-accent); color:#fff; font-size:13px; font-weight:700; display:flex;align-items:center;justify-content:center; }
+
+  .hero-grid{ position:relative; z-index:1; display:grid; grid-template-columns: 1fr 1fr; gap:40px; align-items:center; padding-top: 64px; }
+
+  .tab-switch{ display:inline-flex; background: var(--bg-muted); border-radius:999px; padding:4px; margin-bottom:28px; }
+  .tab-switch button{ border:none; background:transparent; padding:10px 22px; border-radius:999px; font-size:14px; font-weight:600; color: var(--text-muted); cursor:pointer; }
+  .tab-switch button.active{ background:#fff; color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  /* 题目卡片：用白底卡片把题目"框"起来，和页面背景形成层次 */
+  .question-card{
+    background: var(--bg-surface);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 28px 26px;
+    margin-bottom: 24px;
+  }
+  .q-en{ font-size:14px; font-style:italic; color: var(--text-muted); margin:0 0 12px; line-height:1.5; }
+  .q-zh{ font-size:28px; font-weight:700; margin:0 0 14px; line-height:1.3; letter-spacing:-0.01em; }
+  .q-hint{ font-size:14px; color: var(--text-secondary); line-height:1.65; margin:0; }
+
+  .action-row{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .btn-gradient{ display:inline-flex; align-items:center; gap:6px; padding:15px 30px; border-radius:999px; font-size:14px; font-weight:600; color: var(--text-secondary); background: #fff; border: 1px solid transparent;
+    background-image: linear-gradient(#fff,#fff), linear-gradient(135deg, rgba(240,188,160,0.85) 0%, rgba(168,210,196,0.80) 50%, rgba(188,210,168,0.75) 100%);
+    background-origin: border-box; background-clip: padding-box, border-box; cursor:pointer; }
+  .btn-ghost-link{ font-size:13px; color: var(--text-muted); text-decoration:none; }
+
+  .reroll-btn{
+    display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color: var(--text-muted);
+    background:transparent; border:none; cursor:pointer; padding:0;
+  }
+  .reroll-btn:hover{ color: var(--text-secondary); }
+
+  .hero-visual{ position:relative; height:460px; display:flex; align-items:center; justify-content:center; }
+  .orb{ position:relative; width:400px; height:400px; }
+  .orb-layer{ position:absolute; border-radius:50%; filter: blur(46px); mix-blend-mode: multiply; animation: breathe 3.8s ease-in-out infinite; }
+  .orb-layer.l1{ width:230px;height:230px; top:15px; left:15px; background: rgba(145,200,122,0.75); }
+  .orb-layer.l2{ width:210px;height:210px; top:50px; right:15px; background: rgba(112,182,176,0.75); animation-delay:.4s; }
+  .orb-layer.l3{ width:220px;height:220px; bottom:15px; left:90px; background: rgba(248,168,118,0.75); animation-delay:.8s; }
+  .orb-layer.l4{ width:170px;height:170px; bottom:60px; right:60px; background: rgba(210,226,168,0.6); animation-delay:1.2s; }
+  @keyframes breathe{ 0%,100%{ transform:scale(1); opacity:.82;} 50%{ transform:scale(1.06); opacity:1;} }
+  .orb-particle{ position:absolute; border-radius:50%; opacity:.55; animation: float 4.5s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-10px);} }
+</style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="ambient-light"></div>
+    <div class="container">
+      <div class="nav">
+        <div class="logo">
+          <div class="logo-mark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </div>
+          LingoBridge
+        </div>
+        <div class="nav-links">
+          <span class="active">首页</span><span>题库</span><span>素材库</span><span>我的</span>
+        </div>
+        <div class="nav-right">
+          <div class="nav-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar">B</div>
+        </div>
+      </div>
+
+      <div class="hero-grid">
+        <div>
+          <div class="tab-switch">
+            <button>我的故事</button>
+            <button class="active">雅思题</button>
+          </div>
+
+          <div class="question-card">
+            <p class="q-en">Describe an occasion when people around you smiled.</p>
+            <h1 class="q-zh">人们微笑的场合</h1>
+            <p class="q-hint">想想你经历过的这种场景，用中文聊聊你的想法就好，不需要准备英文。</p>
+          </div>
+
+          <div class="action-row">
+            <button class="btn-gradient">🎤 开始录音</button>
+            <a class="btn-ghost-link" href="#">或用文字输入 →</a>
+          </div>
+
+          <button class="reroll-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            换一题
+          </button>
+        </div>
+
+        <div class="hero-visual">
+          <div class="orb">
+            <div class="orb-layer l1"></div>
+            <div class="orb-layer l2"></div>
+            <div class="orb-layer l3"></div>
+            <div class="orb-layer l4"></div>
+            <div class="orb-particle" style="width:6px;height:6px;background:#91C87A;top:8%;left:20%;animation-delay:.2s;"></div>
+            <div class="orb-particle" style="width:5px;height:5px;background:#70B6B0;top:14%;right:14%;animation-delay:.6s;"></div>
+            <div class="orb-particle" style="width:7px;height:7px;background:#F8A876;bottom:10%;left:14%;animation-delay:1s;"></div>
+            <div class="orb-particle" style="width:5px;height:5px;background:#D2E2A8;bottom:18%;right:18%;animation-delay:1.4s;"></div>
+            <div class="orb-particle" style="width:6px;height:6px;background:#91C87A;top:42%;left:2%;animation-delay:1.8s;"></div>
+            <div class="orb-particle" style="width:5px;height:5px;background:#70B6B0;top:46%;right:0%;animation-delay:2.2s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

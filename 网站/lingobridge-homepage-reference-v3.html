@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LingoBridge 首页样式参考 v3(仅供对照,非上线代码)</title>
+<style>
+  :root{
+    --bg-base: #F8F5F1;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #EEEBE6;
+    --brand-primary: #D4875A;
+    --brand-primary-light: #F2D5C0;
+    --brand-primary-dark: #B5663A;
+    --brand-accent: #7BA699;
+    --brand-accent-light: #C8DDD9;
+    --phrase-blue-bg: #E9EEF4;
+    --phrase-blue-text: #4A6178;
+    --phrase-blue-border: #CCD8E6;
+    --text-primary: #2C2420;
+    --text-secondary: #6B5B52;
+    --text-muted: #A89990;
+
+    --space-section-y: 128px;
+    --space-title-to-sub: 16px;
+    --space-sub-to-content: 60px;
+    --space-card-gap: 24px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container{ max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+  /* ============ HERO ============ */
+  .hero{ position: relative; overflow: hidden; min-height: 92vh; display:flex; flex-direction:column; padding-bottom: 40px; }
+  .ambient-light{
+    position:absolute; top:-200px; right:-80px; width:640px; height:640px;
+    background: radial-gradient(circle, rgba(240,188,160,0.20) 0%, rgba(168,210,196,0.14) 35%, rgba(188,210,168,0.09) 55%, transparent 72%);
+    filter: blur(60px); z-index:0; pointer-events:none;
+  }
+  .nav{ position:relative; z-index:2; display:flex; align-items:center; padding: 28px 0 0; }
+  .logo{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; color: var(--text-primary); margin-right: 40px; }
+  .logo-mark{ width:32px;height:32px;border-radius:10px; background: var(--brand-primary); display:flex;align-items:center;justify-content:center; flex-shrink:0; }
+  .nav-links{ display:flex; gap:28px; font-size:14px; color: var(--text-secondary); }
+  .nav-links span.active{ color: var(--text-primary); font-weight:600; }
+  .nav-right{ margin-left:auto; display:flex; align-items:center; gap:16px; }
+  .nav-icon{ width:34px;height:34px;border-radius:999px;background:#fff; display:flex;align-items:center;justify-content:center; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .avatar{ width:34px;height:34px;border-radius:999px;background: var(--brand-accent); color:#fff; font-size:13px; font-weight:700; display:flex;align-items:center;justify-content:center; }
+
+  .hero-grid{ position:relative; z-index:1; flex:1; display:grid; grid-template-columns: 1.05fr 0.95fr; gap:40px; align-items:center; padding-top: 40px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color: var(--brand-accent); background: var(--brand-accent-light); border:1px solid var(--brand-accent); padding:6px 14px; border-radius:999px; margin-bottom: var(--space-title-to-sub); }
+  .hero h1{ font-size:42px; line-height:1.28; font-weight:700; margin:0 0 var(--space-title-to-sub); letter-spacing:-0.01em; }
+  .hero h1 .line2{ display:block; color: var(--brand-primary); }
+  .typewriter{ border-right: 3px solid var(--brand-primary); white-space: nowrap; overflow: hidden; display:inline-block;
+    animation: typing 2.4s steps(9, end) 0.5s 1 normal both, blink 0.85s step-end infinite; }
+  @keyframes typing { from { width: 0; } to { width: 9.2em; } }
+  @keyframes blink { 50% { border-color: transparent; } }
+  .hero p.sub{ font-size:16px; line-height:1.7; color: var(--text-secondary); max-width: 460px; margin: 0 0 32px; }
+  .hero-ctas{ display:flex; gap:14px; align-items:center; }
+  .btn-gradient{ display:inline-flex; align-items:center; gap:6px; padding:14px 28px; border-radius:999px; font-size:14px; font-weight:600; color: var(--text-secondary); background: #fff; border: 1px solid transparent;
+    background-image: linear-gradient(#fff,#fff), linear-gradient(135deg, rgba(240,188,160,0.95) 0%, rgba(168,210,196,0.9) 50%, rgba(188,210,168,0.85) 100%);
+    background-origin: border-box; background-clip: padding-box, border-box; cursor:pointer; transition: transform .15s ease; }
+  .btn-gradient:active{ transform: scale(0.97); }
+  .btn-ghost-link{ font-size:13px; color: var(--text-muted); text-decoration:none; }
+
+  .hero-visual{ position:relative; height:420px; display:flex; align-items:center; justify-content:center; }
+  .orb{ position:relative; width:300px; height:300px; }
+  .orb-layer{ position:absolute; border-radius:50%; filter: blur(20px); animation: breathe 3.5s ease-in-out infinite; }
+  .orb-layer.l1{ width:175px;height:175px; top:10px; left:0; background: rgba(145,200,122,0.85); }
+  .orb-layer.l2{ width:155px;height:155px; top:30px; right:0; background: rgba(112,182,176,0.85); animation-delay:.3s;}
+  .orb-layer.l3{ width:165px;height:165px; bottom:10px; left:60px; background: rgba(248,168,118,0.85); animation-delay:.6s;}
+  .orb-layer.l4{ width:130px;height:130px; bottom:40px; right:40px; background: rgba(210,226,168,0.7); animation-delay:.9s;}
+  @keyframes breathe{ 0%,100%{ transform:scale(1); opacity:.85;} 50%{ transform:scale(1.05); opacity:1;} }
+  .mini-tag-card{ position:absolute; bottom: -8px; right: -30px; z-index:2; width:200px; background:#fff; border-radius:16px; border:1px solid rgba(0,0,0,0.05); box-shadow: 0 10px 30px rgba(44,36,32,0.12); padding:14px 16px; }
+  .mini-tag-card .tag{ display:inline-block; font-size:10.5px; font-weight:600; color:#3D7A38; background:#EDF6EB; border:1px solid #C0DDB9; padding:3px 9px; border-radius:999px; margin-bottom:8px; }
+  .mini-tag-card p{ font-size:12.5px; color: var(--text-secondary); margin:0; line-height:1.55; }
+
+  /* ============ 通用 section 标题 ============ */
+  section{ padding: var(--space-section-y) 0; position:relative; }
+  .section-head{ margin-bottom: var(--space-sub-to-content); text-align:center; }
+  .eyebrow-sm{ font-size:12.5px; font-weight:600; color: var(--brand-accent); margin-bottom:10px; letter-spacing:.02em; }
+  .section-head h2{ font-size:30px; font-weight:700; margin:0 0 var(--space-title-to-sub); letter-spacing:-0.01em; }
+  .section-head h2 .accent{ color: var(--brand-primary); }
+  .section-head p{ font-size:15px; color: var(--text-secondary); max-width:540px; line-height:1.7; margin:0 auto; }
+
+  /* ============ 卡片通用 ============ */
+  .card-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-card-gap); }
+  .feature-card{ background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px 24px 28px; text-align:center; transition: transform .2s ease, box-shadow .2s ease; }
+  .feature-card:hover{ transform: translateY(-4px); box-shadow: 0 12px 28px rgba(44,36,32,0.10); }
+  .illustration{ margin: 0 auto 18px; width:96px; height:96px; }
+  .feature-card h3{ font-size:16px; font-weight:600; margin:0 0 8px; }
+  .feature-card .lead{ font-size:13.5px; color: var(--brand-primary-dark); font-weight:600; margin:0 0 6px; }
+  .feature-card p.desc{ font-size:13px; color: var(--text-secondary); line-height:1.7; margin:0; }
+
+  /* ============ 模块三:匹配漏斗(左图右文) ============ */
+  .matching-grid{ display:grid; grid-template-columns: 0.85fr 1.15fr; gap:56px; align-items:center; }
+  .funnel-visual{ display:flex; flex-direction:column; align-items:center; gap:0; }
+  .funnel-shape{ display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:600; }
+  .funnel-shape.f1{ width:300px; height:76px; background: var(--brand-primary); clip-path: polygon(0 0,100% 0,88% 100%,12% 100%); }
+  .funnel-shape.f2{ width:236px; height:70px; margin-top:4px; background: var(--brand-accent); clip-path: polygon(0 0,100% 0,86% 100%,14% 100%); }
+  .funnel-shape.f3{ width:172px; height:64px; margin-top:4px; background: var(--brand-primary-dark); clip-path: polygon(0 0,100% 0,80% 100%,20% 100%); }
+  .funnel-caption{ margin-top:20px; font-size:12.5px; color: var(--text-muted); text-align:center; max-width:280px; line-height:1.6; }
+
+  .match-steps{ display:flex; flex-direction:column; gap:28px; }
+  .match-step{ display:flex; gap:16px; }
+  .match-step .dot{ width:30px; height:30px; border-radius:999px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700; }
+  .match-step.s1 .dot{ background: var(--brand-primary); }
+  .match-step.s2 .dot{ background: var(--brand-accent); }
+  .match-step.s3 .dot{ background: var(--brand-primary-dark); }
+  .match-step h4{ font-size:15.5px; font-weight:600; margin:0 0 6px; }
+  .match-step p{ font-size:13.5px; color: var(--text-secondary); line-height:1.7; margin:0; }
+  .match-note{
+    margin-top:8px; background: var(--bg-muted); border-radius:12px; padding:14px 16px;
+    font-size:12.5px; color: var(--text-secondary); line-height:1.7;
+  }
+  .match-note b{ color: var(--text-primary); }
+
+  /* ============ 模块四:重组语料(对话示意 + 反馈卡) ============ */
+  .restructure-grid{ display:grid; grid-template-columns: 0.95fr 1.05fr; gap:56px; align-items:center; margin-bottom: 56px; }
+  .chat-mock{ background: var(--bg-surface); border:1px solid rgba(0,0,0,0.05); border-radius:20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding:22px; }
+  .chat-row{ display:flex; gap:10px; margin-bottom:16px; align-items:flex-start; }
+  .chat-row.user{ flex-direction:row-reverse; }
+  .chat-avatar{ width:30px;height:30px;border-radius:999px; flex-shrink:0; display:flex;align-items:center;justify-content:center; font-size:11px; font-weight:700; color:#fff; }
+  .chat-avatar.leo{ background: var(--brand-accent); }
+  .chat-avatar.user{ background: var(--brand-primary); }
+  .bubble{ max-width:78%; padding:10px 14px; border-radius:14px; font-size:13px; line-height:1.6; }
+  .bubble.leo{ background: var(--bg-muted); color: var(--text-primary); border-top-left-radius:4px; }
+  .bubble.user{ background: var(--brand-primary-light); color: var(--text-primary); border-top-right-radius:4px; }
+  .opt-pill{
+    display:inline-flex; align-items:center; gap:5px; margin-top:8px; margin-left:40px;
+    font-size:11px; font-weight:600; color: var(--brand-primary-dark);
+    background: #fff; border:1px solid var(--brand-primary); padding:4px 10px; border-radius:999px;
+  }
+  .loop-note{ display:flex; align-items:center; gap:8px; margin: 14px 0 4px 40px; font-size:11.5px; color: var(--text-muted); }
+
+  .restructure-text ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:22px; }
+  .restructure-text li{ display:flex; gap:14px; }
+  .restructure-text .ico{ width:34px;height:34px;border-radius:10px; background: var(--brand-accent-light); color: var(--brand-accent); flex-shrink:0; display:flex;align-items:center;justify-content:center; }
+  .restructure-text h4{ font-size:15px; font-weight:600; margin:0 0 5px; }
+  .restructure-text p{ font-size:13.5px; color: var(--text-secondary); line-height:1.7; margin:0; }
+
+  .feedback-demo{ display:flex; align-items:center; justify-content:center; gap:28px; }
+  .swipe-hint{ font-size:13px; color: var(--text-muted); display:flex; align-items:center; gap:6px; }
+  .swipe-hint.left{ flex-direction:row; }
+  .swipe-hint.right{ flex-direction:row-reverse; }
+  .feedback-card{
+    width:280px; background:#fff; border-radius:18px; border:1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 12px 30px rgba(44,36,32,0.10); padding:22px; position:relative; overflow:hidden;
+  }
+  .feedback-card::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:5px;
+    background: linear-gradient(180deg, var(--brand-primary), var(--brand-accent));
+  }
+  .feedback-card .tag{ display:inline-block; font-size:10.5px; font-weight:600; color:#3D7A38; background:#EDF6EB; border:1px solid #C0DDB9; padding:3px 9px; border-radius:999px; margin-bottom:12px; }
+  .feedback-card p{ font-size:14px; font-weight:600; margin:0; line-height:1.6; }
+
+  /* ============ 模块五:信息复用(三张真实场景 mini-mock 卡) ============ */
+  .reuse-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: var(--space-card-gap); }
+  .reuse-card{ background: var(--bg-surface); border:1px solid rgba(0,0,0,0.05); border-radius:16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding:20px; }
+  .reuse-mock{ background: var(--bg-muted); border-radius:12px; padding:16px; margin-bottom:16px; min-height:120px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{ background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:999px; padding:5px 10px; font-size:11.5px; color: var(--text-secondary); }
+  .mini-flash{ background:#fff; border-radius:10px; padding:14px; text-align:center; }
+  .mini-flash .tag{ display:inline-block; font-size:10px; font-weight:600; color:#3D7A38; background:#EDF6EB; border:1px solid #C0DDB9; padding:2px 8px; border-radius:999px; margin-bottom:10px; }
+  .mini-flash .word{ font-size:16px; font-weight:700; margin-bottom:10px; }
+  .mini-dots{ display:flex; gap:4px; justify-content:center; }
+  .mini-dots span{ width:6px;height:6px;border-radius:999px; background: var(--bg-muted); }
+  .mini-dots span:first-child{ background: var(--brand-primary); }
+  .pron-row{ background:#fff; border-radius:10px; padding:12px; font-size:12px; }
+  .pron-row .word-line{ display:flex; justify-content:space-between; margin-bottom:6px; }
+  .pron-row .correct{ color: var(--brand-accent); font-weight:700; }
+  .pron-row .wrong{ color:#C47A6A; font-weight:700; }
+  .pron-row .arrow{ color: var(--text-muted); font-size:11px; }
+  .reuse-card h3{ font-size:15.5px; font-weight:600; margin:0 0 6px; }
+  .reuse-card p{ font-size:13px; color: var(--text-secondary); line-height:1.65; margin:0; }
+
+  footer{ padding: 48px 0 64px; text-align:center; color: var(--text-muted); font-size:12px; }
+
+  @media (max-width: 900px){
+    .hero-grid{ grid-template-columns: 1fr; }
+    .hero-visual{ height:280px; }
+    .card-grid, .reuse-grid{ grid-template-columns: 1fr; }
+    .matching-grid, .restructure-grid{ grid-template-columns: 1fr; }
+    .feedback-demo{ flex-direction:column; }
+    :root{ --space-section-y: 84px; }
+    .hero h1{ font-size:30px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="ambient-light"></div>
+    <div class="container" style="display:flex; flex-direction:column; flex:1;">
+      <div class="nav">
+        <div class="logo">
+          <div class="logo-mark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </div>
+          LingoBridge
+        </div>
+        <div class="nav-links">
+          <span class="active">首页</span><span>题库</span><span>素材库</span><span>我的</span>
+        </div>
+        <div class="nav-right">
+          <div class="nav-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar">B</div>
+        </div>
+      </div>
+
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">🎙 从一个真实经历开始</div>
+          <h1>分享你的经历<span class="line2"><span class="typewriter">个性化雅思语料</span></span></h1>
+          <p class="sub">不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。</p>
+          <div class="hero-ctas">
+            <button class="btn-gradient">🎤 开始录音</button>
+            <a class="btn-ghost-link" href="#">或用文字输入 →</a>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="orb">
+            <div class="orb-layer l1"></div>
+            <div class="orb-layer l2"></div>
+            <div class="orb-layer l3"></div>
+            <div class="orb-layer l4"></div>
+          </div>
+          <div class="mini-tag-card">
+            <span class="tag">当季真题</span>
+            <p>「地铁让座」匹配度 92</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 模块二:我们能提供什么 ============ -->
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow-sm">从一段经历到一次自信开口</div>
+        <h2>我们能为你做<span class="accent">什么</span></h2>
+        <p>不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="48" r="46" fill="#F2D5C0" opacity="0.5"/>
+            <rect x="20" y="30" width="26" height="34" rx="4" fill="#fff" stroke="#D4875A" stroke-width="2.5"/>
+            <line x1="26" y1="40" x2="40" y2="40" stroke="#D4875A" stroke-width="2" stroke-linecap="round"/>
+            <line x1="26" y1="47" x2="40" y2="47" stroke="#D4875A" stroke-width="2" stroke-linecap="round"/>
+            <line x1="26" y1="54" x2="34" y2="54" stroke="#D4875A" stroke-width="2" stroke-linecap="round"/>
+            <path d="M50 48 h20" stroke="#B5663A" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1 6"/>
+            <rect x="58" y="26" width="24" height="30" rx="4" fill="#D4875A"/>
+            <path d="M64 40l4 4 8-8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <h3>语料匹配题目</h3>
+          <p class="lead">你的故事，就是你的素材库</p>
+          <p class="desc">讲一段真实经历，AI 帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。</p>
+        </div>
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="48" r="46" fill="#C8DDD9" opacity="0.5"/>
+            <circle cx="48" cy="48" r="22" fill="none" stroke="#7BA699" stroke-width="3"/>
+            <path d="M48 26 A22 22 0 0 1 70 48" stroke="#D4875A" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M62 30l6-2-2 6" fill="#D4875A"/>
+            <circle cx="40" cy="44" r="3" fill="#7BA699"/>
+            <circle cx="54" cy="44" r="3" fill="#7BA699"/>
+            <path d="M40 56q8 6 14 0" stroke="#7BA699" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <h3>重组语料</h3>
+          <p class="lead">陪你把故事说顺、说地道</p>
+          <p class="desc">和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。</p>
+        </div>
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="48" r="46" fill="#F2D5C0" opacity="0.5"/>
+            <rect x="26" y="24" width="44" height="14" rx="4" fill="#D4875A"/>
+            <rect x="26" y="42" width="44" height="14" rx="4" fill="#7BA699"/>
+            <rect x="26" y="60" width="44" height="14" rx="4" fill="#F2D5C0" stroke="#D4875A" stroke-width="1.5"/>
+            <circle cx="34" cy="31" r="2.2" fill="#fff"/>
+            <circle cx="34" cy="49" r="2.2" fill="#fff"/>
+            <circle cx="34" cy="67" r="2.2" fill="#B5663A"/>
+          </svg>
+          <h3>信息复用</h3>
+          <p class="lead">练过的东西，不会白练</p>
+          <p class="desc">对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 模块三:如何匹配题目(漏斗) ============ -->
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow-sm">语料匹配题目</div>
+        <h2>你的故事，怎么变成<span class="accent">一道题</span></h2>
+        <p>不是关键词硬凑，我们分三步来找最适合你这段经历的题</p>
+      </div>
+
+      <div class="matching-grid">
+        <div class="funnel-visual">
+          <div class="funnel-shape f1">先看核心</div>
+          <div class="funnel-shape f2">换个角度</div>
+          <div class="funnel-shape f3">如实告知</div>
+          <p class="funnel-caption">越往下，说明你的故事越"小众"——但每一层，我们都在认真找一道配得上它的题</p>
+        </div>
+
+        <div class="match-steps">
+          <div class="match-step s1">
+            <div class="dot">1</div>
+            <div>
+              <h4>先看你这段故事最核心讲的是什么</h4>
+              <p>直接拿这个核心去题库里找最匹配的雅思题——一次就命中，直接推给你。</p>
+            </div>
+          </div>
+          <div class="match-step s2">
+            <div class="dot">2</div>
+            <div>
+              <h4>没找到？换个角度再试一次</h4>
+              <p>如果最核心的重点暂时没有对应的题，我们会看看这段故事还能讲出什么别的重点，换个角度再匹配一次。</p>
+            </div>
+          </div>
+          <div class="match-step s3">
+            <div class="dot">3</div>
+            <div>
+              <h4>两个角度都没有？我们如实告诉你</h4>
+              <p>不会为了凑数硬塞一道不搭边的题给你——而是坦诚说明，并且认可这段经历本身就很值得讲。</p>
+            </div>
+          </div>
+          <div class="match-note">
+            <b>找到的题不止一道时</b>，我们会按"用这段故事能不能直接答上"从高到低帮你排好序，最顺手的排最前面。这套判断背后是我们总结的<b>六个维度</b>——情绪、人际、空间、精神世界、成长、价值观，帮 AI 更准确地读懂你故事里的重点。
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 模块四:如何重组语料(Leo对话 + 反馈卡) ============ -->
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow-sm">重组语料</div>
+        <h2>和 Leo 一起，把故事练成<span class="accent">脱口而出</span></h2>
+        <p>根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去</p>
+      </div>
+
+      <div class="restructure-grid">
+        <div class="chat-mock">
+          <div class="chat-row">
+            <div class="chat-avatar leo">Leo</div>
+            <div class="bubble leo">那次弄丢健身卡，你当时是什么反应？</div>
+          </div>
+          <div class="chat-row user">
+            <div class="chat-avatar user">我</div>
+            <div class="bubble user">My roommates uh... stole my gym card.</div>
+          </div>
+          <div class="opt-pill">✨ 优化反馈：这句话可以说得更清楚</div>
+          <div class="loop-note">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            简单记一下，再重新说一遍——这一步就是练"再说一遍"的输出
+          </div>
+        </div>
+
+        <div class="restructure-text">
+          <ul>
+            <li>
+              <div class="ico">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M4 4h11l-1.5 3L15 10H4"/></svg>
+              </div>
+              <div>
+                <h4>句子不满意？点"优化反馈"</h4>
+                <p>看看更地道的说法，简单记忆之后自己再重新表达一遍，形成"输入-输出"的循环，而不是照读答案。</p>
+              </div>
+            </li>
+            <li>
+              <div class="ico">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              </div>
+              <div>
+                <h4>读错的单词，点一下就能收藏</h4>
+                <p>发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。</p>
+              </div>
+            </li>
+            <li>
+              <div class="ico">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+              </div>
+              <div>
+                <h4>练完会有一叠反馈卡片</h4>
+                <p>都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="feedback-demo">
+        <div class="swipe-hint left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          跳过
+        </div>
+        <div class="feedback-card">
+          <span class="tag">优化后</span>
+          <p>I think my roommate might have accidentally taken my gym card.</p>
+        </div>
+        <div class="swipe-hint right">
+          收藏
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 模块五:信息复用怎么用 ============ -->
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <div class="eyebrow-sm">信息复用</div>
+        <h2>收藏的内容，去<span class="accent">素材库</span>继续巩固</h2>
+        <p>三种不同的练习，分别对应你收藏的三类东西</p>
+      </div>
+
+      <div class="reuse-grid">
+        <div class="reuse-card">
+          <div class="reuse-mock">
+            <div class="chip-row">
+              <span class="chip">actually</span><span class="chip">gym</span><span class="chip">roommate</span>
+              <span class="chip">card.</span><span class="chip">my</span><span class="chip">stole</span><span class="chip">My</span>
+            </div>
+          </div>
+          <h3>拼句练习</h3>
+          <p>收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。</p>
+        </div>
+        <div class="reuse-card">
+          <div class="reuse-mock">
+            <div class="mini-flash">
+              <span class="tag">感受</span>
+              <div class="word">有点纠结</div>
+              <div class="mini-dots"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+          <h3>Anki 复习</h3>
+          <p>收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。</p>
+        </div>
+        <div class="reuse-card">
+          <div class="reuse-mock">
+            <div class="pron-row">
+              <div class="word-line"><span>想说的词</span><span class="correct">Gym /dʒɪm/</span></div>
+              <div class="word-line"><span class="arrow">被听成 →</span><span class="wrong">drink /drɪŋk/</span></div>
+            </div>
+          </div>
+          <h3>发音教学</h3>
+          <p>告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    这是一份独立的视觉参考页 v3，不是最终代码 · 色值与组件规范均取自项目 DESIGN.md
+  </footer>
+
+</body>
+</html>

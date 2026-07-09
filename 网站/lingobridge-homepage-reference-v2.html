@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LingoBridge 首页样式参考 v2(仅供对照,非上线代码)</title>
+<style>
+  /* ===================================================================
+     视觉参考稿 v2 —— 根据你的反馈修订版
+     色值/间距仍全部取自项目 DESIGN.md 的 v2 token,未新增任何色值。
+     左上角小标签仅用于本次沟通对照，正式交给 Claude Code 时会去掉。
+  =================================================================== */
+
+  :root{
+    --bg-base: #F8F5F1;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #EEEBE6;
+    --brand-primary: #D4875A;
+    --brand-primary-light: #F2D5C0;
+    --brand-primary-dark: #B5663A;
+    --brand-accent: #7BA699;
+    --brand-accent-light: #C8DDD9;
+    --phrase-blue-bg: #E9EEF4;
+    --phrase-blue-text: #4A6178;
+    --phrase-blue-border: #CCD8E6;
+    --text-primary: #2C2420;
+    --text-secondary: #6B5B52;
+    --text-muted: #A89990;
+
+    --space-section-y: 140px;      /* 模块纵向间距，核心改动之一 */
+    --space-title-to-sub: 16px;
+    --space-sub-to-content: 64px;
+    --space-card-gap: 24px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .note{
+    position:absolute; top:14px; left:14px;
+    font-size:10.5px; font-weight:600; color:#fff;
+    background: var(--brand-primary-dark);
+    padding:3px 10px; border-radius:999px;
+    opacity:.88; z-index:5;
+  }
+
+  .container{
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ============ HERO ============ */
+  .hero{
+    position: relative;
+    overflow: hidden;
+    min-height: 92vh;
+    display:flex;
+    flex-direction:column;
+    padding-bottom: 40px;
+  }
+  .ambient-light{
+    position:absolute;
+    top:-200px; right:-80px;
+    width:640px; height:640px;
+    background: radial-gradient(circle,
+      rgba(240,188,160,0.20) 0%,
+      rgba(168,210,196,0.14) 35%,
+      rgba(188,210,168,0.09) 55%,
+      transparent 72%);
+    filter: blur(60px);
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* ---- 导航:logo + 菜单靠左簇拥，右侧只放操作区（对齐 retain.cards） ---- */
+  .nav{
+    position:relative; z-index:2;
+    display:flex; align-items:center;
+    padding: 28px 0 0;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-weight:700; font-size:18px; color: var(--text-primary);
+    margin-right: 40px;
+  }
+  .logo-mark{
+    width:32px;height:32px;border-radius:10px;
+    background: var(--brand-primary);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .nav-links{ display:flex; gap:28px; font-size:14px; color: var(--text-secondary); }
+  .nav-links span.active{ color: var(--text-primary); font-weight:600; }
+  .nav-right{
+    margin-left:auto;
+    display:flex; align-items:center; gap:16px;
+  }
+  .nav-icon{
+    width:34px;height:34px;border-radius:999px;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  .avatar{
+    width:34px;height:34px;border-radius:999px;background: var(--brand-accent);
+    color:#fff; font-size:13px; font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .hero-grid{
+    position:relative; z-index:1;
+    flex:1;
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap:40px;
+    align-items:center;
+    padding-top: 40px;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:600; color: var(--brand-accent);
+    background: var(--brand-accent-light);
+    border:1px solid var(--brand-accent);
+    padding:6px 14px; border-radius:999px;
+    margin-bottom: var(--space-title-to-sub);
+  }
+  .hero h1{
+    font-size:42px;
+    line-height:1.28;
+    font-weight:700;
+    margin:0 0 var(--space-title-to-sub);
+    letter-spacing:-0.01em;
+  }
+  .hero h1 .line2{ display:block; color: var(--brand-primary); }
+  .typewriter{
+    border-right: 3px solid var(--brand-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    display:inline-block;
+    animation:
+      typing 2.4s steps(9, end) 0.5s 1 normal both,
+      blink 0.85s step-end infinite;
+  }
+  @keyframes typing { from { width: 0; } to { width: 9.2em; } }
+  @keyframes blink { 50% { border-color: transparent; } }
+
+  .hero p.sub{
+    font-size:16px;
+    line-height:1.7;
+    color: var(--text-secondary);
+    max-width: 460px;
+    margin: 0 0 32px;
+  }
+  .hero-ctas{ display:flex; gap:14px; align-items:center; }
+  .btn-gradient{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:14px 28px;
+    border-radius:999px;
+    font-size:14px; font-weight:600;
+    color: var(--text-secondary);
+    background: #fff;
+    border: 1px solid transparent;
+    background-image:
+      linear-gradient(#fff,#fff),
+      linear-gradient(135deg, rgba(240,188,160,0.95) 0%, rgba(168,210,196,0.9) 50%, rgba(188,210,168,0.85) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    cursor:pointer;
+    transition: transform .15s ease;
+  }
+  .btn-gradient:active{ transform: scale(0.97); }
+  .btn-ghost-link{ font-size:13px; color: var(--text-muted); text-decoration:none; }
+
+  /* ---- Hero 视觉区：Orb 为主角，小卡片只做边角点缀，不遮挡 ---- */
+  .hero-visual{
+    position:relative;
+    height:420px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .orb{
+    position:relative;
+    width:300px; height:300px;
+  }
+  .orb-layer{
+    position:absolute; border-radius:50%; filter: blur(20px);
+    animation: breathe 3.5s ease-in-out infinite;
+  }
+  .orb-layer.l1{ width:175px;height:175px; top:10px; left:0;
+    background: rgba(145,200,122,0.85); }
+  .orb-layer.l2{ width:155px;height:155px; top:30px; right:0;
+    background: rgba(112,182,176,0.85); animation-delay:.3s;}
+  .orb-layer.l3{ width:165px;height:165px; bottom:10px; left:60px;
+    background: rgba(248,168,118,0.85); animation-delay:.6s;}
+  .orb-layer.l4{ width:130px;height:130px; bottom:40px; right:40px;
+    background: rgba(210,226,168,0.7); animation-delay:.9s;}
+  @keyframes breathe{ 0%,100%{ transform:scale(1); opacity:.85;} 50%{ transform:scale(1.05); opacity:1;} }
+
+  .mini-tag-card{
+    position:absolute;
+    bottom: -8px; right: -30px;
+    z-index:2;
+    width:200px;
+    background:#fff;
+    border-radius:16px;
+    border:1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 10px 30px rgba(44,36,32,0.12);
+    padding:14px 16px;
+  }
+  .mini-tag-card .tag{
+    display:inline-block; font-size:10.5px; font-weight:600;
+    color:#3D7A38; background:#EDF6EB; border:1px solid #C0DDB9;
+    padding:3px 9px; border-radius:999px; margin-bottom:8px;
+  }
+  .mini-tag-card p{ font-size:12.5px; color: var(--text-secondary); margin:0; line-height:1.55; }
+
+  /* ============ 通用 section 标题（居中版） ============ */
+  section{ padding: var(--space-section-y) 0; position:relative; }
+  .section-head{ margin-bottom: var(--space-sub-to-content); text-align:center; }
+  .section-head h2{
+    font-size:30px; font-weight:700; margin:0 0 var(--space-title-to-sub);
+    letter-spacing:-0.01em;
+  }
+  .section-head h2 .accent{ color: var(--brand-primary); }
+  .section-head p{
+    font-size:15px; color: var(--text-secondary);
+    max-width:520px; line-height:1.7; margin:0 auto;
+  }
+
+  /* ============ 三步（居中版，插画风图标） ============ */
+  .card-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-card-gap);
+  }
+  .feature-card{
+    background: var(--bg-surface);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 36px 24px 30px;
+    text-align:center;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .feature-card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(44,36,32,0.10);
+  }
+  .illustration{ margin: 0 auto 20px; width:104px; height:104px; }
+  .feature-card h3{ font-size:16px; font-weight:600; margin:0 0 8px; }
+  .feature-card p{ font-size:13.5px; color: var(--text-secondary); line-height:1.7; margin:0; }
+
+  /* ============ 三层漏斗 + 相关性排名 ============ */
+  .funnel{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    margin-bottom: 48px;
+  }
+  .funnel-step{
+    background: var(--bg-surface);
+    border:1px solid rgba(0,0,0,0.05);
+    border-radius:14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding:18px 28px;
+    display:flex; align-items:center; gap:16px;
+    transition: width .2s ease;
+  }
+  .funnel-step .num{
+    width:32px;height:32px;border-radius:999px;
+    background: var(--brand-primary); color:#fff;
+    font-size:13px; font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .funnel-step .txt h4{ font-size:14.5px; font-weight:600; margin:0 0 3px; }
+  .funnel-step .txt p{ font-size:12.5px; color: var(--text-secondary); margin:0; line-height:1.6; }
+  .funnel-step.w1{ width:640px; }
+  .funnel-step.w2{ width:520px; }
+  .funnel-step.w3{ width:400px; }
+  .funnel-step.w3 .num{ background: var(--brand-accent); }
+  .funnel-arrow{ color: var(--text-muted); font-size:16px; }
+
+  .ranking-card{
+    max-width:640px; margin: 0 auto 56px;
+    background: var(--bg-surface);
+    border:1px solid rgba(0,0,0,0.05);
+    border-radius:16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    padding: 22px 26px;
+  }
+  .ranking-card .head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .ranking-card .head h4{ font-size:14px; font-weight:600; margin:0; }
+  .ranking-card .head span{ font-size:12px; color: var(--text-muted); }
+  .rank-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-top:1px solid rgba(0,0,0,0.05);
+    font-size:13.5px;
+  }
+  .rank-row:first-of-type{ border-top:none; }
+  .rank-row .q{ color: var(--text-primary); }
+  .score{
+    font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px;
+  }
+  .score.high{ background:#EDF6EB; color:#3D7A38; }
+  .score.mid{ background: var(--brand-primary-light); color: var(--brand-primary-dark); }
+
+  .dims-row{ text-align:center; }
+  .dims-row .lead{ font-size:13.5px; color: var(--text-muted); margin-bottom:16px; }
+  .dim-tags{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+  .dim-tag{
+    font-size:12.5px; font-weight:600; padding:7px 16px; border-radius:999px; border:1px solid;
+  }
+  .dim-tag.c1{ background: var(--brand-primary-light); color: var(--brand-primary-dark); border-color: var(--brand-primary); }
+  .dim-tag.c2{ background:#EDF6EB; color:#3D7A38; border-color:#C0DDB9; }
+  .dim-tag.c3{ background: var(--phrase-blue-bg); color: var(--phrase-blue-text); border-color: var(--phrase-blue-border); }
+
+  /* ============ 六个维度雷达 ============ */
+  .dimensions{
+    display:grid; grid-template-columns: 1fr 1fr; gap:48px; align-items:center;
+  }
+  .dim-list{ list-style:none; padding:0; margin:0; }
+  .dim-list li{
+    display:flex; justify-content:space-between;
+    padding:14px 0; border-bottom:1px solid rgba(0,0,0,0.06);
+    font-size:14px;
+  }
+  .dim-list li b{ color: var(--text-primary); font-weight:600; }
+  .dim-list li span{ color: var(--text-muted); }
+  .radar-placeholder{
+    background: var(--bg-surface);
+    border:1px solid rgba(0,0,0,0.05);
+    border-radius:16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    height:280px;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-muted); font-size:13px;
+  }
+
+  footer{
+    padding: 48px 0 64px;
+    text-align:center;
+    color: var(--text-muted);
+    font-size:12px;
+  }
+
+  @media (max-width: 860px){
+    .hero-grid{ grid-template-columns: 1fr; }
+    .hero-visual{ height:280px; }
+    .card-grid{ grid-template-columns: 1fr; }
+    .dimensions{ grid-template-columns: 1fr; }
+    .funnel-step.w1, .funnel-step.w2, .funnel-step.w3{ width:100%; }
+    :root{ --space-section-y: 88px; }
+    .hero h1{ font-size:30px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <span class="note">改动:Orb 不再被卡片遮挡,小卡片挪到右下角作点缀</span>
+    <div class="ambient-light"></div>
+    <div class="container" style="display:flex; flex-direction:column; flex:1;">
+      <div class="nav">
+        <div class="logo">
+          <div class="logo-mark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </div>
+          LingoBridge
+        </div>
+        <div class="nav-links">
+          <span class="active">首页</span><span>题库</span><span>素材库</span><span>我的</span>
+        </div>
+        <div class="nav-right">
+          <div class="nav-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar">B</div>
+        </div>
+      </div>
+
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">🎙 从一个真实经历开始</div>
+          <h1>分享你的经历<span class="line2"><span class="typewriter">个性化雅思语料</span></span></h1>
+          <p class="sub">不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。</p>
+          <div class="hero-ctas">
+            <button class="btn-gradient">🎤 开始录音</button>
+            <a class="btn-ghost-link" href="#">或用文字输入 →</a>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="orb">
+            <div class="orb-layer l1"></div>
+            <div class="orb-layer l2"></div>
+            <div class="orb-layer l3"></div>
+            <div class="orb-layer l4"></div>
+          </div>
+          <div class="mini-tag-card">
+            <span class="tag">当季真题</span>
+            <p>「地铁让座」匹配度 92</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 三步流程卡片(居中 + 插画风) ============ -->
+  <section>
+    <div class="container">
+      <span class="note">改动:文案居中；卡片改为"插画居中+文字居中"；去掉了模块间的分隔线</span>
+      <div class="section-head">
+        <h2>三步，将真实经历转化为<span class="accent">雅思语料</span></h2>
+        <p>这正是 LingoBridge 和背题库不一样的地方</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 104 104" fill="none">
+            <circle cx="52" cy="52" r="50" fill="#F2D5C0" opacity="0.5"/>
+            <rect x="40" y="30" width="24" height="34" rx="12" fill="#D4875A"/>
+            <path d="M30 54a22 22 0 0 0 44 0" stroke="#B5663A" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <line x1="52" y1="76" x2="52" y2="84" stroke="#B5663A" stroke-width="4" stroke-linecap="round"/>
+            <line x1="42" y1="84" x2="62" y2="84" stroke="#B5663A" stroke-width="4" stroke-linecap="round"/>
+            <path d="M74 40 q8 4 6 14" stroke="#7BA699" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M80 34 q12 6 8 22" stroke="#C8DDD9" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </svg>
+          <h3>分享真实经历</h3>
+          <p>用中文或英文讲讲发生过什么，卡壳也没关系。</p>
+        </div>
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 104 104" fill="none">
+            <circle cx="52" cy="52" r="50" fill="#C8DDD9" opacity="0.5"/>
+            <rect x="30" y="26" width="34" height="44" rx="4" fill="#fff" stroke="#7BA699" stroke-width="3"/>
+            <line x1="37" y1="38" x2="57" y2="38" stroke="#B5B0A8" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="37" y1="46" x2="57" y2="46" stroke="#B5B0A8" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="37" y1="54" x2="49" y2="54" stroke="#B5B0A8" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="72" cy="60" r="18" fill="#7BA699"/>
+            <path d="M64 60l6 6 12-12" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <h3>匹配雅思题</h3>
+          <p>AI 拆解故事角度，找到最贴合的当季真题。</p>
+        </div>
+        <div class="feature-card">
+          <svg class="illustration" viewBox="0 0 104 104" fill="none">
+            <circle cx="52" cy="52" r="50" fill="#F2D5C0" opacity="0.5"/>
+            <rect x="20" y="34" width="34" height="24" rx="10" fill="#D4875A"/>
+            <path d="M28 58l-4 8 10-4" fill="#D4875A"/>
+            <rect x="50" y="46" width="34" height="24" rx="10" fill="#7BA699"/>
+            <path d="M84 68l4 8-10-4" fill="#7BA699"/>
+            <circle cx="30" cy="46" r="2.4" fill="#fff"/>
+            <circle cx="38" cy="46" r="2.4" fill="#fff"/>
+            <circle cx="46" cy="46" r="2.4" fill="#fff"/>
+            <circle cx="60" cy="58" r="2.4" fill="#fff"/>
+            <circle cx="68" cy="58" r="2.4" fill="#fff"/>
+            <circle cx="76" cy="58" r="2.4" fill="#fff"/>
+          </svg>
+          <h3>实时练习对话</h3>
+          <p>和 AI 即兴对话，把素材讲成脱口而出的回答。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 三层漏斗 + 相关性排名(替换原"它是怎么运作的") ============ -->
+  <section>
+    <div class="container">
+      <span class="note">改动:整块替换成真实的匹配机制说明,内容取自 LingoBridge-产品介绍-2_0.md</span>
+      <div class="section-head">
+        <h2>故事怎么变成<span class="accent">题目</span>：三层漏斗 + 相关性排名</h2>
+        <p>不是关键词硬凑，先理解故事，再逐层找题、按贴合度排好序</p>
+      </div>
+
+      <div class="funnel">
+        <div class="funnel-step w1">
+          <div class="num">1</div>
+          <div class="txt">
+            <h4>primary 直接匹配</h4>
+            <p>用故事最核心的观察点查题，命中就停，并附带第二角度的补充题一起显示</p>
+          </div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-step w2">
+          <div class="num">2</div>
+          <div class="txt">
+            <h4>secondary 换方向</h4>
+            <p>主角度没题时，换故事的第二个角度再找一次，文案会提示"换个重点能用上"</p>
+          </div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-step w3">
+          <div class="num">3</div>
+          <div class="txt">
+            <h4>温柔收尾</h4>
+            <p>两个角度都没题时，不硬塞烂题，诚实告诉你并肯定这段经历本身的价值</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ranking-card">
+        <div class="head">
+          <h4>相关性排名（候选题最终显示顺序）</h4>
+          <span>贴合度 0–100</span>
+        </div>
+        <div class="rank-row"><span class="q">Describe a time you helped a stranger.</span><span class="score high">92</span></div>
+        <div class="rank-row"><span class="q">Describe an act of kindness you received.</span><span class="score high">85</span></div>
+        <div class="rank-row"><span class="q">Describe a rule you think is important.</span><span class="score mid">68</span></div>
+      </div>
+
+      <div class="dims-row">
+        <p class="lead">背后是六个维度、48 个观察点在理解你的故事</p>
+        <div class="dim-tags">
+          <span class="dim-tag c1">情绪内核</span>
+          <span class="dim-tag c2">人际羁绊</span>
+          <span class="dim-tag c3">空间感知</span>
+          <span class="dim-tag c1">精神栖所</span>
+          <span class="dim-tag c2">成长演进</span>
+          <span class="dim-tag c3">价值底色</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 六个维度(雷达图区块，保留原组件概念) ============ -->
+  <section>
+    <div class="container">
+      <span class="note">改动:与上一模块用大间距隔开，不再紧贴</span>
+      <div class="section-head">
+        <h2>六个维度，连接不同类型的<span class="accent">语料和题目</span></h2>
+        <p>每讲一个故事，就点亮一个面——反向匹配雅思真题</p>
+      </div>
+      <div class="dimensions">
+        <ul class="dim-list">
+          <li><b>情绪内核</b><span>如何与自己相处</span></li>
+          <li><b>人际羁绊</b><span>与他人如何联结</span></li>
+          <li><b>空间感知</b><span>居所、城市与远行</span></li>
+          <li><b>精神栖所</b><span>书影音与珍视的物件</span></li>
+          <li><b>成长演进</b><span>技能、蜕变与重要决定</span></li>
+          <li><b>价值底色</b><span>相信什么，看重什么</span></li>
+        </ul>
+        <div class="radar-placeholder">（沿用现有雷达图组件，仅调整外层间距）</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    这是一份独立的视觉参考页 v2，不是最终代码 · 色值与组件规范均取自项目 DESIGN.md
+  </footer>
+
+</body>
+</html>

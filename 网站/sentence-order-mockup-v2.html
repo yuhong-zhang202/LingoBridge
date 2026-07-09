@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼句练习 · UI 设计稿 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-page: #FBFAF7;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #EEEBE6;
+    --brand-primary: #D4875A;
+    --brand-primary-light: #F2D5C0;
+    --brand-primary-dark: #B5663A;
+    --brand-accent: #7BA699;
+    --brand-accent-light: #C8DDD9;
+    --v2-text-primary: #2C2420;
+    --v2-text-secondary: #6B5B52;
+    --v2-text-muted: #A89990;
+    --success: #5BA08A;
+    --warning: #C4965A;
+    --error: #C47A6A;
+    --feedback-quote-bg: #F8F7F5;
+    --grad-border: linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80)) border-box;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-font-smoothing:antialiased; }
+  body{
+    font-family:'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+    background:#E9E6E0;
+    color:var(--v2-text-primary);
+    padding:48px 24px 96px;
+  }
+  .page-header{ max-width:1300px; margin:0 auto 8px; }
+  .page-header h1{ font-size:20px; font-weight:700; }
+  .page-header p{ font-size:13px; color:#8A8378; margin-top:6px; line-height:1.6; max-width:760px; }
+  .changelog{
+    max-width:1300px; margin:14px auto 40px; background:#FFF8EF; border:1px solid #EFDFC8;
+    border-radius:12px; padding:12px 16px; font-size:12.5px; color:#8A6A3E; line-height:1.7;
+  }
+  .changelog b{ color:#6B4A1E; }
+
+  .row-label{
+    max-width:1300px; margin:48px auto 18px; display:flex; align-items:center; gap:10px;
+  }
+  .row-label .bar{ width:3px; height:16px; border-radius:2px; background:var(--brand-primary); }
+  .row-label span{ font-size:14px; font-weight:700; }
+  .row-label small{ font-size:12px; color:#9C9184; font-weight:500; }
+
+  .stage{
+    max-width:1300px; margin:0 auto;
+    display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; justify-content:center;
+  }
+  .frame-block{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .frame-label{ font-size:12px; font-weight:600; color:#8A8378; display:flex; align-items:center; gap:6px; }
+  .frame-label .dot{ width:6px; height:6px; border-radius:50%; background:var(--brand-primary); }
+
+  /* ── 手机壳 ── */
+  .phone{
+    width:390px; height:780px; background:var(--bg-page); border-radius:36px;
+    box-shadow:0 24px 60px -20px rgba(60,40,20,0.35), 0 0 0 8px #17140F;
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:22px; background:#17140F; border-radius:0 0 14px 14px; z-index:50;
+  }
+
+  /* ── 浏览器壳（桌面端）── */
+  .browser{
+    width:960px; height:680px; background:var(--bg-page); border-radius:14px;
+    box-shadow:0 24px 60px -20px rgba(60,40,20,0.30), 0 0 0 1px rgba(0,0,0,0.06);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .browser-chrome{
+    height:38px; background:#EDEAE4; display:flex; align-items:center; gap:8px; padding:0 14px; flex-shrink:0;
+  }
+  .browser-chrome .dot{ width:10px; height:10px; border-radius:50%; }
+  .browser-chrome .url{
+    margin-left:10px; flex:1; height:22px; background:#fff; border-radius:6px;
+    display:flex; align-items:center; padding:0 10px; font-size:11px; color:#9C9184;
+  }
+
+  /* ── TopBar（移动端）── */
+  .topbar{
+    height:52px; padding:0 20px; display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg-page); flex-shrink:0; position:relative; z-index:10;
+  }
+  .back-btn{
+    width:30px; height:30px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer;
+  }
+  .topbar-title{ font-size:16px; font-weight:600; }
+  .topbar-count{ font-size:12.5px; color:var(--v2-text-muted); font-weight:500; }
+
+  /* ── TabBar（移动端） ── */
+  .tabbar{ height:56px; border-top:1px solid rgba(0,0,0,0.06); background:var(--bg-page); display:flex; align-items:center; justify-content:space-around; flex-shrink:0; }
+  .tab-item{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .tab-item svg{ width:20px; height:20px; }
+  .tab-item span{ font-size:10px; font-weight:500; color:#BBBBBB; }
+  .tab-item.active svg{ color:#111; } .tab-item.active span{ color:#111; }
+  .tab-item .indicator{ width:3px;height:3px; border-radius:50%; }
+  .tab-item.active .indicator{ background:#111; }
+
+  /* ── TopNav（桌面端，对齐真实 TopNav.tsx）── */
+  .topnav{ height:64px; border-bottom:1px solid rgba(0,0,0,0.045); display:flex; align-items:center; gap:36px; padding:0 40px; flex-shrink:0; }
+  .topnav .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .topnav .brand .logo{ width:34px; height:34px; border-radius:9px; background:var(--brand-primary); display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
+  .topnav .brand .name{ font-size:16.5px; font-weight:700; }
+  .topnav nav{ display:flex; align-items:center; gap:5px; }
+  .topnav nav a{ font-size:13.5px; padding:7px 14px; border-radius:999px; color:var(--v2-text-secondary); font-weight:500; }
+  .topnav nav a.active{ background:var(--bg-muted); color:var(--v2-text-primary); font-weight:600; }
+  .topnav .right{ margin-left:auto; display:flex; align-items:center; gap:14px; }
+  .topnav .bell{ width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--v2-text-secondary); }
+  .topnav .avatar{ width:34px; height:34px; border-radius:50%; background:var(--brand-accent); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:600; }
+
+  /* ══════ FRAME 1 内容：素材库 / 收藏卡片 ══════ */
+  .f1-scroll{ flex:1; overflow-y:auto; padding:18px 20px 24px; }
+  .f1-scroll.desktop{ padding:28px 40px 40px; max-width:900px; margin:0 auto; }
+  .breadcrumb{ font-size:12px; color:#B7AFA3; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .breadcrumb b{ color:var(--v2-text-primary); font-weight:600; }
+  .lib-title{ font-size:19px; font-weight:700; margin-bottom:4px; }
+  .lib-title.desktop{ font-size:26px; }
+  .lib-sub{ font-size:12.5px; color:var(--v2-text-muted); margin-bottom:18px; }
+
+  .review-banner{
+    border-radius:16px; padding:16px 18px; margin-bottom:20px; background:var(--grad-border);
+    border:1.5px solid transparent; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .review-banner .eyebrow{ font-size:11px; font-weight:600; color:var(--brand-primary-dark); }
+  .review-banner .headline{ font-size:15px; font-weight:700; margin:5px 0 3px; }
+  .review-banner .headline b{ color:var(--brand-primary); }
+  .review-banner .desc{ font-size:11.5px; color:var(--v2-text-muted); }
+  .review-banner .cta{
+    flex-shrink:0; font-size:12.5px; font-weight:600; color:var(--v2-text-secondary);
+    padding:9px 14px; border-radius:999px; white-space:nowrap; background:var(--grad-border); border:1.5px solid transparent;
+  }
+
+  .tabs-row{ display:flex; gap:6px; background:var(--bg-muted); border-radius:12px; padding:4px; margin-bottom:16px; width:fit-content; }
+  .tab-chip{ text-align:center; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:9px; color:#9C9184; white-space:nowrap; }
+  .tab-chip.on{ background:#fff; color:var(--v2-text-primary); box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+
+  .cards-grid{ display:flex; flex-direction:column; gap:14px; }
+  .cards-grid.desktop{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+  .fb-card{ background:#fff; border-radius:16px; border:1px solid rgba(0,0,0,0.05); box-shadow:0 2px 12px rgba(0,0,0,0.06); overflow:hidden; }
+  .fb-card-body{ padding:16px 18px 6px; }
+  .fb-tag{ display:inline-flex; align-items:center; font-size:11px; font-weight:500; color:var(--brand-primary-dark); background:var(--brand-primary-light); padding:4px 10px; border-radius:999px; margin-bottom:8px; }
+  .fb-tag.optimized{ color:#3D7A38; background:#EDF6EB; }
+  .fb-quote{ background:var(--feedback-quote-bg); border-radius:12px; padding:11px 13px; font-size:13.5px; line-height:1.55; color:var(--v2-text-secondary); display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:14px; }
+  .fb-quote.optimized{ color:var(--v2-text-primary); font-weight:500; }
+  .fb-quote svg{ flex-shrink:0; margin-top:2px; color:#C8BFAF; width:14px;height:14px; }
+
+  /* ★ 拼句练习入口 —— 白底 + 渐变描边（本轮修正点①） */
+  .practice-entry-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 18px 14px; border-top:1px dashed rgba(0,0,0,0.08); }
+  .practice-entry-row .meta{ font-size:11px; color:#C2BAAC; }
+  .practice-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+    color:var(--v2-text-secondary); padding:7px 14px; border-radius:999px; cursor:pointer;
+    background:var(--grad-border); border:1.5px solid transparent;
+  }
+  .practice-chip svg{ width:13px; height:13px; color:var(--brand-accent); }
+  .practice-chip:active{ transform:scale(0.97); }
+
+  /* ══════ FRAME 2：拼句练习页（沿用 /review 沉浸式模式：无 TopNav/TabBar，只有关闭+进度）══════ */
+  .practice-shell{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .practice-top{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px 0; flex-shrink:0; }
+  .practice-progress-bar{ height:4px; background:var(--bg-muted); border-radius:999px; margin:10px 20px 0; overflow:hidden; flex-shrink:0; }
+  .practice-progress-bar .fill{ height:100%; width:50%; border-radius:999px; background:linear-gradient(90deg, rgba(212,135,90,0.9), rgba(123,166,153,0.9)); }
+
+  .f2-scroll{ flex:1; overflow-y:auto; padding:26px 20px 130px; display:flex; flex-direction:column; }
+  .f2-scroll.desktop{ max-width:600px; margin:0 auto; width:100%; padding-top:40px; }
+
+  .hint-block{ margin-bottom:26px; text-align:center; }
+  .hint-label{ font-size:11px; font-weight:600; color:var(--v2-text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:9px; display:block; }
+  .hint-sentence{ font-size:14.5px; line-height:1.6; color:var(--v2-text-secondary); }
+
+  .instruction{ font-size:12.5px; color:var(--v2-text-muted); text-align:center; margin-bottom:22px; }
+
+  /* ★ 拼句区 —— 去掉方框，只用一条虚线承接词块（本轮修正点②） */
+  .answer-zone{
+    display:flex; flex-wrap:wrap; gap:10px 10px; align-items:flex-end; justify-content:center;
+    min-height:56px; padding:0 6px 16px; margin-bottom:34px;
+    border-bottom:2px dashed var(--brand-primary-light); transition:border-color .25s;
+  }
+  .answer-zone.empty::before{
+    content:'点下面的词块，按你觉得对的顺序拼回来';
+    font-size:13px; color:#C9C1B4; width:100%; text-align:center; padding-bottom:6px;
+  }
+  .answer-zone.success{ border-bottom-color:var(--success); border-bottom-style:solid; }
+
+  .word-chip{
+    font-size:14px; font-weight:500; color:var(--v2-text-primary); background:#fff;
+    border:1px solid #E5E5E5; border-radius:999px; padding:9px 16px; cursor:pointer;
+    transition:all .15s; user-select:none;
+  }
+  .word-chip:active{ transform:scale(0.95); }
+  .word-chip.correct{ background:rgba(91,160,138,0.10); border-color:var(--success); color:var(--success); font-weight:600; }
+  .word-chip.wrong{ background:rgba(196,122,106,0.10); border-color:var(--error); color:var(--error); }
+
+  .bank-label{ font-size:12px; font-weight:600; color:var(--v2-text-muted); margin-bottom:12px; text-align:center; }
+  .bank-zone{ display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }
+
+  .result-banner{ display:none; align-items:center; gap:10px; background:rgba(91,160,138,0.10); border:1px solid rgba(91,160,138,0.35); border-radius:14px; padding:12px 15px; margin:-10px 0 26px; }
+  .result-banner.show{ display:flex; }
+  .result-banner svg{ color:var(--success); width:18px; height:18px; flex-shrink:0; }
+  .result-banner .t{ font-size:13.5px; font-weight:600; color:#3D7A38; }
+  .result-banner .s{ font-size:11.5px; color:#5F8A5A; margin-top:1px; }
+
+  .bottom-bar{ position:absolute; left:0; right:0; bottom:0; background:var(--bg-page); padding:14px 20px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid rgba(0,0,0,0.05); }
+  .bottom-bar.desktop{ position:static; max-width:600px; margin:0 auto; width:100%; border-top:none; padding:0 0 30px; }
+  .ghost-btn{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color:var(--v2-text-secondary); background:transparent; border:1px solid rgba(0,0,0,0.11); padding:9px 16px; border-radius:999px; cursor:pointer; }
+  .ghost-btn:active{ opacity:0.6; }
+  .progress-dots{ display:flex; gap:5px; }
+  .progress-dots span{ width:6px; height:6px; border-radius:50%; background:#E5DED7; }
+  .progress-dots span.filled{ background:var(--brand-primary); }
+  .gradient-btn{
+    font-size:14px; font-weight:600; color:var(--v2-text-secondary); padding:10px 22px; border-radius:999px;
+    border:1.5px solid transparent; cursor:pointer;
+    background:linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80), rgba(188,210,168,0.75)) border-box;
+    opacity:0.45; pointer-events:none; transition:opacity .2s;
+  }
+  .gradient-btn.enabled{ opacity:1; pointer-events:auto; }
+  .gradient-btn:active{ transform:scale(0.97); }
+
+  .annotations{ max-width:1300px; margin:48px auto 0; background:#fff; border-radius:16px; padding:22px 26px; box-shadow:0 2px 12px rgba(0,0,0,0.05); }
+  .annotations h3{ font-size:14px; font-weight:700; margin-bottom:12px; }
+  .annotations ul{ list-style:none; }
+  .annotations li{ font-size:13px; line-height:1.9; color:#5C554A; display:flex; gap:8px; }
+  .annotations li b{ color:var(--v2-text-primary); flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>拼句练习 · UI 设计稿 v2</h1>
+  <p>本轮基于反馈调整，包含移动端 + 桌面网页端两套布局。</p>
+</div>
+<div class="changelog">
+  <b>本轮修改：</b>① 拼句练习入口改为「白底 + 渐变色描边」（对齐 <code>GRADIENT_BORDER_STYLE</code>，跟 library 场景标准描边一致）&nbsp;&nbsp;
+  ② 拼句练习页放词块的区域去掉方框，改成一条简单的虚线承接词块，视觉更轻&nbsp;&nbsp;
+  ③ 新增桌面网页端布局（对齐当前 <code>TopNav.tsx</code> / <code>ManageHeader</code> / <code>/review</code> 沉浸式页面的真实实现）
+</div>
+
+<!-- ══════════════════════ 移动端 ══════════════════════ -->
+<div class="row-label"><span class="bar"></span><span>移动端</span><small>375–430px 宽，底部 TabBar 导航</small></div>
+<div class="stage">
+
+  <div class="frame-block">
+    <div class="frame-label"><span class="dot"></span>入口位置 · 素材库 / 收藏卡片</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">
+          <span style="width:22px;height:22px;border-radius:7px;background:var(--brand-primary);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">🎙</span>
+          LingoBridge
+        </div>
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--brand-accent);"></div>
+      </div>
+      <div class="f1-scroll">
+        <div class="breadcrumb">首页 <span>›</span> <b>我的素材库</b></div>
+        <div class="lib-title">我的素材库</div>
+        <div class="lib-sub">已攒下 8 条，慢慢成你自己的表达库</div>
+
+        <div class="review-banner">
+          <div>
+            <div class="eyebrow">今日复习 · 词组闪卡</div>
+            <div class="headline"><b>2</b> 张词卡，等你翻一翻</div>
+            <div class="desc">把收藏的词组记牢——一天几张，不费劲</div>
+          </div>
+          <div class="cta">开始复习 ›</div>
+        </div>
+
+        <div class="tabs-row">
+          <div class="tab-chip on">收藏卡片 2</div>
+          <div class="tab-chip">词组收藏 2</div>
+          <div class="tab-chip">发音 1</div>
+          <div class="tab-chip">我的语料 3</div>
+        </div>
+
+        <div class="cards-grid">
+          <div class="fb-card">
+            <div class="fb-card-body">
+              <div class="fb-tag">原句</div>
+              <div class="fb-quote">My roommates uh stole my Gym card.<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg></div>
+              <div class="fb-tag optimized">优化</div>
+              <div class="fb-quote optimized">My roommate actually stole my gym card.<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg></div>
+            </div>
+            <div class="practice-entry-row">
+              <span class="meta">11 天前</span>
+              <div class="practice-chip" onclick="alert('跳转到拼句练习页（见右侧手机）')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                拼句练习
+              </div>
+            </div>
+          </div>
+          <div class="fb-card">
+            <div class="fb-card-body">
+              <div class="fb-tag">原句</div>
+              <div class="fb-quote">I think travel is important for me.</div>
+              <div class="fb-tag optimized">优化</div>
+              <div class="fb-quote optimized">I've always felt that travel matters a lot to me.</div>
+            </div>
+            <div class="practice-entry-row">
+              <span class="meta">3 天前</span>
+              <div class="practice-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                拼句练习
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><span>首页</span></div>
+        <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg><span>题库</span></div>
+        <div class="tab-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>素材库</span><span class="indicator"></span>
+        </div>
+        <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>我的</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-block">
+    <div class="frame-label"><span class="dot"></span>拼句练习页（沉浸式，无 TabBar）</div>
+    <div class="phone" style="position:relative;">
+      <div class="notch"></div>
+      <div class="practice-shell">
+        <div class="practice-top">
+          <button class="back-btn" onclick="resetGame('m')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.4"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button>
+          <div class="topbar-count">1 / 2</div>
+        </div>
+        <div class="practice-progress-bar"><div class="fill"></div></div>
+
+        <div class="f2-scroll" id="scroll-m">
+          <div class="hint-block">
+            <span class="hint-label">原句</span>
+            <div class="hint-sentence">My roommates uh stole my Gym card.</div>
+          </div>
+          <div class="instruction">拼出 AI 优化后的说法</div>
+          <div class="answer-zone empty" id="answerZone-m"></div>
+          <div id="resultBanner-m" class="result-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+            <div><div class="t">拼对啦 🎉</div><div class="s">已为你播放一次发音，多听几遍会更熟</div></div>
+          </div>
+          <div class="bank-label">词库</div>
+          <div class="bank-zone" id="bankZone-m"></div>
+        </div>
+
+        <div class="bottom-bar">
+          <button class="ghost-btn" onclick="resetGame('m')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            重来
+          </button>
+          <div class="progress-dots" id="progressDots-m"></div>
+          <button class="gradient-btn" id="nextBtn-m">下一句 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════ 桌面网页端 ══════════════════════ -->
+<div class="row-label"><span class="bar"></span><span>桌面网页端</span><small>对齐 TopNav.tsx / ManageHeader / MANAGE_CONTAINER 1200 容器</small></div>
+<div class="stage">
+
+  <div class="frame-block">
+    <div class="frame-label"><span class="dot"></span>入口位置 · 素材库 / 收藏卡片（桌面）</div>
+    <div class="browser">
+      <div class="browser-chrome">
+        <span class="dot" style="background:#ED6A5E;"></span><span class="dot" style="background:#F5BF4F;"></span><span class="dot" style="background:#61C454;"></span>
+        <div class="url">lingobridge.app/library</div>
+      </div>
+      <div class="topnav">
+        <div class="brand"><span class="logo">🎙</span><span class="name">LingoBridge</span></div>
+        <nav><a>首页</a><a>题库</a><a class="active">素材库</a><a>我的</a></nav>
+        <div class="right"><span class="bell">🔔</span><span class="avatar">B</span></div>
+      </div>
+      <div class="f1-scroll desktop" style="overflow-y:auto;">
+        <div class="breadcrumb">首页 <span>›</span> <b>我的素材库</b></div>
+        <div class="lib-title desktop">我的素材库</div>
+        <div class="lib-sub">已攒下 8 条，慢慢成你自己的表达库</div>
+
+        <div class="review-banner">
+          <div>
+            <div class="eyebrow">今日复习 · 词组闪卡</div>
+            <div class="headline"><b>2</b> 张词卡，等你翻一翻</div>
+            <div class="desc">把收藏的词组记牢——一天几张，不费劲</div>
+          </div>
+          <div class="cta">开始复习 ›</div>
+        </div>
+
+        <div class="tabs-row">
+          <div class="tab-chip on">收藏卡片 2</div>
+          <div class="tab-chip">词组收藏 2</div>
+          <div class="tab-chip">发音 1</div>
+          <div class="tab-chip">我的语料 3</div>
+        </div>
+
+        <div class="cards-grid desktop">
+          <div class="fb-card">
+            <div class="fb-card-body">
+              <div class="fb-tag">原句</div>
+              <div class="fb-quote">My roommates uh stole my Gym card.<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg></div>
+              <div class="fb-tag optimized">优化</div>
+              <div class="fb-quote optimized">My roommate actually stole my gym card.<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg></div>
+            </div>
+            <div class="practice-entry-row">
+              <span class="meta">11 天前</span>
+              <div class="practice-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                拼句练习
+              </div>
+            </div>
+          </div>
+          <div class="fb-card">
+            <div class="fb-card-body">
+              <div class="fb-tag">原句</div>
+              <div class="fb-quote">I think travel is important for me.</div>
+              <div class="fb-tag optimized">优化</div>
+              <div class="fb-quote optimized">I've always felt that travel matters a lot to me.</div>
+            </div>
+            <div class="practice-entry-row">
+              <span class="meta">3 天前</span>
+              <div class="practice-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+                拼句练习
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-block">
+    <div class="frame-label"><span class="dot"></span>拼句练习页（桌面，沉浸式居中，对齐 /review 实现）</div>
+    <div class="browser">
+      <div class="browser-chrome">
+        <span class="dot" style="background:#ED6A5E;"></span><span class="dot" style="background:#F5BF4F;"></span><span class="dot" style="background:#61C454;"></span>
+        <div class="url">lingobridge.app/library/collected/1/practice</div>
+      </div>
+      <div class="practice-shell">
+        <div class="practice-top" style="max-width:600px; margin:0 auto; width:100%;">
+          <button class="back-btn" onclick="resetGame('d')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.4"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></button>
+          <div class="topbar-count">1 / 2</div>
+        </div>
+        <div class="practice-progress-bar" style="max-width:600px; margin:10px auto 0;"><div class="fill"></div></div>
+
+        <div class="f2-scroll desktop" id="scroll-d" style="overflow-y:auto;">
+          <div class="hint-block">
+            <span class="hint-label">原句</span>
+            <div class="hint-sentence">My roommates uh stole my Gym card.</div>
+          </div>
+          <div class="instruction">拼出 AI 优化后的说法</div>
+          <div class="answer-zone empty" id="answerZone-d"></div>
+          <div id="resultBanner-d" class="result-banner" style="max-width:520px;margin-left:auto;margin-right:auto;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+            <div><div class="t">拼对啦 🎉</div><div class="s">已为你播放一次发音，多听几遍会更熟</div></div>
+          </div>
+          <div class="bank-label">词库</div>
+          <div class="bank-zone" id="bankZone-d"></div>
+
+          <div class="bottom-bar desktop">
+            <button class="ghost-btn" onclick="resetGame('d')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              重来
+            </button>
+            <div class="progress-dots" id="progressDots-d"></div>
+            <button class="gradient-btn" id="nextBtn-d">下一句 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="annotations">
+  <h3>设计说明</h3>
+  <ul>
+    <li><b>入口描边：</b>「拼句练习」chip 改为白底 + 1.5px 渐变描边，直接用项目 <code>GRADIENT_BORDER_STYLE</code>（2 色停，library 场景标准），跟"开始复习"入口是同一套描边语言，不再是实心色块。</li>
+    <li><b>拼句区：</b>去掉卡片式方框和背景色，只保留一条 2px 虚线（<code>brand-primary-light</code>）承接词块，词块像"摆在线上"；全部拼对后虚线变实线绿色，呼应成功态，视觉更轻、更像"横线填空"而不是"容器"。</li>
+    <li><b>桌面端结构：</b>入口页沿用真实的 <code>TopNav</code>（顶部横向导航）+ <code>ManageHeader</code>（面包屑+H1）+ <code>MANAGE_CONTAINER</code>（1200 居中容器），卡片区 2 列网格，跟当前 <code>/library</code> 桌面实现完全对齐。</li>
+    <li><b>练习页桌面版：</b>不放 TopNav，沿用项目里 <code>/review</code> 页面已有的"沉浸式"模式——关闭按钮+进度条+内容居中 <code>max-w-[600px]</code>，逻辑跟移动端一致，只是把内容区在大屏上收窄居中，避免词块被拉得太散。</li>
+    <li><b>两端都可点：</b>四个还原图里，右侧两个"拼句练习页"都可以直接点词块体验交互（移动端和桌面各自独立状态）。</li>
+  </ul>
+</div>
+
+<script>
+  const correctOrder = ["My","roommate","actually","stole","my","gym","card."]
+  const state = {
+    m: { bank: [], answer: [], locked: false },
+    d: { bank: [], answer: [], locked: false },
+  }
+
+  function shuffle(arr){
+    let a = [...arr]
+    do {
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[a[i], a[j]] = [a[j], a[i]]
+      }
+    } while (a.join('') === arr.join('') && arr.length > 1)
+    return a
+  }
+
+  function initGame(key){
+    const s = state[key]
+    s.bank = shuffle(correctOrder)
+    s.answer = []
+    s.locked = false
+    document.getElementById(`resultBanner-${key}`).classList.remove('show')
+    document.getElementById(`answerZone-${key}`).classList.remove('success')
+    document.getElementById(`nextBtn-${key}`).classList.remove('enabled')
+    render(key)
+  }
+
+  function pickWord(key, idx){
+    const s = state[key]
+    if (s.locked) return
+    s.answer.push(s.bank[idx])
+    s.bank.splice(idx, 1)
+    checkComplete(key)
+    render(key)
+  }
+
+  function returnWord(key, idx){
+    const s = state[key]
+    if (s.locked) return
+    s.bank.push(s.answer[idx])
+    s.answer.splice(idx, 1)
+    render(key)
+  }
+
+  function checkComplete(key){
+    const s = state[key]
+    if (s.bank.length !== 0) return
+    const isCorrect = s.answer.every((w, i) => w === correctOrder[i])
+    s.locked = isCorrect
+    if (isCorrect){
+      document.getElementById(`answerZone-${key}`).classList.add('success')
+      document.getElementById(`resultBanner-${key}`).classList.add('show')
+      document.getElementById(`nextBtn-${key}`).classList.add('enabled')
+      speakSentence(correctOrder.join(' ').replace(' .', '.'))
+    }
+  }
+
+  function speakSentence(text){
+    if (!('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'en-US'
+    window.speechSynthesis.speak(u)
+  }
+
+  function render(key){
+    const s = state[key]
+    const az = document.getElementById(`answerZone-${key}`)
+    const bz = document.getElementById(`bankZone-${key}`)
+    az.classList.toggle('empty', s.answer.length === 0)
+    az.innerHTML = s.answer.map((w, i) => {
+      const isCorrect = s.locked && w === correctOrder[i]
+      const isWrong = s.bank.length === 0 && !s.locked && w !== correctOrder[i]
+      const cls = isCorrect ? 'correct' : (isWrong ? 'wrong' : '')
+      return `<div class="word-chip ${cls}" onclick="returnWord('${key}',${i})">${w}</div>`
+    }).join('')
+    bz.innerHTML = s.bank.map((w, i) => `<div class="word-chip" onclick="pickWord('${key}',${i})">${w}</div>`).join('')
+
+    const dots = document.getElementById(`progressDots-${key}`)
+    dots.innerHTML = correctOrder.map((_, i) => `<span class="${i < s.answer.length ? 'filled' : ''}"></span>`).join('')
+  }
+
+  function resetGame(key){ initGame(key) }
+  document.getElementById('nextBtn-m').addEventListener('click', () => alert('跳转到下一张收藏卡片的拼句练习（或返回素材库）'))
+  document.getElementById('nextBtn-d').addEventListener('click', () => alert('跳转到下一张收藏卡片的拼句练习（或返回素材库）'))
+
+  initGame('m')
+  initGame('d')
+</script>
+
+</body>
+</html>

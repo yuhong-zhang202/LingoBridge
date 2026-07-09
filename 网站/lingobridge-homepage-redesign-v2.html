@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>首页 · LingoBridge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'bg-page': '#F8F5F1',
+          'bg-surface': '#FFFFFF',
+          'bg-muted': '#EEEBE6',
+          'brand-primary': '#D4875A',
+          'brand-primary-light': '#F2D5C0',
+          'brand-primary-dark': '#B5663A',
+          'brand-accent': '#7BA699',
+          'brand-accent-light': '#C8DDD9',
+          'v2-text-primary': '#2C2420',
+          'v2-text-secondary': '#6B5B52',
+          'v2-text-muted': '#A89990',
+          'tag-green-bg': '#EDF6EB',
+          'tag-green-border': '#C0DDB9',
+          'tag-green-text': '#3D7A38',
+          'phrase-warm-bg': '#F7EBE1',
+          'phrase-blue-bg': '#E9EEF4',
+          'phrase-blue-text': '#4A6178',
+        },
+        fontFamily: { sans: ['Plus Jakarta Sans', 'PingFang SC', 'Noto Sans SC', 'sans-serif'] },
+      },
+    },
+  }
+</script>
+<style>
+  body { -webkit-font-smoothing: antialiased; }
+  .gradient-border { position: relative; }
+  .gradient-border::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, rgba(240,188,160,0.85) 0%, rgba(168,210,196,0.80) 50%, rgba(188,210,168,0.75) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  }
+  .step-card { transition: transform 150ms ease, box-shadow 150ms ease; }
+  .step-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(44,36,32,0.08); }
+  .dim-card { transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; }
+  .dim-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(44,36,32,0.07); border-color: rgba(212,135,90,0.3); }
+  @keyframes orb-breathe { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.035);opacity:1} }
+  .orb-layer { animation: orb-breathe 4.5s ease-in-out infinite; }
+</style>
+</head>
+<body class="bg-bg-page font-sans text-v2-text-primary">
+
+  <!-- 顶部导航 -->
+  <div class="border-b border-black/[0.05]">
+    <div class="max-w-[1180px] mx-auto flex items-center justify-between px-8 h-[64px]">
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-[10px] flex items-center justify-center" style="background:linear-gradient(135deg,#D4875A,#B5663A)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+          </div>
+          <span class="text-[16px] font-semibold">LingoBridge</span>
+        </div>
+        <nav class="flex items-center gap-1 text-[14px] text-v2-text-secondary">
+          <a class="px-3 py-2 rounded-full bg-bg-muted text-v2-text-primary font-medium" href="#">首页</a>
+          <a class="px-3 py-2 rounded-full hover:bg-bg-muted" href="#">题库</a>
+          <a class="px-3 py-2 rounded-full hover:bg-bg-muted" href="#">素材库</a>
+          <a class="px-3 py-2 rounded-full hover:bg-bg-muted" href="#">我的</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-bg-muted">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5B52" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <div class="w-9 h-9 rounded-full bg-brand-accent flex items-center justify-center text-white text-[13px] font-medium">B</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero：不动 -->
+  <div class="max-w-[1180px] mx-auto px-8 pt-14 pb-8 relative">
+    <div class="grid grid-cols-2 items-center gap-8 relative overflow-visible">
+      <div>
+        <div class="inline-flex bg-bg-muted rounded-full p-1 mb-6">
+          <div class="px-5 py-2 rounded-full bg-white text-[13px] font-medium shadow-[0_1px_4px_rgba(0,0,0,0.06)]">我的故事</div>
+          <div class="px-5 py-2 rounded-full text-[13px] text-v2-text-muted">雅思题</div>
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tag-green-bg border border-tag-green-border text-tag-green-text text-[12px] font-medium mb-5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
+          从一个真实经历开始
+        </div>
+        <h1 class="text-[44px] font-bold leading-[1.15] mb-5">说说你的故事</h1>
+        <p class="text-[15px] text-v2-text-secondary leading-relaxed mb-8 max-w-[420px]">不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。</p>
+        <div class="flex items-center gap-5">
+          <button class="flex items-center gap-2 px-7 py-3.5 rounded-full text-[14px] font-medium text-v2-text-secondary gradient-border bg-white active:scale-[0.97] transition-transform">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+            开始录音
+          </button>
+          <a href="#" class="flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:text-v2-text-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+            或用文字输入
+          </a>
+        </div>
+      </div>
+
+      <div class="relative h-[460px] flex items-center justify-center" style="margin-right:-40px">
+        <div class="relative w-[340px] h-[340px]">
+          <div class="orb-layer absolute rounded-full" style="width:200px;height:200px;left:10px;top:20px;background:rgba(145,200,122,0.55);filter:blur(46px)"></div>
+          <div class="orb-layer absolute rounded-full" style="width:175px;height:175px;right:10px;top:60px;background:rgba(112,182,176,0.55);filter:blur(46px);animation-delay:.6s"></div>
+          <div class="orb-layer absolute rounded-full" style="width:185px;height:185px;left:60px;bottom:10px;background:rgba(248,168,118,0.55);filter:blur(46px);animation-delay:1.1s"></div>
+          <div class="orb-layer absolute rounded-full" style="width:145px;height:145px;left:40px;top:90px;background:rgba(210,226,168,0.45);filter:blur(46px);animation-delay:1.6s"></div>
+          <div class="absolute rounded-full" style="width:10px;height:10px;left:40px;top:30px;background:rgba(112,182,176,0.7)"></div>
+          <div class="absolute rounded-full" style="width:7px;height:7px;right:30px;top:50px;background:rgba(248,168,118,0.7)"></div>
+          <div class="absolute rounded-full" style="width:6px;height:6px;left:80px;bottom:40px;background:rgba(145,200,122,0.7)"></div>
+          <div class="absolute rounded-full" style="width:8px;height:8px;right:60px;bottom:70px;background:rgba(210,226,168,0.7)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-[1180px] mx-auto px-8 pb-20">
+
+    <!-- 三步流程：改为 分享真实经历 → 匹配雅思题 → 实时练习对话 -->
+    <div class="mb-6">
+      <h2 class="text-[26px] font-bold mb-1.5">三步，把经历变成高分回答</h2>
+      <p class="text-[13px] text-v2-text-muted">这正是 LingoBridge 和背题库不一样的地方</p>
+    </div>
+
+    <div class="relative grid grid-cols-3 gap-6 mb-20">
+      <div class="absolute left-[16.5%] right-[16.5%] top-[38px] h-[1.5px]" style="background:linear-gradient(90deg, rgba(212,135,90,0.55), rgba(123,166,153,0.55))"></div>
+
+      <div class="step-card relative bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7 pt-8 overflow-hidden">
+        <span class="absolute -top-3 right-2 text-[76px] font-extrabold text-brand-primary-light/70 leading-none select-none">1</span>
+        <div class="relative w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center mb-5 z-10 ring-4 ring-bg-page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        </div>
+        <div class="text-[11px] font-semibold text-brand-primary tracking-wide mb-1">STEP 01</div>
+        <div class="text-[16px] font-bold mb-2">分享真实经历</div>
+        <p class="text-[13px] text-v2-text-secondary leading-relaxed">用中文或英文，说说发生过什么。卡壳也没关系，先把事讲完整。</p>
+      </div>
+
+      <div class="step-card relative bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7 pt-8 overflow-hidden">
+        <span class="absolute -top-3 right-2 text-[76px] font-extrabold text-bg-muted leading-none select-none">2</span>
+        <div class="relative w-9 h-9 rounded-full bg-v2-text-secondary flex items-center justify-center mb-5 z-10 ring-4 ring-bg-page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
+        </div>
+        <div class="text-[11px] font-semibold text-v2-text-secondary tracking-wide mb-1">STEP 02</div>
+        <div class="text-[16px] font-bold mb-2">匹配雅思题</div>
+        <p class="text-[13px] text-v2-text-secondary leading-relaxed">基于六维度体系，把这段经历匹配到当季雅思口语题——一个故事往往能对应好几道题。</p>
+      </div>
+
+      <div class="step-card relative bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7 pt-8 overflow-hidden">
+        <span class="absolute -top-3 right-2 text-[76px] font-extrabold text-brand-accent-light/70 leading-none select-none">3</span>
+        <div class="relative w-9 h-9 rounded-full bg-brand-accent flex items-center justify-center mb-5 z-10 ring-4 ring-bg-page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="text-[11px] font-semibold text-brand-accent tracking-wide mb-1">STEP 03</div>
+        <div class="text-[16px] font-bold mb-2">实时练习对话</div>
+        <p class="text-[13px] text-v2-text-secondary leading-relaxed">AI 陪你反复对话打磨这段回答，即时给反馈，练到能脱口而出。</p>
+      </div>
+    </div>
+
+    <!-- 六维度介绍：替换原来的话题列表 -->
+    <div class="mb-6">
+      <h2 class="text-[26px] font-bold mb-1.5">六个维度，读懂你的每一段经历</h2>
+      <p class="text-[13px] text-v2-text-muted">我们用六个维度收集不同类型的语料，匹配到对应类型的雅思题目</p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-5">
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-brand-primary-light flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B5663A" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">情绪内核</span>
+          <span class="text-[11px] text-v2-text-muted">13 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">如何与自己相处——情绪、独处、解压、节奏</p>
+      </div>
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-brand-accent-light flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5F8A7E" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">人际羁绊</span>
+          <span class="text-[11px] text-v2-text-muted">11 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">与他人、动物之间的联结</p>
+      </div>
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-tag-green-bg flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3D7A38" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">空间感知</span>
+          <span class="text-[11px] text-v2-text-muted">8 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">与空间、远行的关系——居所、城市、自然</p>
+      </div>
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-phrase-warm-bg flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B5663A" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">精神栖所</span>
+          <span class="text-[11px] text-v2-text-muted">6 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">书影音、心头之物、数字栖居</p>
+      </div>
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-phrase-blue-bg flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4A6178" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">成长演进</span>
+          <span class="text-[11px] text-v2-text-muted">7 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">你如何蜕变——技能、复盘、重要决定</p>
+      </div>
+
+      <div class="dim-card bg-bg-surface rounded-[16px] border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+        <div class="w-11 h-11 rounded-[12px] bg-bg-muted flex items-center justify-center mb-4">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6B5B52" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M16.9 7.1L15.4 8.6M8.6 15.4L7.1 16.9M16.9 16.9l-1.5-1.5M8.6 8.6L7.1 7.1"/></svg>
+        </div>
+        <div class="flex items-baseline justify-between mb-1.5">
+          <span class="text-[15px] font-semibold">价值底色</span>
+          <span class="text-[11px] text-v2-text-muted">3 个观察点</span>
+        </div>
+        <p class="text-[12.5px] text-v2-text-secondary leading-relaxed">你相信什么、看重什么</p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
