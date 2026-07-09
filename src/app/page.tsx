@@ -10,7 +10,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, RefreshCw, type LucideIcon } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
@@ -24,12 +24,15 @@ import FirstUseConsent from '@/components/FirstUseConsent'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
 import QuotaReached from '@/components/QuotaReached'
 import StoryTextPanel from '@/components/StoryTextPanel'
+import AiBubble from '@/app/practice/_components/AiBubble'
+import UserBubble from '@/app/practice/_components/UserBubble'
+import OrbSoft from '@/app/practice/_components/OrbSoft'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { computeRichness } from '@/lib/story-richness'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { BRAND_GRADIENT, PAGE_CONTAINER } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, PAGE_CONTAINER } from '@/lib/constants'
 
 // Hero 标题第二行（故事模式下打字机逐字浮现）
 const HERO_LINE2 = '个性化雅思语料'
@@ -260,7 +263,7 @@ export default function HomePage() {
           ) : (
             <>
               {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
-              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-start pt-[8vh] pb-12">
+              <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-12">
                 {/* 极淡氛围光（装饰，置于 Orb 背后） */}
                 <div
                   aria-hidden
@@ -412,32 +415,29 @@ export default function HomePage() {
                   sub="根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去"
                 />
                 <div className="grid grid-cols-[0.95fr_1.05fr] gap-14 items-center">
-                  {/* 左：练习对话 mockup */}
-                  <Card className="p-5">
-                    {/* 步骤条示意 */}
-                    <div className="flex items-center gap-1.5 mb-4 px-0.5">
-                      {[0, 1, 2, 3].map(i => (
-                        <div key={i} className="flex items-center flex-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                          <span className="flex-1 h-[1.5px] bg-brand-primary" />
-                        </div>
-                      ))}
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-primary ring-[3px] ring-brand-primary/25" />
+                  {/* 左：练习对话 mockup —— 复用真实 AiBubble/UserBubble，与练习页视觉一致（不再手写、避免漂移） */}
+                  <Card className="p-6">
+                    {/* 题目条（练习页同款样式） */}
+                    <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px] mb-4">
+                      <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part 1</span>
+                      <div className="w-px h-3 bg-black/10 flex-shrink-0" />
+                      <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">What do you usually do when you are resting?</span>
                     </div>
-                    <span className="inline-block text-[11px] text-v2-text-secondary bg-bg-muted rounded-[8px] px-2.5 py-1.5 mb-3.5">
-                      Part 1 · What do you usually do when you are resting?
-                    </span>
-                    {LEO_DIALOGUE.map(({ from, text }, i) => (
-                      <div key={i} className={`flex gap-2 mb-3 items-start ${from === 'user' ? 'flex-row-reverse' : ''}`}>
-                        <span className="w-[26px] h-[26px] rounded-full flex-shrink-0" style={{ background: BRAND_GRADIENT }} />
-                        <div className={`relative max-w-[76%] px-3.5 py-2.5 text-[12.5px] leading-relaxed ${from === 'user' ? 'bg-brand-accent-light text-v2-text-primary rounded-[13px] rounded-tr-[4px]' : 'bg-bg-muted text-v2-text-primary rounded-[13px] rounded-tl-[4px]'}`}>
-                          {from === 'user' && <span className="absolute -top-2 -left-2 text-[12px]">✨</span>}
-                          {text}
-                        </div>
+
+                    {/* 对话（真实气泡组件；用户气泡带 ✨ 优化反馈入口） */}
+                    {LEO_DIALOGUE.map(({ from, text }, i) =>
+                      from === 'leo'
+                        ? <AiBubble key={i} text={text} />
+                        : <UserBubble key={i} text={text} onPolish={() => {}} />
+                    )}
+
+                    {/* 输入胶囊（练习页同款：换说法 Orb + 点击说话） */}
+                    <div className="mt-1 flex items-center gap-3">
+                      <OrbSoft size={40} />
+                      <div className="flex flex-1 items-center justify-center gap-2 rounded-full py-3" style={GRADIENT_BORDER_STYLE}>
+                        <Mic2 size={16} className="text-brand-primary" />
+                        <span className="text-[13px] font-medium text-v2-text-secondary">点击说话</span>
                       </div>
-                    ))}
-                    <div className="mt-2.5 flex items-center justify-center gap-1.5 border border-brand-primary rounded-full py-2.5 text-[12px] font-semibold text-brand-primary-dark">
-                      <Mic2 size={14} />按住说话
                     </div>
                   </Card>
 
@@ -468,12 +468,23 @@ export default function HomePage() {
                 />
                 <div className="grid grid-cols-3 gap-6 items-stretch">
                   {/* 拼句练习 */}
-                  <Card className="p-5 h-full flex flex-col">
-                    <div className="h-[180px] rounded-[12px] bg-bg-muted mb-4 flex items-center justify-center px-4">
-                      <div className="flex flex-wrap justify-center gap-1.5">
-                        {['actually', 'gym', 'roommate', 'card.', 'my', 'stole', 'My'].map((w, i) => (
-                          <Chip key={i} variant="default" size="sm">{w}</Chip>
-                        ))}
+                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
+                    <div className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex flex-col items-center justify-center gap-3 px-5 overflow-hidden">
+                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
+                        <Puzzle size={14} strokeWidth={2} />
+                      </div>
+                      {/* 拼装中的一行（含一个待填空槽） */}
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        <Chip variant="default" size="sm">My</Chip>
+                        <Chip variant="default" size="sm">roommate</Chip>
+                        <span className="h-[24px] w-[54px] rounded-full border border-dashed border-brand-primary/45 bg-white/70" />
+                        <Chip variant="default" size="sm">my</Chip>
+                        <Chip variant="default" size="sm">card</Chip>
+                      </div>
+                      {/* 待选词块：高亮的是下一个要拖入的 */}
+                      <div className="flex items-center gap-1.5">
+                        <Chip variant="gradient" size="sm">stole</Chip>
+                        <Chip variant="default" size="sm">actually</Chip>
                       </div>
                     </div>
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">拼句练习</h3>
@@ -481,38 +492,42 @@ export default function HomePage() {
                   </Card>
 
                   {/* Anki 复习 */}
-                  <Card className="p-5 h-full flex flex-col">
-                    <div className="h-[180px] rounded-[12px] bg-bg-muted mb-4 flex flex-col items-center justify-center gap-2.5 px-4">
-                      <div className="flex items-center gap-2">
-                        {/* 正面 / 背面 —— 同尺寸并排 */}
-                        <div className="w-24 h-[104px] bg-white rounded-[10px] px-2 py-2.5 flex flex-col items-center justify-center text-center">
-                          <Tag variant="green" label="感受" className="text-[9px] px-[6px] py-[2px]" />
-                          <div className="mt-1.5 text-[12.5px] font-bold text-v2-text-primary leading-tight">有点纠结</div>
-                        </div>
-                        <RefreshCw size={16} strokeWidth={2.2} className="text-v2-text-muted flex-shrink-0" />
-                        <div className="w-24 h-[104px] bg-white rounded-[10px] px-2 py-2.5 flex flex-col items-center justify-center text-center">
-                          <Tag variant="green" label="感受" className="text-[9px] px-[6px] py-[2px]" />
-                          <div className="mt-1.5 text-[12.5px] font-bold text-v2-text-primary leading-tight">kind of torn</div>
-                          <div className="text-[10px] text-brand-accent mt-0.5">有点纠结</div>
-                        </div>
+                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
+                    <div className="relative h-[190px] rounded-[16px] bg-brand-accent-light/40 border border-brand-accent/20 mb-5 flex items-center justify-center gap-3 px-4 overflow-hidden">
+                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-accent/25 grid place-items-center text-brand-accent">
+                        <Layers size={14} strokeWidth={2} />
                       </div>
-                      <p className="text-[11px] text-v2-text-muted text-center max-w-[220px] leading-snug">点击卡片翻面，背面会给出这个表达的解释和例句</p>
+                      {/* 正面 */}
+                      <div className="w-[96px] h-[116px] bg-white rounded-[12px] border border-black/[0.04] shadow-[0_2px_10px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center gap-2 px-2 text-center">
+                        <Tag variant="green" label="感受" className="text-[9px] px-[6px] py-[2px]" />
+                        <div className="text-[13px] font-bold text-v2-text-primary leading-tight">有点纠结</div>
+                      </div>
+                      <RotateCw size={15} strokeWidth={2.2} className="text-brand-primary flex-shrink-0" />
+                      {/* 背面 */}
+                      <div className="w-[96px] h-[116px] bg-white rounded-[12px] border border-brand-accent/25 shadow-[0_2px_10px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center gap-1 px-2 text-center">
+                        <div className="text-[13px] font-bold text-brand-accent leading-tight">kind of torn</div>
+                        <div className="text-[10px] text-v2-text-muted">有点纠结</div>
+                      </div>
                     </div>
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">Anki 复习</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。</p>
                   </Card>
 
                   {/* 发音教学 */}
-                  <Card className="p-5 h-full flex flex-col">
-                    <div className="h-[180px] rounded-[12px] bg-bg-muted mb-4 flex items-center justify-center px-4">
-                      <div className="w-full bg-white rounded-[10px] p-3.5 text-[12px]">
-                        <div className="flex justify-between mb-2">
-                          <span className="text-v2-text-secondary">想说的词</span>
-                          <span className="font-bold text-brand-accent">Gym /dʒɪm/</span>
+                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
+                    <div className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex items-center justify-center px-5 overflow-hidden">
+                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
+                        <Volume2 size={14} strokeWidth={2} />
+                      </div>
+                      <div className="w-full bg-white rounded-[12px] border border-black/[0.04] shadow-[0_2px_10px_rgba(0,0,0,0.05)] p-4">
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className="text-[11px] text-v2-text-muted">想说的词</span>
+                          <span className="text-[13px] font-bold text-brand-accent">Gym <span className="font-normal text-v2-text-muted">/dʒɪm/</span></span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-[11px] text-v2-text-muted">被听成 →</span>
-                          <span className="font-bold text-error">drink /drɪŋk/</span>
+                        <div className="h-px bg-black/[0.05] mb-2.5" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-v2-text-muted">被听成</span>
+                          <span className="text-[13px] font-bold text-error">drink <span className="font-normal text-v2-text-muted">/drɪŋk/</span></span>
                         </div>
                       </div>
                     </div>
