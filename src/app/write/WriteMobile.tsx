@@ -1,29 +1,18 @@
 /**
  * @module   WriteMobile
- * @desc     文字模式「故事」页移动端视图 —— 视觉沿用首页文字面板（textarea + 改用录音 + 提交圆钮 + 丰富度）。
- *           极简 TopBar（返回），无 TabBar（产出内容页）。纯展示，状态/回调经 props。
+ * @desc     文字模式「故事」页移动端视图 —— 极简 TopBar（返回）+ ?qid 题目 caption + 共享 <StoryTextPanel>。
+ *           无 TabBar（产出内容页）。纯展示，状态/回调经 props；文字面板视觉与逻辑收进 StoryTextPanel 单一实现。
  * @author   LingoBridge
  * @created  2026-07-09
  */
 'use client'
-import { ChevronLeft, Mic2, ArrowRight, Loader2 } from 'lucide-react'
-import SegmentDots from '@/app/question-bank/SegmentDots'
-import { WRITE_PLACEHOLDER, type WriteViewProps } from './types'
+import { ChevronLeft } from 'lucide-react'
+import StoryTextPanel from '@/components/StoryTextPanel'
+import type { WriteViewProps } from './types'
 
 export default function WriteMobile({
   textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, onExit,
 }: WriteViewProps): JSX.Element {
-  // 丰富度派生（沿用首页文字面板算法）
-  const len = textStory.trim().length
-  const pct = Math.min(100, (len / 90) * 100)
-  const richnessFilled = Math.round((pct / 100) * 18)
-  const isRich = pct >= 80
-  const richState =
-    len === 0   ? '越具体匹配越准' :
-    pct < 30    ? '还比较简单，多展开一些' :
-    pct < 80    ? '渐入佳境，再补点细节' :
-                  '很丰富啦 ✨ 可以开始匹配'
-
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       {/* 极简 TopBar：返回 */}
@@ -51,41 +40,15 @@ export default function WriteMobile({
           </div>
         )}
 
-        {/* 文字面板（沿用首页 textPanel 视觉） */}
-        <div className="w-full">
-          <div className="w-full bg-bg-surface border border-black/[0.06] rounded-[18px] pt-[18px] px-4 pb-[13px]">
-            <textarea
-              value={textStory}
-              onChange={e => onChangeText(e.target.value)}
-              placeholder={WRITE_PLACEHOLDER}
-              className="w-full min-h-[244px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
-              autoFocus
-            />
-            <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">
-              <button onClick={onSwitchToVoice} className="flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70 active:opacity-60">
-                <Mic2 size={15} />改用录音
-              </button>
-              <button
-                disabled={!canSubmit || submitting}
-                onClick={onSubmit}
-                aria-label="开始匹配题目"
-                className={canSubmit && !submitting ? 'btn-gradient-circle w-[42px] h-[42px]' : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-bg-muted cursor-not-allowed'}
-              >
-                {submitting ? <Loader2 size={18} className="text-v2-text-muted animate-spin" /> : <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-v2-text-muted'} />}
-              </button>
-            </div>
-          </div>
-          <div className="mt-[22px] px-1">
-            <div className="flex items-baseline justify-between mb-[11px]">
-              <span className="text-[12px] text-v2-text-muted tracking-[0.3px]">丰富度</span>
-              <span className={`text-[13px] ${isRich ? 'text-brand-accent font-medium' : 'text-v2-text-secondary'}`}>{richState}</span>
-            </div>
-            <SegmentDots total={18} filled={richnessFilled} />
-          </div>
-          <div className="mt-4 px-1 text-[12px] leading-[1.7] text-v2-text-muted">
-            试着带到：<span className="text-v2-text-secondary font-medium">时间 · 人物 · 发生的事 · 你的做法和感受</span>
-          </div>
-        </div>
+        {/* 文字面板（共享组件；改用录音 = 跳 /recording，由外壳注入） */}
+        <StoryTextPanel
+          value={textStory}
+          onChange={onChangeText}
+          canSubmit={canSubmit}
+          submitting={submitting}
+          onSubmit={onSubmit}
+          onSwitchToVoice={onSwitchToVoice}
+        />
       </div>
     </div>
   )
