@@ -21,8 +21,12 @@ export interface RecordingViewProps {
   onFinish: () => void
   /** 点击「重录」 */
   onRerecord: () => void
-  /** 点击返回 */
+  /** 点击返回（移动端 TopBar 返回，= router.back()，保持移动端行为不变） */
   onBack: () => void
+  /** 改用文字：跳 /write（带 qid，对称 /write 的改用录音；桌面动作簇用） */
+  onSwitchToText: () => void
+  /** 退出回首页（桌面 ✕ / Esc 一致，= router.push('/')） */
+  onExit: () => void
   /** 关闭 Toast */
   onDismissToast: () => void
 }

@@ -8,7 +8,7 @@
  */
 'use client'
 import { useEffect, useRef } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Pencil } from 'lucide-react'
 import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'
 import Toast from '@/components/Toast'
@@ -22,7 +22,7 @@ function fmt(s: number): string {
 
 type StageProps = Pick<
   RecordingViewProps,
-  'transcribing' | 'error' | 'seconds' | 'audioLevel' | 'onFinish' | 'onRerecord' | 'onBack'
+  'transcribing' | 'error' | 'seconds' | 'audioLevel' | 'onFinish' | 'onRerecord' | 'onSwitchToText' | 'onExit'
 >
 
 /** 舞台主体：仅在账号闸门放行后挂载，键盘监听随之只在可练习时生效。 */
@@ -33,11 +33,12 @@ function ListeningStage({
   audioLevel,
   onFinish,
   onRerecord,
-  onBack,
+  onSwitchToText,
+  onExit,
 }: StageProps): JSX.Element {
   // 键盘控制：用 ref 持有最新回调，监听只订阅一次、无闭包过期
-  const latest = useRef({ transcribing, onFinish, onRerecord, onBack })
-  latest.current = { transcribing, onFinish, onRerecord, onBack }
+  const latest = useRef({ transcribing, onFinish, onRerecord, onExit })
+  latest.current = { transcribing, onFinish, onRerecord, onExit }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -46,7 +47,7 @@ function ListeningStage({
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const s = latest.current
-      if (e.key === 'Escape') { s.onBack(); return }
+      if (e.key === 'Escape') { s.onExit(); return }
       if (s.transcribing) return
       if (e.code === 'Space') { e.preventDefault(); s.onFinish() }
       else if (e.key === 'r' || e.key === 'R') { s.onRerecord() }
@@ -105,14 +106,23 @@ function ListeningStage({
             <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
             {transcribing ? '转写中…' : '完成录音'}
           </button>
-          <button
-            onClick={onRerecord}
-            disabled={transcribing}
-            className="flex items-center gap-1.5 text-[13px] font-medium text-v2-text-muted opacity-60 hover:opacity-100 transition-opacity duration-200 disabled:opacity-30"
-          >
-            <RotateCcw size={15} />
-            重录
-          </button>
+          <div className="flex items-center gap-5">
+            <button
+              onClick={onRerecord}
+              disabled={transcribing}
+              className="flex items-center gap-1.5 text-[13px] font-medium text-v2-text-muted opacity-60 hover:opacity-100 transition-opacity duration-200 disabled:opacity-30"
+            >
+              <RotateCcw size={15} />
+              重录
+            </button>
+            {/* 改用文字：对称 /write 的「改用录音」，跳 /write（带 qid） */}
+            <button
+              onClick={onSwitchToText}
+              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-all duration-200"
+            >
+              <Pencil size={15} />改用文字
+            </button>
+          </div>
         </div>
 
         {!transcribing && (
@@ -133,7 +143,8 @@ export default function RecordingDesktop({
   toastMsg,
   onFinish,
   onRerecord,
-  onBack,
+  onSwitchToText,
+  onExit,
   onDismissToast,
 }: RecordingViewProps): JSX.Element {
   return (
@@ -147,7 +158,8 @@ export default function RecordingDesktop({
           audioLevel={audioLevel}
           onFinish={onFinish}
           onRerecord={onRerecord}
-          onBack={onBack}
+          onSwitchToText={onSwitchToText}
+          onExit={onExit}
         />
       </RequireAccountGate>
       <Toast message={toastMsg} onDismiss={onDismissToast} />

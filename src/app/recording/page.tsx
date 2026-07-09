@@ -116,6 +116,8 @@ function RecordingContent(): JSX.Element {
     onFinish: () => void handleFinish(),
     onRerecord: () => void handleRerecord(),
     onBack: () => router.back(),
+    onSwitchToText: () => router.push(qid ? `/write?qid=${qid}` : '/write'),
+    onExit: () => router.push('/'),
     onDismissToast: () => setToastMsg(null),
   }
 
@@ -124,7 +126,7 @@ function RecordingContent(): JSX.Element {
       <div className="lg:hidden"><RecordingMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 外壳 + RecordingDesktop 聆听舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="story" onExit={() => router.back()}>
+        <FlowShellDesktop activeStep="story" onExit={viewProps.onExit}>
           <RecordingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
