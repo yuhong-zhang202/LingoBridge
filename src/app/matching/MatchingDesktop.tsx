@@ -70,7 +70,9 @@ function QuestionRow({ q, isHigh, selected, onSelect }: {
   return (
     <button
       onClick={onSelect}
-      className={`group w-full text-left bg-white rounded-[14px] overflow-hidden flex border border-black/[0.05] transition-all duration-200 ${
+      data-qid={q.id}
+      aria-pressed={selected}
+      className={`group w-full text-left bg-white rounded-[14px] overflow-hidden flex border border-black/[0.05] transition-[box-shadow,transform] duration-200 ${
         selected
           ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]'
           : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_14px_rgba(0,0,0,0.09)] hover:-translate-y-[1px]'
@@ -142,7 +144,7 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
       <div className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex justify-end">
         <GradientButton
           onClick={() => onPractice(q.id)}
-          className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[15px] font-medium transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+          className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
         >
           题目分析 →
         </GradientButton>
@@ -184,10 +186,14 @@ export default function MatchingDesktop({
         e.preventDefault()
         if (ordered.length === 0) return
         const idx = ordered.findIndex(q => q.id === selectedId)
-        const next = e.key === 'ArrowDown'
+        const nextIdx = e.key === 'ArrowDown'
           ? Math.min(ordered.length - 1, idx < 0 ? 0 : idx + 1)
           : Math.max(0, idx < 0 ? 0 : idx - 1)
-        onSelect(ordered[next].id)
+        const nextId = ordered[nextIdx].id
+        onSelect(nextId)
+        // 选中项滚进可视区（列表内部滚动容器）；减弱动效时用瞬时滚动
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        document.querySelector(`[data-qid="${nextId}"]`)?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
       } else if (e.key === 'Enter' || e.key === 'ArrowRight') {
         // Enter 交还给聚焦的原生控件（筛选 Chip / 列表行 / 按钮）自行激活；→ 无原生动作，照常进入分析
         if (e.key === 'Enter' && t?.closest('button, a, [role="button"]')) return
@@ -202,8 +208,8 @@ export default function MatchingDesktop({
 
   if (loading) {
     return (
-      <div className={`${STAGE} flex flex-col items-center px-8 py-8`}>
-        <div className="w-full max-w-[1040px]">
+      <div className={`${STAGE} flex flex-col items-center px-8 py-8`} aria-busy="true">
+        <div className="w-full max-w-[1040px]" aria-hidden="true">
           <Skeleton className="w-2/5 h-[24px]" />
           <Skeleton className="w-1/3 h-3 mt-3" />
           <div className="flex gap-6 mt-8">

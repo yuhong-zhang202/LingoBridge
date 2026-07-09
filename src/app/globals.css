@@ -175,3 +175,14 @@
   }
 
 }
+
+/* 减弱动效：系统开启「减少动态效果」时，把动画/过渡压到近 0、平滑滚动改瞬时
+   （Orb 呼吸/粒子、Waveform、feedback coverflow 位移+模糊、各处 hover 位移、smooth scroll 一并覆盖）。 */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

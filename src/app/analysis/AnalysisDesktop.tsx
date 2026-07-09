@@ -40,7 +40,7 @@ function StepNum({ n }: { n: number }) {
   return (
     <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-[#A0A09A]">{n}</span>
+        <span className="text-[11px] font-bold leading-none text-v2-text-muted">{n}</span>
       </div>
     </div>
   )
@@ -88,8 +88,8 @@ export default function AnalysisDesktop({
 
   if (loading) {
     return (
-      <div className={`${STAGE} flex flex-col justify-center px-8 py-12`}>
-        <div className="w-full max-w-[960px] mx-auto">
+      <div className={`${STAGE} flex flex-col justify-center px-8 py-12`} aria-busy="true">
+        <div className="w-full max-w-[960px] mx-auto" aria-hidden="true">
           {/* 题目卡骨架 */}
           <Card className="px-[22px] pt-[16px] pb-[22px]">
             <div className="flex items-center gap-2">
@@ -212,18 +212,22 @@ export default function AnalysisDesktop({
                 <button
                   onClick={onToggleLevelMenu}
                   disabled={phrasesLoading}
+                  aria-haspopup="listbox"
+                  aria-expanded={levelMenuOpen}
                   className="flex items-center gap-1 text-[12px] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
                 >
                   雅思 {level}
                   <ChevronDown size={13} className={`transition-transform duration-150 ${levelMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {levelMenuOpen && (
-                  <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
+                  <div role="listbox" aria-label="目标水平" className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
                     <p className="text-[11px] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
                     {LEVELS.map(lv => (
                       <button
                         key={lv}
                         onClick={() => onSelectLevel(lv)}
+                        role="option"
+                        aria-selected={lv === level}
                         className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
                       >
                         {lv}
@@ -252,6 +256,7 @@ export default function AnalysisDesktop({
                           <button
                             key={ii}
                             onClick={() => onTogglePhrase(isOpen ? null : `${gi}-${ii}`)}
+                            aria-expanded={isOpen}
                             className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap transition-transform duration-150 hover:-translate-y-[2px] active:scale-[0.97] ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                           >
                             {p.text}
@@ -285,7 +290,7 @@ export default function AnalysisDesktop({
         <div className="mt-8 flex flex-col items-center gap-3">
           <GradientButton
             onClick={onStartPractice}
-            className="flex items-center justify-center gap-1.5 px-8 py-3 rounded-full text-[15px] font-medium transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            className="flex items-center justify-center gap-1.5 px-8 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
             开始练习 →
           </GradientButton>

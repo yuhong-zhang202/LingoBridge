@@ -76,7 +76,7 @@ export default function WriteDesktop({
             className="w-full min-h-[260px] resize-none bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-[12px] text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
           />
           <div className="flex items-center justify-end pt-3 border-t border-black/[0.05]">
-            <span className="text-[12px] text-v2-text-muted">{textStory.trim().length} 字</span>
+            <span className="text-[12px] text-v2-text-muted tabular-nums">{textStory.trim().length} 字</span>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function WriteDesktop({
           <div className="flex items-center gap-6">
             <button
               onClick={onSwitchToVoice}
-              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-all duration-200"
+              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
             >
               <Mic2 size={15} />改用录音
             </button>
@@ -93,7 +93,7 @@ export default function WriteDesktop({
               onClick={onSubmit}
               disabled={!canSubmit}
               loading={submitting}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-medium transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
               开始匹配题目 →
             </GradientButton>

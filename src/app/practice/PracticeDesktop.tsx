@@ -93,7 +93,7 @@ export default function PracticeDesktop({
         </div>
 
         {/* 消息列表：唯一滚动区 */}
-        <div className="flex-1 min-h-0 overflow-y-auto pt-2 pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pt-2 pb-4" aria-live="polite">
           {messages.map((m, i) =>
             m.role === 'assistant'
               ? <AiBubble key={i} text={m.content} />
@@ -136,7 +136,7 @@ export default function PracticeDesktop({
               <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
               <button
                 onClick={onEnd}
-                className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+                className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
                 style={GRADIENT_BORDER_STYLE}
               >
                 查看反馈
@@ -174,8 +174,8 @@ export default function PracticeDesktop({
                     >
                       <X size={19} />
                     </button>
-                    <VoiceBar audioLevel={audioLevel} />
-                    <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
+                    <div className="contents" aria-hidden="true"><VoiceBar audioLevel={audioLevel} /></div>
+                    <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right tabular-nums ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
                       {recTime}
                     </span>
                     <button
@@ -189,7 +189,7 @@ export default function PracticeDesktop({
                 ) : (
                   // 空闲 / 处理态：点击说话胶囊
                   <button
-                    className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-all duration-150 hover:-translate-y-[1px] disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 hover:-translate-y-[1px] disabled:opacity-50"
                     style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
                     disabled={phase !== 'idle'}
                     onClick={onStartRecord}
@@ -201,7 +201,7 @@ export default function PracticeDesktop({
 
                 <button
                   onClick={onEnd}
-                  className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-all hover:-translate-y-[1px]"
+                  className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform hover:-translate-y-[1px]"
                 >
                   结束
                 </button>

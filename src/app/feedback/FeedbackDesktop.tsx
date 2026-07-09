@@ -122,7 +122,7 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
 
   return (
     <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center px-8 pt-6 pb-24">
-      <p className="text-[13px] text-v2-text-muted mb-8">本场回顾 · 还剩 {remaining.length} / {total}</p>
+      <p className="text-[13px] text-v2-text-muted mb-8 tabular-nums">本场回顾 · 还剩 {remaining.length} / {total}</p>
 
       {/* 三卡 coverflow：中心清晰、两侧模糊缩小；hover 侧卡滑到中心。
           环形取位——首张左侧显示末张、末张右侧显示首张，保证两边都有虚化卡（remaining≥3 时）。 */}
@@ -138,7 +138,7 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
             <div
               key={item.id}
               onMouseEnter={() => { if (!isCenter && visible) setCenter(i) }}
-              className="absolute transition-all duration-300 ease-out"
+              className="absolute transition-[transform,filter,opacity] duration-300 ease-out"
               style={{
                 transform: `translateX(${rel * COVERFLOW_OFFSET}px) scale(${isCenter ? 1 : 0.82})`,
                 filter: isCenter ? 'none' : 'blur(3px)',
@@ -169,13 +169,13 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
         <button
           onClick={() => decide(false)}
           aria-label="跳过"
-          className="btn-ghost flex-1 h-[48px] transition-all duration-150 hover:border-black/25 active:scale-[0.97]"
+          className="btn-ghost flex-1 h-[48px] transition-[border-color,transform] duration-150 hover:border-black/25 active:scale-[0.97]"
         >
-          <X size={15} className="text-[#CCCCCC]" />
+          <X size={15} className="text-v2-text-muted" />
         </button>
         <GradientButton
           onClick={() => decide(true)}
-          className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+          className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
         >
           <Heart size={16} className="text-v2-text-secondary" />
           <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>

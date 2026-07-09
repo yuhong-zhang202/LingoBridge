@@ -60,7 +60,9 @@ function ListeningStage({
     <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-8">
       <div className="w-full max-w-[600px] flex flex-col items-center">
 
-        <Orb size={340} audioLevel={transcribing ? 0 : audioLevel} pulse={transcribing} />
+        <div className="contents" aria-hidden="true">
+          <Orb size={340} audioLevel={transcribing ? 0 : audioLevel} pulse={transcribing} />
+        </div>
 
         {!transcribing ? (
           <>
@@ -68,7 +70,7 @@ function ListeningStage({
               <div className="h-7 flex items-center">
                 <Waveform active className="scale-[1.55]" />
               </div>
-              <span className="text-[13px] text-v2-text-muted italic">listening...</span>
+              <span className="text-[13px] text-v2-text-muted italic">listening…</span>
             </div>
 
             <div className="surface px-5 py-3.5 max-w-[360px] text-center mt-7">
@@ -86,7 +88,7 @@ function ListeningStage({
             >
               {fmt(seconds)}
             </span>
-            <p className="mt-3 text-[12px] text-[#CCCCCC] text-center leading-relaxed">
+            <p className="mt-3 text-[12px] text-v2-text-muted text-center leading-relaxed">
               建议说 30–60 秒，说得越具体效果越好 ✨
             </p>
           </>
@@ -101,9 +103,9 @@ function ListeningStage({
           <button
             onClick={onFinish}
             disabled={transcribing}
-            className="btn-gradient w-[280px] h-[56px] text-[16px] font-semibold disabled:opacity-50 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            className="btn-gradient w-[280px] h-[56px] text-[16px] font-semibold disabled:opacity-50 transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
-            <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
+            <div aria-hidden="true" className="w-[15px] h-[15px] bg-v2-text-secondary rounded-[3px]" />
             {transcribing ? '转写中…' : '完成录音'}
           </button>
           <div className="flex items-center gap-5">
@@ -118,7 +120,7 @@ function ListeningStage({
             {/* 改用文字：对称 /write 的「改用录音」，跳 /write（带 qid） */}
             <button
               onClick={onSwitchToText}
-              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-all duration-200"
+              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
             >
               <Pencil size={15} />改用文字
             </button>

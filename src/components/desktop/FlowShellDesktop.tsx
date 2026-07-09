@@ -51,7 +51,7 @@ export default function FlowShellDesktop({
                 <span
                   key={s.key}
                   className={
-                    `h-[7px] rounded-full transition-all duration-300 ` +
+                    `h-[7px] rounded-full transition-[width,background-color] duration-300 ` +
                     (isActive
                       ? 'w-[26px] bg-brand-primary'
                       : isDone
