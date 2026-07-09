@@ -51,7 +51,7 @@ function WriteContent(): JSX.Element {
     onSubmit: submit,
     onSwitchToVoice: () => router.push(qid ? `/recording?qid=${qid}` : '/recording'),
     questionContext,
-    onExit: () => router.back(),
+    onExit: () => router.push('/'),
   }
 
   return (

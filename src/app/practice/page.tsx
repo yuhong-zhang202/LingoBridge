@@ -280,7 +280,7 @@ function PracticeContent(): JSX.Element {
     onCloseCapture: () => setCapture(null),
     onEnd: () => void endSession(),
     onRetry: () => { setPhase('init'); setRetryKey(k => k + 1) },
-    onExit: () => router.back(),
+    onExit: () => router.push('/'),
   }
 
   // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。
