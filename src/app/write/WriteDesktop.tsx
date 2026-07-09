@@ -27,10 +27,14 @@ export default function WriteDesktop({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
+      const t = e.target as HTMLElement | null
       const s = latest.current
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        // ⌘/Ctrl+Enter 刻意允许从 textarea 内提交，故不拦截输入框
         if (s.canSubmit && !s.submitting) { e.preventDefault(); s.onSubmit() }
       } else if (e.key === 'Escape') {
+        // 编辑中（焦点在 textarea）按 Esc 不跳走丢正文，让位给输入框
+        if (t?.closest('input, textarea')) return
         s.onExit()
       }
     }
@@ -67,8 +71,9 @@ export default function WriteDesktop({
             value={textStory}
             onChange={e => onChangeText(e.target.value)}
             placeholder={WRITE_PLACEHOLDER}
+            aria-label="写下你的故事"
             autoFocus
-            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
+            className="w-full min-h-[260px] resize-none bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-[12px] text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
           />
           <div className="flex items-center justify-end pt-3 border-t border-black/[0.05]">
             <span className="text-[12px] text-v2-text-muted">{textStory.trim().length} 字</span>

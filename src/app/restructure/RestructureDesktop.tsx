@@ -25,6 +25,9 @@ export default function RestructureDesktop({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
+      const t = e.target as HTMLElement | null
+      // 编辑态让位给输入框：光标在 textarea 里时不响应任何页面级键（避免 Esc 跳走丢正文）
+      if (t?.closest('input, textarea')) return
       const s = latest.current
       if (e.key === 'Escape') { s.onExit(); return }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -93,7 +96,8 @@ export default function RestructureDesktop({
                 <textarea
                   value={aiText}
                   onChange={e => onAiChange(e.target.value)}
-                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-bg-inner px-4 py-3 text-[16px] text-v2-text-primary leading-[1.9] outline-none focus:ring-1 focus:ring-brand-primary/30"
+                  aria-label="编辑整理后的故事"
+                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-bg-inner px-4 py-3 text-[16px] text-v2-text-primary leading-[1.9] outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
                   autoFocus
                 />
               ) : (

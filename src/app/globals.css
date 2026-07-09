@@ -12,6 +12,13 @@
     font-family: var(--font-jakarta), 'PingFang SC', 'Noto Sans SC', sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* 站点级键盘焦点环（无障碍基线；:focus-visible 仅键盘触发，鼠标/触控点击无视觉变化）。
+     outline-none 的输入框（write/restructure textarea）在各自处用 focus-visible:ring 补回。 */
+  :focus-visible {
+    outline: 2px solid theme('colors.brand-primary');
+    outline-offset: 2px;
+  }
 }
 
 @layer components {

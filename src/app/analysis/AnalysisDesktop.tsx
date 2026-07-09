@@ -63,16 +63,24 @@ export default function AnalysisDesktop({
 
   // 键盘：Enter / → 进入练习、Esc 退出（仅桌面断点、有结果时才挂；焦点在输入类元素时不拦截）
   const ready = !loading && !error && !!data
-  const latest = useRef({ onStartPractice, onExit })
-  latest.current = { onStartPractice, onExit }
+  const latest = useRef({ onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu })
+  latest.current = { onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu }
   useEffect(() => {
     if (!ready) return
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
-      if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); latest.current.onStartPractice() }
-      else if (e.key === 'Escape') { latest.current.onExit() }
+      const s = latest.current
+      // level 菜单展开时：Esc 先关菜单，其余键让位于菜单（不做页面导航）
+      if (s.levelMenuOpen) {
+        if (e.key === 'Escape') { e.preventDefault(); s.onToggleLevelMenu() }
+        return
+      }
+      // Enter/→ 交还给聚焦的原生控件（按钮 / 下拉项）自行激活，不劫持去练习
+      if ((e.key === 'Enter' || e.key === 'ArrowRight') && t?.closest('button, a, [role="button"]')) return
+      if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); s.onStartPractice() }
+      else if (e.key === 'Escape') { s.onExit() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

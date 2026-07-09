@@ -177,8 +177,10 @@ export default function MatchingDesktop({
     if (!hasList) return
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
+      const t = e.target as HTMLElement | null
       const { ordered, selectedId, onSelect, onPractice, onExit } = latest.current
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        // 方向键无原生按钮动作，始终用于列表切题（即使焦点在筛选 Chip/行上）
         e.preventDefault()
         if (ordered.length === 0) return
         const idx = ordered.findIndex(q => q.id === selectedId)
@@ -187,6 +189,8 @@ export default function MatchingDesktop({
           : Math.max(0, idx < 0 ? 0 : idx - 1)
         onSelect(ordered[next].id)
       } else if (e.key === 'Enter' || e.key === 'ArrowRight') {
+        // Enter 交还给聚焦的原生控件（筛选 Chip / 列表行 / 按钮）自行激活；→ 无原生动作，照常进入分析
+        if (e.key === 'Enter' && t?.closest('button, a, [role="button"]')) return
         if (selectedId) { e.preventDefault(); onPractice(selectedId) }
       } else if (e.key === 'Escape') {
         onExit()
