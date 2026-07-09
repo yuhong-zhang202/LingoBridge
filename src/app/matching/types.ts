@@ -1,0 +1,74 @@
+/**
+ * @module   MatchingViewTypes
+ * @desc     题目匹配页移动/桌面两视图共享类型 —— page.tsx 外壳集中持有取数/筛选/选中/跳转逻辑
+ *           （/api/matching 取数与 saveExtraction 单份、三档分组 useMemo 均在外壳）后下发，两视图纯展示。
+ * @author   LingoBridge
+ * @created  2026-07-09
+ */
+import type { MatchedPoint, DimensionLabel } from '@/lib/types'
+
+/** 扩展 MatchedQuestion 加上漏斗信息 + 排名分（结构与原 page.tsx 内联定义一致） */
+export interface FunnelQuestion {
+  id: string
+  part: 1 | 2 | 3
+  question_text: string
+  question_text_zh: string | null
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  is_new: boolean
+  topic_only: boolean
+  matched_point: string
+  dimension: DimensionLabel
+  isPrimaryMatch: boolean
+  relevanceScore?: number
+  relevanceReason?: string
+}
+
+export interface FunnelResult {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  questions: FunnelQuestion[]
+  count: number
+  matchedViaSecondary: boolean
+  noMatch: boolean
+}
+
+export type PartTab = '全部' | 'Part 1' | 'Part 2'
+
+export interface MatchingViewProps {
+  result: FunnelResult | null
+  loading: boolean
+  error: string | null
+  /** 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响） */
+  totalVisible: number
+  /** 动态 Part 标签：只含有结果的 Part */
+  availableTabs: PartTab[]
+  activeTab: PartTab
+  /** 当前 Tab 过滤后的题目（桌面筛选联动用） */
+  filtered: FunnelQuestion[]
+  /** 三档分组（已按 activeTab 过滤） */
+  highGroup: FunnelQuestion[]
+  midGroup: FunnelQuestion[]
+  lowGroup: FunnelQuestion[]
+  /** 折叠区（中+低）题数，及是否有折叠区 —— 移动端「查看更多」用 */
+  foldedCount: number
+  hasMore: boolean
+  /** 当前 Tab 下三档皆空 */
+  noneVisible: boolean
+  /** 当前选中题 id（加载时默认第一题） */
+  selectedId: string | null
+  /** 移动端「查看更多」折叠态 */
+  expanded: boolean
+  onSelectTab: (tab: PartTab) => void
+  /** 移动端：点卡片切换选中（再点同一张取消变 null） */
+  onToggleSelect: (id: string) => void
+  /** 桌面 master-detail：点行始终选中该题（不取消，右栏永远有内容） */
+  onSelect: (id: string) => void
+  onToggleExpanded: () => void
+  /** 对某题进入题目分析（跳 /analysis，非 /practice） */
+  onPractice: (id: string) => void
+  /** error 态重试（含防重入守卫） */
+  onRetry: () => void
+  /** 退出回首页（桌面 Esc / 外壳 ✕ 一致） */
+  onExit: () => void
+}

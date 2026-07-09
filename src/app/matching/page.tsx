@@ -1,73 +1,21 @@
 /**
  * @module   MatchingPage
- * @desc     题目匹配页 — 对用户故事做真实反向匹配，按相关性三档分组展示真题
+ * @desc     题目匹配页外壳 —— 集中持有取数/筛选/选中/跳转逻辑：/api/matching 取数与 saveExtraction 单份、
+ *           三档分组 useMemo、动态 Part 标签、默认选中第一题等全部留在外壳，按 lg 断点分发移动/桌面两套视图：
+ *           <1024 渲染 MatchingMobile；≥1024 用 FlowShellDesktop（matching 步激活）包住 MatchingDesktop。
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import TopBar from '@/components/TopBar'
-import { StepBar } from '@/components/StepBar'
-import TabBar from '@/components/TabBar'
-import Card from '@/components/Card'
-import Chip from '@/components/Chip'
-import Skeleton from '@/components/Skeleton'
-import EmptyState from '@/components/EmptyState'
-import OfflineState from '@/components/OfflineState'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
-import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
-import NoMatchView from '@/components/matching/NoMatchView'
 import { saveExtraction } from '@/lib/db/corpus'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
-import type { MatchedPoint, DimensionLabel } from '@/lib/types'
-
-// 本地类型：扩展 MatchedQuestion 加上漏斗信息 + 排名分
-interface FunnelQuestion {
-  id: string
-  part: 1 | 2 | 3
-  question_text: string
-  question_text_zh: string | null
-  cue_card_title: string | null
-  cue_card_title_zh: string | null
-  is_new: boolean
-  topic_only: boolean
-  matched_point: string
-  dimension: DimensionLabel
-  isPrimaryMatch: boolean
-  relevanceScore?: number
-  relevanceReason?: string
-}
-
-interface FunnelResult {
-  primary: MatchedPoint | null
-  secondary: MatchedPoint | null
-  questions: FunnelQuestion[]
-  count: number
-  matchedViaSecondary: boolean
-  noMatch: boolean
-}
-
-type PartTab = '全部' | 'Part 1' | 'Part 2'
-
-/** 分组标题行：label + 横线 */
-function GroupHeader({ label, count, variant }: {
-  label: string
-  count: number
-  variant: 'high' | 'mid' | 'low'
-}) {
-  const textClass =
-    variant === 'high' ? 'text-brand-accent font-semibold'
-    : variant === 'mid' ? 'text-v2-text-secondary font-medium'
-    : 'text-v2-text-muted font-medium'
-
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className={`text-[11px] ${textClass}`}>{label} · {count} 道</span>
-      <div className="flex-1 h-px bg-black/[0.05]" />
-    </div>
-  )
-}
+import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import MatchingMobile from './MatchingMobile'
+import MatchingDesktop from './MatchingDesktop'
+import type { FunnelResult, PartTab, MatchingViewProps } from './types'
 
 function MatchingContent() {
   const router = useRouter()
@@ -165,193 +113,41 @@ function MatchingContent() {
   const hasMore      = foldedCount > 0
   const noneVisible  = highGroup.length === 0 && midGroup.length === 0 && lowGroup.length === 0
 
+  const viewProps: MatchingViewProps = {
+    result,
+    loading,
+    error,
+    totalVisible,
+    availableTabs,
+    activeTab,
+    filtered,
+    highGroup,
+    midGroup,
+    lowGroup,
+    foldedCount,
+    hasMore,
+    noneVisible,
+    selectedId,
+    expanded,
+    onSelectTab: (tab) => setActiveTab(tab),
+    onToggleSelect: (id) => setSelectedId(prev => prev === id ? null : id),
+    onSelect: (id) => setSelectedId(id),
+    onToggleExpanded: () => setExpanded(v => !v),
+    onPractice: (id) => router.push(`/analysis?questionId=${id}&storyId=${corpusId}`),
+    onRetry: () => void retry(),
+    onExit: () => router.push('/'),
+  }
+
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <TopBar title="题目匹配" />
-      <StepBar currentStep="matching" />
-
-      <div className="flex-1 overflow-y-auto px-5 pb-[72px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full lg:px-10 lg:pb-10">
-
-        {loading && (
-          <div className="pt-2">
-            {/* 标题骨架 */}
-            <div className="mb-4">
-              <Skeleton className="w-3/5 h-[20px]" />
-              <Skeleton className="w-2/5 h-3 mt-2.5" />
-            </div>
-
-            {/* Part 筛选骨架 */}
-            <div className="flex gap-2 mb-5">
-              <Skeleton className="w-12 h-[26px] rounded-full" />
-              <Skeleton className="w-16 h-[26px] rounded-full" />
-              <Skeleton className="w-16 h-[26px] rounded-full" />
-            </div>
-
-            {/* 题卡骨架 ×3 */}
-            <div className="flex flex-col gap-2.5">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-[14px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-4">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="w-12 h-[18px] rounded-full" />
-                    <Skeleton className="w-14 h-[18px] rounded-full" />
-                  </div>
-                  <Skeleton className="w-[90%] h-[15px] mt-3" />
-                  <Skeleton className="w-1/2 h-3 mt-2" />
-                  <div className="flex justify-end mt-3">
-                    <Skeleton className="w-20 h-7 rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!loading && error && (
-          typeof navigator !== 'undefined' && !navigator.onLine ? (
-            <OfflineState onRetry={retry} />
-          ) : (
-            <EmptyState
-              title="题目没匹配出来"
-              subtitle="刚才好像没连上，点下面再试一次就好。"
-              ctaLabel="重试"
-              onCta={retry}
-              orbSize={100}
-            />
-          )
-        )}
-
-        {!loading && !error && result && result.noMatch && (
-          <NoMatchView
-            primaryDimension={result.primary?.dimension ?? ''}
-            primaryPointName={result.primary?.pointName ?? ''}
-          />
-        )}
-
-        {!loading && !error && result && !result.noMatch && (
-          <>
-            {/* 匹配标题 + 识别出的维度 */}
-            <div className="mb-4">
-              <h2 className="text-[20px] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
-              {result.primary && (
-                <p className="text-[12px] text-v2-text-muted mt-1">
-                  识别维度：{result.primary.dimension} · {result.primary.pointName}
-                  {result.secondary && ` ／ ${result.secondary.dimension} · ${result.secondary.pointName}`}
-                </p>
-              )}
-            </div>
-
-            {/* 副维度降级说明 */}
-            {result.matchedViaSecondary && result.secondary && (
-              <Card className="px-4 py-3 mb-4">
-                <p className="text-[13px] text-v2-text-primary leading-snug mb-1">
-                  暂时没匹配到完全契合的雅思真题
-                </p>
-                <p className="text-[12px] text-v2-text-secondary leading-relaxed">
-                  不过把重点放在{' '}
-                  <span className="text-brand-primary-dark font-medium">
-                    {result.secondary.dimension} · {result.secondary.pointName}
-                  </span>
-                  {' '}这个方向上，这些题目同样值得练
-                </p>
-              </Card>
-            )}
-
-            {/* Part 筛选（动态，只出现有结果的 Part） */}
-            <div className="flex gap-2 mb-5 flex-wrap">
-              {availableTabs.map((p) => (
-                <Chip key={p} onClick={() => setActiveTab(p)} variant="ghost" active={activeTab === p}>
-                  {p}
-                </Chip>
-              ))}
-            </div>
-
-            {/* 三档分组展示 */}
-            <div className="mb-6">
-
-              {/* 高匹配组：默认展示 */}
-              {highGroup.length > 0 && (
-                <div>
-                  <GroupHeader label="高匹配" count={highGroup.length} variant="high" />
-                  <div className="flex flex-col gap-3">
-                    {highGroup.map((q) => (
-                      <MatchedQuestionCard
-                        key={q.id}
-                        question={q}
-                        selected={selectedId === q.id}
-                        onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
-                        isPrimaryMatch={q.isPrimaryMatch}
-                        isHighMatch={true}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 展开后：中匹配组 */}
-              {expanded && midGroup.length > 0 && (
-                <div className="mt-5">
-                  <GroupHeader label="中匹配" count={midGroup.length} variant="mid" />
-                  <div className="flex flex-col gap-3">
-                    {midGroup.map((q) => (
-                      <MatchedQuestionCard
-                        key={q.id}
-                        question={q}
-                        selected={selectedId === q.id}
-                        onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
-                        isPrimaryMatch={q.isPrimaryMatch}
-                        isHighMatch={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 展开后：低匹配组 */}
-              {expanded && lowGroup.length > 0 && (
-                <div className="mt-5">
-                  <GroupHeader label="低匹配" count={lowGroup.length} variant="low" />
-                  <div className="flex flex-col gap-3">
-                    {lowGroup.map((q) => (
-                      <MatchedQuestionCard
-                        key={q.id}
-                        question={q}
-                        selected={selectedId === q.id}
-                        onToggle={() => setSelectedId(selectedId === q.id ? null : q.id)}
-                        onPractice={() => router.push(`/analysis?questionId=${q.id}&storyId=${corpusId}`)}
-                        isPrimaryMatch={q.isPrimaryMatch}
-                        isHighMatch={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 空态 */}
-              {noneVisible && (
-                <div className="text-center text-[13px] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
-              )}
-            </div>
-
-            {/* 查看更多 / 收起 toggle（中 + 低匹配折叠区） */}
-            {hasMore && (
-              <div className="text-center mb-6">
-                <button
-                  onClick={() => setExpanded((prev) => !prev)}
-                  className="text-[13px] font-medium text-brand-primary active:opacity-60"
-                >
-                  {expanded ? '收起 ↑' : `查看更多 ${foldedCount} 道 →`}
-                </button>
-              </div>
-            )}
-          </>
-        )}
+    <>
+      <div className="lg:hidden"><MatchingMobile {...viewProps} /></div>
+      {/* 桌面端：FlowShellDesktop 沉浸外壳（匹配步激活）+ master-detail 舞台 */}
+      <div className="hidden lg:block">
+        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit}>
+          <MatchingDesktop {...viewProps} />
+        </FlowShellDesktop>
       </div>
-
-      {/* 流程页桌面端沉浸：隐藏侧栏 */}
-      <div className="relative z-20 flex-shrink-0 lg:hidden"><TabBar /></div>
-    </div>
+    </>
   )
 }
 
