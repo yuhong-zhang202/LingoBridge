@@ -1,32 +1,46 @@
 /**
  * @module   PracticePage
- * @desc     练习对话页 — 教练 Lior（千问 qwen-plus），录音转写后续聊，🔨 触发重新表达
+ * @desc     练习对话页外壳 —— 集中持有全部对话逻辑（单实例 useAudioRecorder、phase 状态机、转写/回复/
+ *           优化/发音捕捉、计时与到上限自动停、满 8 轮收尾、4 个 DOM ref 与其 effect），只把「渲染」抽成两套视图。
+ *
+ *   【单挂载，区别于其他流程页的 CSS 双挂载】本页带一个全局 document「点弹窗外关闭」监听 + 多个 DOM ref
+ *   + 单实例录音器；若像 recording/analysis 那样把两套视图用 `lg:hidden` / `hidden lg:block` 同时挂载，
+ *   被 CSS 藏起来那套的全局监听与 ref 仍会运行、误关桌面弹窗，且绕开它就得改移动端监听（违反移动端零改动）。
+ *   故本页改用视口判断（useIsDesktop，SSR 安全：首屏默认移动端，挂载后按 ≥1024px 切桌面），
+ *   同一时刻只渲染 PracticeMobile 或（FlowShellDesktop + PracticeDesktop）之一 —— ref 只绑一次，外壳 effect 照常工作。
+ *
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
-import { useState, useRef, useEffect, useCallback, Suspense, Fragment } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mic, Clock, X, Send } from 'lucide-react'
-import TopBar from '@/components/TopBar'
-import { StepBar } from '@/components/StepBar'
-import EmptyState from '@/components/EmptyState'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { setSessionPolishes, addSavedPronunciation, getSavedPronunciations } from '@/lib/storage'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
+import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
+import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import PracticeMobile from './PracticeMobile'
+import PracticeDesktop from './PracticeDesktop'
+import type { PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
-import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
-import OrbSoft from './_components/OrbSoft'
-import AiBubble from './_components/AiBubble'
-import UserBubble from './_components/UserBubble'
-import RephrasePopup from './_components/RephrasePopup'
-import VoiceBar from './_components/VoiceBar'
-import PronounceCapturePopup from './_components/PronounceCapturePopup'
+
+/** 视口断点：SSR/首屏默认移动端（避免 hydration 抖动），挂载后按 ≥1024px 切桌面，随窗口变化更新。 */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = (): void => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isDesktop
+}
 
 function PracticeContent(): JSX.Element {
   const router = useRouter()
@@ -236,177 +250,48 @@ function PracticeContent(): JSX.Element {
   const recTime = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
   const micLabel = phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '点击说话'
 
-  return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <TopBar title="练习对话" />
-      <StepBar currentStep="practice" />
+  // 点某个词 → 打开发音纠错卡（逻辑集中在外壳，视图仅透传 word/句子/下标）
+  const onWordTap = useCallback((word: string, content: string, index: number) => {
+    setCapture({ heard: word, context: content, msgIndex: index, savedIds: getSavedPronunciations().map(p => p.id) })
+  }, [])
 
-      {/* 题目条：固定在流程轴下方，不随对话滚动 */}
-      <div className="flex-shrink-0 px-5 pt-2 pb-3">
-        <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-          <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
-          <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-          <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
-            {scaffold?.displayEn ?? '加载中…'}
-          </span>
-        </div>
-      </div>
+  // 换个说法：用该句上做过的发音纠错替换听错的词后再优化（防重入走 runPolish）
+  const onPolish = useCallback((content: string, index: number) => {
+    const prev = messages[index - 1]
+    const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
+    const fixes = getSavedPronunciations().filter(c => c.context === content)
+    void runPolish(applyPronunciationFixes(content, fixes), aiQuestion)
+  }, [messages, runPolish])
 
-      <div className={`flex-1 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
-        {phase === 'init' && (
-          <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
-        )}
-        {phase === 'error' && (
-          <EmptyState
-            title="教练没接上"
-            subtitle="刚才好像没连上，点下面再试一次就好。"
-            ctaLabel="重试"
-            onCta={() => { setPhase('init'); setRetryKey(k => k + 1) }}
-            orbSize={100}
-          />
-        )}
+  const isDesktop = useIsDesktop()
 
-        {/* 对话列表 */}
-        {messages.map((m, i) =>
-          m.role === 'assistant'
-            ? <AiBubble key={i} text={m.content} />
-            : <Fragment key={i}>
-                <UserBubble
-                  text={m.content}
-                  onWordTap={(word) => setCapture({
-                    heard: word,
-                    context: m.content,
-                    msgIndex: i,
-                    savedIds: getSavedPronunciations().map(p => p.id),
-                  })}
-                  onPolish={() => {
-                    const prev = messages[i - 1]
-                    const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
-                    // 用"这句话上"做过的发音纠错把听成的词换成真正想说的词，再去优化
-                    const fixes = getSavedPronunciations().filter(c => c.context === m.content)
-                    void runPolish(applyPronunciationFixes(m.content, fixes), aiQuestion)
-                  }}
-                />
-                {capture?.msgIndex === i && (
-                  <div ref={pronounceRef}>
-                    <PronounceCapturePopup
-                      heard={capture.heard}
-                      savedIds={capture.savedIds}
-                      onSave={handleSavePronunciation}
-                      onClose={() => setCapture(null)}
-                    />
-                  </div>
-                )}
-              </Fragment>
-        )}
+  const viewProps: PracticeViewProps = {
+    scaffold, messages, phase, error, showPolish, polishLoading, polishResult, capture, audioLevel,
+    recTime, nearLimit, micLabel, capHint, isCapped,
+    popupRef, orbRef, bottomRef, pronounceRef,
+    onStartRecord,
+    onCancelRecord,
+    onSend: () => void handleUserTurn(),
+    onWordTap,
+    onPolish,
+    onReopenPolish: () => { if (polishResult) setShowPolish(true) },
+    onClosePolish: () => setShowPolish(false),
+    onSavePronunciation: handleSavePronunciation,
+    onCloseCapture: () => setCapture(null),
+    onEnd: () => void endSession(),
+    onRetry: () => { setPhase('init'); setRetryKey(k => k + 1) },
+    onExit: () => router.back(),
+  }
 
-        {/* 处理中提示 */}
-        {phase === 'transcribing' && <UserBubble text="…" />}
-        {phase === 'replying' && <AiBubble text="…" />}
-        {error && phase === 'idle' && (
-          <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      {/* 遮罩 + 换个说法弹窗 */}
-      {showPolish && <div className="fixed inset-0 z-[19]" onClick={() => setShowPolish(false)} />}
-      {showPolish && (
-        <RephrasePopup
-          loading={polishLoading}
-          result={polishResult}
-          onClose={() => setShowPolish(false)}
-          popupRef={popupRef}
-        />
-      )}
-
-
-      {/* 底部输入区 */}
-      <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] lg:max-w-3xl bg-bg-page border-t border-black/[0.05] z-20 px-[14px]"
-        style={{ paddingTop: 18, paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}
-      >
-        {isCapped ? (
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
-            <button
-              onClick={() => void endSession()}
-              className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
-              style={GRADIENT_BORDER_STYLE}
-            >
-              查看反馈
-            </button>
-          </div>
-        ) : (
-        <>
-        {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
-        {nearLimit && (
-          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning">
-            <Clock size={13} className="flex-shrink-0 mt-px" />
-            <span>{capHint}</span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-[12px]">
-          <button
-            ref={orbRef}
-            onClick={() => { if (polishResult) setShowPolish(true) }}
-            aria-label="换个说法"
-            className="flex-shrink-0 active:scale-[0.97] transition-transform duration-150"
-          >
-            <OrbSoft size={50} />
-          </button>
-
-          {phase === 'recording' ? (
-            // 录音态：容器本身不可点，仅「×」取消与「发送」可点
-            <div
-              className="flex flex-1 items-center gap-[6px] pl-[8px] pr-[6px]"
-              style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-            >
-              <button
-                onClick={onCancelRecord}
-                aria-label="取消录音"
-                className="flex-shrink-0 w-[34px] h-[34px] flex items-center justify-center text-v2-text-muted active:scale-[0.97] transition-transform"
-              >
-                <X size={19} />
-              </button>
-              <VoiceBar audioLevel={audioLevel} />
-              <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
-                {recTime}
-              </span>
-              <button
-                onClick={() => void handleUserTurn()}
-                aria-label="发送"
-                className="flex-shrink-0 w-[38px] h-[38px] btn-gradient-circle text-brand-primary"
-              >
-                <Send size={18} />
-              </button>
-            </div>
-          ) : (
-            // 空闲 / 处理态：点击说话胶囊
-            <button
-              className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
-              style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-              disabled={phase !== 'idle'}
-              onClick={onStartRecord}
-            >
-              <Mic size={19} className="text-brand-primary" />
-              <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
-            </button>
-          )}
-          <button
-            onClick={() => void endSession()}
-            className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform"
-          >
-            结束
-          </button>
-        </div>
-        </>
-        )}
-      </div>
-    </div>
-  )
+  // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。
+  if (isDesktop) {
+    return (
+      <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit}>
+        <PracticeDesktop {...viewProps} />
+      </FlowShellDesktop>
+    )
+  }
+  return <PracticeMobile {...viewProps} />
 }
 
 export default function PracticePage(): JSX.Element {
