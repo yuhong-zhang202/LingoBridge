@@ -362,51 +362,45 @@ export default function HomePage() {
                       </button>
                     </div>
 
-                    {showTextInput ? (
-                      <div className="max-w-[520px]">{textPanel('min-h-[180px]')}</div>
+                    {!ieltsMode && (
+                      <Tag variant="green" icon={<Sparkles size={15} />} label="从一个真实经历开始" className="mb-6" />
+                    )}
+                    {!ieltsMode ? (
+                      <h1 className="text-[48px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
+                        分享你的经历
+                        {/* 第二行右移约一个字，错开成阶梯（个 在 享 下方）；文字逐字打字机浮现 */}
+                        <span className="block text-brand-primary ml-[1em]">
+                          {typed}
+                          <span className="inline-block w-[3px] h-[0.82em] bg-brand-primary align-middle ml-1 animate-blink" />
+                        </span>
+                      </h1>
                     ) : (
                       <>
-                        {!ieltsMode && (
-                          <Tag variant="green" icon={<Sparkles size={15} />} label="从一个真实经历开始" className="mb-6" />
+                        {/* 题目上方标注 Part（白底渐变边框） */}
+                        {!loading && !error && question && (
+                          <div className="mb-3"><PartTag label={`Part ${question.part}`} /></div>
                         )}
-                        {!ieltsMode ? (
-                          <h1 className="text-[48px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
-                            分享你的经历
-                            {/* 第二行右移约一个字，错开成阶梯（个 在 享 下方）；文字逐字打字机浮现 */}
-                            <span className="block text-brand-primary ml-[1em]">
-                              {typed}
-                              <span className="inline-block w-[3px] h-[0.82em] bg-brand-primary align-middle ml-1 animate-blink" />
-                            </span>
-                          </h1>
-                        ) : (
-                          <>
-                            {/* 题目上方标注 Part（白底渐变边框） */}
-                            {!loading && !error && question && (
-                              <div className="mb-3"><PartTag label={`Part ${question.part}`} /></div>
-                            )}
-                            <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
-                              {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
-                            </h1>
-                          </>
-                        )}
-                        <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
-                          {!ieltsMode ? '不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
-                        </p>
-                        {ieltsMode && (
-                          <button onClick={() => void next()} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
-                            <RotateCw size={13} />换一题
-                          </button>
-                        )}
-                        <div className="mt-9 flex items-center gap-5 flex-wrap">
-                          <GradientButton onClick={() => void handleStartRecording()} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                            <Mic2 size={18} />开始录音
-                          </GradientButton>
-                          <button onClick={() => setShowTextInput(true)} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
-                            <Pencil size={15} />或用文字输入
-                          </button>
-                        </div>
+                        <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
+                          {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
+                        </h1>
                       </>
                     )}
+                    <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
+                      {!ieltsMode ? '不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
+                    </p>
+                    {ieltsMode && (
+                      <button onClick={() => void next()} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
+                        <RotateCw size={13} />换一题
+                      </button>
+                    )}
+                    <div className="mt-9 flex items-center gap-5 flex-wrap">
+                      <GradientButton onClick={() => void handleStartRecording()} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                        <Mic2 size={18} />开始录音
+                      </GradientButton>
+                      <button onClick={() => router.push(ieltsMode && question ? `/write?qid=${question.id}` : '/write')} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
+                        <Pencil size={15} />或用文字输入
+                      </button>
+                    </div>
                   </div>
 
                   {/* 右：Orb（现有组件，放大到 400；不加浮动小卡片）——比文案再上移一点 */}
