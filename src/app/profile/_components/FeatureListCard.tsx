@@ -1,7 +1,7 @@
 /**
  * @module   FeatureListCard
- * @desc     「我的」功能列表卡 — 「关于 LingoBridge」导航到 /about；登录态在栏底锚定「退出登录」(mt-auto)，
- *           未登录态额外提供「帮助与反馈」入口(FeedbackPopup, source=profile)
+ * @desc     「我的」功能列表卡 — 「关于 LingoBridge」导航到 /about；登录态紧跟「退出登录」（自然高度，
+ *           作全宽页脚，不撑高）；未登录态额外提供「帮助与反馈」入口(FeedbackPopup, source=profile)
  * @author   LingoBridge
  * @created  2026-06-04
  */
@@ -18,7 +18,7 @@ import FeedbackPopup from '@/components/FeedbackPopup'
 
 interface FeatureListCardProps {
   version: string
-  /** 传入即为登录态：栏底锚定退出登录，并隐藏「帮助与反馈」(由常用操作承担) */
+  /** 传入即为登录态：追加退出登录行，并隐藏「帮助与反馈」(由常用操作承担) */
   onLogout?: () => void
 }
 
@@ -39,7 +39,7 @@ function RowBody({ Icon, label, badge }: { Icon: typeof Info; label: string; bad
 /**
  * 功能入口列表卡
  * @param version  应用版本号（占位常量）
- * @param onLogout 退出登录回调；传入即启用登录态布局（等高列 + 栏底退出登录）
+ * @param onLogout 退出登录回调；传入即为登录态（关于行下追加退出登录行，自然高度不撑高）
  */
 export default function FeatureListCard({ version, onLogout }: FeatureListCardProps): JSX.Element {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -47,26 +47,25 @@ export default function FeatureListCard({ version, onLogout }: FeatureListCardPr
 
   return (
     <>
-      <Card variant="gradient" className={cn('overflow-hidden', loggedIn ? 'h-full flex flex-col' : 'mb-3')}>
-        <div>
-          {!loggedIn && (
-            <button
-              onClick={() => setFeedbackOpen(true)}
-              className={cn(ROW_CLASS, 'border-b border-black/[0.05]')}
-            >
-              <RowBody Icon={MessageCircleQuestionMark} label="帮助与反馈" badge={null} />
-            </button>
-          )}
-          {/* 导航语义：内容页跳转用 Link，支持 Cmd+click / 中键新开 */}
-          <Link href="/about" className={ROW_CLASS}>
-            <RowBody Icon={Info} label="关于 LingoBridge" badge={version} />
-          </Link>
-        </div>
+      {/* plain 描边：关于/退出是工具页脚，非强调内容，不用渐变（避免误抢视觉重心） */}
+      <Card className={cn('overflow-hidden', !loggedIn && 'mb-3')}>
+        {!loggedIn && (
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            className={cn(ROW_CLASS, 'border-b border-black/[0.05]')}
+          >
+            <RowBody Icon={MessageCircleQuestionMark} label="帮助与反馈" badge={null} />
+          </button>
+        )}
+        {/* 导航语义：内容页跳转用 Link，支持 Cmd+click / 中键新开 */}
+        <Link href="/about" className={ROW_CLASS}>
+          <RowBody Icon={Info} label="关于 LingoBridge" badge={version} />
+        </Link>
 
         {loggedIn && (
           <button
             onClick={onLogout}
-            className="mt-auto w-full flex items-center px-[18px] py-[14px] border-t border-black/[0.05] text-error active:bg-bg-muted/40 transition-colors"
+            className="w-full flex items-center px-[18px] py-[14px] border-t border-black/[0.05] text-error active:bg-bg-muted/40 transition-colors"
           >
             <LogOut size={16} className="text-error" />
             <span className="flex-1 text-left text-[14px] ml-3">退出登录</span>

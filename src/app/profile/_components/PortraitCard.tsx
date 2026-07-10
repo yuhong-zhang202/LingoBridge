@@ -46,8 +46,9 @@ export default function PortraitCard(): JSX.Element {
 
   const showEmpty = loaded && corpusCount === 0
 
+  // gradient 描边：本卡是「AI 生成」内容，按设计系统属强调卡（唯一符合「AI 输出」的 profile 卡）
   return (
-    <Card className="p-5 h-full flex flex-col">
+    <Card variant="gradient" className="p-5 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[14px] font-semibold text-v2-text-primary">我的画像</span>
         {!showEmpty && <Tag label="AI 生成" variant="green" />}

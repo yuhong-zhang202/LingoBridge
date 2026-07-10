@@ -1,7 +1,7 @@
 /**
  * @module   ProfileDesktop
- * @desc     「我的」（桌面端）— 顶部导航 + 页头；登录态：身份卡 → 常用操作 → 画像 + 功能列表（两栏等高）；
- *           未登录展示引导卡 + 功能列表。密面板风。
+ * @desc     「我的」（桌面端）— 顶部导航 + 仪表盘。登录态：身份卡（页头）→ 画像 | 目标·常用操作 两栏 → 关于/退出页脚。
+ *           页面标题不再重复渲染（TopNav 已高亮「我的」），仅保留设置齿轮入口。未登录展示引导卡 + 功能列表。
  * @author   LingoBridge
  * @created  2026-05-31
  */
@@ -9,7 +9,7 @@
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'
-import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
+import { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import { maskEmail } from '@/lib/auth'
 import { LATEST_VERSION } from '@/lib/changelog'
 import LoginPrompt from './_components/LoginPrompt'
@@ -39,36 +39,35 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
       <TopNav containerClassName={MANAGE_CONTAINER} />
 
       <main className={`${MANAGE_CONTAINER} pb-12`}>
-        <ManageHeader title="我的" right={settingsButton} />
+        {/* 精简顶栏：不再重复「我的」大标题（与 TopNav 高亮项重复），仅留设置入口 */}
+        <div className="flex justify-end pt-6 pb-4">
+          {settingsButton}
+        </div>
 
         {loggedIn ? (
-          <>
-            {/* 1. 身份卡 */}
+          /* 登录态仪表盘：全宽身份卡（页头）→ 目标·工具 | 画像 非对称两栏 → 全宽关于/退出（页脚）。
+             两栏比单调的全宽堆叠更有层次，且让雷达落进半宽栏、不再两侧大片留白。 */
+          <div className="flex flex-col gap-6">
+            {/* 页头：身份卡（全宽） */}
             <IdentityCard
               displayName={displayName}
               joinDays={joinDays}
               onEdit={() => router.push('/settings')}
             />
 
-            {/* 2. 备考目标 + 倒计时 */}
-            <div className="mb-6">
-              <ExamGoalCard />
-            </div>
-
-            {/* 3. 常用操作 */}
-            <div className="mb-8">
-              <CommonActions />
-            </div>
-
-            {/* 4. 我的画像 + 功能列表（两栏等高，退出登录锚定右栏底部） */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 items-stretch">
+            {/* 主区：左「我的画像」/ 右「备考目标 + 常用操作」。items-stretch + PortraitCard 自带
+                h-full → 画像卡随右栏高度拉伸、雷达垂直居中填满，无底部留白。 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
               <PortraitCard />
-              <FeatureListCard
-                version={LATEST_VERSION}
-                onLogout={onLogout}
-              />
+              <div className="flex flex-col gap-6">
+                <ExamGoalCard />
+                <CommonActions />
+              </div>
             </div>
-          </>
+
+            {/* 页脚：关于 + 退出（全宽，自然高度） */}
+            <FeatureListCard version={LATEST_VERSION} onLogout={onLogout} />
+          </div>
         ) : (
           /* 未登录：引导卡 + 功能列表 */
           <div className="max-w-[640px] mx-auto flex flex-col gap-3">
