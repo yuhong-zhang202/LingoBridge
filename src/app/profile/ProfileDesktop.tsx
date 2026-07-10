@@ -6,6 +6,7 @@
  * @created  2026-05-31
  */
 'use client'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'
@@ -25,13 +26,13 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const settingsButton = (
-    <button
-      onClick={() => router.push('/settings')}
+    <Link
+      href="/settings"
       aria-label="设置"
       className="w-10 h-10 rounded-full grid place-items-center text-v2-text-secondary hover:bg-bg-muted transition-colors"
     >
       <Settings size={18} />
-    </button>
+    </Link>
   )
 
   return (

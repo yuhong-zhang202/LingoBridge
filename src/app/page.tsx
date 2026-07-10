@@ -9,6 +9,7 @@
 'use client'
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
 import Orb from '@/components/Orb'
@@ -101,9 +102,11 @@ export default function HomePage() {
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, submit, dismissToast } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
 
-  // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）
+  // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）。
+  // 这是 JS 驱动的循环动画，globals.css 的 reduced-motion 兜底管不住 → 开启「减弱动效」时直接显示完整标题、不启动定时器。
   useEffect(() => {
     if (ieltsMode) { setTyped(''); return }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setTyped(HERO_LINE2); return }
     let i = 0
     let timer = 0
     const step = () => {
@@ -342,9 +345,9 @@ export default function HomePage() {
                       <GradientButton onClick={() => void handleStartRecording()} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                         <Mic2 size={18} />开始录音
                       </GradientButton>
-                      <button onClick={() => router.push(ieltsMode && question ? `/write?qid=${question.id}` : '/write')} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
+                      <Link href={ieltsMode && question ? `/write?qid=${question.id}` : '/write'} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
                         <Pencil size={15} />或用文字输入
-                      </button>
+                      </Link>
                     </div>
                   </div>
 

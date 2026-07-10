@@ -72,11 +72,8 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
         <ExamGoalCard />
       </div>
 
-      {/* ── 连续打卡 Hero 卡 */}
-      <div
-        className="rounded-[18px] px-[18px] py-[14px] mb-3"
-        style={GRADIENT_BORDER_STYLE_FULL}
-      >
+      {/* ── 连续打卡 Hero 卡（plain 边，渐变仅留给画像卡，与桌面一致） */}
+      <div className="rounded-[18px] px-[18px] py-[14px] mb-3 bg-white border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[12px] text-v2-text-secondary">连续打卡</p>
@@ -96,7 +93,7 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
 
       {/* ── 双列副数据卡 */}
       <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="rounded-[16px] px-[14px] py-3" style={GRADIENT_BORDER_STYLE_FULL}>
+        <div className="rounded-[16px] px-[14px] py-3 bg-white border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle size={14} color="#7BA699" />
@@ -107,7 +104,7 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
             </span>
           </div>
         </div>
-        <div className="rounded-[16px] px-[14px] py-3" style={GRADIENT_BORDER_STYLE_FULL}>
+        <div className="rounded-[16px] px-[14px] py-3 bg-white border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target size={14} color="#D4875A" />

@@ -8,10 +8,12 @@
  */
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { X, Heart, Sparkles } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'
 import { formatMonthDay } from '@/lib/date'
+import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import { getSessionPolishes, addSavedPhrase, clearSessionPolishes } from '@/lib/storage'
 import type { SessionPolish } from '@/lib/types'
 import type { FeedbackViewProps } from './types'
@@ -22,9 +24,9 @@ const partLabel = (p: 1 | 2 | 3) => `Part ${p}` as 'Part 1' | 'Part 2' | 'Part 3
 const COVERFLOW_OFFSET = 420
 
 /** 终态（空态 / 完成态）：极简居中 —— 星标图标 + 文案 + 回首页，无卡片盒子。
- *  tone 区分空态（暖橙）/完成态（绿蓝成功感）。*/
-function TerminalState({ tone, title, desc, onBackHome }: {
-  tone: 'primary' | 'accent'; title: string; desc: string; onBackHome: () => void
+ *  tone 区分空态（暖橙）/完成态（绿蓝成功感）。回首页用 Link（可 Cmd+click 新开）。*/
+function TerminalState({ tone, title, desc }: {
+  tone: 'primary' | 'accent'; title: string; desc: string
 }): JSX.Element {
   const iconClass = tone === 'accent' ? 'text-brand-accent' : 'text-brand-primary'
   return (
@@ -32,7 +34,14 @@ function TerminalState({ tone, title, desc, onBackHome }: {
       <Sparkles size={40} className={iconClass} />
       <p className="text-[24px] font-bold text-v2-text-primary">{title}</p>
       <p className="text-[15px] text-v2-text-muted leading-relaxed">{desc}</p>
-      <GradientButton onClick={onBackHome} className="mt-3 px-6 py-3 rounded-full text-[15px] font-medium">回首页</GradientButton>
+      {/* 复刻 GradientButton 皮肤（无法把 <button> 组件嵌进 <a>），保持视觉一致 */}
+      <Link
+        href="/"
+        style={GRADIENT_BORDER_STYLE}
+        className="mt-3 inline-flex items-center justify-center px-6 py-3 rounded-full text-[15px] font-medium text-v2-text-secondary transition-transform duration-150 active:scale-[0.97]"
+      >
+        回首页
+      </Link>
     </div>
   )
 }
@@ -101,7 +110,6 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
           tone="primary"
           title="这次没有要回顾的句子"
           desc="练习时点句子左上角的 ✨ 星标，就能把更好的表达攒到这里。"
-          onBackHome={onBackHome}
         />
       </div>
     )
@@ -114,7 +122,6 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
           tone="accent"
           title="这次回顾完成啦"
           desc={`你留下了 ${savedCount} 句更好的表达，慢慢就攒成你自己的表达库。`}
-          onBackHome={onBackHome}
         />
       </div>
     )
