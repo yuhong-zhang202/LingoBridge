@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, Fragment } from 'react'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { useAccount } from '@/hooks/useAccount'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
@@ -37,6 +38,10 @@ export default function PracticeDesktop({
   // （发音纠错卡里要能正常打空格）。transcribing/replying 不允许。用 ref 持最新值，监听只订阅一次。
   // 「结束」二次确认（仅手动结束入口；满 8 轮的「查看反馈」不弹）
   const [confirmEnd, setConfirmEnd] = useState(false)
+
+  // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
+  const { account } = useAccount()
+  const avatarUrl = account?.avatarUrl ?? null
 
   const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture })
   latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture }
@@ -110,6 +115,7 @@ export default function PracticeDesktop({
               : <Fragment key={i}>
                   <UserBubble
                     text={m.content}
+                    avatarUrl={avatarUrl}
                     onWordTap={(word) => onWordTap(word, m.content, i)}
                     onPolish={() => onPolish(m.content, i)}
                   />
@@ -125,7 +131,7 @@ export default function PracticeDesktop({
                   )}
                 </Fragment>
           )}
-          {phase === 'transcribing' && <UserBubble text="…" />}
+          {phase === 'transcribing' && <UserBubble text="…" avatarUrl={avatarUrl} />}
           {phase === 'replying' && <AiBubble text="…" />}
           {error && phase === 'idle' && (
             <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>

@@ -11,6 +11,7 @@ import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import EmptyState from '@/components/EmptyState'
+import { useAccount } from '@/hooks/useAccount'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import OrbSoft from './_components/OrbSoft'
 import AiBubble from './_components/AiBubble'
@@ -27,6 +28,10 @@ export default function PracticeMobile({
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
 }: PracticeViewProps): JSX.Element {
+  // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
+  const { account } = useAccount()
+  const avatarUrl = account?.avatarUrl ?? null
+
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       <TopBar title="练习对话" />
@@ -64,6 +69,7 @@ export default function PracticeMobile({
             : <Fragment key={i}>
                 <UserBubble
                   text={m.content}
+                  avatarUrl={avatarUrl}
                   onWordTap={(word) => onWordTap(word, m.content, i)}
                   onPolish={() => onPolish(m.content, i)}
                 />
@@ -81,7 +87,7 @@ export default function PracticeMobile({
         )}
 
         {/* 处理中提示 */}
-        {phase === 'transcribing' && <UserBubble text="…" />}
+        {phase === 'transcribing' && <UserBubble text="…" avatarUrl={avatarUrl} />}
         {phase === 'replying' && <AiBubble text="…" />}
         {error && phase === 'idle' && (
           <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>

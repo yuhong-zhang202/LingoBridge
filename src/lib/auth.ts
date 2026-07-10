@@ -101,14 +101,22 @@ export async function updatePassword(newPassword: string): Promise<void> {
   }
 }
 
-/** 读取当前账号信息（avatarUrl 来自 user_metadata.avatar_url，由头像上传写入）。 */
+/**
+ * 读取当前账号信息（avatarUrl 来自 user_metadata.avatar_url，由头像上传写入）。
+ *
+ * 走 getSession()（读本地 session）而非 getUser()（每次发网络请求校验 token）：
+ * 本函数只服务于「显示自己的信息」，冷刷新时不该为渲染头像/邮箱等一个往返。
+ * supabase-js 会在 updateUser / 登录 / 登出后即时更新本地 session，故上传头像后立刻可读到新 avatar_url。
+ * 服务端与安全校验路径（如删号）仍各自验证 token，不受此影响。
+ */
 export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean; avatarUrl: string | null } | null> {
-  const { data } = await getSupabase().auth.getUser()
-  if (!data.user) return null
-  const rawAvatar = data.user.user_metadata?.avatar_url as unknown
+  const { data } = await getSupabase().auth.getSession()
+  const user = data.session?.user
+  if (!user) return null
+  const rawAvatar = user.user_metadata?.avatar_url as unknown
   return {
-    email: data.user.email ?? null,
-    isAnonymous: data.user.is_anonymous ?? false,
+    email: user.email ?? null,
+    isAnonymous: user.is_anonymous ?? false,
     avatarUrl: typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
   }
 }
