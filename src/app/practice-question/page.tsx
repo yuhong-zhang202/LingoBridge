@@ -154,7 +154,8 @@ function PracticeQuestionContent(): JSX.Element {
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <TopBar title="练习题目" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
+      {/* 加载态用 Fragment 无容器可挂，故 aria-busy 挂在常驻滚动区、随 loading 切换 */}
+      <div aria-busy={loading} className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
         {loading && (
           <>
             {/* 题目卡骨架 */}

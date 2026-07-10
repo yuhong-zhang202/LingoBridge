@@ -85,7 +85,9 @@ export default function QuotaCard(): JSX.Element {
   }
 
   return (
+    // 卡片常驻、额度数字加载中：aria-busy 随 loading 切换（加载完为 false）
     <div
+      aria-busy={loading}
       className="bg-bg-surface rounded-[16px] px-4 pt-4 pb-[18px] mb-3"
       style={{ boxShadow: SOFT_SM }}
     >

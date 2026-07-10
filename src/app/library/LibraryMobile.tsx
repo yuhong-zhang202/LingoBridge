@@ -108,7 +108,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {view === 'stories' && (
               loading
                 ? (
-                  <div className="flex flex-col gap-3 pt-3">
+                  <div className="flex flex-col gap-3 pt-3" aria-busy="true">
                     {[0, 1, 2].map((i) => (
                       <Card key={i} variant="gradient" className="p-4">
                         <div className="flex items-center justify-between mb-2.5">
