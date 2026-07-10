@@ -23,7 +23,7 @@ const TARGET_BAND = 7.0
 const STATS = { corpus: 12 }
 const VERSION = 'v0.6.0'
 
-export default function ProfileMobile({ loggedIn, email, bookmarkCount, onLogout }: ProfileViewProps): JSX.Element {
+export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
@@ -64,7 +64,7 @@ export default function ProfileMobile({ loggedIn, email, bookmarkCount, onLogout
         {loggedIn && <QuotaCard />}
 
         {/* ── 功能列表卡（两态均显示） */}
-        <FeatureListCard bookmarkCount={bookmarkCount} version={VERSION} />
+        <FeatureListCard version={VERSION} />
 
         {/* ── 退出登录（仅登录态，置于页面最下方） */}
         {loggedIn && (

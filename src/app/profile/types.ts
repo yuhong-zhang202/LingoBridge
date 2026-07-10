@@ -8,6 +8,5 @@ export interface ProfileViewProps {
   loggedIn: boolean
   email: string | null
   joinDays: number | null
-  bookmarkCount: number
   onLogout: () => void
 }

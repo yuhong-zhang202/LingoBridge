@@ -9,7 +9,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getAccount, logout } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
-import { getSavedPhrases } from '@/lib/storage'
 import ProfileMobile from './ProfileMobile'
 import ProfileDesktop from './ProfileDesktop'
 
@@ -20,7 +19,6 @@ export default function ProfilePage(): JSX.Element {
   const [loggedIn, setLoggedIn] = useState(false)
   const [email,    setEmail]    = useState<string | null>(null)
   const [joinDays, setJoinDays] = useState<number | null>(null)
-  const [bookmarkCount, setBookmarkCount] = useState(0)
 
   useEffect(() => {
     getAccount().then(acct => {
@@ -37,11 +35,6 @@ export default function ProfilePage(): JSX.Element {
     }).catch(() => { /* 忽略 */ })
   }, [])
 
-  // deps=[loggedIn]：登录态变化时重读收藏数，保证练习后数字及时更新
-  useEffect(() => {
-    setBookmarkCount(getSavedPhrases().length)
-  }, [loggedIn])
-
   const onLogout = useCallback(() => {
     void logout().then(() => {
       setLoggedIn(false)
@@ -49,7 +42,7 @@ export default function ProfilePage(): JSX.Element {
     })
   }, [])
 
-  const viewProps = { loggedIn, email, joinDays, bookmarkCount, onLogout }
+  const viewProps = { loggedIn, email, joinDays, onLogout }
 
   return (
     <>

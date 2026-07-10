@@ -21,7 +21,7 @@ import type { ProfileViewProps } from './types'
 const TARGET_BAND = 7.0
 const VERSION = 'v0.6.0'
 
-export default function ProfileDesktop({ loggedIn, email, joinDays, bookmarkCount, onLogout }: ProfileViewProps): JSX.Element {
+export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
@@ -61,7 +61,6 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, bookmarkCoun
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 items-stretch">
               <PortraitCard />
               <FeatureListCard
-                bookmarkCount={bookmarkCount}
                 version={VERSION}
                 onLogout={onLogout}
               />
@@ -71,7 +70,7 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, bookmarkCoun
           /* 未登录：引导卡 + 功能列表 */
           <div className="max-w-[640px] mx-auto flex flex-col gap-3">
             <LoginPrompt />
-            <FeatureListCard bookmarkCount={bookmarkCount} version={VERSION} />
+            <FeatureListCard version={VERSION} />
           </div>
         )}
       </main>
