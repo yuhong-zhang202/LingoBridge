@@ -12,6 +12,7 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Avatar from '@/components/Avatar'
 import { maskEmail } from '@/lib/auth'
+import { LATEST_VERSION } from '@/lib/changelog'
 import { useAccount } from '@/hooks/useAccount'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
@@ -23,7 +24,6 @@ import type { ProfileViewProps } from './types'
 // 占位：目标 Band 未持久化；stats.corpus 仅作初始值，LoggedInView 内部拉取真实数据覆写
 const TARGET_BAND = 7.0
 const STATS = { corpus: 12 }
-const VERSION = 'v0.6.0'
 
 export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
@@ -68,7 +68,7 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
         {loggedIn && <QuotaCard />}
 
         {/* ── 功能列表卡（两态均显示） */}
-        <FeatureListCard version={VERSION} />
+        <FeatureListCard version={LATEST_VERSION} />
 
         {/* ── 退出登录（仅登录态，置于页面最下方） */}
         {loggedIn && (

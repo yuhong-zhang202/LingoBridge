@@ -9,8 +9,9 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Mic, Bell } from 'lucide-react'
+import { Mic } from 'lucide-react'
 import Avatar from '@/components/Avatar'
+import NotificationBell from '@/components/NotificationBell'
 import { useAccount } from '@/hooks/useAccount'
 import { PAGE_CONTAINER } from '@/lib/constants'
 
@@ -68,9 +69,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
 
         {/* 右侧：通知 + 头像 */}
         <div className="ml-auto flex items-center gap-[18px]">
-          <button aria-label="通知" className="w-10 h-10 rounded-full grid place-items-center text-v2-text-secondary hover:bg-bg-muted transition-colors">
-            <Bell size={20} />
-          </button>
+          <NotificationBell />
           <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
             <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
           </Link>

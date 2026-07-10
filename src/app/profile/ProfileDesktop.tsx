@@ -11,6 +11,7 @@ import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import { maskEmail } from '@/lib/auth'
+import { LATEST_VERSION } from '@/lib/changelog'
 import LoginPrompt from './_components/LoginPrompt'
 import FeatureListCard from './_components/FeatureListCard'
 import IdentityCard from './_components/IdentityCard'
@@ -19,7 +20,6 @@ import PortraitCard from './_components/PortraitCard'
 import type { ProfileViewProps } from './types'
 
 const TARGET_BAND = 7.0
-const VERSION = 'v0.6.0'
 
 export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
@@ -61,7 +61,7 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 items-stretch">
               <PortraitCard />
               <FeatureListCard
-                version={VERSION}
+                version={LATEST_VERSION}
                 onLogout={onLogout}
               />
             </div>
@@ -70,7 +70,7 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
           /* 未登录：引导卡 + 功能列表 */
           <div className="max-w-[640px] mx-auto flex flex-col gap-3">
             <LoginPrompt />
-            <FeatureListCard version={VERSION} />
+            <FeatureListCard version={LATEST_VERSION} />
           </div>
         )}
       </main>
