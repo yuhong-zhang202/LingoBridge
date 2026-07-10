@@ -21,8 +21,7 @@ import FeatureListCard from './_components/FeatureListCardMobile'
 import QuotaCard from './_components/QuotaCard'
 import type { ProfileViewProps } from './types'
 
-// 占位：目标 Band 未持久化；stats.corpus 仅作初始值，LoggedInView 内部拉取真实数据覆写
-const TARGET_BAND = 7.0
+// 占位：stats.corpus 仅作初始值，LoggedInView 内部拉取真实数据覆写
 const STATS = { corpus: 12 }
 
 export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
@@ -57,12 +56,7 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
         {!loggedIn && <LoginPrompt className="mb-3" />}
 
         {/* ── 已登录态专属内容（条件挂载，LoggedInView 内部加载真实数据） */}
-        {loggedIn && (
-          <LoggedInView
-            stats={STATS}
-            targetBand={TARGET_BAND}
-          />
-        )}
+        {loggedIn && <LoggedInView stats={STATS} />}
 
         {/* ── 本月额度卡（仅登录态） */}
         {loggedIn && <QuotaCard />}

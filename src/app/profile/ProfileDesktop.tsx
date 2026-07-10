@@ -15,11 +15,10 @@ import { LATEST_VERSION } from '@/lib/changelog'
 import LoginPrompt from './_components/LoginPrompt'
 import FeatureListCard from './_components/FeatureListCard'
 import IdentityCard from './_components/IdentityCard'
+import ExamGoalCard from './_components/ExamGoalCard'
 import CommonActions from './_components/CommonActions'
 import PortraitCard from './_components/PortraitCard'
 import type { ProfileViewProps } from './types'
-
-const TARGET_BAND = 7.0
 
 export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
@@ -47,17 +46,21 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
             {/* 1. 身份卡 */}
             <IdentityCard
               displayName={displayName}
-              targetBand={TARGET_BAND}
               joinDays={joinDays}
               onEdit={() => router.push('/settings')}
             />
 
-            {/* 2. 常用操作 */}
+            {/* 2. 备考目标 + 倒计时 */}
+            <div className="mb-6">
+              <ExamGoalCard />
+            </div>
+
+            {/* 3. 常用操作 */}
             <div className="mb-8">
               <CommonActions />
             </div>
 
-            {/* 3. 我的画像 + 功能列表（两栏等高，退出登录锚定右栏底部） */}
+            {/* 4. 我的画像 + 功能列表（两栏等高，退出登录锚定右栏底部） */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-6 items-stretch">
               <PortraitCard />
               <FeatureListCard

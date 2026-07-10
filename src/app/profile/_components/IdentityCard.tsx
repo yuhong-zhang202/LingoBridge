@@ -1,6 +1,7 @@
 /**
  * @module   IdentityCard
- * @desc     「我的」身份卡 — 可点击头像(更换) + 邮箱 + 备考目标/加入天数 + 编辑资料；底部分隔线内统计条(打卡/语料/练习)
+ * @desc     「我的」身份卡 — 可点击头像(更换) + 邮箱 + 加入天数 + 编辑资料；底部分隔线内统计条(打卡/语料/练习)。
+ *           备考目标已独立为 ExamGoalCard（含倒计时），此处不再重复展示。
  * @author   LingoBridge
  * @created  2026-07-01
  */
@@ -18,7 +19,6 @@ import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
 
 interface IdentityCardProps {
   displayName: string
-  targetBand: number
   /** 加入天数；null 时不展示该项 */
   joinDays: number | null
   onEdit: () => void
@@ -27,12 +27,11 @@ interface IdentityCardProps {
 /**
  * 身份卡
  * @param displayName 脱敏邮箱 / 账号名
- * @param targetBand  备考目标 band
  * @param joinDays    加入天数
  * @param onEdit      「编辑资料」点击回调
  * @sideEffect        挂载时并行读取连续打卡 / 语料段数 / 练习次数
  */
-export default function IdentityCard({ displayName, targetBand, joinDays, onEdit }: IdentityCardProps): JSX.Element {
+export default function IdentityCard({ displayName, joinDays, onEdit }: IdentityCardProps): JSX.Element {
   const [avatarOpen, setAvatarOpen] = useState(false)
   // 订阅账号态：上传头像后（USER_UPDATED）此处自动刷新为新图
   const { account } = useAccount()
@@ -46,8 +45,6 @@ export default function IdentityCard({ displayName, targetBand, joinDays, onEdit
       .catch((err: unknown) => console.warn('[ProfilePage] 身份卡数据加载失败', err))
   }, [])
 
-  const meta = [`备考目标 Band ${targetBand.toFixed(1)}`]
-  if (joinDays !== null) meta.push(`已加入 ${joinDays} 天`)
 
   return (
     <Card className="px-7 py-6 mb-6">
@@ -61,7 +58,9 @@ export default function IdentityCard({ displayName, targetBand, joinDays, onEdit
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-[16px] font-semibold text-v2-text-primary truncate">{displayName}</p>
-          <p className="text-[13px] text-v2-text-muted mt-1">{meta.join(' · ')}</p>
+          {joinDays !== null && (
+            <p className="text-[13px] text-v2-text-muted mt-1">已加入 {joinDays} 天</p>
+          )}
         </div>
         <GradientButton onClick={onEdit} className="shrink-0 px-5 py-2.5 rounded-full text-[13px] font-medium">
           编辑资料

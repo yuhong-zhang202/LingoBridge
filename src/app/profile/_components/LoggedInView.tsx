@@ -14,6 +14,7 @@ import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { listMyCorpus } from '@/lib/db/corpus'
 import { getDimensionScores } from '@/lib/db/dimension-scores'
 import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
+import ExamGoalCard from './ExamGoalCard'
 import PortraitRadar from './PortraitRadar'
 
 // 空状态下「我的画像」用的占位形状（雷达会被模糊+锁住，仅作装饰，值域 0–1）
@@ -21,11 +22,10 @@ const PORTRAIT_PLACEHOLDER: readonly [number, number, number, number, number, nu
 
 interface LoggedInViewProps {
   stats: { corpus: number }
-  targetBand: number
 }
 
 /**
- * 已登录态面板：Hero 打卡卡 + 双列副数据卡 + 我的画像雷达卡
+ * 已登录态面板：备考目标卡 + Hero 打卡卡 + 双列副数据卡 + 我的画像雷达卡
  * @param stats      profileData.stats（corpus 占位，streak/practice 由内部真实加载）
  * @sideEffect       挂载时并行拉取 listMyCorpus + getDimensionScores，更新真实数据
  */
@@ -67,6 +67,11 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
 
   return (
     <>
+      {/* ── 备考目标 + 倒计时（身份区正下方） */}
+      <div className="mb-3">
+        <ExamGoalCard />
+      </div>
+
       {/* ── 连续打卡 Hero 卡 */}
       <div
         className="rounded-[18px] px-[18px] py-[14px] mb-3"

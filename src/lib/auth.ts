@@ -109,15 +109,45 @@ export async function updatePassword(newPassword: string): Promise<void> {
  * supabase-js 会在 updateUser / 登录 / 登出后即时更新本地 session，故上传头像后立刻可读到新 avatar_url。
  * 服务端与安全校验路径（如删号）仍各自验证 token，不受此影响。
  */
-export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean; avatarUrl: string | null } | null> {
+export async function getAccount(): Promise<{
+  email: string | null
+  isAnonymous: boolean
+  avatarUrl: string | null
+  targetBand: number | null
+  examDate: string | null
+} | null> {
   const { data } = await getSupabase().auth.getSession()
   const user = data.session?.user
   if (!user) return null
-  const rawAvatar = user.user_metadata?.avatar_url as unknown
+  const meta = user.user_metadata ?? {}
+  const rawAvatar = meta.avatar_url as unknown
+  const rawBand   = meta.target_band as unknown
+  const rawDate   = meta.exam_date as unknown
   return {
     email: user.email ?? null,
     isAnonymous: user.is_anonymous ?? false,
-    avatarUrl: typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
+    avatarUrl:  typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
+    targetBand: typeof rawBand === 'number' && Number.isFinite(rawBand) ? rawBand : null,
+    examDate:   typeof rawDate === 'string' && rawDate !== '' ? rawDate : null,
+  }
+}
+
+/**
+ * 保存备考目标（写 user_metadata；updateUser 会即时更新本地 session 并广播 USER_UPDATED，
+ * useAccount 各实例随之自动刷新，无需手动通知）。
+ * @param targetBand 目标分数（4.0–9.0，步进 0.5）；null 表示未设置
+ * @param examDate   考试日期 'YYYY-MM-DD'；null 表示未设置
+ * @throws SAVE_FAILED
+ * @sideEffect       写 Supabase user_metadata.target_band / exam_date
+ */
+export async function saveExamGoal(
+  { targetBand, examDate }: { targetBand: number | null; examDate: string | null },
+): Promise<void> {
+  const { error } = await getSupabase().auth.updateUser({
+    data: { target_band: targetBand, exam_date: examDate },
+  })
+  if (error) {
+    throw appError('SAVE_FAILED', '保存失败，请稍后再试', error)
   }
 }
 
