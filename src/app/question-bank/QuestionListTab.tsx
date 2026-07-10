@@ -13,8 +13,6 @@ import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import type { QBQuestion } from '@/lib/types'
 
-const BAR = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
-
 const SEG_N = 24
 // 进度细条按填充比例从暖橙渐变到副绿（数据可视化插值，非主题色值）
 const segColor = (t: number): string => {
@@ -37,7 +35,6 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
   const [part, setPart] = useState('全部')
   const [matchedOpen, setMatchedOpen] = useState(true)
   const [unmatchedOpen, setUnmatchedOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const partChips = ['全部', ...availableParts.map(p => `Part ${p}`)]
   const filtered   = part === '全部' ? mappedQuestions : mappedQuestions.filter(q => `Part ${q.part}` === part)
@@ -86,16 +83,13 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
         </button>
         {matchedOpen && <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-2.5">
           {matchedQ.map(q => (
+            /* 纯展示卡：唯一操作是「练习」Chip（原生 button，键盘可达） */
             <div
               key={q.id}
-              onClick={() => setSelectedId(q.id)}
-              className="bg-white rounded-[14px] border border-black/[0.05] overflow-hidden flex shadow-[0_1px_6px_rgba(0,0,0,0.05)] cursor-pointer"
+              className="bg-white rounded-[14px] border border-black/[0.05] overflow-hidden flex shadow-[0_1px_6px_rgba(0,0,0,0.05)]"
             >
-              <div
-                className="w-[4px] flex-shrink-0 self-stretch"
-                style={{ background: q.id === selectedId ? BAR : 'transparent' }}
-              />
-              <div className="flex-1 px-[14px] py-[10px] flex items-center gap-[10px]">
+              {/* pl-18 = 原 4px 竖条 + 14px 内边距，撤条后补回，与未匹配卡左缘对齐 */}
+              <div className="flex-1 pl-[18px] pr-[14px] py-[10px] flex items-center gap-[10px]">
                 <div className="flex-1 min-w-0">
                   <PartTag label={`Part ${q.part}`} />
                   <p className="text-[13px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
@@ -103,7 +97,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
                 <Chip
                   variant="gradient"
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/practice-question?questionId=${q.id}`) }}
+                  onClick={() => router.push(`/practice-question?questionId=${q.id}`)}
                   className="font-medium flex-shrink-0"
                 >练习</Chip>
               </div>

@@ -161,7 +161,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                   onClick={() => router.push('/')}
                   className="text-[11px] px-3 gap-[3px] flex-shrink-0"
                 >
-                  分享经历
+                  讲述
                   <ChevronRight size={12} className="text-brand-primary-dark" />
                 </Chip>
               </div>

@@ -91,40 +91,47 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
               const isLeast = idx === sorted.length - 1 && lit === 0
               const selected = dim === selDim
               return (
+                /* stretched-button：覆盖按钮承担「选中维度」，「讲述」Chip 为其兄弟节点而非后代，
+                   避免交互元素嵌套（WCAG 4.1.2）。内容层 pointer-events-none 让点击穿透到覆盖按钮。 */
                 <div
                   key={dim}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSel(dim)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(dim) } }}
-                  className={`text-left rounded-[11px] px-[14px] py-[13px] min-h-[84px] border transition-colors cursor-pointer ${selected ? 'bg-bg-muted border-transparent' : 'bg-bg-surface border-black/[0.05] hover:bg-bg-inner'}`}
+                  className={`relative text-left rounded-[11px] px-[14px] py-[13px] min-h-[84px] border transition-colors ${selected ? 'bg-bg-muted border-transparent' : 'bg-bg-surface border-black/[0.05] hover:bg-bg-inner'}`}
                 >
-                  <div className="flex items-center gap-[9px]">
-                    <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
-                    <span className={`flex-1 text-[14px] font-semibold ${lit > 0 ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>{dim}</span>
-                    <span className="text-[12px] font-medium text-v2-text-secondary">{lit} / {total}</span>
-                  </div>
-                  <div className="pl-4 mt-[3px]">
-                    {isLeast ? (
-                      <p className="text-[11px] text-v2-text-muted leading-[1.4]">还几乎空白 · 下次从这儿讲一个故事 →</p>
-                    ) : (
-                      <p className="text-[11.5px] text-v2-text-muted">{DIM_DESC[dim]}</p>
-                    )}
-                    {lit > 0 ? (
-                      <div className="h-[5px] rounded-[3px] bg-bg-muted mt-[9px] overflow-hidden">
-                        <div className="h-full rounded-[3px] bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
-                      </div>
-                    ) : (
-                      <Chip
-                        variant="gradient"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); router.push('/') }}
-                        className="mt-2.5 gap-[3px]"
-                      >
-                        分享经历
-                        <ChevronRight size={12} className="text-brand-primary-dark" />
-                      </Chip>
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => setSel(dim)}
+                    aria-pressed={selected}
+                    aria-label={`查看${dim}详情`}
+                    className="absolute inset-0 rounded-[11px] cursor-pointer"
+                  />
+                  <div className="relative z-10 pointer-events-none">
+                    <div className="flex items-center gap-[9px]">
+                      <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
+                      <span className={`flex-1 text-[14px] font-semibold ${lit > 0 ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>{dim}</span>
+                      <span className="text-[12px] font-medium text-v2-text-secondary">{lit} / {total}</span>
+                    </div>
+                    <div className="pl-4 mt-[3px]">
+                      {isLeast ? (
+                        <p className="text-[11px] text-v2-text-muted leading-[1.4]">还几乎空白 · 下次从这儿讲一个故事 →</p>
+                      ) : (
+                        <p className="text-[11.5px] text-v2-text-muted">{DIM_DESC[dim]}</p>
+                      )}
+                      {lit > 0 ? (
+                        <div className="h-[5px] rounded-[3px] bg-bg-muted mt-[9px] overflow-hidden">
+                          <div className="h-full rounded-[3px] bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
+                        </div>
+                      ) : (
+                        <Chip
+                          variant="gradient"
+                          size="sm"
+                          onClick={() => router.push('/')}
+                          className="mt-2.5 gap-[3px] font-medium pointer-events-auto"
+                        >
+                          讲述
+                          <ChevronRight size={12} className="text-brand-primary-dark" />
+                        </Chip>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -158,6 +165,8 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
         const todo = detail.questions.filter(q => !q.matched)
         const remain = Math.max(0, total - lit)
         const segFilled = Math.max(lit > 0 ? 1 : 0, Math.round(12 * (total ? lit / total : 0)))
+        // 题目少时右列会空一半：≤2 道用单列，卡片高度自然收紧
+        const oneColumn = done.length + todo.length <= 2
         return (
           <Card className="px-[22px] py-5 mb-14">
             <div className="flex items-start justify-between mb-1.5">
@@ -172,7 +181,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-[30px] mt-1">
+            <div className={`grid grid-cols-1 gap-x-[30px] mt-1 ${oneColumn ? 'lg:grid-cols-1' : 'lg:grid-cols-2'}`}>
               {done.map(q => (
                 <div key={q.id} className="flex items-center gap-[11px] py-[11px] border-t border-black/[0.05]">
                   <CheckCircle2 size={16} className="text-brand-accent flex-shrink-0" />
@@ -193,10 +202,10 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                   <Chip
                     variant="gradient"
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); router.push('/') }}
+                    onClick={() => router.push('/')}
                     className="font-medium flex-shrink-0 gap-[3px]"
                   >
-                    分享经历
+                    讲述
                     <ChevronRight size={12} className="text-brand-primary-dark" />
                   </Chip>
                 </div>
