@@ -7,7 +7,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
@@ -67,6 +67,16 @@ const RESTRUCTURE_POINTS = [
 
 const tintClass = (t: 'primary' | 'accent'): string =>
   t === 'accent' ? 'bg-brand-accent-light text-brand-accent' : 'bg-brand-primary-light text-brand-primary-dark'
+
+/** 展示性假件容器：整棵子树退出 Tab 序、不可点、移出无障碍树（营销 mockup 复用了真实交互组件，但无实际作用）。
+ *  React 18 无 inert 的 JSX 类型且传布尔会告警，故经 ref 挂属性（同 CollectedCard 选择模式的做法）。
+ *  不额外加 aria-hidden：现代浏览器下 inert 已移出无障碍树，而在不支持 inert 的旧环境里，
+ *  aria-hidden 反而会造出「可聚焦却不被播报」的更差状态。 */
+function InertBlock({ className, children }: { className?: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => { ref.current?.setAttribute('inert', '') }, [])
+  return <div ref={ref} className={className}>{children}</div>
+}
 
 /** 桌面营销区块统一居中页头：小标签 + 标题（可含 accent）+ 副标题 */
 function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: ReactNode; sub: string }) {
@@ -415,7 +425,9 @@ export default function HomePage() {
                   sub="根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去"
                 />
                 <div className="grid grid-cols-[0.95fr_1.05fr] gap-14 items-center">
-                  {/* 左：练习对话 mockup —— 复用真实 AiBubble/UserBubble，与练习页视觉一致（不再手写、避免漂移） */}
+                  {/* 左：练习对话 mockup —— 复用真实 AiBubble/UserBubble，与练习页视觉一致（不再手写、避免漂移）。
+                      整卡 inert：✨ 优化反馈 / 点击说话胶囊都是示意，不该被 Tab 到或被读屏播报 */}
+                  <InertBlock>
                   <Card className="p-6">
                     {/* 题目条（练习页同款样式） */}
                     <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px] mb-4">
@@ -440,6 +452,7 @@ export default function HomePage() {
                       </div>
                     </div>
                   </Card>
+                  </InertBlock>
 
                   {/* 右：三点说明 */}
                   <div className="flex flex-col gap-6">
@@ -469,7 +482,8 @@ export default function HomePage() {
                 <div className="grid grid-cols-3 gap-6 items-stretch">
                   {/* 拼句练习 */}
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    <div className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex flex-col items-center justify-center gap-3 px-5 overflow-hidden">
+                    {/* 预览区为展示性假件（词块 Chip 渲染为原生 button）：整块 inert，标题/正文仍在其外可访问 */}
+                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex flex-col items-center justify-center gap-3 px-5 overflow-hidden">
                       <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
                         <Puzzle size={14} strokeWidth={2} />
                       </div>
@@ -486,14 +500,14 @@ export default function HomePage() {
                         <Chip variant="gradient" size="sm">stole</Chip>
                         <Chip variant="default" size="sm">actually</Chip>
                       </div>
-                    </div>
+                    </InertBlock>
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">拼句练习</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。</p>
                   </Card>
 
                   {/* Anki 复习 */}
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    <div className="relative h-[190px] rounded-[16px] bg-brand-accent-light/40 border border-brand-accent/20 mb-5 flex items-center justify-center gap-3 px-4 overflow-hidden">
+                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-accent-light/40 border border-brand-accent/20 mb-5 flex items-center justify-center gap-3 px-4 overflow-hidden">
                       <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-accent/25 grid place-items-center text-brand-accent">
                         <Layers size={14} strokeWidth={2} />
                       </div>
@@ -508,14 +522,14 @@ export default function HomePage() {
                         <div className="text-[13px] font-bold text-brand-accent leading-tight">kind of torn</div>
                         <div className="text-[10px] text-v2-text-muted">有点纠结</div>
                       </div>
-                    </div>
+                    </InertBlock>
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">Anki 复习</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。</p>
                   </Card>
 
                   {/* 发音教学 */}
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    <div className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex items-center justify-center px-5 overflow-hidden">
+                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex items-center justify-center px-5 overflow-hidden">
                       <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
                         <Volume2 size={14} strokeWidth={2} />
                       </div>
@@ -530,7 +544,7 @@ export default function HomePage() {
                           <span className="text-[13px] font-bold text-error">drink <span className="font-normal text-v2-text-muted">/drɪŋk/</span></span>
                         </div>
                       </div>
-                    </div>
+                    </InertBlock>
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">发音教学</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。</p>
                   </Card>
