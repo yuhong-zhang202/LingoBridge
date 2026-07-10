@@ -8,8 +8,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import Toast from '@/components/Toast'
+import PasswordModal from '@/app/profile/_components/PasswordModal'
 import { getAccount, logout, maskEmail } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
 
@@ -31,6 +33,7 @@ export default function SettingsPage() {
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [passwordOpen, setPasswordOpen] = useState(false)
 
   useEffect(() => {
     getAccount().then((acct) => {
@@ -73,9 +76,21 @@ export default function SettingsPage() {
         {/* 账号 */}
         <section className="mb-6">
           <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
-          <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
-            <span className="text-[13px] text-v2-text-secondary">邮箱</span>
-            <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
+          <div className="flex flex-col gap-2">
+            <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
+              <span className="text-[13px] text-v2-text-secondary">邮箱</span>
+              <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
+            </div>
+            {/* 仅登录态：匿名/未登录用户没有密码可改 */}
+            {loggedIn && (
+              <button
+                onClick={() => setPasswordOpen(true)}
+                className="w-full bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between active:scale-[0.99] transition-transform duration-150"
+              >
+                <span className="text-[14px] text-v2-text-primary">修改密码</span>
+                <ChevronRight size={15} className="text-v2-text-muted" />
+              </button>
+            )}
           </div>
         </section>
 
@@ -129,6 +144,8 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {passwordOpen && <PasswordModal email={email} onClose={() => setPasswordOpen(false)} />}
 
       <Toast message={toast} onDismiss={() => setToast(null)} />
     </div>

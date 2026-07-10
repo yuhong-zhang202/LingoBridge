@@ -54,7 +54,7 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
 
             {/* 2. 常用操作 */}
             <div className="mb-8">
-              <CommonActions email={email} />
+              <CommonActions />
             </div>
 
             {/* 3. 我的画像 + 功能列表（两栏等高，退出登录锚定右栏底部） */}
