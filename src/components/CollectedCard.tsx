@@ -5,10 +5,12 @@
  *           「卡内容 + 拼句练习行」，内部以中性虚线隔开。不复用 FeedbackCard（其描边只裹卡主体、
  *           且半透明描边在 SwipeToDelete 红底上会透棕，故本卡自画不透明描边）。
  *           enableSwipe=true 时外层包 SwipeToDelete 支持移动端左滑删除；false 时裸渲染（桌面端）。
+ *           桌面选择模式：卡体 inert（不可点、不可 Tab、移出无障碍树）+ 同级 stretched 复选覆盖按钮。
  * @author   LingoBridge
  * @created  2026-07-05
  */
 'use client'
+import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Shuffle, Volume2, Check } from 'lucide-react'
 import Chip from '@/components/Chip'
@@ -85,21 +87,32 @@ export default function CollectedCard({
   // 优化句切不出至少 3 块（短句）时不显示拼句练习入口，玩着意义不大
   const canPlay = chunkSentence(card.aiOptimized).length >= 3
 
+  // 选择模式下把卡体整体设为 inert：内部播放按钮 / 拼句 Link 既不可点、也不可 Tab 聚焦，并移出无障碍树，
+  // 使同级的覆盖复选按钮成为唯一交互点（旧的 pointer-events-none 只挡鼠标、挡不住键盘）。
+  // React 18 未内建 inert 属性（无类型、传布尔会告警），故用 ref 在 effect 里挂/摘该属性。
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el || !selecting) return
+    el.setAttribute('inert', '')
+    return () => el.removeAttribute('inert')
+  }, [selecting])
+
   // 整卡：一层渐变描边（_OPAQUE 垫白底挡红）+ 圆角 16 + overflow-hidden，一次裹住卡内容 + 拼句行。
   // 选中态：换成主题色实线描边（并显式补 bg-white，否则去掉渐变内联样式后内壁会透出页面底色）。
-  // 选择模式：整个 body 设 pointer-events-none，让播放/拼句都失效、点击统一交给外层做「切换选中」。
   const body = (
     <div
+      ref={bodyRef}
       className={
         `relative rounded-[16px] overflow-hidden ` +
-        (selected ? 'bg-white border-2 border-brand-primary ' : '') +
-        (selecting ? 'pointer-events-none' : '')
+        (selected ? 'bg-white border-2 border-brand-primary' : '')
       }
       style={selected ? undefined : GRADIENT_BORDER_STYLE_FULL_OPAQUE}
     >
-      {/* 选择模式：右上角浮出 checkbox（避开左上角「原句」标签） */}
+      {/* 选择模式：右上角浮出 checkbox（避开左上角「原句」标签）。纯视觉——选中态由覆盖按钮的 aria-checked 表达 */}
       {selecting && (
         <div
+          aria-hidden="true"
           className={
             `absolute top-3 right-3 z-10 w-5 h-5 rounded-full flex items-center justify-center ` +
             (selected ? 'bg-brand-primary' : 'bg-white border-2 border-black/[0.2]')
@@ -152,13 +165,22 @@ export default function CollectedCard({
     )
   }
 
-  // 桌面端：裸渲染，外层 wrapper 提供圆角 + 阴影；选择模式下整卡点击切换选中
+  // 桌面端：裸渲染，外层 wrapper 提供圆角 + 阴影。
+  // 选择模式下叠一个铺满卡面的复选覆盖按钮——它与 body 是兄弟而非后代，避免「可交互套可交互」；
+  // 原生 button + role=checkbox：可 Tab 聚焦、Space 切换，焦点环由全局 :focus-visible 提供。
   return (
-    <div
-      className={`rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${selecting ? 'cursor-pointer' : ''}`}
-      onClick={selecting ? () => onSelectToggle?.(card.id) : undefined}
-    >
+    <div className="relative rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
       {body}
+      {selecting && (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`选择卡片：${card.aiOptimized}`}
+          onClick={() => onSelectToggle?.(card.id)}
+          className="absolute inset-0 z-10 rounded-[16px] cursor-pointer"
+        />
+      )}
     </div>
   )
 }
