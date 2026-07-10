@@ -17,7 +17,7 @@ import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
 import PortraitRadar from './PortraitRadar'
 
 // 空状态下「我的画像」用的占位形状（雷达会被模糊+锁住，仅作装饰，值域 0–1）
-const PORTRAIT_PLACEHOLDER: readonly [number, number, number, number, number] = [0.72, 0.5, 0.45, 0.62, 0.4]
+const PORTRAIT_PLACEHOLDER: readonly [number, number, number, number, number, number] = [0.72, 0.5, 0.45, 0.62, 0.4, 0.55]
 
 interface LoggedInViewProps {
   stats: { corpus: number }
@@ -34,8 +34,8 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
   const [loaded, setLoaded] = useState(false)
   const [streak, setStreak] = useState(0)
   const [practiceCount, setPracticeCount] = useState(0)
-  const [radarValues, setRadarValues] = useState<readonly [number, number, number, number, number]>(
-    [0, 0, 0, 0, 0],
+  const [radarValues, setRadarValues] = useState<readonly [number, number, number, number, number, number]>(
+    [0, 0, 0, 0, 0, 0],
   )
 
   useEffect(() => {
@@ -43,12 +43,14 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
       .then(([corpus, scores, streakVal, practiceVal]) => {
         setCorpusCount(corpus.length)
         const scoreFor = (id: string) => scores.find((s) => s.dimensionId === id)?.score ?? 0
-        const newValues: [number, number, number, number, number] = [
+        // 顺序须与 PortraitRadar 的轴顺序一致（value 维暂无观察点，恒为 0，属预期）
+        const newValues: [number, number, number, number, number, number] = [
           scoreFor('emotion'),
           scoreFor('relationship'),
           scoreFor('space'),
           scoreFor('spirit'),
           scoreFor('growth'),
+          scoreFor('value'),
         ]
         setRadarValues(newValues)
         setStreak(streakVal)
@@ -139,7 +141,8 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
 
         {showEmpty ? (
           <div className="relative">
-            <div style={{ filter: 'blur(4px)', opacity: 0.55 }}>
+            {/* 占位雷达是装饰：aria-hidden 掉，避免读屏念出 PortraitRadar 里的假数值 */}
+            <div aria-hidden="true" style={{ filter: 'blur(4px)', opacity: 0.55 }}>
               <PortraitRadar values={PORTRAIT_PLACEHOLDER} />
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-white/50">
