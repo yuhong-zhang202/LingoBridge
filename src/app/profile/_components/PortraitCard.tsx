@@ -5,45 +5,39 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { Lock } from 'lucide-react'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import PortraitRadar from './PortraitRadar'
-import { listMyCorpus } from '@/lib/db/corpus'
-import { getDimensionScores } from '@/lib/db/dimension-scores'
+import { useCorpusCount, useDimensionScores } from '@/hooks/profile-data'
 
 // 空态占位形状（雷达模糊+锁住，仅装饰，值域 0–1）
 const PORTRAIT_PLACEHOLDER: readonly [number, number, number, number, number, number] = [0.72, 0.5, 0.45, 0.62, 0.4, 0.55]
 
 /**
  * 我的画像卡
- * @sideEffect 挂载时并行读取语料段数与五维得分
+ * @sideEffect 经 SWR 读语料段数与六维得分（corpus 与 IdentityCard 共用 'profile:corpus' key 去重）
  */
 export default function PortraitCard(): JSX.Element {
-  const [loaded, setLoaded] = useState(false)
-  const [corpusCount, setCorpusCount] = useState(0)
-  const [values, setValues] = useState<readonly [number, number, number, number, number, number]>([0, 0, 0, 0, 0, 0])
+  const { count: corpusCount, isLoading: corpusLoading } = useCorpusCount()
+  const { scores, isLoading: scoresLoading } = useDimensionScores()
 
-  useEffect(() => {
-    Promise.all([listMyCorpus(), getDimensionScores()])
-      .then(([corpus, scores]) => {
-        setCorpusCount(corpus.length)
-        const scoreFor = (id: string) => scores.find((s) => s.dimensionId === id)?.score ?? 0
-        // 顺序须与 PortraitRadar 的轴顺序一致（value 维暂无观察点，恒为 0，属预期）
-        setValues([
-          scoreFor('emotion'),
-          scoreFor('relationship'),
-          scoreFor('space'),
-          scoreFor('spirit'),
-          scoreFor('growth'),
-          scoreFor('value'),
-        ])
-      })
-      .catch((err: unknown) => console.warn('[ProfilePage] 画像数据加载失败', err))
-      .finally(() => setLoaded(true))
-  }, [])
+  // 顺序须与 PortraitRadar 的轴顺序一致（value 维暂无观察点，恒为 0，属预期）
+  const values = useMemo<readonly [number, number, number, number, number, number]>(() => {
+    const scoreFor = (id: string) => scores.find((s) => s.dimensionId === id)?.score ?? 0
+    return [
+      scoreFor('emotion'),
+      scoreFor('relationship'),
+      scoreFor('space'),
+      scoreFor('spirit'),
+      scoreFor('growth'),
+      scoreFor('value'),
+    ]
+  }, [scores])
 
+  // 两项都加载完再判空态（与原 loaded 语义一致：出错时 isLoading 也为 false → 视为已加载、按 0 走空态）
+  const loaded = !corpusLoading && !scoresLoading
   const showEmpty = loaded && corpusCount === 0
 
   // gradient 描边：本卡是「AI 生成」内容，按设计系统属强调卡（唯一符合「AI 输出」的 profile 卡）

@@ -5,11 +5,11 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useState } from 'react'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
-import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
+import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { useQuota } from '@/hooks/profile-data'
 
 interface MiniBarProps {
   label: string
@@ -47,27 +47,12 @@ function MiniBar({ label, used, limit, fillClass, loading }: MiniBarProps): JSX.
  * @sideEffect   挂载时并行读取当月故事/题目练习用量
  */
 export default function QuotaActionCard({ onOpen }: { onOpen: () => void }): JSX.Element {
-  const [storyUsed, setStoryUsed]   = useState(0)
-  const [reviewUsed, setReviewUsed] = useState(0)
-  const [loading, setLoading]       = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const [s, r] = await Promise.all([countCorpusThisMonth(), countReviewPracticeThisMonth()])
-        if (!cancelled) { setStoryUsed(s); setReviewUsed(r) }
-      } catch (err) {
-        console.warn('[ProfilePage] 额度读取失败', err)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [])
+  // SWR 缓存去重（key 'profile:quota'）；出错时用量默认 0，与原 catch 降级一致
+  const { story: storyUsed, review: reviewUsed, isLoading: loading } = useQuota()
 
   return (
-    <button onClick={onOpen} className="text-left w-full h-full">
+    // 卡片常驻、额度数字加载中：aria-busy 随 loading 切换（加载完为 false，读屏停止「忙碌」）
+    <button onClick={onOpen} aria-busy={loading} className="text-left w-full h-full">
       <Card className="p-5 h-full flex flex-col transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]">
         <div className="flex items-center justify-between mb-3.5">
           <span className="text-[14px] font-semibold text-v2-text-primary">本月额度</span>

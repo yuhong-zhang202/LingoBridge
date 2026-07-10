@@ -6,7 +6,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Flame, MessageCircle, Target } from 'lucide-react'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'
@@ -14,8 +14,7 @@ import GradientButton from '@/components/GradientButton'
 import OrbAvatar from './OrbAvatar'
 import AvatarModal from './AvatarModal'
 import { useAccount } from '@/hooks/useAccount'
-import { listMyCorpus } from '@/lib/db/corpus'
-import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
+import { useStreak, useCorpusCount, usePracticeCount } from '@/hooks/profile-data'
 
 interface IdentityCardProps {
   displayName: string
@@ -35,15 +34,10 @@ export default function IdentityCard({ displayName, joinDays, onEdit }: Identity
   const [avatarOpen, setAvatarOpen] = useState(false)
   // 订阅账号态：上传头像后（USER_UPDATED）此处自动刷新为新图
   const { account } = useAccount()
-  const [streak, setStreak] = useState(0)
-  const [corpus, setCorpus] = useState(0)
-  const [practice, setPractice] = useState(0)
-
-  useEffect(() => {
-    Promise.all([getStreak(), listMyCorpus(), getPracticeCount()])
-      .then(([s, c, p]) => { setStreak(s); setCorpus(c.length); setPractice(p) })
-      .catch((err: unknown) => console.warn('[ProfilePage] 身份卡数据加载失败', err))
-  }, [])
+  // SWR 共享缓存：corpus 与 PortraitCard 共用 'profile:corpus' key，全页只发一次
+  const { streak } = useStreak()
+  const { count: corpus } = useCorpusCount()
+  const { practiceCount: practice } = usePracticeCount()
 
 
   return (
