@@ -10,7 +10,9 @@ import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
+import Avatar from '@/components/Avatar'
 import { maskEmail } from '@/lib/auth'
+import { useAccount } from '@/hooks/useAccount'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
 import LoggedInView from './_components/LoggedInView'
@@ -25,6 +27,8 @@ const VERSION = 'v0.6.0'
 
 export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
+  // 订阅账号态：仅取 avatarUrl 做头像回退显示（上传后自动刷新）
+  const { account } = useAccount()
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const settingsButton = (
@@ -45,7 +49,7 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
 
         {/* ── 1. 用户头像区 */}
         <div className="flex flex-col items-center pt-6 pb-5">
-          <OrbAvatar size={84} />
+          <Avatar avatarUrl={account?.avatarUrl} size={84} fallback={<OrbAvatar size={84} />} />
           <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{displayName}</p>
         </div>
 

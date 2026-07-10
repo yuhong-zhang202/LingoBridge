@@ -7,11 +7,11 @@
  * @created  2026-06-30
  */
 'use client'
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Mic, Bell } from 'lucide-react'
-import { getAccount } from '@/lib/auth'
+import Avatar from '@/components/Avatar'
+import { useAccount } from '@/hooks/useAccount'
 import { PAGE_CONTAINER } from '@/lib/constants'
 
 const NAV = [
@@ -28,16 +28,12 @@ interface TopNavProps {
 
 export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavProps) {
   const path = usePathname()
-  // 头像首字母：登录用户取邮箱首字母，未登录/匿名回退「我」（与「我的」语义一致）
-  const [initial, setInitial] = useState('我')
-  useEffect(() => {
-    void (async () => {
-      try {
-        const acct = await getAccount()
-        if (acct && !acct.isAnonymous && acct.email) setInitial(acct.email[0]!.toUpperCase())
-      } catch { /* 静默：取不到账号就用默认字 */ }
-    })()
-  }, [])
+  // 账号态经 useAccount 订阅：上传头像/登录/登出后自动刷新，无需手动通知
+  const { account } = useAccount()
+  // 头像回退首字母：登录用户取邮箱首字母，未登录/匿名回退「我」（与「我的」语义一致）
+  const initial = account && !account.isAnonymous && account.email
+    ? account.email[0]!.toUpperCase()
+    : '我'
   return (
     <header className="sticky top-0 z-30 bg-bg-page border-b border-black/[0.045]">
       <div className={`${containerClassName} h-[64px] lg:h-[72px] flex items-center gap-10`}>
@@ -74,8 +70,8 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
           <button aria-label="通知" className="w-10 h-10 rounded-full grid place-items-center text-v2-text-secondary hover:bg-bg-muted transition-colors">
             <Bell size={20} />
           </button>
-          <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent grid place-items-center text-white text-[15px] font-semibold">
-            {initial}
+          <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
+            <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
           </Link>
         </div>
       </div>

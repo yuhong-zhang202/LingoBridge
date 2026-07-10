@@ -101,13 +101,15 @@ export async function updatePassword(newPassword: string): Promise<void> {
   }
 }
 
-/** 读取当前账号信息。 */
-export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean } | null> {
+/** 读取当前账号信息（avatarUrl 来自 user_metadata.avatar_url，由头像上传写入）。 */
+export async function getAccount(): Promise<{ email: string | null; isAnonymous: boolean; avatarUrl: string | null } | null> {
   const { data } = await getSupabase().auth.getUser()
   if (!data.user) return null
+  const rawAvatar = data.user.user_metadata?.avatar_url as unknown
   return {
     email: data.user.email ?? null,
     isAnonymous: data.user.is_anonymous ?? false,
+    avatarUrl: typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
   }
 }
 

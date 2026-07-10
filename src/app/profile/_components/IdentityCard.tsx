@@ -8,9 +8,11 @@
 import { useEffect, useState } from 'react'
 import { Flame, MessageCircle, Target } from 'lucide-react'
 import Card from '@/components/Card'
+import Avatar from '@/components/Avatar'
 import GradientButton from '@/components/GradientButton'
 import OrbAvatar from './OrbAvatar'
 import AvatarModal from './AvatarModal'
+import { useAccount } from '@/hooks/useAccount'
 import { listMyCorpus } from '@/lib/db/corpus'
 import { getStreak, getPracticeCount } from '@/lib/db/practice-sessions'
 
@@ -32,6 +34,8 @@ interface IdentityCardProps {
  */
 export default function IdentityCard({ displayName, targetBand, joinDays, onEdit }: IdentityCardProps): JSX.Element {
   const [avatarOpen, setAvatarOpen] = useState(false)
+  // 订阅账号态：上传头像后（USER_UPDATED）此处自动刷新为新图
+  const { account } = useAccount()
   const [streak, setStreak] = useState(0)
   const [corpus, setCorpus] = useState(0)
   const [practice, setPractice] = useState(0)
@@ -51,9 +55,9 @@ export default function IdentityCard({ displayName, targetBand, joinDays, onEdit
         <button
           onClick={() => setAvatarOpen(true)}
           aria-label="更换头像"
-          className="shrink-0 rounded-full active:scale-[0.97] transition-transform"
+          className="shrink-0 rounded-full overflow-hidden active:scale-[0.97] transition-transform"
         >
-          <OrbAvatar size={64} />
+          <Avatar avatarUrl={account?.avatarUrl} size={64} fallback={<OrbAvatar size={64} />} />
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-[16px] font-semibold text-v2-text-primary truncate">{displayName}</p>
