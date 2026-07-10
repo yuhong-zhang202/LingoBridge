@@ -11,6 +11,7 @@ import { ChevronDown } from 'lucide-react'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
+import EmptyState from '@/components/EmptyState'
 import type { QBQuestion } from '@/lib/types'
 
 const SEG_N = 24
@@ -120,6 +121,15 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           ))}
         </div>}
       </>}
+
+      {/* 该 Part 筛选后无任何题目（可练习 + 等待语料皆空）→ 友好空态，不留空白 */}
+      {matchedQ.length === 0 && unmatchedQ.length === 0 && (
+        <EmptyState
+          title="这个 Part 还没有题目"
+          subtitle="换个 Part 看看，或先去首页讲一条故事来点亮题目"
+          orbSize={90}
+        />
+      )}
     </div>
   )
 }

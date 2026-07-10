@@ -5,8 +5,8 @@
  * @created  2026-06-01
  */
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import RequireAccountGate from '@/components/RequireAccountGate'
@@ -19,10 +19,32 @@ import OfflineState from '@/components/OfflineState'
 
 type ActiveTab = '维度设计' | '题目列表'
 const TABS: ActiveTab[] = ['维度设计', '题目列表']
+// tab ↔ URL slug（维度设计为默认，不写 param 保持 URL 清爽）
+const TAB_SLUG: Record<ActiveTab, string> = { 维度设计: 'dimension', 题目列表: 'list' }
+const SLUG_TAB: Record<string, ActiveTab> = { dimension: '维度设计', list: '题目列表' }
 
-export default function QuestionBankDesktop({ qb }: { qb: ReturnType<typeof useQuestionBank> }) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('维度设计')
+/** useSearchParams 需在 Suspense 内；本页 page.tsx 不便改，故边界内建于此。 */
+export default function QuestionBankDesktop(props: { qb: ReturnType<typeof useQuestionBank> }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-page" />}>
+      <QuestionBankDesktopContent {...props} />
+    </Suspense>
+  )
+}
+
+function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionBank> }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+  // tab 由 URL 派生（?tab=list → 题目列表；缺省 → 维度设计），刷新/分享保持
+  const activeTab: ActiveTab = SLUG_TAB[params.get('tab') ?? ''] ?? '维度设计'
+  const setActiveTab = (tab: ActiveTab) => {
+    const p = new URLSearchParams(params.toString())
+    if (tab === '维度设计') p.delete('tab')   // 默认态清 param
+    else p.set('tab', TAB_SLUG[tab])
+    const qs = p.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
   // 加载完成、无错误、且一条语料都没有 → 显示空态（替掉全 0 的雷达盘）
   const isEmpty = !qb.loading && !qb.error && qb.corpusCount === 0
 

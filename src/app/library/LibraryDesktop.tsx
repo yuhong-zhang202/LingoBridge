@@ -5,8 +5,9 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState, useRef } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, Trash2 } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
@@ -27,12 +28,28 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { LibraryViewProps } from './types'
 
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
+const TAB_IDS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
 /** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
 const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
-export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh }: LibraryViewProps) {
-  const [tab, setTab] = useState<Tab>('cards')
+/** useSearchParams 需在 Suspense 内；本页 page.tsx 不便改，故边界内建于此。 */
+export default function LibraryDesktop(props: LibraryViewProps) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-page" />}>
+      <LibraryDesktopContent {...props} />
+    </Suspense>
+  )
+}
+
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh }: LibraryViewProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+
+  // tab 由 URL 派生（?tab=phrases 等；缺省 → cards），刷新/分享保持
+  const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
+
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
@@ -40,9 +57,11 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
   const [activeSelecting, setActiveSelecting] = useState(false)
   // 占位提示 Toast（未接入 tab 的多选删除「即将上线」）
   const [hint, setHint] = useState<string | null>(null)
-  // 搜索：是否展开输入框 + 实时输入 + 300ms 防抖后下发给当前 tab 过滤（本批切 tab 即清空）
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [rawQuery, setRawQuery] = useState('')
+  // 搜索：是否展开输入框 + 实时输入 + 300ms 防抖后下发给当前 tab 过滤（本批切 tab 即清空）。
+  // 初值从 URL 回填：带 ?q= 进来时直接展开并填入（刷新/分享保持搜索态）。
+  const initialQuery = params.get('q') ?? ''
+  const [searchOpen, setSearchOpen] = useState(initialQuery !== '')
+  const [rawQuery, setRawQuery] = useState(initialQuery)
   const debouncedQuery = useDebouncedValue(rawQuery, 300)
   // 搜索关闭时（含切 tab）立即下发空串，绕过防抖滞后，避免新 tab 被上一个查询短暂过滤
   const searchQuery = searchOpen ? debouncedQuery : ''
@@ -50,8 +69,31 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
   // 当前 tab 上报的实时（匹配数, 总数）——搜索时用于把当前 tab 胶囊显示成「匹配/总数」
   const [activeCounts, setActiveCounts] = useState<{ matched: number; total: number } | null>(null)
 
-  const closeSearch = () => { setSearchOpen(false); setRawQuery('') }
-  const selectTab = (id: Tab) => { setTab(id); setActiveSelecting(false); closeSearch() }
+  // 防抖后的查询同步进 URL（?q=）；关闭搜索时清掉。从 params 读当前值 + 相等即跳过 → 写回后再触发的这轮
+  // 因 cur===want 直接 return，断掉回环；且始终基于 params 重建，保留 ?tab= 不被覆盖。
+  useEffect(() => {
+    const want = searchOpen ? debouncedQuery.trim() : ''
+    if ((params.get('q') ?? '') === want) return
+    const p = new URLSearchParams(params.toString())
+    if (want) p.set('q', want)
+    else p.delete('q')
+    const qs = p.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [debouncedQuery, searchOpen, params, pathname, router])
+
+  const closeSearch = () => { setSearchOpen(false); setRawQuery('') }   // ?q= 由上面 effect 随 searchOpen=false 清除
+  const selectTab = (id: Tab) => {
+    setActiveSelecting(false)
+    setSearchOpen(false)
+    setRawQuery('')
+    // 切 tab：写 ?tab=（默认 cards 清 param）并清 ?q=，基于 params 单次 replace（q-effect 随后见 q 已空即 no-op）
+    const p = new URLSearchParams(params.toString())
+    p.delete('q')
+    if (id === 'cards') p.delete('tab')
+    else p.set('tab', id)
+    const qs = p.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
   const isSelectableTab = SELECTABLE_TABS.includes(tab)
 
   const TABS = [
