@@ -53,6 +53,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? 'page' : undefined}
                 className={`text-[15px] px-4 py-[7px] rounded-full transition-colors ${
                   active
                     ? 'bg-bg-muted text-v2-text-primary font-semibold'

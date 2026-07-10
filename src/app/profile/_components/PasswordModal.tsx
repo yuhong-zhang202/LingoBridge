@@ -71,32 +71,34 @@ export default function PasswordModal({ email, onClose }: PasswordModalProps): J
           <p className="text-[14px] text-v2-text-primary">密码已更新</p>
         </div>
       ) : (
-        <>
+        // form + onSubmit：输入框内按 Enter 即可提交（GradientButton 渲染的是 button，默认 type=submit）
+        <form onSubmit={(e) => { e.preventDefault(); void handleSave() }}>
           <div className="flex flex-col gap-3.5">
             <div>
-              <label className="text-[12px] text-v2-text-secondary mb-1.5 block">当前密码</label>
-              <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
+              <label htmlFor="pwd-current" className="text-[12px] text-v2-text-secondary mb-1.5 block">当前密码</label>
+              <input id="pwd-current" name="current-password" type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
                 autoComplete="current-password" placeholder="输入当前密码" className={INPUT_CLASS} />
             </div>
             <div>
-              <label className="text-[12px] text-v2-text-secondary mb-1.5 block">新密码</label>
-              <input type="password" value={next} onChange={(e) => setNext(e.target.value)}
+              <label htmlFor="pwd-new" className="text-[12px] text-v2-text-secondary mb-1.5 block">新密码</label>
+              <input id="pwd-new" name="new-password" type="password" value={next} onChange={(e) => setNext(e.target.value)}
                 autoComplete="new-password" placeholder={`至少 ${PASSWORD_MIN} 位字符`} className={INPUT_CLASS} />
             </div>
             <div>
-              <label className="text-[12px] text-v2-text-secondary mb-1.5 block">确认新密码</label>
-              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+              <label htmlFor="pwd-confirm" className="text-[12px] text-v2-text-secondary mb-1.5 block">确认新密码</label>
+              <input id="pwd-confirm" name="confirm-password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password" placeholder="再次输入新密码" className={INPUT_CLASS} />
             </div>
           </div>
 
-          {err && <p className="text-[12px] text-error mt-2 px-1">{err}</p>}
+          {err && <p role="alert" className="text-[12px] text-error mt-2 px-1">{err}</p>}
 
-          <GradientButton onClick={() => void handleSave()} disabled={!canSubmit}
+          {/* 不传 onClick：按钮在 form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
+          <GradientButton disabled={!canSubmit}
             className="w-full mt-5 py-3 rounded-full text-[14px] font-medium disabled:cursor-not-allowed">
             {submitting ? '保存中…' : '保存修改'}
           </GradientButton>
-        </>
+        </form>
       )}
     </ProfileModal>
   )

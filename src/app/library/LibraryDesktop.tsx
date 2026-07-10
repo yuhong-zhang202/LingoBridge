@@ -13,6 +13,7 @@ import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import RequireAccountGate from '@/components/RequireAccountGate'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
+import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import IconButton from '@/components/IconButton'
 import Toast from '@/components/Toast'
@@ -97,6 +98,7 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
                 <button
                   key={t.id}
                   onClick={() => selectTab(t.id)}
+                  aria-pressed={tab === t.id}
                   className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                 >
                   {t.label}
@@ -158,7 +160,8 @@ export default function LibraryDesktop({ stories, cards, wordsCount, pronCount, 
             ) : error ? (
               typeof navigator !== 'undefined' && !navigator.onLine
                 ? <OfflineState onRetry={() => window.location.reload()} />
-                : <p className="text-[13px] text-error text-center pt-16">{error}</p>
+                // 错误文案需带下一步动作（复用 EmptyState 的重试 CTA）
+                : <EmptyState title="语料没加载出来" subtitle={error} ctaLabel="重试" onCta={() => window.location.reload()} orbSize={100} />
             ) : (
               <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />
             )

@@ -30,8 +30,12 @@ export default function SearchBox({ value, onChange, onClose }: SearchBoxProps) 
     return () => window.removeEventListener('mousedown', onDown)
   }, [value, onClose])
 
+  // 焦点环画在容器上（input 自身 outline-none）：focus-within 让键盘聚焦输入框时整框可见
   return (
-    <div ref={boxRef} className="flex items-center gap-1.5 h-9 w-[220px] rounded-full bg-bg-muted px-3">
+    <div
+      ref={boxRef}
+      className="flex items-center gap-1.5 h-9 w-[220px] rounded-full bg-bg-muted px-3 focus-within:ring-2 focus-within:ring-brand-primary focus-within:ring-offset-2"
+    >
       <Search size={15} className="flex-shrink-0 text-v2-text-muted" />
       <input
         autoFocus

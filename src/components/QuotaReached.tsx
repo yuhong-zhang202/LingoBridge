@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
 import { cn } from '@/lib/utils'
+import { nextMonthFirstLabel } from '@/lib/date'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 
@@ -22,13 +23,6 @@ interface Props {
   /** asOverlay 时点遮罩/关闭逻辑（如取消触发的复练操作） */
   onClose?: () => void
   className?: string
-}
-
-/** 下月 1 日的本地短文案，如 "7 月 1 日"。 */
-function nextMonthFirstLabel(): string {
-  const d = new Date()
-  const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-  return `${next.getMonth() + 1} 月 ${next.getDate()} 日`
 }
 
 export default function QuotaReached({ variant, asOverlay, onClose, className }: Props) {

@@ -17,12 +17,14 @@ function lerpColor(t: number): string {
 
 export default function SegmentDots({ total, filled }: Props) {
   return (
-    <div className="flex flex-wrap gap-[3px]">
+    // 纯装饰：进度数字在相邻的「已收集 n / m」文本里，无需重复播报
+    <div className="flex flex-wrap gap-[3px]" aria-hidden="true">
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
-          className="rounded-sm"
-          style={{ width: 12, height: 4, background: i < filled ? lerpColor(i / Math.max(filled - 1, 1)) : '#EEEBE6' }}
+          // 未填充段用 token 类；已填充段是插值色（数据可视化，非主题色值），只能内联
+          className={`rounded-sm ${i < filled ? '' : 'bg-bg-muted'}`}
+          style={{ width: 12, height: 4, background: i < filled ? lerpColor(i / Math.max(filled - 1, 1)) : undefined }}
         />
       ))}
     </div>

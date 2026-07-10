@@ -181,12 +181,14 @@ export default function HomePage() {
                 <div className="bg-bg-muted rounded-full p-1 inline-flex w-[228px]">
                   <button
                     onClick={() => setIeltsMode(false)}
+                    aria-pressed={!ieltsMode}
                     className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${!ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
                   >
                     我的故事
                   </button>
                   <button
                     onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                    aria-pressed={ieltsMode}
                     className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
                   >
                     雅思题
@@ -291,12 +293,14 @@ export default function HomePage() {
                     <div className="flex w-[240px] rounded-[10px] p-[3px] bg-bg-muted mb-7">
                       <button
                         onClick={() => setIeltsMode(false)}
+                        aria-pressed={!ieltsMode}
                         className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${!ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
                       >
                         我的故事
                       </button>
                       <button
                         onClick={() => { if (!ieltsMode) { setIeltsMode(true); void next() } }}
+                        aria-pressed={ieltsMode}
                         className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
                       >
                         雅思题

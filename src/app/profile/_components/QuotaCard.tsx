@@ -8,17 +8,11 @@
 import { useEffect, useState } from 'react'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
+import { nextMonthFirstLabel } from '@/lib/date'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
-
-/** 下月 1 日的本地短文案，如 "7 月 1 日"。 */
-function nextMonthFirstLabel(): string {
-  const d = new Date()
-  const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-  return `${next.getMonth() + 1} 月 ${next.getDate()} 日`
-}
 
 interface QuotaRowProps {
   label: string

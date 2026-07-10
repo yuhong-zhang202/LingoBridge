@@ -7,15 +7,9 @@
 'use client'
 import { CalendarClock } from 'lucide-react'
 import ProfileModal from './ProfileModal'
+import { nextMonthFirstLabel } from '@/lib/date'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
-
-/** 下月 1 日的本地短文案，如 "8 月 1 日"。 */
-function nextMonthFirstLabel(): string {
-  const d = new Date()
-  const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-  return `${next.getMonth() + 1} 月 ${next.getDate()} 日`
-}
 
 /**
  * 本月额度详情弹窗

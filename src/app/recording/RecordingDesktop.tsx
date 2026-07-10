@@ -96,7 +96,9 @@ function ListeningStage({
           <p className="mt-10 text-[14px] text-v2-text-muted">正在转写你的录音…</p>
         )}
 
-        {error && <p className="mt-7 text-center text-[13px] text-v2-text-muted">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-7 text-center text-[13px] text-error">{error}</p>
+        )}
 
         {/* 居中动作簇（不再 fixed 贴底） */}
         <div className="mt-12 flex flex-col items-center gap-4">

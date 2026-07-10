@@ -77,7 +77,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
       </div>
 
       {matchedQ.length > 0 && <>
-        <button onClick={() => setMatchedOpen(v => !v)} className="flex items-center gap-1.5">
+        <button onClick={() => setMatchedOpen(v => !v)} aria-expanded={matchedOpen} className="flex items-center gap-1.5">
           <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
@@ -107,7 +107,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
       </>}
 
       {unmatchedQ.length > 0 && <>
-        <button onClick={() => setUnmatchedOpen(v => !v)} className="flex items-center gap-1.5">
+        <button onClick={() => setUnmatchedOpen(v => !v)} aria-expanded={unmatchedOpen} className="flex items-center gap-1.5">
           <span className="text-[12px] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
         </button>

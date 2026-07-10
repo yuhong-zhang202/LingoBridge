@@ -28,8 +28,13 @@ export default function UndoToast({ message, onUndo, onDismiss, duration = 5000 
     return () => clearTimeout(t)
   }, [duration])
 
+  // role=status + aria-live：删除结果与 5s 撤销窗口需被读屏播报，否则该操作对 SR 用户完全静默
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-[14px] shadow-lg bg-v2-text-primary text-white">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-[14px] shadow-lg bg-v2-text-primary text-white"
+    >
       <span className="text-[13px]">{message}</span>
       <button
         onClick={onUndo}

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Heart, Sparkles } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'
+import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, addSavedPhrase, clearSessionPolishes } from '@/lib/storage'
 import type { SessionPolish } from '@/lib/types'
 import type { FeedbackViewProps } from './types'
@@ -50,8 +51,7 @@ export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.
   const total   = cards.length
   const isEmpty = loaded && total === 0
   const done    = loaded && total > 0 && remaining.length === 0
-  const d = new Date()
-  const today = `${d.getMonth() + 1}/${d.getDate()}`
+  const today = formatMonthDay()
 
   // 全部处理完清掉本场暂存（避免返回重复），只清一次
   const clearedRef = useRef(false)

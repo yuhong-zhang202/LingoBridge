@@ -24,21 +24,22 @@ export default function RadarChart({ dimensions, size = 200 }: Props) {
   const dataPath =
     dimensions.map((d, i) => xy(angles[i], R * Math.max(d.value, 0.04))).map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('') + 'Z'
 
+  // aria-hidden：右侧维度网格已把每个维度的名称与 lit/total 以文本呈现，图形无需重复播报
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" className="mx-auto block">
+    <svg width={size} height={size} viewBox="0 0 200 200" className="mx-auto block" aria-hidden="true">
       {[0.33, 0.66, 1].map((l, i) => <path key={i} d={gridPath(l)} fill="none" className="stroke-bg-muted" strokeWidth="0.5" />)}
       {angles.map((a, i) => {
         const [x, y] = xy(a, R)
         return <line key={i} x1={CX} y1={CY} x2={x.toFixed(1)} y2={y.toFixed(1)} className="stroke-bg-muted" strokeWidth="0.5" />
       })}
-      <path d={dataPath} fill="rgba(212,135,90,0.08)" className="stroke-brand-primary" strokeWidth="1.2" />
+      <path d={dataPath} className="fill-brand-primary/[0.08] stroke-brand-primary" strokeWidth="1.2" />
       {dimensions.map((d, i) => {
         const [x, y] = xy(angles[i], R * Math.max(d.value, 0.04))
         return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="3" className={d.value > 0 ? 'fill-brand-primary' : 'fill-v2-text-muted'} />
       })}
       {dimensions.map((d, i) => {
         const [x, y] = xy(angles[i], LABEL_R)
-        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" className={d.value > 0 ? 'fill-v2-text-primary' : 'fill-v2-text-muted'} fontFamily="'PingFang SC',sans-serif">{d.name}</text>
+        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" className={`font-sans ${d.value > 0 ? 'fill-v2-text-primary' : 'fill-v2-text-muted'}`}>{d.name}</text>
       })}
     </svg>
   )

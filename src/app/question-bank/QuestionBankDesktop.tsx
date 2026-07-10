@@ -40,6 +40,7 @@ export default function QuestionBankDesktop({ qb }: { qb: ReturnType<typeof useQ
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
+                    aria-pressed={activeTab === tab}
                     className={`text-[13px] px-[18px] py-[7px] rounded-[8px] transition-colors ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                   >
                     {tab}
@@ -79,7 +80,14 @@ export default function QuestionBankDesktop({ qb }: { qb: ReturnType<typeof useQ
             typeof navigator !== 'undefined' && !navigator.onLine ? (
               <OfflineState onRetry={() => window.location.reload()} />
             ) : (
-              <p className="text-[13px] text-error text-center pt-16">{qb.error}</p>
+              // 错误文案需带下一步动作（复用 EmptyState 的重试 CTA，与 matching 页一致）
+              <EmptyState
+                title="题库没加载出来"
+                subtitle={qb.error}
+                ctaLabel="重试"
+                onCta={() => window.location.reload()}
+                orbSize={100}
+              />
             )
           )}
           {isEmpty && (

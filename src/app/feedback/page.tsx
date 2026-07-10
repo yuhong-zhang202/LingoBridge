@@ -8,6 +8,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, clearSessionPolishes, addSavedPhrase, markTrialDone } from '@/lib/storage'
 import type { SessionPolish } from '@/lib/types'
 import FeedbackMobile from './FeedbackMobile'
@@ -34,7 +35,7 @@ export default function FeedbackPage(): JSX.Element {
   const total   = cards.length
   const current = cards[index]
   const done    = loaded && total > 0 && index >= total
-  const today   = (() => { const d = new Date(); return `${d.getMonth() + 1}/${d.getDate()}` })()
+  const today   = formatMonthDay()
 
   // 收尾时清掉本场暂存（避免返回重复）
   useEffect(() => { if (done) clearSessionPolishes() }, [done])
