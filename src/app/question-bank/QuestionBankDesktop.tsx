@@ -73,9 +73,10 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
           />
 
           {qb.loading && (
-            <div className="flex flex-col gap-4">
+            // aria-busy 挂在未 hidden 的容器上才会被播报；骨架内容各自 aria-hidden
+            <div className="flex flex-col gap-4" aria-busy="true">
               {/* 进度卡骨架 */}
-              <div className="bg-white rounded-[16px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] px-4 pt-4 pb-3">
+              <div className="bg-white rounded-[16px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] px-4 pt-4 pb-3" aria-hidden="true">
                 <div className="flex items-center justify-between mb-3">
                   <Skeleton className="w-28 h-3.5" />
                   <Skeleton className="w-16 h-4" />
@@ -85,7 +86,7 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
               </div>
 
               {/* 题目行骨架 ×4 */}
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5" aria-hidden="true">
                 {[0, 1, 2, 3].map((i) => (
                   <div key={i} className="bg-white rounded-[14px] border border-black/[0.05] shadow-[0_1px_6px_rgba(0,0,0,0.05)] px-[14px] py-[12px] flex items-center gap-[10px]">
                     <div className="flex-1">

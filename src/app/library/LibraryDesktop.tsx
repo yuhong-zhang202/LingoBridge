@@ -182,7 +182,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
           {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
           {tab === 'stories' && (
             loading ? (
-              <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
+              // 加载态容器挂 aria-busy（不 hidden 才能被播报）；骨架为 Card+Skeleton、无文本，SR 不会读出内容
+              <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3" aria-busy="true">
                 {[0, 1, 2].map((i) => (
                   <Card key={i} variant="gradient" className="p-4">
                     <div className="flex items-center justify-between mb-2.5">
