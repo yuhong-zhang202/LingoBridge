@@ -5,7 +5,7 @@
  * @created  2026-06-12
  */
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { RotateCw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react'
 import Tag from '@/components/Tag'
 import type { PhraseCard } from '@/lib/types'
@@ -100,13 +100,28 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
   const startX = useRef(0)
   const dragging = useRef(false)
   const moved = useRef(false)
+  // 防重入：一张卡只评一次（挡按键重复/连按/双击；FlashCard 每卡按 key 重挂，下一张自动复位）
+  const fired = useRef(false)
 
-  // 直接飞出并回调（底部按钮用）
+  // 直接飞出并回调（底部按钮 / 键盘 ←→ 用）
   const flyOut = (remembered: boolean): void => {
+    if (fired.current) return
+    fired.current = true
     setAnimated(true)
     setDx(remembered ? 520 : -520)
     window.setTimeout(() => onGrade(remembered), 180)
   }
+
+  // 键盘快捷键：→ 熟知、← 重复（与底部按钮/滑动等价）。监听随本卡挂载/卸载，天然只作用于当前卡。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); flyOut(true) }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const onClick = (): void => { if (!moved.current) setFlipped(f => !f) }   // 轻点翻面（拖动则忽略）
   const onTouchStart = (e: React.TouchEvent): void => {
