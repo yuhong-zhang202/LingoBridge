@@ -27,7 +27,7 @@ export default function TopBar({
     >
       {/* 离线状态条：仅离线时出现，把下方内容自然下推；在线态高度与原先完全一致 */}
       {!isOnline && (
-        <div className="flex items-center justify-center gap-1.5 py-2 bg-warning/15 text-warning">
+        <div className="flex items-center justify-center gap-1.5 py-2 bg-warning/15 text-warning-text">
           <WifiOff size={14} />
           <span className="text-[12.5px] font-medium">你已离线，部分功能暂不可用</span>
         </div>

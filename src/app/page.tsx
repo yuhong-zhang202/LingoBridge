@@ -46,11 +46,12 @@ const FEATURES: { Icon: LucideIcon; img?: string; tint: 'primary' | 'accent'; ti
   { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ]
 
+// dot 为步骤号圆圈底色：承载白字，故用达标的 strong/dark/accent-dark（非全局品牌橙绿）
 const MATCH_STEPS = [
-  { n: 1, dot: 'bg-brand-primary',      title: '语料输入',             desc: '录音或文字均可。可选择"分享故事"或"讨论雅思题目"两种模式。想不到经历时，直接选题讨论，用中文口述思路即可。' },
-  { n: 2, dot: 'bg-brand-primary-dark', title: '匹配 Part 1 / Part 2', desc: '基于核心内容，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。' },
-  { n: 3, dot: 'bg-brand-accent',       title: '切换语料侧重点',        desc: '核心角度没有对应题目时，调整表达侧重，尝试匹配其他 Part 1、2 真题，扩大覆盖范围。' },
-  { n: 4, dot: 'bg-brand-accent',       title: '对话延伸 Part 3',       desc: '与 Leo 练习对话时，话题自然延伸至 Part 3，完成三部分全覆盖。' },
+  { n: 1, dot: 'bg-brand-primary-strong', title: '语料输入',             desc: '录音或文字均可。可选择"分享故事"或"讨论雅思题目"两种模式。想不到经历时，直接选题讨论，用中文口述思路即可。' },
+  { n: 2, dot: 'bg-brand-primary-dark',   title: '匹配 Part 1 / Part 2', desc: '基于核心内容，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。' },
+  { n: 3, dot: 'bg-brand-accent-dark',    title: '切换语料侧重点',        desc: '核心角度没有对应题目时，调整表达侧重，尝试匹配其他 Part 1、2 真题，扩大覆盖范围。' },
+  { n: 4, dot: 'bg-brand-accent-dark',    title: '对话延伸 Part 3',       desc: '与 Leo 练习对话时，话题自然延伸至 Part 3，完成三部分全覆盖。' },
 ] as const
 
 // 模块四：Leo 对话示意（占位对话）+ 右侧三点说明
@@ -407,7 +408,7 @@ export default function HomePage() {
                   <div className="flex flex-col gap-7">
                     {MATCH_STEPS.map(({ n, dot, title, desc }) => (
                       <div key={n} className="flex gap-4">
-                        <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[13px] font-bold ${dot}`}>{n}</div>
+                        <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[14px] font-bold ${dot}`}>{n}</div>
                         <div>
                           <h4 className="text-[15.5px] font-semibold text-v2-text-primary">{title}</h4>
                           <p className="mt-1.5 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>

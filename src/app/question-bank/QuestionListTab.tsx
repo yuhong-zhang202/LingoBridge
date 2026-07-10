@@ -116,7 +116,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           {unmatchedQ.map(q => (
             <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
               <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
-              <p className="text-[13px] text-v2-text-muted flex-1">{q.displayText}</p>
+              <p className="text-[13px] text-v2-text-secondary flex-1">{q.displayText}</p>
             </div>
           ))}
         </div>}

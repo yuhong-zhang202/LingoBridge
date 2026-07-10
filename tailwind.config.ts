@@ -23,8 +23,9 @@ const config: Config = {
         'bg-inner': '#F4F4F4',
         /* 语义状态色（跨版本通用，v2 页面可用）*/
         'success':  '#5BA08A',
-        'warning':  '#C4965A',
-        'error':    '#C47A6A',
+        'warning':  '#C4965A',   /* 仅作填充/浅底/圆点（bg-warning・bg-warning/15）；警告文字用 warning-text */
+        'warning-text': '#8C6128',   /* 警告文字专用（WCAG AA：on bg-page 5.22 / on warning/15 tint 4.61） */
+        'error':    '#AB5344',   /* 深化：白字压它 5.18、它作文字压浅底 4.96，删除按钮与 error 文字同时达标 */
         /* v2 tokens */
         'bg-base':              '#FBFAF7',
         'bg-surface':           '#FFFFFF',
@@ -32,15 +33,17 @@ const config: Config = {
         'brand-primary':        '#D4875A',
         'brand-primary-light':  '#F2D5C0',
         'brand-primary-dark':   '#B5663A',
+        'brand-primary-strong': '#C77C4F',   /* 定点：白字压品牌橙圆圈用（白字 3.27，配 ≥14px 粗体达大字 3:1） */
         'brand-accent':         '#7BA699',
         'brand-accent-light':   '#C8DDD9',
+        'brand-accent-dark':    '#557E6D',   /* 定点：白字压品牌绿头像用（白字 4.57，正文级达标） */
         'band-55':              '#AAAAAA',
         'band-60':              '#7BA699',
         'band-65':              '#D4875A',
         'band-70':              '#9A7DB8',
         'v2-text-primary':      '#2C2420',
         'v2-text-secondary':    '#6B5B52',
-        'v2-text-muted':        '#A89990',
+        'v2-text-muted':        '#7C6B5E',   /* 深化达 AA：on bg-page 4.88 / surface 5.09（压 bg-muted 4.28 的少数处改用 secondary） */
         /* analysis 词组分组色（暖橙复用 brand-*；绿沿用全局绿 hex；雾青为本组新增）*/
         'phrase-warm-bg':       '#F7EBE1',
         'phrase-blue-bg':       '#E9EEF4',

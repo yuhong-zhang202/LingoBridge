@@ -161,7 +161,7 @@ export default function PracticeDesktop({
           ) : (
             <>
               {nearLimit && (
-                <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning">
+                <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning-text">
                   <Clock size={13} className="flex-shrink-0 mt-px" />
                   <span>{capHint}</span>
                 </div>
@@ -191,7 +191,7 @@ export default function PracticeDesktop({
                       <X size={19} />
                     </button>
                     <div className="contents" aria-hidden="true"><VoiceBar audioLevel={audioLevel} /></div>
-                    <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right tabular-nums ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
+                    <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right tabular-nums ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
                       {recTime}
                     </span>
                     <button

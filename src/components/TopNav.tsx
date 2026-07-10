@@ -70,7 +70,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
         {/* 右侧：通知 + 头像 */}
         <div className="ml-auto flex items-center gap-[18px]">
           <NotificationBell />
-          <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
+          <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
             <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
           </Link>
         </div>

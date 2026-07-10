@@ -128,7 +128,7 @@ export default function PracticeMobile({
         <>
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
         {nearLimit && (
-          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning">
+          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning-text">
             <Clock size={13} className="flex-shrink-0 mt-px" />
             <span>{capHint}</span>
           </div>
@@ -158,7 +158,7 @@ export default function PracticeMobile({
                 <X size={19} />
               </button>
               <VoiceBar audioLevel={audioLevel} />
-              <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning' : 'text-v2-text-muted'}`}>
+              <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
                 {recTime}
               </span>
               <button
