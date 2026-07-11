@@ -9,7 +9,7 @@ import { logErr } from '@/lib/log'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
-import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import type { AppError } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
@@ -41,7 +41,7 @@ function mimeToExt(mimeType: string): string {
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    await requireRegisteredUser(req)
+    await requireUserAllowAnon(req)
     const form = await req.formData()
     const file = form.get('audio')
     if (!(file instanceof Blob)) {

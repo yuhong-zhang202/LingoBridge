@@ -7,14 +7,14 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { extractCorpus } from '@/services/extraction'
-import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 
 // 输入上限：萃取是按文本长度计 token 的付费调用，限长防止单请求刷高 token 成本
 const MAX_RAW_TEXT_LENGTH = 3000
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    await requireRegisteredUser(req)
+    await requireUserAllowAnon(req)
     const body = (await req.json()) as { cleanedText?: unknown }
     const cleanedText = typeof body.cleanedText === 'string' ? body.cleanedText.trim() : ''
     if (!cleanedText) {

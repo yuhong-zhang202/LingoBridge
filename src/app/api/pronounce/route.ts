@@ -7,11 +7,11 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { generatePronunciationTip } from '@/services/pronounce'
-import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    await requireRegisteredUser(req)
+    await requireUserAllowAnon(req)
     const body = (await req.json()) as { intended?: unknown; heard?: unknown; context?: unknown }
     const intended = typeof body.intended === 'string' ? body.intended.trim() : ''
     const heard = typeof body.heard === 'string' ? body.heard.trim() : ''

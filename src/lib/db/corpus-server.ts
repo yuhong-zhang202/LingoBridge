@@ -34,6 +34,35 @@ export async function countCorpusThisMonthServer(userId: string): Promise<number
 }
 
 /**
+ * 统计某用户的 corpus 总条数（不限时间）。用于匿名试用「仅 1 条」额度判定。
+ * @param  userId  requireUserAllowAnon 反查出的用户 id
+ * @returns        该用户 corpus 总条数
+ * @throws         Error —— 查询出错
+ * @sideEffect     service_role 读 corpus（绕 RLS，须显式按 user_id 过滤）
+ */
+export async function countCorpusForUserServer(userId: string): Promise<number> {
+  const { count, error } = await getSupabaseServer()
+    .from('corpus')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+  if (error) throw new Error(`读取语料总数失败：${error.message}`)
+  return count ?? 0
+}
+
+/**
+ * 原子递增某用户「今日整理次数」并返回递增后的值（含本次）。用于匿名 restructure 当日额度。
+ * @param  userId  requireUserAllowAnon 反查出的用户 id
+ * @returns        递增后的当日计数
+ * @throws         Error —— RPC 出错
+ * @sideEffect     service_role 调 RPC bump_anon_restructure（原子 upsert 计数，绕 RLS）
+ */
+export async function bumpAnonRestructureTodayServer(userId: string): Promise<number> {
+  const { data, error } = await getSupabaseServer().rpc('bump_anon_restructure', { p_user_id: userId })
+  if (error) throw new Error(`匿名整理计数失败：${error.message}`)
+  return (data as number) ?? 0
+}
+
+/**
  * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
  * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
  * @param  input   source（voice/text）与原始文本

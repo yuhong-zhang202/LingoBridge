@@ -8,7 +8,9 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
-import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { bumpAnonRestructureTodayServer } from '@/lib/db/corpus-server'
+import { ANON_RESTRUCTURE_LIMIT } from '@/lib/constants'
 
 // 输入上限：整理是按字数估算 token 计费的付费调用，限长防止单请求刷高 token 成本
 const MAX_RAW_TEXT_LENGTH = 3000
@@ -16,7 +18,7 @@ const MAX_RAW_TEXT_LENGTH = 3000
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    await requireRegisteredUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { rawText?: unknown }
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {
@@ -24,6 +26,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     if (rawText.length > MAX_RAW_TEXT_LENGTH) {
       return NextResponse.json({ error: '内容过长，请分段提交（上限 3000 字）' }, { status: 400 })
+    }
+    // 匿名试用整理次数：原子递增当日计数，超上限即 402（原子递增放 AI 调用前，攻击者刷失败也计数、防绕过）。
+    // 注册用户跳过此计数，走各自既有额度。
+    if (isAnonymous) {
+      const n = await bumpAnonRestructureTodayServer(userId)
+      if (n > ANON_RESTRUCTURE_LIMIT) {
+        return NextResponse.json({ error: '试用整理次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+      }
     }
     const { cleanedText, usable } = await restructureText(rawText)
     // service 层未返回 usage，按输入字数 × 1.5 估算 token 数

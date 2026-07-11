@@ -8,14 +8,15 @@
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
-import { requireUser, authErrorResponse } from '@/lib/api-auth'
-import { countCorpusThisMonthServer, createCorpusServer } from '@/lib/db/corpus-server'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
+import { ANON_CORPUS_LIMIT } from '@/lib/constants'
 import type { CorpusSource } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { source?: unknown; rawText?: unknown }
     const source: CorpusSource = body.source === 'text' ? 'text' : 'voice'
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
@@ -23,10 +24,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'rawText 不能为空' }, { status: 400 })
     }
 
-    // 故事月额度服务端强制：超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹故事额度提示
-    const used = await countCorpusThisMonthServer(userId)
-    if (used >= STORY_MONTHLY_LIMIT) {
-      return NextResponse.json({ error: '本月故事额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+    // 额度服务端强制：超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹配额提示。
+    // 匿名用户走「试用仅 1 条」（总条数）；注册用户维持既有故事月额度。
+    if (isAnonymous) {
+      const total = await countCorpusForUserServer(userId)
+      if (total >= ANON_CORPUS_LIMIT) {
+        return NextResponse.json({ error: '试用已完成，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+      }
+    } else {
+      const used = await countCorpusThisMonthServer(userId)
+      if (used >= STORY_MONTHLY_LIMIT) {
+        return NextResponse.json({ error: '本月故事额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+      }
     }
 
     const corpus = await createCorpusServer(userId, { source, rawText })

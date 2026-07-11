@@ -64,6 +64,19 @@ export async function requireRegisteredUser(req: Request): Promise<{ userId: str
 }
 
 /**
+ * 放行匿名与注册用户（只挡无效 token），并把是否匿名一并返回供调用方按额度区分处理。
+ * 用于保留「未注册免费试用一遍」的付费 AI 接口：匿名放行但由服务端额度约束，防脚本无限白嫖。
+ * @param req  进入的请求（读 Authorization 头）
+ * @returns    { userId, isAnonymous } 当前用户 id 与是否匿名会话
+ * @throws     ApiAuthError(401) —— 缺 token 或 token 无效
+ * @sideEffect 调 admin.auth.getUser(token) 校验 token 并读 is_anonymous（service_role client）
+ */
+export async function requireUserAllowAnon(req: Request): Promise<{ userId: string; isAnonymous: boolean }> {
+  const user = await authUser(req)
+  return { userId: user.id, isAnonymous: user.isAnonymous }
+}
+
+/**
  * 校验某 corpus（语料 / 故事）归属于 userId，杜绝越权读写他人私密日记。
  * @param userId    requireUser 反查出的当前用户 id
  * @param corpusId  待访问的 corpus id

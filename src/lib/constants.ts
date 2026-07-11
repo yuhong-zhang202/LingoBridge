@@ -29,6 +29,12 @@ export const SCORE_MID  = 60
 export const SCORE_LOW  = 40
 // score < SCORE_LOW：不展示
 
+// ── 匿名试用额度（未注册用户免费体验一遍；控 AI 成本 + 促注册转化）
+/** 匿名用户可建语料条数（体验一条完整链路即到上限，引导注册） */
+export const ANON_CORPUS_LIMIT = 1
+/** 匿名用户每日整理次数上限（restructure 不落库，单独计数；容忍重录试错，故给 5 次余量） */
+export const ANON_RESTRUCTURE_LIMIT = 5
+
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
   emotion: '情绪内核',

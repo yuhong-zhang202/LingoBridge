@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
-import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
@@ -16,7 +16,7 @@ import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    const { userId } = await requireUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const body = (await req.json()) as {
       questionId?: string
       storyId?: string
@@ -35,7 +35,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       // 复练月额度服务端强制：仅在开始一次新复练（review + 首轮）时校验，避免拦断进行中的对话。
       // 超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹 QuotaReached（ielts）。
-      if (body.isReview) {
+      // 匿名用户走的是 corpus 单条试用额度，不叠加复练月额度，故 !isAnonymous 才校验。
+      if (!isAnonymous && body.isReview) {
         const used = await countReviewPracticeThisMonthServer(userId)
         if (used >= IELTS_MONTHLY_LIMIT) {
           return NextResponse.json({ error: '本月复练额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
