@@ -25,7 +25,7 @@ import type { AnalysisViewProps } from './types'
 /** 词组分组配色：按组循环（暖橙 / 标准绿 / 雾青蓝），与移动端一致（设计系统唯一允许的多色例外）。 */
 const PHRASE_CHIP_STYLES = [
   'bg-phrase-warm-bg text-brand-primary-dark border-brand-primary-light',
-  'bg-[#EDF6EB] text-[#3D7A38] border-[#C0DDB9]',
+  'bg-tag-success-bg text-tag-success-text border-tag-success-border',
   'bg-phrase-blue-bg text-phrase-blue-text border-phrase-blue-border',
 ]
 

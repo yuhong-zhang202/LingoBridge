@@ -53,7 +53,7 @@ export default function Toast({ message, onDismiss, duration = 3500 }: Props) {
     <div
       role="alert"
       onClick={onDismiss}
-      className={`fixed bottom-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[380px] bg-[#1A1A1A] text-white text-[13px] leading-snug rounded-[14px] px-4 py-3 text-center shadow-lg cursor-pointer ${exiting ? 'toast-exit' : 'toast-enter'}`}
+      className={`fixed bottom-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[380px] bg-surface-inverse text-white text-[13px] leading-snug rounded-[14px] px-4 py-3 text-center shadow-lg cursor-pointer ${exiting ? 'toast-exit' : 'toast-enter'}`}
     >
       {shown}
     </div>

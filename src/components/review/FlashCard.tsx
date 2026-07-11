@@ -36,7 +36,7 @@ function Dots({ box }: { box: number }): JSX.Element {
       <span className="text-[11px] text-v2-text-muted">记忆进度</span>
       <span className="flex gap-[5px]">
         {[1, 2, 3, 4, 5].map(i => (
-          <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-[#E5DED7]'}`} />
+          <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-warm-line'}`} />
         ))}
       </span>
     </div>
@@ -60,7 +60,7 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
         <button
           onClick={(e: React.MouseEvent) => { e.stopPropagation(); speak(card.text) }}
           aria-label="播放发音"
-          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-[#F4F2EE] flex items-center justify-center active:opacity-50"
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-cream-deep flex items-center justify-center active:opacity-50"
         >
           <Volume2 size={16} className="text-v2-text-muted" />
         </button>
@@ -175,8 +175,8 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
           <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-error active:opacity-60">
             <ArrowLeft size={15} />重复
           </button>
-          <span className="text-[12px] text-[#D8D2CA]">左右滑动</span>
-          <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-[#3D7A38] active:opacity-60">
+          <span className="text-[12px] text-warm-mute">左右滑动</span>
+          <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-tag-success-text active:opacity-60">
             熟知<ArrowRight size={15} />
           </button>
         </div>

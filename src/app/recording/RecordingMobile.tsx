@@ -67,7 +67,7 @@ export default function RecordingMobile({
 
             <span className="text-[22px] font-semibold text-v2-text-primary tracking-[2px]">{fmt(seconds)}</span>
 
-            <p className="text-[12px] text-[#CCCCCC] text-center px-8 leading-relaxed">
+            <p className="text-[12px] text-neutral-mute text-center px-8 leading-relaxed">
               建议说 30–60 秒，说得越具体效果越好 ✨
             </p>
           </>
@@ -87,7 +87,7 @@ export default function RecordingMobile({
           disabled={transcribing}
           className="btn-gradient w-full h-[56px] text-[16px] font-semibold disabled:opacity-50"
         >
-          <div className="w-[15px] h-[15px] bg-[#555] rounded-[3px]" />
+          <div className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />
           {transcribing ? '转写中…' : '完成录音'}
         </button>
         <div className="flex justify-center mt-3">

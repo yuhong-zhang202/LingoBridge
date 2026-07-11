@@ -36,8 +36,8 @@ export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose
     >
       {/* 朝上小三角，指向上方气泡 */}
       <div
-        className="absolute"
-        style={{ top: -7, right: 24, width: 12, height: 12, background: '#FFFFFF', transform: 'rotate(45deg)', borderLeft: '1px solid rgba(240,188,160,.85)', borderTop: '1px solid rgba(240,188,160,.85)' }}
+        className="absolute bg-white"
+        style={{ top: -7, right: 24, width: 12, height: 12, transform: 'rotate(45deg)', borderLeft: '1px solid rgba(240,188,160,.85)', borderTop: '1px solid rgba(240,188,160,.85)' }}
       />
 
       <div className="flex justify-between items-center mb-2">
@@ -58,7 +58,7 @@ export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="输入正确的词"
-          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-[#FAFAF8] px-2.5 py-1.5 text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
+          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-cream-subtle px-2.5 py-1.5 text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
         />
         <button
           onClick={submit}

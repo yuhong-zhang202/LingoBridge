@@ -37,8 +37,8 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
         style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: 999 }}
       >
         <div
-          className="inline-flex items-center gap-1.5"
-          style={{ background: '#FFFFFF', borderRadius: 999, padding: '5px 10px' }}
+          className="inline-flex items-center gap-1.5 bg-white"
+          style={{ borderRadius: 999, padding: '5px 10px' }}
         >
           {icon}
           <span className="text-[11px] font-medium leading-none" style={GRAD_TEXT}>{label}</span>
@@ -48,8 +48,8 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
   }
 
   const variantClass = variant === 'gray'
-    ? 'bg-transparent border border-[#E5E5E5] text-v2-text-muted'
-    : 'bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38]'
+    ? 'bg-transparent border border-neutral-border text-v2-text-muted'
+    : 'bg-tag-success-bg border border-tag-success-border text-tag-success-text'
 
   return (
     <span className={cn(

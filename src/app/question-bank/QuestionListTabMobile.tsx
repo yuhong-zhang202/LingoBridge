@@ -63,6 +63,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
                   <div
                     key={i}
                     className="flex-1 h-1 rounded-[2px]"
+                    /* 空段色 = bg-muted 同值；与 segColor 动态取色同处三元，无法用 class，故就地引用该 token 值 */
                     style={{ background: i < filledSeg ? segColor(i / Math.max(filledSeg - 1, 1)) : '#EEEBE6' }}
                   />
                 ))}
@@ -71,7 +72,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           })()}
           {totalMatched === 0
             ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
-            : <p className="text-[11px] text-[#C4B5A9] mt-1.5">每一段都是你自己的答题素材</p>}
+            : <p className="text-[11px] text-warm-taupe mt-1.5">每一段都是你自己的答题素材</p>}
         </div>
       </div>
 

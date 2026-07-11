@@ -39,8 +39,8 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing?: number
       style={{ width: 56, height: 24, background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}
     >
       <div
-        className="w-full h-full flex items-center justify-center"
-        style={{ background: '#FFF', borderRadius: 9999 }}
+        className="w-full h-full flex items-center justify-center bg-white"
+        style={{ borderRadius: 9999 }}
       >
         <span className="text-brand-primary-dark" style={{ fontSize: 11, fontWeight: 500, lineHeight: 1, letterSpacing }}>
           {text}
@@ -55,7 +55,7 @@ function SentenceBlock({ text, variant, plain }: { text: string; variant: 'origi
   // plain：两句都用灰底(.fb-quote)、无边框；优化句文字加粗加深。旧样式：原句白底/优化绿底。
   const box = plain
     ? 'bg-bg-inner'
-    : (isAi ? 'bg-[#EDF6EB] border border-[#C0DDB9]' : 'bg-white border border-black/[0.07]')
+    : (isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]')
   return (
     <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
       <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${plain && isAi ? 'font-medium' : ''}`}>

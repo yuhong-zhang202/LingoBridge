@@ -46,7 +46,7 @@ export default function RecentCallsTable({ logs }: { logs: Log[] }) {
               const d = new Date(log.created_at)
               const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
               return (
-                <tr key={log.id} className="border-b border-black/[0.03] hover:bg-[#FAFAF8] transition-colors">
+                <tr key={log.id} className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
                   <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap">{hm}</td>
                   <td className="px-3 py-2 whitespace-nowrap"><Badge s={log.service} /></td>
                   <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap"
@@ -58,8 +58,7 @@ export default function RecentCallsTable({ logs }: { logs: Log[] }) {
                   <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{log.latency_ms}ms</td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: log.status === 'success' ? '#7BA699' : '#C47A6A' }} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-success' : 'bg-error'}`} />
                       <span className="text-v2-text-muted">{log.status === 'success' ? '成功' : '失败'}</span>
                     </span>
                   </td>

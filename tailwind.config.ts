@@ -49,6 +49,27 @@ const config: Config = {
         'phrase-blue-bg':       '#E9EEF4',
         'phrase-blue-text':     '#4A6178',
         'phrase-blue-border':   '#CCD8E6',
+        /* 中性灰阶：把散落的硬编码灰归拢成命名 token（值即原 hex，视觉零变化）*/
+        'neutral-line':         '#EEEEEE',   /* 极浅分隔线 / StepBar 未达连线 */
+        'neutral-border':       '#E5E5E5',   /* Chip / Tag 描边 */
+        'neutral-track':        '#DDDDDD',   /* StepBar 未达圆点 / 轨道底 */
+        'neutral-mute':         '#CCCCCC',   /* 最弱提示 / 占位文字（如「← 跳过」）*/
+        'neutral-mid':          '#A0A09A',   /* 次级说明文字 */
+        'neutral-slate':        '#555555',   /* 深灰块 */
+        /* 反色深底：Toast / 更新提示 / TabBar 激活标记 */
+        'surface-ink':          '#111111',
+        'surface-inverse':      '#1A1A1A',
+        /* v2 暖白 / 暖灰阶（配合奶油底系统）*/
+        'cream-subtle':         '#FAFAF8',   /* 表格行 hover / 弹层近白底 */
+        'cream-soft':           '#F8F7F5',   /* 卡片内嵌暖白 */
+        'cream-deep':           '#F4F2EE',   /* 记忆卡底 */
+        'warm-line':            '#E5DED7',   /* 记忆卡叠层 / 进度点空态 */
+        'warm-mute':            '#D8D2CA',   /* 记忆卡弱文字 */
+        'warm-taupe':           '#C4B5A9',   /* 暖调次级文字 */
+        /* 强调标签绿三色：原 design.md §5 标注「无 token」，此处提为正式 token */
+        'tag-success-bg':       '#EDF6EB',
+        'tag-success-border':   '#C0DDB9',
+        'tag-success-text':     '#3D7A38',
       },
       borderRadius: {
         'xl2': '24px',

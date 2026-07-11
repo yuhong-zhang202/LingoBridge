@@ -26,8 +26,8 @@ export default function UserBubble({ text, onPolish, onWordTap, avatarUrl }: Use
     <div className="flex items-start gap-2 max-w-[85%] ml-auto flex-row-reverse mb-4">
       <Avatar avatarUrl={avatarUrl} size={34} fallback={<OrbWarm size={34} className="flex-shrink-0" />} />
       <div
-        className="relative px-3.5 py-2.5"
-        style={{ background: '#EDF6EB', border: '1px solid rgba(192,221,185,.55)', borderRadius: '16px 6px 16px 16px' }}
+        className="relative px-3.5 py-2.5 bg-tag-success-bg"
+        style={{ border: '1px solid rgba(192,221,185,.55)', borderRadius: '16px 6px 16px 16px' }}
       >
         {onPolish && (
           <button

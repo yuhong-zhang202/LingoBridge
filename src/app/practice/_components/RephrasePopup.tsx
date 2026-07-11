@@ -25,8 +25,8 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
     >
       {/* 向下三角，指向左下角云团 */}
       <div
-        className="absolute"
-        style={{ bottom: -7, left: 18, width: 12, height: 12, background: '#FFFFFF', transform: 'rotate(45deg)', borderRight: '1px solid rgba(168,210,196,.80)', borderBottom: '1px solid rgba(188,210,168,.75)' }}
+        className="absolute bg-white"
+        style={{ bottom: -7, left: 18, width: 12, height: 12, transform: 'rotate(45deg)', borderRight: '1px solid rgba(168,210,196,.80)', borderBottom: '1px solid rgba(188,210,168,.75)' }}
       />
 
       <div className="flex justify-between items-center mb-2">
@@ -39,7 +39,7 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
       ) : result ? (
         result.needsWork && result.optimized ? (
           <div className="flex flex-col gap-2">
-            <div style={{ padding: '9px 11px', background: '#F8F7F5', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
+            <div className="bg-cream-soft" style={{ padding: '9px 11px', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
               <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
               <p className="text-[13px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
             </div>

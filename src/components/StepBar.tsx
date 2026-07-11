@@ -33,7 +33,7 @@ export function StepBar({ currentStep }: StepBarProps) {
                   w-[8px] h-[8px] rounded-full transition-all duration-300 lg:w-[11px] lg:h-[11px]
                   ${isDone    ? 'bg-brand-primary' : ''}
                   ${isCurrent ? 'bg-brand-primary ring-2 ring-brand-primary/30 ring-offset-1 lg:ring-4' : ''}
-                  ${!isDone && !isCurrent ? 'bg-[#DDDDDD]' : ''}
+                  ${!isDone && !isCurrent ? 'bg-neutral-track' : ''}
                 `}
               />
               <span
@@ -49,7 +49,7 @@ export function StepBar({ currentStep }: StepBarProps) {
               <div
                 className={`
                   flex-1 h-[1.5px] mx-1 mb-[14px] rounded-full transition-all duration-300 lg:h-[2px] lg:mx-3 lg:mb-0
-                  ${isDone ? 'bg-brand-primary' : 'bg-[#EEEEEE]'}
+                  ${isDone ? 'bg-brand-primary' : 'bg-neutral-line'}
                 `}
               />
             )}

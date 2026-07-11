@@ -108,8 +108,8 @@ export default function FeedbackMobile({
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-3">
-              <span className="text-[12px] text-[#CCCCCC]">← 跳过</span>
-              <span className="text-[12px] text-[#CCCCCC]">—</span>
+              <span className="text-[12px] text-neutral-mute">← 跳过</span>
+              <span className="text-[12px] text-neutral-mute">—</span>
               <span className="text-[12px] text-v2-text-muted">收藏 →</span>
             </div>
 
@@ -119,7 +119,7 @@ export default function FeedbackMobile({
                 aria-label="跳过"
                 className="btn-ghost flex-1 h-[48px] active:scale-[0.97] transition-transform duration-150"
               >
-                <X size={15} className="text-[#CCCCCC]" />
+                <X size={15} className="text-neutral-mute" />
               </button>
               {/* 收藏 = 收藏当前卡（共享真源 onCollect）+ 前进到下一张（移动端导航 onSkip），行为与拆分前一致 */}
               <GradientButton onClick={() => { onCollect(current); onSkip() }} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
@@ -128,7 +128,7 @@ export default function FeedbackMobile({
               </GradientButton>
             </div>
 
-            <p className="text-[12px] text-[#CCCCCC] text-center">还有 {total - index - 1} 张卡片</p>
+            <p className="text-[12px] text-neutral-mute text-center">还有 {total - index - 1} 张卡片</p>
           </>
         )}
       </div>

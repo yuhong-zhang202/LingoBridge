@@ -59,7 +59,7 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing: number 
 /** 句子框 + 播放按钮（复刻 FeedbackCard 非 plain：原句白底、优化绿底） */
 function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 'ai' }) {
   const isAi = variant === 'ai'
-  const box = isAi ? 'bg-[#EDF6EB] border border-[#C0DDB9]' : 'bg-white border border-black/[0.07]'
+  const box = isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]'
   return (
     <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
       <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>

@@ -129,7 +129,7 @@ function PreviewAnki() {
             <span className="text-[9px] text-v2-text-muted">记忆进度</span>
             <span className="flex gap-[3px]">
               {[1, 2, 3, 4, 5].map(i => (
-                <span key={i} className={`w-[5px] h-[5px] rounded-full ${i <= 2 ? 'bg-brand-primary' : 'bg-[#E5DED7]'}`} />
+                <span key={i} className={`w-[5px] h-[5px] rounded-full ${i <= 2 ? 'bg-brand-primary' : 'bg-warm-line'}`} />
               ))}
             </span>
           </div>

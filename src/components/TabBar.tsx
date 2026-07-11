@@ -58,7 +58,7 @@ export default function TabBar() {
               {label}
             </span>
             {active && (
-              <div className="w-[3px] h-[3px] rounded-full bg-[#111] lg:hidden" />
+              <div className="w-[3px] h-[3px] rounded-full bg-surface-ink lg:hidden" />
             )}
           </Link>
         )

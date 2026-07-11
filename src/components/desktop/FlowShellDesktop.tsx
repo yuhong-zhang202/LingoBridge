@@ -56,7 +56,7 @@ export default function FlowShellDesktop({
                       ? 'w-[26px] bg-brand-primary'
                       : isDone
                         ? 'w-[7px] bg-brand-primary'
-                        : 'w-[7px] bg-[#DDDDDD]')
+                        : 'w-[7px] bg-neutral-track')
                   }
                 />
               )

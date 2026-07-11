@@ -30,7 +30,7 @@ const LIGHTER_BORDER: CSSProperties = {
  *  暖橙复用 brand-primary；绿沿用全局标准强调绿；雾青为新增 token。*/
 const PHRASE_CHIP_STYLES = [
   'bg-phrase-warm-bg text-brand-primary-dark border-brand-primary-light',
-  'bg-[#EDF6EB] text-[#3D7A38] border-[#C0DDB9]',
+  'bg-tag-success-bg text-tag-success-text border-tag-success-border',
   'bg-phrase-blue-bg text-phrase-blue-text border-phrase-blue-border',
 ]
 
@@ -42,7 +42,7 @@ function StepNum({ n }: { n: number }) {
   return (
     <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-[#A0A09A]">{n}</span>
+        <span className="text-[11px] font-bold leading-none text-neutral-mid">{n}</span>
       </div>
     </div>
   )

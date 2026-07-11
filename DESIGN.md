@@ -41,6 +41,23 @@
 | `phrase-blue-bg` | `#E9EEF4` | analysis 词组分组色（雾青蓝底） |
 | `phrase-blue-text` | `#4A6178` | analysis 词组分组色（雾青蓝文字） |
 | `phrase-blue-border` | `#CCD8E6` | analysis 词组分组色（雾青蓝描边） |
+| `neutral-line` | `#EEEEEE` | 极浅分隔线 / StepBar 未达连线 |
+| `neutral-border` | `#E5E5E5` | Chip / Tag 描边 |
+| `neutral-track` | `#DDDDDD` | StepBar 未达圆点 / 轨道底 |
+| `neutral-mute` | `#CCCCCC` | 最弱提示 / 占位文字（如「← 跳过」） |
+| `neutral-mid` | `#A0A09A` | 次级说明文字 |
+| `neutral-slate` | `#555555` | 深灰块 |
+| `surface-ink` | `#111111` | TabBar 激活标记等近黑前景 |
+| `surface-inverse` | `#1A1A1A` | Toast / 更新提示深底 |
+| `cream-subtle` | `#FAFAF8` | 表格行 hover / 弹层近白底 |
+| `cream-soft` | `#F8F7F5` | 卡片内嵌暖白 |
+| `cream-deep` | `#F4F2EE` | 记忆卡底 |
+| `warm-line` | `#E5DED7` | 记忆卡叠层 / 进度点空态 |
+| `warm-mute` | `#D8D2CA` | 记忆卡弱文字 |
+| `warm-taupe` | `#C4B5A9` | 暖调次级文字 |
+| `tag-success-bg` | `#EDF6EB` | 强调标签绿底（见 §5 强调标签） |
+| `tag-success-border` | `#C0DDB9` | 强调标签绿描边 |
+| `tag-success-text` | `#3D7A38` | 强调标签绿文字 |
 
 ### v1 备用 Token（仅旧页面维护，新页面禁用）
 
@@ -400,14 +417,14 @@ border-radius: 14px
 
 | 属性 | 值 | 说明 |
 |---|---|---|
-| 背景 | `bg-[#EDF6EB]` | 无对应 token，使用该色值 |
-| 边框 | `border border-[#C0DDB9]`（0.5px 视觉等效） | 无对应 token，使用该色值 |
-| 文字 | `text-[#3D7A38]` | 无对应 token，使用该色值 |
+| 背景 | `bg-tag-success-bg` | token `#EDF6EB` |
+| 边框 | `border border-tag-success-border`（0.5px 视觉等效） | token `#C0DDB9` |
+| 文字 | `text-tag-success-text` | token `#3D7A38` |
 | 圆角 | `rounded-full` | — |
 | 字号 | `text-[11px]` | — |
 | 字重 | `font-medium` | — |
 
-若有对应项目 token 则优先使用 token，没有则使用以上色值。
+统一使用 `tag-success-*` token（原「无对应 token，直接用色值」已提为正式 token，色值不变）。
 此规范适用于所有页面，新页面开发时必须遵守。
 
 > 例外：analysis 页「可用词组」chip 按分组循环使用 暖橙 / 标准绿 / 雾青蓝 三色（见 `PHRASE_CHIP_STYLES` 与 `phrase-*` token），这是唯一允许的多色场景——它编码「词组分组」而非「强调」。其余强调标签仍只能用绿。

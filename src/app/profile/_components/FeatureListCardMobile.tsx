@@ -19,7 +19,7 @@ interface FeatureListCardProps {
 }
 
 /** 行样式与行内容沿用原实现，Link 行与 button 行共用 */
-const ROW_CLASS = 'w-full flex items-center px-[18px] py-[14px] bg-transparent active:bg-[#F8F7F5] transition-colors'
+const ROW_CLASS = 'w-full flex items-center px-[18px] py-[14px] bg-transparent active:bg-cream-soft transition-colors'
 
 function RowBody({ Icon, label, badge }: { Icon: typeof Info; label: string; badge: string | null }): JSX.Element {
   return (
