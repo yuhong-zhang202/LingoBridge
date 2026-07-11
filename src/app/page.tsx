@@ -83,10 +83,10 @@ function InertBlock({ className, children }: { className?: string; children: Rea
 }
 
 /** 桌面营销区块统一居中页头：小标签 + 标题（可含 accent）+ 副标题 */
-function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: ReactNode; sub: string }) {
+function SectionHead({ eyebrow, title, sub }: { eyebrow?: string; title: ReactNode; sub: string }) {
   return (
     <div className="text-center max-w-[560px] mx-auto mb-14">
-      <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">{eyebrow}</p>
+      {eyebrow && <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">{eyebrow}</p>}
       <h2 className="text-[30px] font-bold tracking-tight text-v2-text-primary leading-snug mb-4">{title}</h2>
       <p className="text-[15px] text-v2-text-secondary leading-relaxed">{sub}</p>
     </div>
@@ -442,7 +442,6 @@ export default function HomePage() {
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <Reveal>
                   <SectionHead
-                    eyebrow="从一段经历到一次自信开口"
                     title={<>我们能为你做<span className="text-brand-primary">什么</span></>}
                     sub="不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达"
                   />
@@ -472,7 +471,6 @@ export default function HomePage() {
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <Reveal>
                   <SectionHead
-                    eyebrow="语料匹配题目"
                     title={<>一段语料，覆盖雅思口语<span className="text-brand-primary">三个部分</span></>}
                     sub="系统逐层匹配、动态调整，帮你覆盖 Part 1、2、3 全部题型。"
                   />
@@ -514,7 +512,6 @@ export default function HomePage() {
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <Reveal>
                   <SectionHead
-                    eyebrow="重组语料"
                     title={<>和 Leo 一起，把故事练成<span className="text-brand-primary">脱口而出</span></>}
                     sub="根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去"
                   />
@@ -574,7 +571,6 @@ export default function HomePage() {
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <Reveal>
                   <SectionHead
-                    eyebrow="信息复用"
                     title={<>收藏的内容，去<span className="text-brand-primary">素材库</span>继续巩固</>}
                     sub="三种不同的练习，分别对应你收藏的三类东西"
                   />
