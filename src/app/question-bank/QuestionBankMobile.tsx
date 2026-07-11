@@ -33,7 +33,7 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
       <RequireAccountGate>
       {!isEmpty && (
         <div className="px-6 pt-4 pb-0 flex-shrink-0">
-          <div className="flex rounded-[10px] p-[3px] bg-bg-inner">
+          <div className="flex rounded-[10px] p-[3px] bg-bg-muted">
             {TABS.map(tab => (
               <button
                 key={tab}

@@ -135,7 +135,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
 
           {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
           <div className="flex items-center justify-between gap-3 my-5">
-            <div className="flex gap-[3px] p-[3px] bg-bg-inner rounded-[10px] w-fit max-w-full overflow-x-auto">
+            <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit max-w-full overflow-x-auto">
               {TABS.map(t => (
                 <button
                   key={t.id}

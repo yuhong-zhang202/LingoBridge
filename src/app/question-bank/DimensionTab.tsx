@@ -95,7 +95,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                    避免交互元素嵌套（WCAG 4.1.2）。内容层 pointer-events-none 让点击穿透到覆盖按钮。 */
                 <div
                   key={dim}
-                  className={`relative text-left rounded-[11px] px-[14px] py-[13px] min-h-[84px] border transition-colors ${selected ? 'bg-bg-muted border-transparent' : 'bg-bg-surface border-black/[0.05] hover:bg-bg-inner'}`}
+                  className={`relative text-left rounded-[11px] px-[14px] py-[13px] min-h-[84px] border transition-colors ${selected ? 'bg-bg-muted border-transparent' : 'bg-bg-surface border-black/[0.05] hover:bg-bg-muted'}`}
                 >
                   <button
                     type="button"

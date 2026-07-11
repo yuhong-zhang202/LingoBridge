@@ -57,7 +57,7 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
           <ManageHeader
             title="当季题库"
             right={!isEmpty && (
-              <div className="flex gap-[3px] p-[3px] bg-bg-inner rounded-[10px]">
+              <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px]">
                 {TABS.map(tab => (
                   <button
                     key={tab}

@@ -50,10 +50,10 @@ export default function TabBar() {
           >
             <Icon
               size={20}
-              className={active ? 'text-v2-text-primary lg:text-brand-primary' : 'text-text-4 lg:text-v2-text-secondary'}
+              className={active ? 'text-v2-text-primary lg:text-brand-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'}
             />
             <span className={`text-[10px] font-medium lg:text-[14px] ${
-              active ? 'text-v2-text-primary' : 'text-text-4 lg:text-v2-text-secondary'
+              active ? 'text-v2-text-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'
             }`}>
               {label}
             </span>
@@ -70,8 +70,8 @@ export default function TabBar() {
         className={`hidden lg:flex lg:flex-row lg:items-center lg:gap-3 lg:py-2.5 lg:px-3 lg:w-full lg:rounded-[12px] lg:mt-auto lg:transition-colors
           ${settingsActive ? 'lg:bg-bg-muted' : 'lg:hover:bg-bg-muted/60'}`}
       >
-        <Settings size={20} className={settingsActive ? 'text-v2-text-primary lg:text-brand-primary' : 'text-text-4 lg:text-v2-text-secondary'} />
-        <span className={`text-[14px] font-medium ${settingsActive ? 'text-v2-text-primary' : 'text-text-4 lg:text-v2-text-secondary'}`}>
+        <Settings size={20} className={settingsActive ? 'text-v2-text-primary lg:text-brand-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'} />
+        <span className={`text-[14px] font-medium ${settingsActive ? 'text-v2-text-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'}`}>
           设置
         </span>
       </Link>

@@ -563,7 +563,7 @@ Accordion：accordionDown，200ms ease-out
 ### 禁止事项
 
 - 禁止内联色值（`style={{ color: '#xxx' }}`）替代 Tailwind token，颜色语义不可追踪
-- 禁止新页面使用 v1 色板（`bg-page`, `text-1~4`, `bg-card`, `bg-inner`）
+- 禁止新页面使用 v1 色板（`text-1~4`, `bg-card`, `bg-inner`）——`bg-page` 例外，见「背景色规范」，它是全站唯一标准背景来源
 - 禁止 `bg-white` 作为页面级背景（只用于卡片）
 - 禁止使用 Inter、Roboto、Arial 等通用字体
 - 禁止自定义渐变色值偏离上方渐变参数（破坏视觉一致性）

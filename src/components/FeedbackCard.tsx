@@ -54,7 +54,7 @@ function SentenceBlock({ text, variant, plain }: { text: string; variant: 'origi
   const isAi = variant === 'ai'
   // plain：两句都用灰底(.fb-quote)、无边框；优化句文字加粗加深。旧样式：原句白底/优化绿底。
   const box = plain
-    ? 'bg-bg-inner'
+    ? 'bg-bg-muted'
     : (isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]')
   return (
     <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>

@@ -39,7 +39,7 @@ export function StepBar({ currentStep }: StepBarProps) {
               <span
                 className={`
                   text-[10px] whitespace-nowrap lg:absolute lg:top-[16px] lg:left-1/2 lg:-translate-x-1/2 lg:text-[13px]
-                  ${isCurrent ? 'text-brand-primary font-semibold' : isDone ? 'text-brand-primary' : 'text-text-4'}
+                  ${isCurrent ? 'text-brand-primary font-semibold' : isDone ? 'text-brand-primary' : 'text-v2-text-muted'}
                 `}
               >
                 {step.label}
