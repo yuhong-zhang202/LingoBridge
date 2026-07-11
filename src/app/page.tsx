@@ -21,6 +21,7 @@ import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import PartTag from '@/components/PartTag'
 import Toast from '@/components/Toast'
+import Reveal from '@/components/Reveal'
 import FirstUseConsent from '@/components/FirstUseConsent'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
 import QuotaReached from '@/components/QuotaReached'
@@ -291,8 +292,8 @@ export default function HomePage() {
                   }}
                 />
                 <div className="relative z-[1] grid grid-cols-2 gap-10 items-center pl-12">
-                  {/* 左：切换器 + 文案 + 操作（整体再右移、更靠中 pl-16） */}
-                  <div className="max-w-[560px] pl-16">
+                  {/* 左：切换器 + 文案 + 操作（整体再右移、更靠中 pl-16）。Reveal 只做整块淡入上浮，内部打字机照旧 */}
+                  <Reveal className="max-w-[560px] pl-16">
                     {/* 我的故事 / 雅思题 切换器（功能保留） */}
                     <div className="flex w-[240px] rounded-[10px] p-[3px] bg-bg-muted mb-7">
                       <button
@@ -350,7 +351,7 @@ export default function HomePage() {
                         <Pencil size={15} />或用文字输入
                       </Link>
                     </div>
-                  </div>
+                  </Reveal>
 
                   {/* 右：Orb（现有组件，放大到 400；不加浮动小卡片）——比文案再上移一点 */}
                   <div className="flex justify-center items-center -mt-8">
@@ -361,14 +362,17 @@ export default function HomePage() {
 
               {/* ===== 模块二：我们能为你做什么（能力三卡）——整屏高、内容居中 ===== */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
-                <SectionHead
-                  eyebrow="从一段经历到一次自信开口"
-                  title={<>我们能为你做<span className="text-brand-primary">什么</span></>}
-                  sub="不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达"
-                />
+                <Reveal>
+                  <SectionHead
+                    eyebrow="从一段经历到一次自信开口"
+                    title={<>我们能为你做<span className="text-brand-primary">什么</span></>}
+                    sub="不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达"
+                  />
+                </Reveal>
                 <div className="grid grid-cols-3 gap-6">
-                  {FEATURES.map(({ Icon, img, tint, title, lead, desc }) => (
-                    <Card key={title} className="px-6 pt-8 pb-7 text-center transition-transform duration-200 hover:-translate-y-1">
+                  {FEATURES.map(({ Icon, img, tint, title, lead, desc }, i) => (
+                    <Reveal key={title} delay={i * 0.08}>
+                    <Card className="px-6 pt-8 pb-7 text-center transition-transform duration-200 hover:-translate-y-1">
                       {img ? (
                         /* 拼图图标（已抠除白底的透明 PNG），尺寸对齐原图标 64px */
                         <Image src={img} alt="" width={128} height={128} className="mx-auto mb-5 w-16 h-16 object-contain" />
@@ -381,20 +385,23 @@ export default function HomePage() {
                       <p className="mt-2 text-[13.5px] font-semibold text-brand-primary-dark">{lead}</p>
                       <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">{desc}</p>
                     </Card>
+                    </Reveal>
                   ))}
                 </div>
               </section>
 
               {/* ===== 模块三：语料匹配题目怎么运作（漏斗 + 四步）整屏高、内容居中 ===== */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
-                <SectionHead
-                  eyebrow="语料匹配题目"
-                  title={<>一段语料，覆盖雅思口语<span className="text-brand-primary">三个部分</span></>}
-                  sub="系统逐层匹配、动态调整，帮你覆盖 Part 1、2、3 全部题型。"
-                />
+                <Reveal>
+                  <SectionHead
+                    eyebrow="语料匹配题目"
+                    title={<>一段语料，覆盖雅思口语<span className="text-brand-primary">三个部分</span></>}
+                    sub="系统逐层匹配、动态调整，帮你覆盖 Part 1、2、3 全部题型。"
+                  />
+                </Reveal>
                 <div className="grid grid-cols-[0.85fr_1.15fr] gap-14 items-center">
                   {/* 左：漏斗示意图（品牌配色螺旋丝带，已抠除背景的透明 PNG）；靠右上偏移贴近文案 */}
-                  <div className="flex flex-col">
+                  <Reveal className="flex flex-col">
                     <Image
                       src="/funnel-spiral.png"
                       alt="语料匹配漏斗示意"
@@ -402,24 +409,24 @@ export default function HomePage() {
                       height={2016}
                       className="w-full max-w-[460px] h-auto ml-auto translate-x-8 -translate-y-10"
                     />
-                  </div>
+                  </Reveal>
 
                   {/* 右：三步说明 + 六维度提示 */}
                   <div className="flex flex-col gap-7">
-                    {MATCH_STEPS.map(({ n, dot, title, desc }) => (
-                      <div key={n} className="flex gap-4">
+                    {MATCH_STEPS.map(({ n, dot, title, desc }, i) => (
+                      <Reveal key={n} delay={i * 0.08} className="flex gap-4">
                         <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[14px] font-bold ${dot}`}>{n}</div>
                         <div>
                           <h4 className="text-[15.5px] font-semibold text-v2-text-primary">{title}</h4>
                           <p className="mt-1.5 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
                         </div>
-                      </div>
+                      </Reveal>
                     ))}
-                    <div className="bg-bg-muted rounded-[12px] px-4 py-3.5 text-[12.5px] text-v2-text-secondary leading-relaxed">
+                    <Reveal delay={MATCH_STEPS.length * 0.08} className="bg-bg-muted rounded-[12px] px-4 py-3.5 text-[12.5px] text-v2-text-secondary leading-relaxed">
                       每道候选题按与语料的贴合度排序，优先展示最顺手的表达。判断依据是
                       <b className="text-v2-text-primary font-semibold">六个维度</b>
                       ：情绪、人际、空间、精神世界、成长、价值观。
-                    </div>
+                    </Reveal>
                   </div>
                 </div>
               </section>
@@ -427,14 +434,17 @@ export default function HomePage() {
               {/* ===== 模块四：重组语料怎么运作（Leo 对话示意 + 三点） ===== */}
               {/* TODO: 文案待确认 —— Leo 对话为占位示意；如需可复用真实 AiBubble/UserBubble 组件渲染 */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
-                <SectionHead
-                  eyebrow="重组语料"
-                  title={<>和 Leo 一起，把故事练成<span className="text-brand-primary">脱口而出</span></>}
-                  sub="根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去"
-                />
+                <Reveal>
+                  <SectionHead
+                    eyebrow="重组语料"
+                    title={<>和 Leo 一起，把故事练成<span className="text-brand-primary">脱口而出</span></>}
+                    sub="根据你在题目分析里选的雅思水平，Leo 会陪你就这段经历继续聊下去"
+                  />
+                </Reveal>
                 <div className="grid grid-cols-[0.95fr_1.05fr] gap-14 items-center">
                   {/* 左：练习对话 mockup —— 复用真实 AiBubble/UserBubble，与练习页视觉一致（不再手写、避免漂移）。
                       整卡 inert：✨ 优化反馈 / 点击说话胶囊都是示意，不该被 Tab 到或被读屏播报 */}
+                  <Reveal>
                   <InertBlock>
                   <Card className="p-6">
                     {/* 题目条（练习页同款样式） */}
@@ -461,11 +471,12 @@ export default function HomePage() {
                     </div>
                   </Card>
                   </InertBlock>
+                  </Reveal>
 
                   {/* 右：三点说明 */}
                   <div className="flex flex-col gap-6">
-                    {RESTRUCTURE_POINTS.map(({ Icon, title, desc }) => (
-                      <div key={title} className="flex gap-3.5">
+                    {RESTRUCTURE_POINTS.map(({ Icon, title, desc }, i) => (
+                      <Reveal key={title} delay={i * 0.08} className="flex gap-3.5">
                         <div className="w-[34px] h-[34px] rounded-[10px] flex-shrink-0 grid place-items-center bg-brand-accent-light text-brand-accent">
                           <Icon size={17} strokeWidth={2} />
                         </div>
@@ -473,7 +484,7 @@ export default function HomePage() {
                           <h4 className="text-[15px] font-semibold text-v2-text-primary">{title}</h4>
                           <p className="mt-1 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
                         </div>
-                      </div>
+                      </Reveal>
                     ))}
                   </div>
                 </div>
@@ -482,13 +493,16 @@ export default function HomePage() {
               {/* ===== 模块五：信息复用怎么用（三卡等高） ===== */}
               {/* TODO: 文案待确认 —— 三张卡的示意内容为占位；如需可复用真实 拼句/复习卡/发音 组件缩略渲染 */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
-                <SectionHead
-                  eyebrow="信息复用"
-                  title={<>收藏的内容，去<span className="text-brand-primary">素材库</span>继续巩固</>}
-                  sub="三种不同的练习，分别对应你收藏的三类东西"
-                />
+                <Reveal>
+                  <SectionHead
+                    eyebrow="信息复用"
+                    title={<>收藏的内容，去<span className="text-brand-primary">素材库</span>继续巩固</>}
+                    sub="三种不同的练习，分别对应你收藏的三类东西"
+                  />
+                </Reveal>
                 <div className="grid grid-cols-3 gap-6 items-stretch">
                   {/* 拼句练习 */}
+                  <Reveal delay={0} className="h-full">
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
                     {/* 预览区为展示性假件（词块 Chip 渲染为原生 button）：整块 inert，标题/正文仍在其外可访问 */}
                     <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex flex-col items-center justify-center gap-3 px-5 overflow-hidden">
@@ -512,8 +526,10 @@ export default function HomePage() {
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">拼句练习</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。</p>
                   </Card>
+                  </Reveal>
 
                   {/* Anki 复习 */}
+                  <Reveal delay={0.08} className="h-full">
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
                     <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-accent-light/40 border border-brand-accent/20 mb-5 flex items-center justify-center gap-3 px-4 overflow-hidden">
                       <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-accent/25 grid place-items-center text-brand-accent">
@@ -534,8 +550,10 @@ export default function HomePage() {
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">Anki 复习</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。</p>
                   </Card>
+                  </Reveal>
 
                   {/* 发音教学 */}
+                  <Reveal delay={0.16} className="h-full">
                   <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
                     <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex items-center justify-center px-5 overflow-hidden">
                       <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
@@ -556,6 +574,7 @@ export default function HomePage() {
                     <h3 className="text-[15.5px] font-semibold text-v2-text-primary">发音教学</h3>
                     <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。</p>
                   </Card>
+                  </Reveal>
                 </div>
               </section>
             </>
