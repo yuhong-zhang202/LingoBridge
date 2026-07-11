@@ -51,7 +51,7 @@ export default function WriteDesktop({
         <div className="mb-6 text-center">
           <h1 className="text-[24px] font-bold text-v2-text-primary tracking-tight">说说你的故事</h1>
           <p className="mt-2.5 text-[14px] text-v2-text-secondary leading-relaxed">
-            不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。
+            不用背模板。把发生过的事讲出来，我们帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。
           </p>
         </div>
 

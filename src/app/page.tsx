@@ -11,7 +11,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Wand2, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
@@ -42,8 +42,8 @@ const HERO_LINE2 = '个性化雅思语料'
 // TODO: 文案待确认 —— 以下桌面营销模块文案取自参考稿占位，非最终产品文案
 // 模块二：能力三卡
 const FEATURES: { Icon: LucideIcon; img?: string; tint: 'primary' | 'accent'; title: string; lead: string; desc: string }[] = [
-  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，AI 帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
-  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和 AI 对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
+  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，我们帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
+  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
   { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ]
 
@@ -62,10 +62,11 @@ const LEO_DIALOGUE = [
   { from: 'leo',  text: 'Got it — what does that "unwinding" feel like in your body?' },
 ] as const
 
+// dot：与模块三步骤圆圈同款（圆形实心填充 + 白色编号 1/2/3，strong/dark/accent-dark）
 const RESTRUCTURE_POINTS = [
-  { Icon: Wand2,  title: '句子不满意？点「优化反馈」',   desc: '看看更地道的说法，简单记忆之后自己再重新表达一遍，形成「输入-输出」的循环，而不是照读答案。' },
-  { Icon: Mic2,   title: '读错的单词，点一下就能收藏',   desc: '发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。' },
-  { Icon: Layers, title: '练完会有一叠反馈卡片',         desc: '都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。' },
+  { dot: 'bg-brand-primary-strong', title: '句子不满意？点「优化反馈」',   desc: '看看更地道的说法，简单记忆之后自己再重新表达一遍，形成「输入-输出」的循环，而不是照读答案。' },
+  { dot: 'bg-brand-primary-dark',   title: '读错的单词，点一下就能收藏',   desc: '发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。' },
+  { dot: 'bg-brand-accent-dark',    title: '练完会有一叠反馈卡片',         desc: '都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。' },
 ] as const
 
 const tintClass = (t: 'primary' | 'accent'): string =>
@@ -336,7 +337,7 @@ export default function HomePage() {
                       </>
                     )}
                     <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
-                      {!ieltsMode ? '不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
+                      {!ieltsMode ? '不用背模板。把发生过的事讲出来，我们帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
                     </p>
                     {ieltsMode && (
                       <button onClick={() => void next()} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
@@ -475,10 +476,11 @@ export default function HomePage() {
 
                   {/* 右：三点说明 */}
                   <div className="flex flex-col gap-6">
-                    {RESTRUCTURE_POINTS.map(({ Icon, title, desc }, i) => (
+                    {RESTRUCTURE_POINTS.map(({ dot, title, desc }, i) => (
                       <Reveal key={title} delay={i * 0.08} className="flex gap-3.5">
-                        <div className="w-[34px] h-[34px] rounded-[10px] flex-shrink-0 grid place-items-center bg-brand-accent-light text-brand-accent">
-                          <Icon size={17} strokeWidth={2} />
+                        {/* 与模块三步骤圆圈同款：30px 圆形实心填充 + 白色编号 */}
+                        <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[14px] font-bold ${dot}`}>
+                          {i + 1}
                         </div>
                         <div>
                           <h4 className="text-[15px] font-semibold text-v2-text-primary">{title}</h4>

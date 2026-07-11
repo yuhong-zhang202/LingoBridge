@@ -8,7 +8,6 @@
 import { useMemo } from 'react'
 import { Lock } from 'lucide-react'
 import Card from '@/components/Card'
-import Tag from '@/components/Tag'
 import PortraitRadar from './PortraitRadar'
 import { useCorpusCount, useDimensionScores } from '@/hooks/profile-data'
 
@@ -45,7 +44,6 @@ export default function PortraitCard(): JSX.Element {
     <Card variant="gradient" className="p-5 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[14px] font-semibold text-v2-text-primary">我的画像</span>
-        {!showEmpty && <Tag label="AI 生成" variant="green" />}
       </div>
       <p className="text-[12px] text-v2-text-muted mb-2">
         {showEmpty ? '录一条故事后生成专属语料维度' : `基于你的 ${corpusCount} 段语料`}
