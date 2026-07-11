@@ -5,18 +5,25 @@
  * @created  2026-06-02
  */
 import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
 import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
-import { requireUser, authErrorResponse } from '@/lib/api-auth'
+import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+
+// 输入上限：整理是按字数估算 token 计费的付费调用，限长防止单请求刷高 token 成本
+const MAX_RAW_TEXT_LENGTH = 3000
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    await requireUser(req)
+    await requireRegisteredUser(req)
     const body = (await req.json()) as { rawText?: unknown }
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {
       return NextResponse.json({ error: 'rawText 不能为空' }, { status: 400 })
+    }
+    if (rawText.length > MAX_RAW_TEXT_LENGTH) {
+      return NextResponse.json({ error: '内容过长，请分段提交（上限 3000 字）' }, { status: 400 })
     }
     const { cleanedText, usable } = await restructureText(rawText)
     // service 层未返回 usage，按输入字数 × 1.5 估算 token 数
@@ -27,6 +34,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
     logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    logErr('[restructure API]', e)
+    return NextResponse.json({ error: '整理失败，请稍后再试' }, { status: 500 })
   }
 }

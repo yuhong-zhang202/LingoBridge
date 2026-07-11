@@ -9,8 +9,11 @@ import { logErr } from '@/lib/log'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
-import { requireUser, authErrorResponse } from '@/lib/api-auth'
+import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
 import type { AppError } from '@/types/errors'
+
+// 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 // ffmpeg 需要 Node.js 运行时（不支持 Edge）
 export const runtime = 'nodejs'
@@ -38,11 +41,14 @@ function mimeToExt(mimeType: string): string {
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    await requireUser(req)
+    await requireRegisteredUser(req)
     const form = await req.formData()
     const file = form.get('audio')
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: '缺少音频文件' }, { status: 400 })
+    }
+    if (file.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json({ error: '录音文件过大，请分段录制' }, { status: 400 })
     }
 
     const inputBuf = Buffer.from(await file.arrayBuffer())
@@ -61,10 +67,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     logErr('[transcribe API]', e)
+    // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）
     if (isAppError(e)) {
-      return NextResponse.json({ error: e.message, code: e.code }, { status: 500 })
+      return NextResponse.json({ error: '转写失败，请稍后再试', code: e.code }, { status: 500 })
     }
-    const message = e instanceof Error ? e.message : '转写失败'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: '转写失败，请稍后再试' }, { status: 500 })
   }
 }

@@ -27,13 +27,13 @@ function isApiAuthError(e: unknown): e is ApiAuthError {
 }
 
 /** 从 Authorization: Bearer 头取 token 并反查用户（token 缺失/无效抛 401）。内部复用，不导出。 */
-async function authUser(req: Request): Promise<{ id: string; email: string | null }> {
+async function authUser(req: Request): Promise<{ id: string; email: string | null; isAnonymous: boolean }> {
   const auth = req.headers.get('authorization') ?? ''
   const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : ''
   if (!token) throw authError(401, 'UNAUTHORIZED', '未授权')
   const { data, error } = await getSupabaseServer().auth.getUser(token)
   if (error || !data.user) throw authError(401, 'UNAUTHORIZED', '未授权', error)
-  return { id: data.user.id, email: data.user.email ?? null }
+  return { id: data.user.id, email: data.user.email ?? null, isAnonymous: data.user.is_anonymous ?? false }
 }
 
 /**
@@ -45,6 +45,21 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
  */
 export async function requireUser(req: Request): Promise<{ userId: string }> {
   const user = await authUser(req)
+  return { userId: user.id }
+}
+
+/**
+ * 校验调用者是「已注册」用户（非匿名会话）。用于付费 AI 接口：anon key 公开 + signInAnonymously
+ * 可用，匿名 token 也能通过 requireUser，故须在此额外挡掉匿名会话，防脚本化无限调用烧钱。
+ * @param req  进入的请求（读 Authorization 头）
+ * @returns    { userId } 当前已注册用户 id
+ * @throws     ApiAuthError(401) —— 缺 token 或 token 无效
+ * @throws     ApiAuthError(403) —— 会话为匿名（尚未注册账号）
+ * @sideEffect 调 admin.auth.getUser(token) 校验 token 并读 is_anonymous（service_role client）
+ */
+export async function requireRegisteredUser(req: Request): Promise<{ userId: string }> {
+  const user = await authUser(req)
+  if (user.isAnonymous) throw authError(403, 'FORBIDDEN', '请先注册账号后使用')
   return { userId: user.id }
 }
 
