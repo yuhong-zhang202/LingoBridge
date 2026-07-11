@@ -7,11 +7,12 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
-import { requireRegisteredUser, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    await requireRegisteredUser(req)
+    // 放行匿名试用：polish 依附练习会话，会话本身已受 corpus 单条额度约束，此处无需独立计数
+    await requireUserAllowAnon(req)
     const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
     const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
     const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined
