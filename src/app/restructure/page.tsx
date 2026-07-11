@@ -10,11 +10,12 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MOCK_RAW_STORY } from '@/data/restructure'
 import { takeHandoff } from '@/lib/handoff'
-import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
+import { updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
 import { getSupabase } from '@/lib/supabase'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -50,6 +51,8 @@ function RestructureContent() {
   const [usable,    setUsable]    = useState<boolean | null>(null)
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  // 服务端故事额度超限（/api/corpus 返回 402）→ 弹 QuotaReached 故事变体覆盖层
+  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -89,7 +92,15 @@ function RestructureContent() {
     setIsSaving(true)
     setSaveError(null)
     try {
-      const corpus = await createCorpus({ source: 'voice', rawText: rawStory })
+      // 创建这一步服务端化（配额 + 落库防绕过）；后续整理/匹配/跳转仍走客户端 RLS
+      const res = await fetch('/api/corpus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ source: 'voice', rawText: rawStory }),
+      })
+      if (res.status === 402) { setStoryQuotaReached(true); setIsSaving(false); return }
+      if (!res.ok) throw new Error('语料保存失败，请重试')
+      const { corpus } = (await res.json()) as { corpus: { id: string } }
       await updateCorpusCleaned(corpus.id, aiText)
       if (qid) {
         // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转
@@ -149,6 +160,8 @@ function RestructureContent() {
           onCancel={() => setConfirm(null)}
         />
       </div>
+      {/* 故事额度超限覆盖层：无法保存，关闭即回首页 */}
+      {storyQuotaReached && <QuotaReached variant="story" asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

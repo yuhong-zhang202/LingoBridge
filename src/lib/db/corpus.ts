@@ -11,14 +11,6 @@ import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 /** 故事链路月额度（自然月） */
 export const STORY_MONTHLY_LIMIT = 10
 
-/** createCorpus 触发月度上限时抛出，UI 据此切到「额度用完」态。 */
-export class StoryQuotaExceededError extends Error {
-  constructor() {
-    super('故事额度已用完')
-    this.name = 'StoryQuotaExceededError'
-  }
-}
-
 /** 当月 1 日 0 点（本地时区）的 ISO 字符串。 */
 function monthStartISO(): string {
   const d = new Date()
@@ -38,7 +30,8 @@ export async function countCorpusThisMonth(): Promise<number> {
   return count ?? 0
 }
 
-interface CorpusRow {
+/** corpus 表行（snake_case）；与服务端创建路径 corpus-server.ts 共用映射 */
+export interface CorpusRow {
   id: string
   user_id: string
   source: CorpusSource
@@ -50,7 +43,7 @@ interface CorpusRow {
   updated_at: string
 }
 
-function mapCorpusRow(row: CorpusRow): Corpus {
+export function mapCorpusRow(row: CorpusRow): Corpus {
   return {
     id: row.id,
     userId: row.user_id,
@@ -62,26 +55,6 @@ function mapCorpusRow(row: CorpusRow): Corpus {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
-}
-
-/**
- * 保存一段新语料，status 默认 draft，cleaned_text 暂为空
- * @param  input  source（voice/text）和原始文本
- * @returns       保存后的 Corpus 实体（含服务端生成的 id / created_at）
- */
-export async function createCorpus(input: { source: CorpusSource; rawText: string }): Promise<Corpus> {
-  const userId = await ensureSession()
-  const supabase = getSupabase()
-  // 服务端兜底：超出本月额度即拦截，与首页 UI 守卫互为兜底
-  const monthCount = await countCorpusThisMonth()
-  if (monthCount >= STORY_MONTHLY_LIMIT) throw new StoryQuotaExceededError()
-  const { data, error } = await supabase
-    .from('corpus')
-    .insert({ user_id: userId, source: input.source, raw_text: input.rawText })
-    .select()
-    .single()
-  if (error) throw new Error(`保存语料失败：${error.message}`)
-  return mapCorpusRow(data as CorpusRow)
 }
 
 /**

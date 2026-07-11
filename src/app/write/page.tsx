@@ -11,10 +11,12 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getQuestionById } from '@/lib/db/questions'
+import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { computeRichness } from '@/lib/story-richness'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import Toast from '@/components/Toast'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
 import WriteMobile from './WriteMobile'
 import WriteDesktop from './WriteDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -26,6 +28,16 @@ function WriteContent(): JSX.Element {
   const [textStory, setTextStory] = useState('')
   const [questionContext, setQuestionContext] = useState<WriteQuestionContext | null>(null)
   const { submitting, toastMsg, submit, dismissToast } = useStorySubmit({ text: textStory, qid })
+
+  // 软守卫：本月故事额度已满时进页即提示，让用户在写作/整理前就知道（服务端 402 仍是硬兜底）。只读走 RLS，安全。
+  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void countCorpusThisMonth()
+      .then((n) => { if (!cancelled && n >= STORY_MONTHLY_LIMIT) setStoryQuotaReached(true) })
+      .catch(() => { /* 读取失败静默，交由服务端 402 兜底 */ })
+    return () => { cancelled = true }
+  }, [])
 
   // ?qid 存在时取题目做上下文 caption（客户端读，找不到/出错静默忽略，不挡写作）
   useEffect(() => {
@@ -80,6 +92,8 @@ function WriteContent(): JSX.Element {
         />
       </div>
       <Toast message={toastMsg} onDismiss={dismissToast} />
+      {/* 故事额度已满软守卫：进页即提示，关闭回首页 */}
+      {storyQuotaReached && <QuotaReached variant="story" asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

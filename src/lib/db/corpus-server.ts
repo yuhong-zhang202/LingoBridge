@@ -8,6 +8,50 @@
 import 'server-only'
 
 import { getSupabaseServer } from '../supabase-server'
+import { mapCorpusRow, type CorpusRow } from './corpus'
+import type { Corpus, CorpusSource } from '../types'
+
+/** 当月 1 日 0 点（本地时区）的 ISO 字符串（与客户端 corpus 版同逻辑）。 */
+function monthStartISO(): string {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
+}
+
+/**
+ * 统计某用户本月创建的语料数。service_role 绕 RLS，故须显式按 user_id 过滤（不能依赖 auth.uid()）。
+ * @param  userId  requireUser 反查出的当前用户 id
+ * @returns        本月语料数
+ * @throws         Error —— 查询出错
+ */
+export async function countCorpusThisMonthServer(userId: string): Promise<number> {
+  const { count, error } = await getSupabaseServer()
+    .from('corpus')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', monthStartISO())
+  if (error) throw new Error(`读取本月语料数失败：${error.message}`)
+  return count ?? 0
+}
+
+/**
+ * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
+ * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
+ * @param  input   source（voice/text）与原始文本
+ * @returns        映射后的完整 Corpus（含服务端生成的 id / created_at，供后续整理/匹配链路使用）
+ * @throws         Error —— 写入出错
+ */
+export async function createCorpusServer(
+  userId: string,
+  input: { source: CorpusSource; rawText: string },
+): Promise<Corpus> {
+  const { data, error } = await getSupabaseServer()
+    .from('corpus')
+    .insert({ user_id: userId, source: input.source, raw_text: input.rawText })
+    .select()
+    .single()
+  if (error) throw new Error(`保存语料失败：${error.message}`)
+  return mapCorpusRow(data as CorpusRow)
+}
 
 /**
  * 按 id 读取单条语料的整理后正文（cleaned_text）
