@@ -16,6 +16,14 @@ import AnalysisDesktop from './AnalysisDesktop'
 import type { AnalysisViewProps } from './types'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
+import { getSupabase } from '@/lib/supabase'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 function AnalysisContent() {
   const router     = useRouter()
@@ -42,7 +50,7 @@ function AnalysisContent() {
     ;(async () => {
       setLoading(true); setError(null)
       try {
-        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
+        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { headers: await authHeaders(), signal: ac.signal })
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
@@ -63,7 +71,7 @@ function AnalysisContent() {
     setPhrasesLoading(true)
     ;(async () => {
       try {
-        const res = await fetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
+        const res = await fetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`, { headers: await authHeaders() })
         if (!res.ok) throw new Error('换词失败')
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)

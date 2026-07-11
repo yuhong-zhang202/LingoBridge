@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabase } from '@/lib/supabase'
+import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -39,6 +40,8 @@ function parseRange(raw: string | null): number {
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
+    // 成本看板暴露全平台 API 花费，仅管理员白名单可读
+    await requireAdmin(req)
     const { searchParams } = new URL(req.url)
     const rangeDays = parseRange(searchParams.get('range'))
     const now = new Date()
@@ -185,6 +188,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       recentLogs: recent,
     })
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logErr('[dashboard API]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : '查询失败' }, { status: 500 })
   }

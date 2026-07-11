@@ -6,9 +6,11 @@
  */
 import { NextResponse } from 'next/server'
 import { extractCorpus } from '@/services/extraction'
+import { requireUser, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
+    await requireUser(req)
     const body = (await req.json()) as { cleanedText?: unknown }
     const cleanedText = typeof body.cleanedText === 'string' ? body.cleanedText.trim() : ''
     if (!cleanedText) {
@@ -17,6 +19,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await extractCorpus(cleanedText)
     return NextResponse.json(result)
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }

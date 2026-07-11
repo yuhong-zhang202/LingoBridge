@@ -10,6 +10,7 @@ import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
 
 /** 相关性分数 → 匹配档位（与 matching 页分组判定一致，无 score 视为高匹配；< SCORE_LOW 不展示亦不入库） */
@@ -51,11 +52,13 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
+    const { userId } = await requireUser(req)
     const body = (await req.json()) as { corpusId?: unknown }
     const corpusId = typeof body.corpusId === 'string' ? body.corpusId.trim() : ''
     if (!corpusId) {
       return NextResponse.json({ error: 'corpusId 不能为空' }, { status: 400 })
     }
+    await assertCorpusOwner(userId, corpusId)
     const cleanedText = (await getCorpusByIdServer(corpusId))?.trim() ?? ''
     if (!cleanedText) {
       return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
@@ -69,6 +72,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
     return NextResponse.json(result)
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })

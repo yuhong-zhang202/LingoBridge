@@ -6,12 +6,19 @@
  * @created  2026-06-04
  */
 import { useState, useEffect } from 'react'
-import { notFound } from 'next/navigation'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
 import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
+import { getSupabase } from '@/lib/supabase'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
 type DashboardData = {
@@ -40,21 +47,30 @@ const MINI_STATS = (d: DashboardData) => [
  * API 用量看板主页
  */
 export default function DashboardPage() {
-  // 开发者成本看板，无管理员鉴权 → 生产环境屏蔽，仅开发可见
-  if (process.env.NODE_ENV === 'production') notFound()
-
   const [range, setRange]               = useState<Range>('7d')
   const [selectedService, setSelected]  = useState<string | null>(null)
   const [data, setData]                 = useState<DashboardData | null>(null)
   const [loading, setLoading]           = useState(true)
+  // 成本看板仅管理员可见：API 返回 401/403 时置 denied，展示无权访问态而非空看板
+  const [denied, setDenied]             = useState(false)
 
   useEffect(() => {
     const ac = new AbortController()
     setLoading(true)
-    fetch(`/api/dashboard?range=${range}`, { signal: ac.signal })
-      .then(r => r.json())
-      .then((d: DashboardData) => { if (ac.signal.aborted) return; setData(d); setLoading(false) })
-      .catch(() => { if (ac.signal.aborted) return; setLoading(false) })  // 中断不算错误，忽略
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/dashboard?range=${range}`, { headers: await authHeaders(), signal: ac.signal })
+        if (ac.signal.aborted) return
+        if (res.status === 401 || res.status === 403) { setDenied(true); setLoading(false); return }
+        if (!res.ok) { setLoading(false); return }
+        const d = (await res.json()) as DashboardData
+        if (ac.signal.aborted) return
+        setDenied(false); setData(d); setLoading(false)
+      } catch {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
+        setLoading(false)
+      }
+    })()
     return () => ac.abort()
   }, [range])
 
@@ -66,9 +82,13 @@ export default function DashboardPage() {
         <div className="text-[22px] font-bold text-v2-text-primary">API 用量看板</div>
       </div>
 
-      {loading && <div className="text-v2-text-muted text-sm py-10 text-center">加载中…</div>}
+      {denied && (
+        <div className="text-v2-text-muted text-sm py-10 text-center">无权访问：成本看板仅对管理员开放。</div>
+      )}
 
-      {data && !loading && (<>
+      {loading && !denied && <div className="text-v2-text-muted text-sm py-10 text-center">加载中…</div>}
+
+      {data && !loading && !denied && (<>
         {/* 三张费用卡 */}
         <CostCards data={data} />
 

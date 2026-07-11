@@ -20,4 +20,7 @@ export const env = {
   // 豆包 ASR —— 服务端专用，切勿加 NEXT_PUBLIC_
   doubaoAsrAppId:       process.env.DOUBAO_ASR_APP_ID ?? '',
   doubaoAsrAccessToken: process.env.DOUBAO_ASR_ACCESS_TOKEN ?? '',
+
+  // 管理员邮箱白名单（英文逗号分隔）—— 仅服务端读取，用于成本看板等敏感接口鉴权，切勿加 NEXT_PUBLIC_
+  adminEmails: process.env.ADMIN_EMAILS ?? '',
 }

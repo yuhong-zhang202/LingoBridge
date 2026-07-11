@@ -7,9 +7,11 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
+import { requireUser, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
+    await requireUser(req)
     const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
     const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
     const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined
@@ -20,6 +22,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await polishSentence(sentence, aiQuestion, level)
     return NextResponse.json(result)
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logErr('[polish API]', e)
     return NextResponse.json({ error: '优化失败' }, { status: 500 })
   }

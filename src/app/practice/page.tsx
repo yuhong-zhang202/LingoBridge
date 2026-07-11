@@ -20,6 +20,7 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { setSessionPolishes, addSavedPronunciation, getSavedPronunciations } from '@/lib/storage'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
+import { getSupabase } from '@/lib/supabase'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import PracticeMobile from './PracticeMobile'
@@ -28,6 +29,13 @@ import type { PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 /** 视口断点：SSR/首屏默认移动端（避免 hydration 抖动），挂载后按 ≥1024px 切桌面，随窗口变化更新。 */
 function useIsDesktop(): boolean {
@@ -88,7 +96,7 @@ function PracticeContent(): JSX.Element {
       try {
         const res = await fetch('/api/practice', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ questionId, storyId, messages: [], level }),
           signal: ac.signal,
         })
@@ -125,7 +133,7 @@ function PracticeContent(): JSX.Element {
 
       const res = await fetch('/api/practice', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ scaffold, messages: next }),
       })
       if (!res.ok) throw new Error('对话失败')
@@ -145,7 +153,7 @@ function PracticeContent(): JSX.Element {
     try {
       const res = await fetch('/api/practice/polish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ sentence, aiQuestion, level }),
       })
       if (!res.ok) throw new Error('优化失败')
