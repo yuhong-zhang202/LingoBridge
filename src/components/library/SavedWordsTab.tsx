@@ -7,7 +7,7 @@
  * @created  2026-05-20
  */
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Layers, ChevronRight, Trash2 } from 'lucide-react'
@@ -19,7 +19,8 @@ import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
-import { getSavedWords, removeSavedWord } from '@/lib/storage'
+import { removeSavedWord } from '@/lib/db/saved-words'
+import { useSavedWords, refreshSavedWords } from '@/hooks/library-data'
 import { getDueCount, listDeckWordIds, addPhraseCard } from '@/lib/db/phrase-cards'
 import type { SavedWord } from '@/lib/types'
 
@@ -41,16 +42,21 @@ const getWordId = (w: SavedWord): string => w.id
 const getWordText = (w: SavedWord): string => [w.text, w.meaning, w.scene, w.group].join(' ')
 
 export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props): JSX.Element | null {
-  const [words, setWords] = useState<SavedWord[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const { words, isLoading } = useSavedWords()
   const [deckIds, setDeckIds] = useState<Set<string>>(new Set())
   const [dueCount, setDueCount] = useState(0)
 
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getWordText), [searchQuery])
+  // 删除落库 + 失效缓存；useSelectMode 已做乐观隐藏/撤销，这里 fire-and-forget（失败记日志）
+  const removeFn = useCallback((id: string): void => {
+    void removeSavedWord(id)
+      .then(() => refreshSavedWords())
+      .catch((e) => console.error('[SavedWordsTab] 删除词组失败', e))
+  }, [])
   const sel = useSelectMode({
     initialItems: words,
     getId: getWordId,
-    removeFn: removeSavedWord,
+    removeFn,
     onSelectingChange,
     filterFn,
   })
@@ -65,11 +71,6 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
   const [slotReady, setSlotReady] = useState(false)
   useEffect(() => { setSlotReady(true) }, [])
   const toolbarSlot = slotReady ? toolbarSlotRef?.current ?? null : null
-
-  useEffect(() => {
-    setWords(getSavedWords())
-    setLoaded(true)
-  }, [])
 
   // 记忆卡片数据（Supabase）：异步加载，不阻塞词组列表浏览
   useEffect(() => {
@@ -97,7 +98,7 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
     }
   }
 
-  if (!loaded) return null
+  if (isLoading) return null
   if (sel.items.length === 0) {
     return (
       <EmptyState

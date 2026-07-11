@@ -11,7 +11,7 @@ import { X, RotateCw, ArrowRight } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import GradientButton from '@/components/GradientButton'
 import SentenceOrderGame, { type SentenceStatus } from '@/components/library/SentenceOrderGame'
-import { getSavedPhrases } from '@/lib/storage'
+import { useSavedPhrases } from '@/hooks/library-data'
 import { chunkSentence } from '@/lib/phrase-chunk'
 import type { SavedPhrase } from '@/lib/types'
 
@@ -22,20 +22,23 @@ export default function CollectedCardPracticePage(): JSX.Element {
   const params = useParams<{ id: string }>()
   const id = typeof params.id === 'string' ? params.id : ''
 
+  const { phrases, isLoading } = useSavedPhrases()
   const [queue, setQueue] = useState<SavedPhrase[]>([])
   const [index, setIndex] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [resetSignal, setResetSignal] = useState(0)   // 「重来」用：同一句换 key 重挂载
   const [status, setStatus] = useState<SentenceStatus>(EMPTY_STATUS)
 
-  // 队列 = 所有「可拼」收藏句（优化句能切 ≥3 块）；从点进来的那张开始
+  // 队列 = 所有「可拼」收藏句（优化句能切 ≥3 块）；从点进来的那张开始。
+  // 收藏云端异步就绪后只播种一次（loaded 守卫），避免练习中途重拉打乱队列。
   useEffect(() => {
-    const playable = getSavedPhrases().filter(p => chunkSentence(p.optimized).length >= 3)
+    if (isLoading || loaded) return
+    const playable = phrases.filter(p => chunkSentence(p.optimized).length >= 3)
     setQueue(playable)
     const start = playable.findIndex(p => p.id === id)
     setIndex(start >= 0 ? start : 0)
     setLoaded(true)
-  }, [id])
+  }, [isLoading, loaded, phrases, id])
 
   const close = (): void => router.back()
   const total = queue.length

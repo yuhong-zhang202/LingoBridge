@@ -15,7 +15,8 @@ import AnalysisMobile from './AnalysisMobile'
 import AnalysisDesktop from './AnalysisDesktop'
 import type { AnalysisViewProps } from './types'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
-import { getSavedWords, addSavedWord, removeSavedWord } from '@/lib/storage'
+import { addSavedWord, removeSavedWord } from '@/lib/db/saved-words'
+import { useSavedWords, refreshSavedWords } from '@/hooks/library-data'
 import { getSupabase } from '@/lib/supabase'
 
 /** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
@@ -39,6 +40,8 @@ function AnalysisContent() {
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
+  // 已收藏词组高亮：以云端 useSavedWords 为真源，切换时先乐观更新、失败再回滚
+  const { words: savedWords } = useSavedWords()
   const [retryKey, setRetryKey] = useState(0)
   // A15 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新分析
   const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
@@ -83,27 +86,43 @@ function AnalysisContent() {
     })()
   }
 
+  // 云端词组列表就绪 / 变化时同步高亮集合（真源）
   useEffect(() => {
-    setSavedSet(new Set(getSavedWords().map(w => w.text)))
-  }, [])
+    setSavedSet(new Set(savedWords.map(w => w.text)))
+  }, [savedWords])
 
   function toggleSave(item: AnalysisPhrase, group: string) {
-    const isSaved = getSavedWords().some(w => w.text === item.text)
-    if (isSaved) {
-      removeSavedWord(item.text)
-    } else {
-      addSavedWord({
-        id: item.text,
-        text: item.text,
-        meaning: item.meaning,
-        scene: item.scene,
-        group,
-        level,
-        questionEn: data?.question.en ?? '',
-        createdAt: new Date().toISOString(),
+    const key = item.text
+    const isSaved = savedSet.has(key)
+    // 乐观更新：点按即时切高亮，不等网络往返
+    setSavedSet(prev => {
+      const n = new Set(prev)
+      if (isSaved) n.delete(key); else n.add(key)
+      return n
+    })
+    const persist = isSaved
+      ? removeSavedWord(key)
+      : addSavedWord({
+          id: key,
+          text: key,
+          meaning: item.meaning,
+          scene: item.scene,
+          group,
+          level,
+          questionEn: data?.question.en ?? '',
+          createdAt: new Date().toISOString(),
+        }).then(() => undefined)
+    void persist
+      .then(() => refreshSavedWords())
+      .catch((e) => {
+        console.error('[analysis] 词组收藏失败', e)
+        // 回滚高亮
+        setSavedSet(prev => {
+          const n = new Set(prev)
+          if (isSaved) n.add(key); else n.delete(key)
+          return n
+        })
       })
-    }
-    setSavedSet(new Set(getSavedWords().map(w => w.text)))
   }
 
   const viewProps: AnalysisViewProps = {

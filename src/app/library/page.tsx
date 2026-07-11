@@ -6,11 +6,11 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { listMyCorpus, getCorpusPointCodes, deleteCorpus } from '@/lib/db/corpus'
 import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
-import { getSavedPhrases, getSavedWords, getSavedPronunciations } from '@/lib/storage'
+import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
 import { getDueCount } from '@/lib/db/phrase-cards'
 import { formatRelativeTime } from '@/lib/utils'
 import type { MyStory, CollectedCard, DimensionLabel } from '@/lib/types'
@@ -30,12 +30,31 @@ function codeToLabel(code: string): DimensionLabel | undefined {
 
 export default function LibraryPage() {
   const [stories, setStories]       = useState<MyStory[]>([])
-  const [cards, setCards]           = useState<CollectedCard[]>([])
-  const [wordsCount, setWordsCount] = useState(0)
-  const [pronCount, setPronCount]   = useState(0)
   const [dueCount, setDueCount]     = useState(0)
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
+
+  // 三类收藏：SWR 单源（各自首拉顺带触发一次幂等迁移）
+  const { phrases, isLoading: phrasesLoading } = useSavedPhrases()
+  const { words } = useSavedWords()
+  const { pronunciations } = useSavedPronunciations()
+  const wordsCount = words.length
+  const pronCount = pronunciations.length
+
+  // 语料卡收藏映射成展示用 CollectedCard
+  const cards = useMemo<CollectedCard[]>(
+    () => phrases.map((p) => ({
+      id: p.id,
+      questionId: '',
+      part: `Part ${p.part}` as CollectedCard['part'],
+      topicEn: p.questionEn,
+      originalSentence: p.original,
+      aiOptimized: p.optimized,
+      collectedAt: formatRelativeTime(p.createdAt),
+      keywords: undefined,
+    })),
+    [phrases],
+  )
 
   // 拉取「我的语料」并计算每条的匹配题数/主维度（初次加载与批量删除后刷新共用）
   const fetchStories = useCallback(async (): Promise<MyStory[]> => {
@@ -65,24 +84,6 @@ export default function LibraryPage() {
   }, [])
 
   useEffect(() => {
-    // 收藏卡片：localStorage 同步读
-    setCards(
-      getSavedPhrases().map(p => ({
-        id: p.id,
-        questionId: '',
-        part: `Part ${p.part}` as CollectedCard['part'],
-        topicEn: p.questionEn,
-        originalSentence: p.original,
-        aiOptimized: p.optimized,
-        collectedAt: formatRelativeTime(p.createdAt),
-        keywords: undefined,
-      }))
-    )
-
-    // 词组 / 发音 计数（localStorage 同步）
-    setWordsCount(getSavedWords().length)
-    setPronCount(getSavedPronunciations().length)
-
     // 待复习数（异步）
     getDueCount()
       .then(setDueCount)
@@ -110,7 +111,8 @@ export default function LibraryPage() {
       .catch(e => console.error('[LibraryPage] 刷新语料失败', e))
   }, [fetchStories])
 
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh }
+  // 收藏卡与语料任一未就绪都算加载中，避免收藏 tab 先闪空态再填充
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh }
 
   return (
     <>

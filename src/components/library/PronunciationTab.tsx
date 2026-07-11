@@ -6,7 +6,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Volume2, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
@@ -16,7 +16,8 @@ import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
-import { getSavedPronunciations, removeSavedPronunciation, updateSavedPronunciation } from '@/lib/storage'
+import { removeSavedPronunciation, updateSavedPronunciation } from '@/lib/db/saved-pronunciations'
+import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
 
@@ -73,12 +74,14 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('请求失败'))))
       .then((tip: PronunciationTip) => {
         if (cancelled) return
-        setData(tip)
-        updateSavedPronunciation(item.id, {
+        setData(tip)   // 本地即时展示；落库缓存音标失败也不影响本次展示
+        void updateSavedPronunciation(item.id, {
           ipaIntended: tip.ipaIntended,
           ipaHeard: tip.ipaHeard,
           tip: tip.tip,
         })
+          .then(() => refreshSavedPronunciations())
+          .catch((e) => console.error('[PronunciationTab] 缓存音标失败', e))
       })
       .catch(() => { /* 失败静默（含中断），下次打开再试 */ })
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -120,14 +123,19 @@ const getPronId = (p: SavedPronunciation): string => p.id
 const getPronText = (p: SavedPronunciation): string => [p.intended, p.heard, p.context].join(' ')
 
 export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props): JSX.Element | null {
-  const [pronunciations, setPronunciations] = useState<SavedPronunciation[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const { pronunciations, isLoading } = useSavedPronunciations()
 
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getPronText), [searchQuery])
+  // 删除落库 + 失效缓存；useSelectMode 已做乐观隐藏/撤销，这里 fire-and-forget（失败记日志）
+  const removeFn = useCallback((id: string): void => {
+    void removeSavedPronunciation(id)
+      .then(() => refreshSavedPronunciations())
+      .catch((e) => console.error('[PronunciationTab] 删除发音失败', e))
+  }, [])
   const sel = useSelectMode({
     initialItems: pronunciations,
     getId: getPronId,
-    removeFn: removeSavedPronunciation,
+    removeFn,
     onSelectingChange,
     filterFn,
   })
@@ -143,12 +151,7 @@ export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, se
   useEffect(() => { setSlotReady(true) }, [])
   const toolbarSlot = slotReady ? toolbarSlotRef?.current ?? null : null
 
-  useEffect(() => {
-    setPronunciations(getSavedPronunciations())
-    setLoaded(true)
-  }, [])
-
-  if (!loaded) return null
+  if (isLoading) return null
   if (sel.items.length === 0) {
     return (
       <EmptyState

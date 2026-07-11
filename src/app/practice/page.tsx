@@ -17,7 +17,9 @@ import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
-import { setSessionPolishes, addSavedPronunciation, getSavedPronunciations } from '@/lib/storage'
+import { setSessionPolishes } from '@/lib/storage'
+import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
+import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
 import { getSupabase } from '@/lib/supabase'
@@ -75,6 +77,11 @@ function PracticeContent(): JSX.Element {
   const bottomRef = useRef<HTMLDivElement>(null)
   const pronounceRef = useRef<HTMLDivElement>(null)
   const { start, stop, audioLevel } = useAudioRecorder()
+
+  // 发音收藏（云端，读收藏入口顺带触发迁移）；用 ref 供同步回调即时读最新，免把 pronunciations 塞进 useCallback 依赖
+  const { pronunciations } = useSavedPronunciations()
+  const pronunciationsRef = useRef(pronunciations)
+  pronunciationsRef.current = pronunciations
 
   // 自动滚到底
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, phase])
@@ -177,17 +184,19 @@ function PracticeContent(): JSX.Element {
   // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
   const [runPolish] = useAsyncAction(handlePolish)
 
-  // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"存进 localStorage
+  // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"异步落库；成功后失效缓存供素材库读到最新
   const handleSavePronunciation = useCallback((intended: string) => {
     if (!capture) return
     const heard = capture.heard
-    addSavedPronunciation({
+    void addSavedPronunciation({
       id: `${intended.toLowerCase()}__${heard.toLowerCase()}`,
       intended,
       heard,
       context: capture.context,
       createdAt: new Date().toISOString(),
     })
+      .then(() => refreshSavedPronunciations())
+      .catch((e) => console.error('[Practice] 收藏发音失败', e))
     setCapture(null)
   }, [capture])
 
@@ -260,14 +269,14 @@ function PracticeContent(): JSX.Element {
 
   // 点某个词 → 打开发音纠错卡（逻辑集中在外壳，视图仅透传 word/句子/下标）
   const onWordTap = useCallback((word: string, content: string, index: number) => {
-    setCapture({ heard: word, context: content, msgIndex: index, savedIds: getSavedPronunciations().map(p => p.id) })
+    setCapture({ heard: word, context: content, msgIndex: index, savedIds: pronunciationsRef.current.map(p => p.id) })
   }, [])
 
   // 换个说法：用该句上做过的发音纠错替换听错的词后再优化（防重入走 runPolish）
   const onPolish = useCallback((content: string, index: number) => {
     const prev = messages[index - 1]
     const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
-    const fixes = getSavedPronunciations().filter(c => c.context === content)
+    const fixes = pronunciationsRef.current.filter(c => c.context === content)
     void runPolish(applyPronunciationFixes(content, fixes), aiQuestion)
   }, [messages, runPolish])
 

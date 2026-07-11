@@ -2,7 +2,8 @@
  * @module   FeedbackDesktop
  * @desc     反馈卡片页桌面端「回顾台」—— 三卡 coverflow：中心清晰、两侧模糊缩小（环形取位，两边常有卡）；
  *           hover 侧卡或 ←/→ 把它滑到中心，收藏/跳过作用于中心卡并自动前进，全部处理完显示完成态。
- *           自持数据：直接读 getSessionPolishes() 本场暂存，收藏 addSavedPhrase、收尾 clearSessionPolishes。
+ *           纯展示：卡片数据 / 收藏写入 / 计数 / 清场均由 page.tsx 外壳单源持有；本组件只保留桌面私有的
+ *           轮播导航状态（center + decided），收藏走 props.onCollect，处理完调 props.onAllDone。
  * @author   LingoBridge
  * @created  2026-07-04
  */
@@ -12,10 +13,7 @@ import Link from 'next/link'
 import { X, Heart, Sparkles } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'
-import { formatMonthDay } from '@/lib/date'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { getSessionPolishes, addSavedPhrase, clearSessionPolishes } from '@/lib/storage'
-import type { SessionPolish } from '@/lib/types'
 import type { FeedbackViewProps } from './types'
 
 const partLabel = (p: 1 | 2 | 3) => `Part ${p}` as 'Part 1' | 'Part 2' | 'Part 3'
@@ -46,44 +44,39 @@ function TerminalState({ tone, title, desc }: {
   )
 }
 
-export default function FeedbackDesktop({ onBackHome }: FeedbackViewProps): JSX.Element {
-  const [cards, setCards]      = useState<SessionPolish[]>([])
-  const [loaded, setLoaded]    = useState(false)
-  const [decided, setDecided]  = useState<Set<number>>(new Set())
-  const [center, setCenter]    = useState(0)
-  const [savedCount, setSaved] = useState(0)
+export default function FeedbackDesktop({
+  cards,
+  loaded,
+  total,
+  savedCount,
+  today,
+  onCollect,
+  onAllDone,
+  onBackHome,
+}: FeedbackViewProps): JSX.Element {
+  // 桌面私有导航状态（轮播范式）：已决定集合 + 当前居中卡；不进共享 props
+  const [decided, setDecided] = useState<Set<number>>(new Set())
+  const [center, setCenter]   = useState(0)
 
-  // 进页面读本场暂存（客户端读，避免 hydration 不一致）
-  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
-
-  const remaining = cards.map((p, id) => ({ p, id })).filter(x => !decided.has(x.id))
-  const total   = cards.length
+  const remaining = cards.map((p, id) => ({ p, id })).filter((x) => !decided.has(x.id))
   const isEmpty = loaded && total === 0
   const done    = loaded && total > 0 && remaining.length === 0
-  const today = formatMonthDay()
 
-  // 全部处理完清掉本场暂存（避免返回重复），只清一次
-  const clearedRef = useRef(false)
-  useEffect(() => {
-    if (done && !clearedRef.current) { clearedRef.current = true; clearSessionPolishes() }
-  }, [done])
+  // 本视图（轮播 decided 模型）全部处理完 → 通知外壳清场（真正清场在外壳，ref 守卫只清一次）
+  useEffect(() => { if (done) onAllDone() }, [done, onAllDone])
 
   // remaining 收缩后夹紧 center，让被处理卡的下一张顺位居中
   useEffect(() => {
-    setCenter(c => Math.min(c, Math.max(0, remaining.length - 1)))
+    setCenter((c) => Math.min(c, Math.max(0, remaining.length - 1)))
   }, [remaining.length])
 
-  const goPrev = () => setCenter(c => Math.max(0, c - 1))
-  const goNext = () => setCenter(c => Math.min(remaining.length - 1, c + 1))
+  const goPrev = () => setCenter((c) => Math.max(0, c - 1))
+  const goNext = () => setCenter((c) => Math.min(remaining.length - 1, c + 1))
   const decide = (collect: boolean) => {
     const item = remaining[center]
     if (!item) return
-    if (collect) {
-      // SessionPolish 无 id/createdAt，收藏时补齐成 SavedPhrase（与移动端 addSavedPhrase 一致）
-      addSavedPhrase({ ...cards[item.id], id: `${Date.now()}-${item.id}`, createdAt: new Date().toISOString() })
-      setSaved(s => s + 1)
-    }
-    setDecided(prev => { const n = new Set(prev); n.add(item.id); return n })
+    if (collect) onCollect(cards[item.id])   // 收藏走外壳唯一写入点，本组件不再直接 addSavedPhrase
+    setDecided((prev) => { const n = new Set(prev); n.add(item.id); return n })
   }
 
   // 键盘：←/→ 切换卡片、Esc 退出（仅桌面断点生效）

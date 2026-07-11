@@ -6,6 +6,7 @@
  * @created  2026-07-04
  */
 'use client'
+import { useEffect } from 'react'
 import { X, Heart, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
@@ -31,8 +32,12 @@ export default function FeedbackMobile({
   onDragEnd,
   onCollect,
   onSkip,
+  onAllDone,
   onBackHome,
 }: FeedbackViewProps): JSX.Element {
+  // 本视图（index 模型）回顾完 → 通知外壳清场（真正清场在外壳，ref 守卫只清一次）
+  useEffect(() => { if (done) onAllDone() }, [done, onAllDone])
+
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px] lg:pb-0">
       <TopBar
@@ -116,7 +121,8 @@ export default function FeedbackMobile({
               >
                 <X size={15} className="text-[#CCCCCC]" />
               </button>
-              <GradientButton onClick={onCollect} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
+              {/* 收藏 = 收藏当前卡（共享真源 onCollect）+ 前进到下一张（移动端导航 onSkip），行为与拆分前一致 */}
+              <GradientButton onClick={() => { onCollect(current); onSkip() }} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
                 <Heart size={16} className="text-v2-text-secondary" />
                 <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>
               </GradientButton>

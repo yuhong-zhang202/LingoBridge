@@ -7,7 +7,7 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import CollectedCard from '@/components/CollectedCard'
@@ -16,7 +16,8 @@ import UndoToast from '@/components/UndoToast'
 import IconButton from '@/components/IconButton'
 import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
-import { removeSavedPhrase } from '@/lib/storage'
+import { removeSavedPhrase } from '@/lib/db/saved-phrases'
+import { refreshSavedPhrases } from '@/hooks/library-data'
 import type { CollectedCard as CollectedCardData } from '@/lib/types'
 
 /**
@@ -40,10 +41,16 @@ const getCardText = (c: CollectedCardData): string =>
 
 export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getCardText), [searchQuery])
+  // 删除落库 + 失效收藏缓存；useSelectMode 已做乐观隐藏/撤销，此处只需 fire-and-forget（失败记日志）
+  const removeFn = useCallback((id: string): void => {
+    void removeSavedPhrase(id)
+      .then(() => refreshSavedPhrases())
+      .catch((e) => console.error('[CollectedCardsTab] 删除收藏失败', e))
+  }, [])
   const sel = useSelectMode({
     initialItems: cards,
     getId: getCardId,
-    removeFn: removeSavedPhrase,
+    removeFn,
     onSelectingChange,
     filterFn,
   })
