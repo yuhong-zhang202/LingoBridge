@@ -1,12 +1,19 @@
 import type { Metadata, Viewport } from 'next'
-import { Plus_Jakarta_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+// 自托管 Plus Jakarta Sans（woff2 取自 @fontsource/plus-jakarta-sans，见 fonts/README.md），
+// 改用 next/font/local 消除构建期访问 Google Fonts 的外网依赖；仍保留 subset(latin)/display:swap，
+// 且 next/font/local 默认 adjustFontFallback:'Arial' 生成 size-adjust 回退，CLS 防护不变。
+const jakarta = localFont({
+  src: [
+    { path: './fonts/plus-jakarta-sans-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/plus-jakarta-sans-latin-500-normal.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/plus-jakarta-sans-latin-600-normal.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/plus-jakarta-sans-latin-700-normal.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-jakarta',
   display: 'swap',
 })
