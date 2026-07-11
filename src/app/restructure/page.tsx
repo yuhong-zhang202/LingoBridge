@@ -12,12 +12,20 @@ import { MOCK_RAW_STORY } from '@/data/restructure'
 import { takeHandoff } from '@/lib/handoff'
 import { createCorpus, updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
+import { getSupabase } from '@/lib/supabase'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import type { RestructureViewProps } from './types'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 function RestructureContent() {
   const router   = useRouter()
@@ -51,7 +59,7 @@ function RestructureContent() {
     try {
       const res = await fetch('/api/restructure', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ rawText: rawStory }),
         signal,
       })

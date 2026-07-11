@@ -9,6 +9,8 @@ import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
+import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -21,6 +23,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       messages?: PracticeMessage[]
       scaffold?: PracticeScaffold
       level?: string
+      isReview?: boolean
     }
     const messages = Array.isArray(body.messages) ? body.messages : []
 
@@ -29,6 +32,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!scaffold) {
       if (!body.questionId) {
         return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
+      }
+      // 复练月额度服务端强制：仅在开始一次新复练（review + 首轮）时校验，避免拦断进行中的对话。
+      // 超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹 QuotaReached（ielts）。
+      if (body.isReview) {
+        const used = await countReviewPracticeThisMonthServer(userId)
+        if (used >= IELTS_MONTHLY_LIMIT) {
+          return NextResponse.json({ error: '本月复练额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        }
       }
       // 越权防护：storyId 属他人语料则 403（storyId 缺省时不带故事，无需校验）
       if (body.storyId) await assertCorpusOwner(userId, body.storyId)

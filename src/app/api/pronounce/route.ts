@@ -7,9 +7,11 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { generatePronunciationTip } from '@/services/pronounce'
+import { requireUser, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
+    await requireUser(req)
     const body = (await req.json()) as { intended?: unknown; heard?: unknown; context?: unknown }
     const intended = typeof body.intended === 'string' ? body.intended.trim() : ''
     const heard = typeof body.heard === 'string' ? body.heard.trim() : ''
@@ -20,6 +22,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await generatePronunciationTip(intended, heard, context)
     return NextResponse.json(result)
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logErr('[pronounce API]', e)
     return NextResponse.json({ error: '生成发音提示失败' }, { status: 500 })
   }

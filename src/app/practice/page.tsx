@@ -25,6 +25,7 @@ import { recordPracticeSession } from '@/lib/db/practice-sessions'
 import { getSupabase } from '@/lib/supabase'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
 import PracticeMobile from './PracticeMobile'
 import PracticeDesktop from './PracticeDesktop'
 import type { PracticeViewProps } from './types'
@@ -71,6 +72,8 @@ function PracticeContent(): JSX.Element {
   const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
   const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number; savedIds: string[] } | null>(null)
   const [retryKey, setRetryKey]           = useState(0)
+  // 服务端复练额度超限（/api/practice 返回 402）→ 弹 QuotaReached 覆盖层
+  const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
@@ -104,9 +107,11 @@ function PracticeContent(): JSX.Element {
         const res = await fetch('/api/practice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ questionId, storyId, messages: [], level }),
+          body: JSON.stringify({ questionId, storyId, messages: [], level, isReview }),
           signal: ac.signal,
         })
+        // 服务端复练额度拦截（402）：弹 QuotaReached 覆盖层而非普通错误态
+        if (res.status === 402) { if (!cancelled) setReviewQuotaShown(true); return }
         if (!res.ok) throw new Error('对话初始化失败')
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
         if (!cancelled) {
@@ -120,7 +125,7 @@ function PracticeContent(): JSX.Element {
       }
     })()
     return () => { cancelled = true; ac.abort() }
-  }, [questionId, storyId, retryKey])
+  }, [questionId, storyId, retryKey, isReview])
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
   const handleUserTurn = useCallback(async () => {
@@ -130,7 +135,8 @@ function PracticeContent(): JSX.Element {
       if (!blob) throw new Error('没有录到声音')
       const form = new FormData()
       form.append('audio', blob, 'turn.webm')
-      const tr = await fetch('/api/transcribe', { method: 'POST', body: form })
+      // multipart 上传：只加 Authorization，不设 Content-Type，让 fetch 自动带 boundary
+      const tr = await fetch('/api/transcribe', { method: 'POST', headers: await authHeaders(), body: form })
       if (!tr.ok) throw new Error('转写失败')
       const { text } = (await tr.json()) as { text: string }
 
@@ -300,15 +306,28 @@ function PracticeContent(): JSX.Element {
     onExit: () => router.push('/'),
   }
 
+  // 复练额度超限覆盖层：练习无法开始，关闭即返回上一页
+  const quotaOverlay = reviewQuotaShown
+    ? <QuotaReached variant="ielts" asOverlay onClose={() => router.back()} />
+    : null
+
   // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。
   if (isDesktop) {
     return (
-      <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit}>
-        <PracticeDesktop {...viewProps} />
-      </FlowShellDesktop>
+      <>
+        <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit}>
+          <PracticeDesktop {...viewProps} />
+        </FlowShellDesktop>
+        {quotaOverlay}
+      </>
     )
   }
-  return <PracticeMobile {...viewProps} />
+  return (
+    <>
+      <PracticeMobile {...viewProps} />
+      {quotaOverlay}
+    </>
+  )
 }
 
 export default function PracticePage(): JSX.Element {

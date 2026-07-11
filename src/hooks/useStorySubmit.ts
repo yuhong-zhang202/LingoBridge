@@ -15,6 +15,14 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
+import { getSupabase } from '@/lib/supabase'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 interface UseStorySubmitArgs {
   /** 待提交的故事文本 */
@@ -54,7 +62,7 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
         // 第二层：让 restructure 判断 usable
         const res = await fetch('/api/restructure', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ rawText: text }),
         })
         if (res.ok) {

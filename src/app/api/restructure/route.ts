@@ -7,10 +7,12 @@
 import { NextResponse } from 'next/server'
 import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { requireUser, authErrorResponse } from '@/lib/api-auth'
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
+    await requireUser(req)
     const body = (await req.json()) as { rawText?: unknown }
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {
@@ -22,6 +24,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})
     return NextResponse.json({ cleanedText, usable })
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

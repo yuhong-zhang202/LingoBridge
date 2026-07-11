@@ -18,8 +18,16 @@ import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { removeSavedPronunciation, updateSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
+import { getSupabase } from '@/lib/supabase'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 /** 用浏览器 TTS 读一个英文词 */
 function speak(text: string): void {
@@ -65,14 +73,16 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
     let cancelled = false
     const ac = new AbortController()
     setLoading(true)
-    fetch('/api/pronounce', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intended: item.intended, heard: item.heard, context: item.context }),
-      signal: ac.signal,
-    })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error('请求失败'))))
-      .then((tip: PronunciationTip) => {
+    void (async () => {
+      try {
+        const res = await fetch('/api/pronounce', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+          body: JSON.stringify({ intended: item.intended, heard: item.heard, context: item.context }),
+          signal: ac.signal,
+        })
+        if (!res.ok) throw new Error('请求失败')
+        const tip = (await res.json()) as PronunciationTip
         if (cancelled) return
         setData(tip)   // 本地即时展示；落库缓存音标失败也不影响本次展示
         void updateSavedPronunciation(item.id, {
@@ -82,9 +92,12 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
         })
           .then(() => refreshSavedPronunciations())
           .catch((e) => console.error('[PronunciationTab] 缓存音标失败', e))
-      })
-      .catch(() => { /* 失败静默（含中断），下次打开再试 */ })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      } catch {
+        /* 失败静默（含中断），下次打开再试 */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => { cancelled = true; ac.abort() }
   }, [data, item])
 

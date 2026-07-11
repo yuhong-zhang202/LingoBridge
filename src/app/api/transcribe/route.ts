@@ -9,6 +9,7 @@ import { logErr } from '@/lib/log'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { requireUser, authErrorResponse } from '@/lib/api-auth'
 import type { AppError } from '@/types/errors'
 
 // ffmpeg 需要 Node.js 运行时（不支持 Edge）
@@ -37,6 +38,7 @@ function mimeToExt(mimeType: string): string {
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
+    await requireUser(req)
     const form = await req.formData()
     const file = form.get('audio')
     if (!(file instanceof Blob)) {
@@ -55,6 +57,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})
     return NextResponse.json({ text })
   } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
     logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
     logErr('[transcribe API]', e)
     if (isAppError(e)) {

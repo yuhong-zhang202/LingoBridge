@@ -11,10 +11,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { getSupabase } from '@/lib/supabase'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import type { RecordingViewProps } from './types'
+
+/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await getSupabase().auth.getSession()
+  const token = session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()
@@ -56,7 +64,8 @@ function RecordingContent(): JSX.Element {
       if (blob.size > 10 * 1024 * 1024) throw new Error('录音过长，请分段录制') // ENGINEERING §9
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
+      // multipart 上传：只加 Authorization，不设 Content-Type，让 fetch 自动带 boundary
+      const res = await fetch('/api/transcribe', { method: 'POST', headers: await authHeaders(), body: form, signal: ac.signal })
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
         throw new Error(
@@ -77,7 +86,7 @@ function RecordingContent(): JSX.Element {
       try {
         const checkRes = await fetch('/api/restructure', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ rawText: data.text }),
           signal: ac.signal,
         })
