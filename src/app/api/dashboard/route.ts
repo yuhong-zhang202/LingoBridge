@@ -6,7 +6,7 @@
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
@@ -45,7 +45,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const { searchParams } = new URL(req.url)
     const rangeDays = parseRange(searchParams.get('range'))
     const now = new Date()
-    const supabase = getSupabase()
+    // service_role 读 api_usage_logs：0012 已开 RLS 且不给 authenticated 加 select 策略，
+    // 成本数据仅 service_role 可读（绕 RLS）；接口本身由 requireAdmin 挡非 admin 访问。
+    const supabase = getSupabaseServer()
 
     // ── 时间边界（全部 UTC，避免服务端时区歧义） ──
     const todayStart    = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
