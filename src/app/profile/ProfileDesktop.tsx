@@ -7,7 +7,6 @@
  */
 'use client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import { MANAGE_CONTAINER } from '@/components/ManageHeader'
@@ -22,7 +21,6 @@ import PortraitCard from './_components/PortraitCard'
 import type { ProfileViewProps } from './types'
 
 export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
-  const router = useRouter()
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const settingsButton = (
@@ -53,7 +51,6 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
             <IdentityCard
               displayName={displayName}
               joinDays={joinDays}
-              onEdit={() => router.push('/settings')}
             />
 
             {/* 主区：左「我的画像」/ 右「备考目标 + 常用操作」。items-stretch + PortraitCard 自带

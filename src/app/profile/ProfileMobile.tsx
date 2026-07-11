@@ -6,14 +6,16 @@
  * @created  2026-05-31
  */
 'use client'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings } from 'lucide-react'
+import { Settings, Pencil } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Avatar from '@/components/Avatar'
-import { maskEmail } from '@/lib/auth'
+import { maskEmail, defaultNickname } from '@/lib/auth'
 import { LATEST_VERSION } from '@/lib/changelog'
 import { useAccount } from '@/hooks/useAccount'
+import NameModal from './_components/NameModal'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
 import LoggedInView from './_components/LoggedInView'
@@ -26,9 +28,12 @@ const STATS = { corpus: 12 }
 
 export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
-  // 订阅账号态：仅取 avatarUrl 做头像回退显示（上传后自动刷新）
+  const [nameOpen, setNameOpen] = useState(false)
+  // 订阅账号态：取 avatarUrl 做头像回退、displayName 做昵称显示（上传/改名后自动刷新）
   const { account } = useAccount()
-  const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
+  const maskedEmail = loggedIn && email ? maskEmail(email) : null
+  // 昵称在邮箱上方：优先自定义昵称，无则回退默认随机数字昵称；未登录固定「未登录」
+  const nickname = loggedIn ? (account?.displayName || defaultNickname(maskedEmail)) : '未登录'
 
   const settingsButton = (
     <button
@@ -49,7 +54,22 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
         {/* ── 1. 用户头像区 */}
         <div className="flex flex-col items-center pt-6 pb-5">
           <Avatar avatarUrl={account?.avatarUrl} size={84} fallback={<OrbAvatar size={84} />} />
-          <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{displayName}</p>
+          {loggedIn ? (
+            <>
+              {/* 昵称行（在邮箱上方）+ 编辑按钮 */}
+              <button
+                onClick={() => setNameOpen(true)}
+                aria-label="编辑昵称"
+                className="mt-3 flex items-center gap-1.5 active:scale-[0.97] transition-transform"
+              >
+                <span className="text-[18px] font-semibold text-v2-text-primary">{nickname}</span>
+                <Pencil size={14} className="text-v2-text-muted" />
+              </button>
+              {maskedEmail && <p className="text-[12px] text-v2-text-muted mt-1">{maskedEmail}</p>}
+            </>
+          ) : (
+            <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{nickname}</p>
+          )}
         </div>
 
         {/* ── 未登录引导卡 */}
@@ -79,6 +99,8 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
       </div>
 
       <div className="flex-shrink-0"><TabBar /></div>
+
+      {nameOpen && <NameModal currentName={account?.displayName ?? null} onClose={() => setNameOpen(false)} />}
     </div>
   )
 }

@@ -12,6 +12,8 @@ import { getSupabase, ensureSession } from '@/lib/supabase'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_MIN = 6
+/** 昵称最长字符数（超出截断）；空串保存视为清除昵称、回退打码邮箱 */
+const DISPLAY_NAME_MAX = 20
 
 function appError(code: string, message: string, cause?: unknown): AppError {
   return { code, message, cause }
@@ -22,6 +24,21 @@ export function maskEmail(email: string): string {
   const at = email.indexOf('@')
   if (at <= 0) return email
   return `${email[0]}***${email.slice(at)}`
+}
+
+/**
+ * 无自定义昵称时的默认展示名：由 seed（打码邮箱等稳定串）派生的「用户」+ 六位数字。
+ * 纯展示、不落库；同一账号每次渲染都得到相同结果（非真随机，避免刷新后跳变）。
+ * @param seed 稳定标识串（如打码邮箱）；为空返回不带数字的「用户」
+ * @returns    形如「用户482913」的默认昵称
+ */
+export function defaultNickname(seed: string | null): string {
+  if (!seed) return '用户'
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  return `用户${String(h % 1_000_000).padStart(6, '0')}`
 }
 
 function validateEmail(email: string): string {
@@ -113,6 +130,7 @@ export async function getAccount(): Promise<{
   email: string | null
   isAnonymous: boolean
   avatarUrl: string | null
+  displayName: string | null
   targetBand: number | null
   examDate: string | null
 } | null> {
@@ -121,14 +139,16 @@ export async function getAccount(): Promise<{
   if (!user) return null
   const meta = user.user_metadata ?? {}
   const rawAvatar = meta.avatar_url as unknown
+  const rawName   = meta.display_name as unknown
   const rawBand   = meta.target_band as unknown
   const rawDate   = meta.exam_date as unknown
   return {
     email: user.email ?? null,
     isAnonymous: user.is_anonymous ?? false,
-    avatarUrl:  typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
-    targetBand: typeof rawBand === 'number' && Number.isFinite(rawBand) ? rawBand : null,
-    examDate:   typeof rawDate === 'string' && rawDate !== '' ? rawDate : null,
+    avatarUrl:   typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,
+    displayName: typeof rawName === 'string' && rawName !== '' ? rawName : null,
+    targetBand:  typeof rawBand === 'number' && Number.isFinite(rawBand) ? rawBand : null,
+    examDate:    typeof rawDate === 'string' && rawDate !== '' ? rawDate : null,
   }
 }
 
@@ -145,6 +165,24 @@ export async function saveExamGoal(
 ): Promise<void> {
   const { error } = await getSupabase().auth.updateUser({
     data: { target_band: targetBand, exam_date: examDate },
+  })
+  if (error) {
+    throw appError('SAVE_FAILED', '保存失败，请稍后再试', error)
+  }
+}
+
+/**
+ * 保存自定义昵称（写 user_metadata.display_name；updateUser 即时更新本地 session 并广播 USER_UPDATED，
+ * useAccount 各实例随之自动刷新，无需手动通知）。
+ * @param name 用户输入的昵称；先 trim 再截断到 DISPLAY_NAME_MAX，结果为空串则写 null（清除昵称）
+ * @returns    Promise<void>
+ * @throws     SAVE_FAILED
+ * @sideEffect 写 Supabase user_metadata.display_name
+ */
+export async function saveDisplayName(name: string): Promise<void> {
+  const trimmed = name.trim().slice(0, DISPLAY_NAME_MAX)
+  const { error } = await getSupabase().auth.updateUser({
+    data: { display_name: trimmed === '' ? null : trimmed },
   })
   if (error) {
     throw appError('SAVE_FAILED', '保存失败，请稍后再试', error)

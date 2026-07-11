@@ -13,27 +13,30 @@ import Avatar from '@/components/Avatar'
 import GradientButton from '@/components/GradientButton'
 import OrbAvatar from './OrbAvatar'
 import AvatarModal from './AvatarModal'
+import NameModal from './NameModal'
 import { useAccount } from '@/hooks/useAccount'
+import { defaultNickname } from '@/lib/auth'
 import { useStreak, useCorpusCount, usePracticeCount } from '@/hooks/profile-data'
 
 interface IdentityCardProps {
   displayName: string
   /** 加入天数；null 时不展示该项 */
   joinDays: number | null
-  onEdit: () => void
 }
 
 /**
  * 身份卡
- * @param displayName 脱敏邮箱 / 账号名
+ * @param displayName 脱敏邮箱 / 账号名（account.displayName 为空时的回退）
  * @param joinDays    加入天数
- * @param onEdit      「编辑资料」点击回调
  * @sideEffect        挂载时并行读取连续打卡 / 语料段数 / 练习次数
  */
-export default function IdentityCard({ displayName, joinDays, onEdit }: IdentityCardProps): JSX.Element {
+export default function IdentityCard({ displayName, joinDays }: IdentityCardProps): JSX.Element {
   const [avatarOpen, setAvatarOpen] = useState(false)
-  // 订阅账号态：上传头像后（USER_UPDATED）此处自动刷新为新图
+  const [nameOpen, setNameOpen] = useState(false)
+  // 订阅账号态：上传头像 / 改昵称后（USER_UPDATED）此处自动刷新
   const { account } = useAccount()
+  // 昵称在邮箱上方：优先自定义昵称，无则回退默认随机数字昵称（以打码邮箱为稳定种子）
+  const nickname = account?.displayName || defaultNickname(displayName)
   // SWR 共享缓存：corpus 与 PortraitCard 共用 'profile:corpus' key，全页只发一次
   const { streak } = useStreak()
   const { count: corpus } = useCorpusCount()
@@ -51,12 +54,13 @@ export default function IdentityCard({ displayName, joinDays, onEdit }: Identity
           <Avatar avatarUrl={account?.avatarUrl} size={64} fallback={<OrbAvatar size={64} />} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-semibold text-v2-text-primary truncate">{displayName}</p>
+          <p className="text-[16px] font-semibold text-v2-text-primary truncate">{nickname}</p>
+          <p className="text-[12px] text-v2-text-muted truncate mt-0.5">{displayName}</p>
           {joinDays !== null && (
             <p className="text-[13px] text-v2-text-muted mt-1">已加入 {joinDays} 天</p>
           )}
         </div>
-        <GradientButton onClick={onEdit} className="shrink-0 px-5 py-2.5 rounded-full text-[13px] font-medium">
+        <GradientButton onClick={() => setNameOpen(true)} className="shrink-0 px-5 py-2.5 rounded-full text-[13px] font-medium">
           编辑资料
         </GradientButton>
       </div>
@@ -77,6 +81,7 @@ export default function IdentityCard({ displayName, joinDays, onEdit }: Identity
       </div>
 
       {avatarOpen && <AvatarModal onClose={() => setAvatarOpen(false)} />}
+      {nameOpen && <NameModal currentName={account?.displayName ?? null} onClose={() => setNameOpen(false)} />}
     </Card>
   )
 }
