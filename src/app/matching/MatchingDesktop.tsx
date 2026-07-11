@@ -19,14 +19,14 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import GradientButton from '@/components/GradientButton'
 import NoMatchView from '@/components/matching/NoMatchView'
-import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 import type { MatchingViewProps, FunnelQuestion } from './types'
 
 /** 舞台最小高度：满屏减去外壳 72px 顶栏 */
 const STAGE = 'min-h-[calc(100vh-72px)]'
 
-/** 选中行左侧竖条渐变：沿用 MatchedQuestionCard 里那组渐变值（竖向） */
-const SELECTED_BAR = 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
+/** 选中行左侧竖条渐变：全站复用的品牌竖向渐变 */
+const SELECTED_BAR = BRAND_GRADIENT_VERTICAL
 
 type Tier = 'high' | 'mid' | 'low'
 function tierOf(score?: number): Tier {

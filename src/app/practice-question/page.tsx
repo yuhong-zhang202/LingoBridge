@@ -22,9 +22,10 @@ import { listCorpusByQuestion, type CorpusMatch, type MatchLevel } from '@/lib/d
 import { formatRelativeTime } from '@/lib/utils'
 import { putHandoff } from '@/lib/handoff'
 import type { QuestionWithLinks } from '@/lib/types'
+import { BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 
-// 选中态竖条渐变 —— 数值与 MatchedQuestionCard 完全一致
-const SELECTED_BAR = 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
+// 选中态竖条渐变 —— 全站复用的品牌竖向渐变
+const SELECTED_BAR = BRAND_GRADIENT_VERTICAL
 
 /** 匹配档位 → 标签：high 绿标「高匹配」；mid/chosen 灰标「中匹配」；low 灰标「低匹配」 */
 function levelTag(level: MatchLevel): JSX.Element {

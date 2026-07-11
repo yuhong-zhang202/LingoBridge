@@ -48,6 +48,9 @@ export const BRAND_COLORS = {
 // 用于自定义渐变需求；标准描边卡片请直接用 GRADIENT_BORDER_STYLE / _FULL。
 export const BRAND_GRADIENT      = 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 export const BRAND_GRADIENT_SOFT = 'linear-gradient(135deg, rgba(240,188,160,0.35), rgba(168,210,196,0.35))'
+/** 品牌渐变（竖向 to bottom，橙→绿，实色 0.85/0.80）—— 与 BRAND_GRADIENT 同色、方向改为竖直。
+ *  用于选中行 / 卡片左侧竖条等（matching 题卡、FlashCard、题库进度条等多处复用同一值）。 */
+export const BRAND_GRADIENT_VERTICAL = 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
 
 // ── 渐变描边样式（2色停）
 // 用于：library、matching、article-view 页面的卡片/按钮描边

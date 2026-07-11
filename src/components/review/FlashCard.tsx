@@ -9,11 +9,12 @@ import { useState, useRef, useEffect } from 'react'
 import { RotateCw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react'
 import Tag from '@/components/Tag'
 import type { PhraseCard } from '@/lib/types'
+import { BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 
 // 超过此位移（px）判定为一次有效滑动
 const SWIPE_THRESHOLD = 90
-// 左侧竖渐变条（橙→绿）—— 与题目匹配页题卡左侧条同色
-const STRIP = 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
+// 左侧竖渐变条（橙→绿）—— 全站复用的品牌竖向渐变（与题目匹配页题卡左侧条同色）
+const STRIP = BRAND_GRADIENT_VERTICAL
 
 // 朗读英文（系统语音）
 function speak(text: string): void {

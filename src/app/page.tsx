@@ -34,7 +34,7 @@ import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { computeRichness } from '@/lib/story-richness'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL_OPAQUE, PAGE_CONTAINER } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL_OPAQUE, BRAND_GRADIENT_VERTICAL, PAGE_CONTAINER } from '@/lib/constants'
 
 // Hero 标题第二行（故事模式下打字机逐字浮现）
 const HERO_LINE2 = '个性化雅思语料'
@@ -118,7 +118,7 @@ function PreviewAnki() {
     <div className="relative w-[160px] h-[204px]">
       <div className="absolute inset-0 rotate-[6deg] translate-x-2.5 bg-white rounded-[18px] border border-black/[0.04] shadow-[0_6px_18px_-6px_rgba(0,0,0,0.10)]" />
       <div className="absolute inset-0 -rotate-2 bg-white rounded-[18px] shadow-[0_14px_32px_-12px_rgba(180,120,70,0.26)] overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }} />
+        <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: BRAND_GRADIENT_VERTICAL }} />
         <div className="h-full pl-4 pr-3 pt-3 pb-3.5 flex flex-col">
           <Tag variant="green" label="感受" className="self-start text-[9px] px-[6px] py-[2px]" />
           <div className="flex-1 flex flex-col items-center justify-center text-center">

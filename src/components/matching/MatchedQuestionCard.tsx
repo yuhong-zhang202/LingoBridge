@@ -10,6 +10,7 @@ import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
 import type { MatchedQuestion } from '@/lib/types'
+import { BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 
 interface Props {
   question: MatchedQuestion
@@ -45,7 +46,7 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
         {selected ? (
           <div
             className="w-full h-full"
-            style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
+            style={{ background: BRAND_GRADIENT_VERTICAL }}
           />
         ) : (
           <div className="w-full h-full bg-transparent" />

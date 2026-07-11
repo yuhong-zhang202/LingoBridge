@@ -11,9 +11,10 @@ import { ChevronDown } from 'lucide-react'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
 import type { QBQuestion } from '@/lib/types'
+import { BRAND_GRADIENT_SOFT, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 
-const PROG = { background: 'linear-gradient(135deg,rgba(240,188,160,0.35),rgba(168,210,196,0.35))', borderRadius: 21, padding: 1 }
-const BAR  = 'linear-gradient(to bottom,rgba(240,188,160,0.85),rgba(168,210,196,0.80))'
+const PROG = { background: BRAND_GRADIENT_SOFT, borderRadius: 21, padding: 1 }
+const BAR  = BRAND_GRADIENT_VERTICAL
 
 const SEG_N = 24
 const segColor = (t: number): string => {
