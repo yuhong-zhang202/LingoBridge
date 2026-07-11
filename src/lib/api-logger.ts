@@ -1,11 +1,14 @@
 /**
  * @module   api-logger
- * @desc     记录第三方 API 调用的用量与费用到 api_usage_logs 表；写入失败只告警不阻断主流程
+ * @desc     【仅服务端】记录第三方 API 调用的用量与费用到 api_usage_logs 表；写入失败只告警不阻断主流程。
+ *           用 service_role 写库（绕 RLS）：0014 删掉了 api_usage_logs 的客户端 insert 策略，
+ *           日志写入唯一入口收归服务端，杜绝任何客户端会话灌水污染成本看板。
  * @author   LingoBridge
  * @created  2026-06-04
  */
+import 'server-only'
 
-import { getSupabase, ensureSession } from './supabase'
+import { getSupabaseServer } from './supabase-server'
 import type { ApiUsageLog } from './types'
 
 /** 各服务单价（人民币），供各 route 计算 estimated_cost_cny */
@@ -24,13 +27,11 @@ export const API_PRICING = {
  * 将一条 API 用量记录写入 api_usage_logs 表
  * @param  log  用量数据，字段定义见 ApiUsageLog
  * @returns     Promise<void>，写入失败静默处理
- * @sideEffect  向 Supabase api_usage_logs 表 insert 一行；失败时 console.error
+ * @sideEffect  用 service_role 向 api_usage_logs 表 insert 一行（绕 RLS，无需 session）；失败时 console.error
  */
 export async function logApiUsage(log: ApiUsageLog): Promise<void> {
   try {
-    await ensureSession()
-    const supabase = getSupabase()
-    const { error } = await supabase.from('api_usage_logs').insert(log)
+    const { error } = await getSupabaseServer().from('api_usage_logs').insert(log)
     if (error) throw error
     console.log('[ApiLogger] logged', {
       service: log.service,
