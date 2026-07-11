@@ -33,11 +33,6 @@ export async function logApiUsage(log: ApiUsageLog): Promise<void> {
   try {
     const { error } = await getSupabaseServer().from('api_usage_logs').insert(log)
     if (error) throw error
-    console.log('[ApiLogger] logged', {
-      service: log.service,
-      endpoint: log.endpoint,
-      cost: log.estimated_cost_cny,
-    })
   } catch (err) {
     console.error('[ApiLogger] failed to write usage log', err)
   }

@@ -16,8 +16,8 @@ import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 
 interface Props {
-  /** story：故事额度用完；ielts：雅思复练额度用完。决定主标题 + 默认 CTA 集合。 */
-  variant: 'story' | 'ielts'
+  /** story：故事月额度用完；ielts：雅思复练月额度用完；trial：匿名试用结束（引导注册，非月额度）。 */
+  variant: 'story' | 'ielts' | 'trial'
   /** 浮层模式（盖在当前页之上时使用）。inline 时不传，直接铺在父容器里。 */
   asOverlay?: boolean
   /** asOverlay 时点遮罩/关闭逻辑（如取消触发的复练操作） */
@@ -30,8 +30,9 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const [storyDone, setStoryDone] = useState(variant === 'story')
   const [reviewDone, setReviewDone] = useState(variant === 'ielts')
 
-  // 异步核另一额度（决定要不要显示对侧 CTA）
+  // 异步核另一额度（决定要不要显示对侧 CTA）。仅月额度变体需要；trial 试用变体不涉及月额度，跳过。
   useEffect(() => {
+    if (variant !== 'story' && variant !== 'ielts') return
     let cancelled = false
     void (async () => {
       try {
@@ -52,7 +53,26 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
   const handlePracticeIelts = () => router.push('/question-bank')
 
-  const body = (
+  // trial：匿名试用结束态，面向注册转化，与「月额度用完（10/10）」文案区分，避免误导匿名用户。
+  const trialBody = (
+    <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
+      <Orb size={120} pulse={false} />
+      <p className="text-[15px] font-medium text-v2-text-primary mt-5">试用已完成</p>
+      <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+        注册账号，继续把你的故事变成雅思口语素材。
+      </p>
+      <div className="flex flex-col items-center gap-2.5 mt-5">
+        <GradientButton
+          onClick={() => router.push('/login')}
+          className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+        >
+          注册 / 登录
+        </GradientButton>
+      </div>
+    </div>
+  )
+
+  const quotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
       <p className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（10/10）</p>
@@ -90,6 +110,8 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
       </p>
     </div>
   )
+
+  const body = variant === 'trial' ? trialBody : quotaBody
 
   if (!asOverlay) return body
 

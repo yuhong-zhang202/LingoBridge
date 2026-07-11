@@ -12,9 +12,6 @@ import fs from 'fs/promises'
 import path from 'path'
 import type { AppError } from '@/types/errors'
 
-if (process.env.NODE_ENV !== 'production') {
-  console.log('[Transcode] ffmpeg binary path:', ffmpegBin)
-}
 // ffmpeg-static 在当前系统找不到二进制时返回 null；开机时立即失败比请求时失败更好
 if (!ffmpegBin) {
   throw { code: 'FFMPEG_NOT_FOUND', message: 'ffmpeg-static 未返回二进制路径，请重新安装 ffmpeg-static' } satisfies AppError
@@ -40,8 +37,6 @@ export async function transcodeToWav(input: Buffer, inputExt: string): Promise<B
   // mp4 的 moov atom 需要可 seek 的文件输入，必须先落盘而非用 stdin 管道
   await fs.writeFile(inPath, input)
 
-  const startedAt = Date.now()
-
   try {
     await new Promise<void>((resolve, reject) => {
       // 分拆 .on() 调用——TS fluent-ffmpeg 重载在链式调用时推断 event 类型有误
@@ -63,9 +58,6 @@ export async function transcodeToWav(input: Buffer, inputExt: string): Promise<B
     })
 
     const outBuf = await fs.readFile(outPath)
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[Transcode] done', { inputExt, ms: Date.now() - startedAt, outBytes: outBuf.byteLength })
-    }
     return outBuf
   } finally {
     // warm 容器的 /tmp 持久存在，allSettled 确保单个失败不阻塞另一个

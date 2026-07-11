@@ -126,7 +126,6 @@ export async function coachReply(
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
-  const startedAt = Date.now()
 
   try {
     const res = await fetch(`${env.dashscopeBaseUrl}/chat/completions`, {
@@ -156,15 +155,6 @@ export async function coachReply(
     if (!rawReply) throw new Error('千问对话返回为空')
     // qwen 顽固爱用破折号，prompt 压不住；统一替换成逗号，前后空格一并收拢避免双空格
     const reply = rawReply.replace(/\s*[—–]\s*/g, ', ')
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[Practice] reply', {
-        ms: Date.now() - startedAt,
-        turns: messages.length,
-        promptTokens: data.usage?.prompt_tokens,
-        completionTokens: data.usage?.completion_tokens,
-      })
-    }
     return reply
   } finally {
     clearTimeout(timeout)

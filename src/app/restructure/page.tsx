@@ -51,8 +51,15 @@ function RestructureContent() {
   const [usable,    setUsable]    = useState<boolean | null>(null)
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  // 服务端故事额度超限（/api/corpus 返回 402）→ 弹 QuotaReached 故事变体覆盖层
+  // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层
   const [storyQuotaReached, setStoryQuotaReached] = useState(false)
+  // 匿名试用用户：额度提示走 trial 变体（引导注册），注册用户走 story 变体（月额度 10/10）
+  const [isAnon, setIsAnon] = useState(false)
+  useEffect(() => {
+    void getSupabase().auth.getSession().then(({ data: { session } }) => {
+      setIsAnon(session?.user?.is_anonymous ?? false)
+    })
+  }, [])
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -66,6 +73,8 @@ function RestructureContent() {
         body: JSON.stringify({ rawText: rawStory }),
         signal,
       })
+      // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」
+      if (res.status === 402) { if (!signal?.aborted) setStoryQuotaReached(true); return }
       if (!res.ok) throw new Error('整理失败')
       const data = (await res.json()) as { cleanedText: string; usable: boolean }
       if (signal?.aborted) return
@@ -160,8 +169,8 @@ function RestructureContent() {
           onCancel={() => setConfirm(null)}
         />
       </div>
-      {/* 故事额度超限覆盖层：无法保存，关闭即回首页 */}
-      {storyQuotaReached && <QuotaReached variant="story" asOverlay onClose={() => router.push('/')} />}
+      {/* 额度超限覆盖层：匿名走 trial（引导注册）、注册走 story（月额度）；关闭即回首页 */}
+      {storyQuotaReached && <QuotaReached variant={isAnon ? 'trial' : 'story'} asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

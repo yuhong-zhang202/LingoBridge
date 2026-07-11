@@ -69,12 +69,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000) // ENGINEERING §4：30s 超时
-  const startedAt = Date.now()
   const requestId = crypto.randomUUID()
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[Transcription] send', { requestId, format, bytes: arrayBuf.byteLength })
-  }
 
   try {
     const res = await fetch(DOUBAO_ASR_ENDPOINT, {
@@ -117,9 +112,6 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
       throw err
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[Transcription] done', { ms: Date.now() - startedAt, logId, chars: text.length })
-    }
     return text
   } finally {
     clearTimeout(timeout)

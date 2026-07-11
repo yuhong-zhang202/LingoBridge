@@ -10,6 +10,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Plus, RefreshCw } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import Card from '@/components/Card'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
@@ -160,14 +161,14 @@ function PracticeQuestionContent(): JSX.Element {
         {loading && (
           <>
             {/* 题目卡骨架 */}
-            <div className="bg-white rounded-[18px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-5">
+            <Card className="p-5">
               <div className="flex items-center gap-2">
                 <Skeleton className="w-12 h-[18px] rounded-full" />
                 <Skeleton className="w-20 h-3" />
               </div>
               <Skeleton className="w-3/4 h-[15px] mt-3" />
               <Skeleton className="w-1/2 h-3 mt-2.5" />
-            </div>
+            </Card>
 
             {/* 区标题骨架 */}
             <div className="flex items-center justify-between mt-1">
@@ -210,7 +211,7 @@ function PracticeQuestionContent(): JSX.Element {
         {!loading && !error && question && (
           <>
             {/* 题目卡 */}
-            <div className="bg-white rounded-[18px] border border-black/[0.05] shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-5">
+            <Card className="p-5">
               <div className="flex items-center gap-2 mb-2.5">
                 <PartTag label={`Part ${question.part}`} />
                 <Tag variant="green" label={question.topic} />
@@ -223,7 +224,7 @@ function PracticeQuestionContent(): JSX.Element {
               ) : (
                 <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{enText}</p>
               )}
-            </div>
+            </Card>
 
             {/* 可匹配的语料 */}
             <div className="flex items-center gap-1.5 mt-1">
