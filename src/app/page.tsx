@@ -11,7 +11,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Puzzle, Volume2, type LucideIcon } from 'lucide-react'
+import { Mic2, RotateCw, ChevronLeft, Pencil, Sparkles, Target, MessageCircle, Layers, Volume2, type LucideIcon } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TopNav from '@/components/TopNav'
 import TabBar from '@/components/TabBar'
@@ -34,7 +34,7 @@ import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { computeRichness } from '@/lib/story-richness'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { GRADIENT_BORDER_STYLE, PAGE_CONTAINER } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL_OPAQUE, PAGE_CONTAINER } from '@/lib/constants'
 
 // Hero 标题第二行（故事模式下打字机逐字浮现）
 const HERO_LINE2 = '个性化雅思语料'
@@ -93,6 +93,80 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: ReactNod
   )
 }
 
+/** 模块五 Tab 舞台内的三张真实 UI 缩略卡（拼句 SentenceOrderGame / Anki FlashCard / 发音 PronunciationCard 同款样式） */
+function PreviewSentence() {
+  return (
+    <div className="relative w-[300px] -rotate-1 bg-white rounded-[16px] border border-black/[0.05] shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)] px-4 py-4">
+      <p className="text-[10.5px] text-v2-text-muted text-center">拼出更地道的说法</p>
+      <div className="mt-3 pb-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2 border-b-2 border-dashed border-brand-primary-light">
+        <Chip variant="default" size="sm" className="border-success text-success bg-success/10">We</Chip>
+        <Chip variant="default" size="sm" className="border-success text-success bg-success/10">ended</Chip>
+        <Chip variant="default" size="sm">up</Chip>
+        <Chip variant="default" size="sm">talking</Chip>
+      </div>
+      <p className="text-[10px] text-v2-text-muted text-center mt-3 mb-1.5">词库</p>
+      <div className="flex justify-center gap-1.5">
+        <Chip variant="default" size="sm">for</Chip>
+        <Chip variant="default" size="sm">hours</Chip>
+      </div>
+    </div>
+  )
+}
+
+function PreviewAnki() {
+  return (
+    <div className="relative w-[160px] h-[204px]">
+      <div className="absolute inset-0 rotate-[6deg] translate-x-2.5 bg-white rounded-[18px] border border-black/[0.04] shadow-[0_6px_18px_-6px_rgba(0,0,0,0.10)]" />
+      <div className="absolute inset-0 -rotate-2 bg-white rounded-[18px] shadow-[0_14px_32px_-12px_rgba(180,120,70,0.26)] overflow-hidden">
+        <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }} />
+        <div className="h-full pl-4 pr-3 pt-3 pb-3.5 flex flex-col">
+          <Tag variant="green" label="感受" className="self-start text-[9px] px-[6px] py-[2px]" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <p className="text-[18px] font-bold text-v2-text-primary leading-tight">有点纠结</p>
+            <p className="text-[11px] text-brand-accent mt-2">想想英文怎么说?</p>
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-[9px] text-v2-text-muted">记忆进度</span>
+            <span className="flex gap-[3px]">
+              {[1, 2, 3, 4, 5].map(i => (
+                <span key={i} className={`w-[5px] h-[5px] rounded-full ${i <= 2 ? 'bg-brand-primary' : 'bg-[#E5DED7]'}`} />
+              ))}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PreviewPron() {
+  return (
+    <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="relative w-[290px] -rotate-1 rounded-[16px] px-4 py-3.5 shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)]">
+      <p className="text-[10px] text-v2-text-muted mb-[5px]">想说的词</p>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">Gym</span><span className="ml-2 text-[11.5px] text-v2-text-secondary">/dʒɪm/</span></span>
+        <Volume2 size={13} className="text-v2-text-muted" />
+      </div>
+      <p className="text-[10px] text-v2-text-muted mb-[5px]">被听成</p>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">drink</span><span className="ml-2 text-[11.5px] text-v2-text-secondary">/drɪŋk/</span></span>
+        <Volume2 size={13} className="text-v2-text-muted" />
+      </div>
+      <div className="rounded-[10px] bg-bg-page px-3 py-2.5">
+        <p className="text-[10px] text-v2-text-muted mb-0.5">怎么念</p>
+        <p className="text-[11.5px] text-v2-text-primary leading-[1.55]">起音是浊辅音 /dʒ/，别读成 /dr/；先咬住上齿龈再送气。</p>
+      </div>
+    </div>
+  )
+}
+
+/** 三种复用练习：Tab 舞台数据（对应收藏类型 + 真实 UI 预览 + 光晕色） */
+const REUSE: { tab: string; collected: string; title: string; desc: string; glow: string; Preview: () => JSX.Element }[] = [
+  { tab: '拼句练习', collected: '收藏的句子', title: '拼句练习', desc: '收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewSentence },
+  { tab: 'Anki 复习', collected: '收藏的词组', title: 'Anki 复习', desc: '收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。', glow: 'rgba(168,210,196,0.42)', Preview: PreviewAnki },
+  { tab: '发音教学', collected: '读错的发音', title: '发音教学', desc: '告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewPron },
+]
+
 export default function HomePage() {
   const router = useRouter()
   const [showTextInput, setShowTextInput] = useState(false)
@@ -101,6 +175,7 @@ export default function HomePage() {
   const [storyQuotaReached, setStoryQuotaReached] = useState(false)
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [typed, setTyped] = useState('')
+  const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
   const { question, loading, error, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, submit, dismissToast } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
@@ -151,6 +226,8 @@ export default function HomePage() {
     })()
     return () => { cancelled = true }
   }, [])
+
+  const ActivePreview = REUSE[reuseTab].Preview
 
   return (
     <>
@@ -492,8 +569,8 @@ export default function HomePage() {
                 </div>
               </section>
 
-              {/* ===== 模块五：信息复用怎么用（三卡等高） ===== */}
-              {/* TODO: 文案待确认 —— 三张卡的示意内容为占位；如需可复用真实 拼句/复习卡/发音 组件缩略渲染 */}
+              {/* ===== 模块五：信息复用（错落式展示——三种练习对应三类收藏，各占一行、左右交错，预览为带景深的微缩场景） ===== */}
+              {/* TODO: 文案待确认 —— 预览为展示性假件（真实拼句/闪卡/发音示意），整块 inert */}
               <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
                 <Reveal>
                   <SectionHead
@@ -502,82 +579,38 @@ export default function HomePage() {
                     sub="三种不同的练习，分别对应你收藏的三类东西"
                   />
                 </Reveal>
-                <div className="grid grid-cols-3 gap-6 items-stretch">
-                  {/* 拼句练习 */}
-                  <Reveal delay={0} className="h-full">
-                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    {/* 预览区为展示性假件（词块 Chip 渲染为原生 button）：整块 inert，标题/正文仍在其外可访问 */}
-                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex flex-col items-center justify-center gap-3 px-5 overflow-hidden">
-                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
-                        <Puzzle size={14} strokeWidth={2} />
-                      </div>
-                      {/* 拼装中的一行（含一个待填空槽） */}
-                      <div className="flex flex-wrap items-center justify-center gap-1.5">
-                        <Chip variant="default" size="sm">My</Chip>
-                        <Chip variant="default" size="sm">roommate</Chip>
-                        <span className="h-[24px] w-[54px] rounded-full border border-dashed border-brand-primary/45 bg-white/70" />
-                        <Chip variant="default" size="sm">my</Chip>
-                        <Chip variant="default" size="sm">card</Chip>
-                      </div>
-                      {/* 待选词块：高亮的是下一个要拖入的 */}
-                      <div className="flex items-center gap-1.5">
-                        <Chip variant="gradient" size="sm">stole</Chip>
-                        <Chip variant="default" size="sm">actually</Chip>
-                      </div>
-                    </InertBlock>
-                    <h3 className="text-[15.5px] font-semibold text-v2-text-primary">拼句练习</h3>
-                    <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。</p>
-                  </Card>
-                  </Reveal>
 
-                  {/* Anki 复习 */}
-                  <Reveal delay={0.08} className="h-full">
-                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-accent-light/40 border border-brand-accent/20 mb-5 flex items-center justify-center gap-3 px-4 overflow-hidden">
-                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-accent/25 grid place-items-center text-brand-accent">
-                        <Layers size={14} strokeWidth={2} />
-                      </div>
-                      {/* 正面 */}
-                      <div className="w-[96px] h-[116px] bg-white rounded-[12px] border border-black/[0.04] shadow-[0_2px_10px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center gap-2 px-2 text-center">
-                        <Tag variant="green" label="感受" className="text-[9px] px-[6px] py-[2px]" />
-                        <div className="text-[13px] font-bold text-v2-text-primary leading-tight">有点纠结</div>
-                      </div>
-                      <RotateCw size={15} strokeWidth={2.2} className="text-brand-primary flex-shrink-0" />
-                      {/* 背面 */}
-                      <div className="w-[96px] h-[116px] bg-white rounded-[12px] border border-brand-accent/25 shadow-[0_2px_10px_rgba(0,0,0,0.05)] flex flex-col items-center justify-center gap-1 px-2 text-center">
-                        <div className="text-[13px] font-bold text-brand-accent leading-tight">kind of torn</div>
-                        <div className="text-[10px] text-v2-text-muted">有点纠结</div>
-                      </div>
-                    </InertBlock>
-                    <h3 className="text-[15.5px] font-semibold text-v2-text-primary">Anki 复习</h3>
-                    <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。</p>
-                  </Card>
-                  </Reveal>
+                {/* 分段切换（同首页「我的故事/雅思题」切换器样式） */}
+                <Reveal className="flex justify-center -mt-7 mb-8">
+                  <div className="inline-flex bg-bg-muted rounded-[12px] p-[3px]">
+                    {REUSE.map((r, i) => (
+                      <button
+                        key={r.tab}
+                        onClick={() => setReuseTab(i)}
+                        aria-pressed={reuseTab === i}
+                        className={`px-5 h-[38px] rounded-[9px] text-[14px] whitespace-nowrap transition-colors ${reuseTab === i ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
+                      >
+                        {r.tab}
+                      </button>
+                    ))}
+                  </div>
+                </Reveal>
 
-                  {/* 发音教学 */}
-                  <Reveal delay={0.16} className="h-full">
-                  <Card className="p-5 h-full flex flex-col transition-transform duration-200 hover:-translate-y-1">
-                    <InertBlock className="relative h-[190px] rounded-[16px] bg-brand-primary-light/40 border border-brand-primary/15 mb-5 flex items-center justify-center px-5 overflow-hidden">
-                      <div className="absolute top-3 left-3 w-7 h-7 rounded-[9px] bg-white/80 border border-brand-primary/15 grid place-items-center text-brand-primary-dark">
-                        <Volume2 size={14} strokeWidth={2} />
-                      </div>
-                      <div className="w-full bg-white rounded-[12px] border border-black/[0.04] shadow-[0_2px_10px_rgba(0,0,0,0.05)] p-4">
-                        <div className="flex items-center justify-between mb-2.5">
-                          <span className="text-[11px] text-v2-text-muted">想说的词</span>
-                          <span className="text-[13px] font-bold text-brand-accent">Gym <span className="font-normal text-v2-text-muted">/dʒɪm/</span></span>
-                        </div>
-                        <div className="h-px bg-black/[0.05] mb-2.5" />
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-v2-text-muted">被听成</span>
-                          <span className="text-[13px] font-bold text-error">drink <span className="font-normal text-v2-text-muted">/drɪŋk/</span></span>
-                        </div>
-                      </div>
+                {/* 舞台：当前功能的真实 UI 预览（左）+ 说明（右），切换淡入。预览整块 inert */}
+                <Reveal>
+                  <div key={reuseTab} className="animate-fade-up grid lg:grid-cols-2 gap-10 lg:gap-16 items-center rounded-[28px] bg-bg-surface border border-black/[0.05] shadow-[0_22px_54px_-22px_rgba(180,120,70,0.22)] px-8 py-10 lg:px-12">
+                    <InertBlock className="relative h-[300px] rounded-[24px] overflow-hidden bg-bg-muted/40 border border-black/[0.04] flex items-center justify-center px-6">
+                      <div aria-hidden className="pointer-events-none absolute -top-16 -left-10 w-72 h-72 rounded-full" style={{ background: `radial-gradient(circle, ${REUSE[reuseTab].glow}, transparent 70%)`, filter: 'blur(30px)' }} />
+                      <ActivePreview />
                     </InertBlock>
-                    <h3 className="text-[15.5px] font-semibold text-v2-text-primary">发音教学</h3>
-                    <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。</p>
-                  </Card>
-                  </Reveal>
-                </div>
+                    <div>
+                      <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">对应 · {REUSE[reuseTab].collected}</p>
+                      <h3 className="text-[26px] font-bold text-v2-text-primary tracking-tight">{REUSE[reuseTab].title}</h3>
+                      <p className="mt-3.5 text-[15px] text-v2-text-secondary leading-[1.8] max-w-[400px]">{REUSE[reuseTab].desc}</p>
+                    </div>
+                  </div>
+                </Reveal>
+
               </section>
             </>
           )}
