@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "eval:extraction": "npx tsx --conditions=react-server --env-file=.env.local scripts/eval/run-extraction.ts",
     "check:secrets": "node --env-file=.env.local scripts/check-no-secrets.mjs"
   },
   "dependencies": {

@@ -1,0 +1,956 @@
+{
+  "version": "v1",
+  "createdAt": "2026-07-12",
+  "source": "LingoBridge-萃取金标集-定稿v3.xlsx",
+  "annotation": "双人独立标注,主观察点一致率99/100,三项全一致96/100,分歧经讨论定稿",
+  "items": [
+    {
+      "id": "S001",
+      "type": "基础",
+      "story": "最近两三个月整个人都比较平稳，没什么大起大落，每天按部就班上课写作业，情绪像一条平线。",
+      "primary": "EMO_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S002",
+      "type": "基础",
+      "story": "这半年一直处在一种紧绷又疲惫的状态里，说不上哪里出了问题，就是干什么都提不起劲。",
+      "primary": "EMO_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S003",
+      "type": "基础",
+      "story": "我是典型的夜猫子，晚上十点之后脑子最清醒，重要的事都留到深夜做，早上基本是废的。",
+      "primary": "EMO_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S004",
+      "type": "边界陷阱",
+      "story": "周末一个人在家的时候，我会开一局文明六，一玩就是一下午，中间连水都忘了喝。那种完全沉浸、不用理任何人的感觉特别好。",
+      "primary": "EMO_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S005",
+      "type": "基础",
+      "story": "我很享受一个人吃晚饭的时间，边吃边看下饭视频，谁也不用迁就。",
+      "primary": "EMO_03",
+      "accept": [
+        "EMO_08"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S006",
+      "type": "基础",
+      "story": "对我来说最解压的事是熨衣服，蒸汽的声音加上一件件变平整的过程，能把一天的烦躁都熨掉。",
+      "primary": "EMO_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S007",
+      "type": "基础",
+      "story": "下班回家先冲个热水澡，站在水下十分钟什么都不想，出来之后整个人就松下来了。",
+      "primary": "EMO_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S008",
+      "type": "基础",
+      "story": "工作忙了一整周之后，周六早上去逛一趟菜市场，买点新鲜的菜回来，感觉整个人又活过来了，比睡懒觉管用。",
+      "primary": "EMO_05",
+      "accept": [
+        "EMO_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S009",
+      "type": "边界陷阱",
+      "story": "和老朋友打一晚上桌游比睡十个小时还管用，第二天上班都带劲。",
+      "primary": "EMO_05",
+      "accept": [
+        "REL_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S010",
+      "type": "基础",
+      "story": "每天出门前我都要摸一下门口那只木头小象，好像不摸一下这一天就不太对劲，已经持续四五年了。",
+      "primary": "EMO_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S011",
+      "type": "基础",
+      "story": "睡前我一定要把第二天要穿的衣服叠好放在椅背上，出差住酒店也这样，不做完这套流程就睡不安稳。",
+      "primary": "EMO_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S012",
+      "type": "基础",
+      "story": "一有压力我就开始整理房间，越焦虑收拾得越狠，朋友都说看我房间的整洁度就知道我最近过得好不好。",
+      "primary": "EMO_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S013",
+      "type": "边界陷阱",
+      "story": "只要遇到烦心事，我的第一反应永远是去楼下跑两圈，跑完再回来想怎么办，这个习惯从高中一直保持到现在。",
+      "primary": "EMO_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S014",
+      "type": "基础",
+      "story": "我对吃很执着，每到一个新城市第一件事是找当地人吃的苍蝇馆子，攻略上的网红店我从来不信。",
+      "primary": "EMO_08",
+      "accept": [
+        "SPA_05"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S015",
+      "type": "基础",
+      "story": "我妈总说我把工资都吃进肚子里了，我确实愿意为一顿好的排两小时队，吃对我来说是正经事。",
+      "primary": "EMO_08",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S016",
+      "type": "基础",
+      "story": "去年答辩前一周我电脑硬盘坏了，论文最新版没备份，那几天我几乎没睡，一边恢复数据一边重写，是我这几年最崩溃的一段。",
+      "primary": "EMO_09",
+      "accept": [
+        "EMO_10"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S017",
+      "type": "基础",
+      "story": "上个月同时赶三个项目截止日期，最后两天在公司睡的行军床，交完那一刻手都是抖的。",
+      "primary": "EMO_09",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S018",
+      "type": "基础",
+      "story": "看完《寻梦环游记》最后一幕我在电影院哭到散场，工作人员来扫地我还坐在那里缓不过来。",
+      "primary": "EMO_10",
+      "accept": [
+        "SPI_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S019",
+      "type": "基础",
+      "story": "那天项目汇报出了个纰漏，被老板当众说了几句，其实话不算重，但我在会议室就红了眼眶，出来在楼梯间哭了十分钟，情绪来得比事情本身大得多。",
+      "primary": "EMO_10",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S020",
+      "type": "基础",
+      "story": "一想到下周要当着全系做展示我就睡不着，脑子里反复排练开场白，越排练越清醒。",
+      "primary": "EMO_11",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S021",
+      "type": "基础",
+      "story": "只要第二天有重要的事，比如面试或者赶早班机，我前一晚就基本睡不着，脑子里把流程过一遍又一遍，越想越清醒。",
+      "primary": "EMO_11",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S022",
+      "type": "基础",
+      "story": "其实我一直没跟任何人说过，我很羡慕我最好的朋友，这种羡慕有时候酸得让我讨厌自己。",
+      "primary": "EMO_12",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S023",
+      "type": "基础",
+      "story": "我一直没跟任何人说过，其实我很怕接电话，哪怕是外卖电话都要先做心理建设，这事我不敢讲，怕别人觉得我矫情。",
+      "primary": "EMO_12",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S024",
+      "type": "基础",
+      "story": "大学前我一直很在意自己的身高，拍合照永远躲最边上；现在慢慢和解了，还学会了穿搭扬长避短。",
+      "primary": "EMO_13",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S025",
+      "type": "基础",
+      "story": "我以前一直嫌自己胳膊粗，大夏天也套件薄外套遮着；健身一年多总算有了点线条，今年夏天我第一次自然地穿上了短袖出门。",
+      "primary": "EMO_13",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S026",
+      "type": "基础",
+      "story": "我和我爸平时话不多，他的关心方式是每天转发养生文章，我回个表情包；周末回家他也不多问，就默默把我爱吃的菜做好，我们爷俩的感情都在这些不说话的事里。",
+      "primary": "REL_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S027",
+      "type": "边界陷阱",
+      "story": "我们家吃晚饭雷打不动要一起上桌，谁都不能端着碗回房间；饭桌上我妈汇报小区八卦，我爸点评新闻，我负责捧场，这是我们家每天的固定节目。",
+      "primary": "REL_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S028",
+      "type": "基础",
+      "story": "有天晚上我加班到十一点回家，发现我妈坐在客厅等我，桌上温着一碗汤，那个瞬间我差点绷不住。",
+      "primary": "REL_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S029",
+      "type": "基础",
+      "story": "过年时我和我爸因为要不要考公吵了一架，摔了门；第二天他默默把我爱吃的菜都做了一遍，谁也没提前一晚的事。",
+      "primary": "REL_02",
+      "accept": [
+        "REL_11"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S030",
+      "type": "基础",
+      "story": "我有个认识十年的朋友，我们可以三个月不联系，但一开口就像昨天刚见过，跟她在一起我从来不用演。",
+      "primary": "REL_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S031",
+      "type": "基础",
+      "story": "我最舒服的朋友是我高中同桌，我们的默契是可以对彼此说「你这想法不行」而不用担心伤感情。",
+      "primary": "REL_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S032",
+      "type": "基础",
+      "story": "去年跨年夜我和室友没去凑热闹，在阳台上支了个小桌子吃火锅，聊到凌晨三点，是我那一年最开心的晚上。",
+      "primary": "REL_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S033",
+      "type": "基础",
+      "story": "上个月发小来我的城市看我，我们白天各自办事，晚上在大排档从公司八卦聊到人生规划，像回到了十七岁。",
+      "primary": "REL_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S034",
+      "type": "基础",
+      "story": "我暗恋过一个每天在图书馆同一个位置自习的人，为了偶遇我把自习位置换到了他斜对面，最后也没敢说话。",
+      "primary": "REL_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S035",
+      "type": "基础",
+      "story": "和对象异地两年，我们约定每周五晚上一起线上看一部电影，同步按播放键，这是我们俩的仪式。",
+      "primary": "REL_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S036",
+      "type": "基础",
+      "story": "地铁里遇到一个穿汉服的老爷爷，全套配饰一丝不苟，他说汉服穿了三十年了，那种认真让我印象特别深。",
+      "primary": "REL_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S037",
+      "type": "基础",
+      "story": "刚毕业那会我手里只有几百块钱有次打车去面试，司机师傅听说后没收我钱，还提前十分钟到，下车时跟我说「小伙子放松点，你没问题的」，让我觉得很感动",
+      "primary": "REL_06",
+      "accept": [
+        "REL_10"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S038",
+      "type": "基础",
+      "story": "我家猫每天早上七点准时踩我脸叫我起床，比闹钟还准，虽然烦但哪天它不来我反而睡不踏实。",
+      "primary": "REL_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S039",
+      "type": "基础",
+      "story": "我在公司楼下喂了两年流浪猫，它们从见我就跑到现在会蹲在花坛上等我，这是我每天最柔软的十分钟。",
+      "primary": "REL_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S040",
+      "type": "基础",
+      "story": "养了八年的狗去年走了，最后那天它已经站不起来，还是努力摇了摇尾巴，我们全家陪它到最后。",
+      "primary": "REL_08",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S041",
+      "type": "基础",
+      "story": "上个月我家仓鼠越狱失踪三天，全家翻箱倒柜，最后在鞋柜深处找到它时，它腮帮子里还塞满了瓜子。",
+      "primary": "REL_08",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S042",
+      "type": "基础",
+      "story": "考研那年我把自己整理的三百页笔记全部共享给了同专业的网友，后来有个人专门来告诉我他考上了。",
+      "primary": "REL_09",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S043",
+      "type": "基础",
+      "story": "地铁上有个女生突然低血糖蹲下了，我把包里的巧克力给她，又陪她坐了两站确认没事才走。",
+      "primary": "REL_09",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S044",
+      "type": "边界陷阱",
+      "story": "有次在高铁上邻座的大叔看我晕车难受，把他的风油精塞给我，下车时还提醒我多喝热水，我到现在还记得他。",
+      "primary": "REL_10",
+      "accept": [
+        "REL_06"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S045",
+      "type": "基础",
+      "story": "刚来这个城市找不到房子，是一个只见过两面的学姐收留我住了半个月，她说她刚毕业时也被人这样帮过。",
+      "primary": "REL_10",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S046",
+      "type": "基础",
+      "story": "室友总在半夜打游戏外放，我忍了一个月终于摊牌，我们大吵一架，冷战两周后才慢慢缓和。",
+      "primary": "REL_11",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S047",
+      "type": "边界陷阱",
+      "story": "邻居装修天天干到半夜，我先礼后兵沟通了三次没用，最后带着噪音检测记录找了物业和居委会，总算消停了。",
+      "primary": "REL_11",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S048",
+      "type": "边界陷阱",
+      "story": "我在这个出租屋住了四年，房东涨了两次租我都没搬，倒不是懒，是这屋子已经被我一点点布置成了「我的地方」，是我最安心的地方。",
+      "primary": "SPA_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S049",
+      "type": "基础",
+      "story": "我的家乡是个小县城，年轻人都往外走，但我每次回去，走到老街口闻到那股炸串味，就觉得自己整个人落了地。",
+      "primary": "SPA_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S050",
+      "type": "基础",
+      "story": "我每天通勤单程一个半小时，以前觉得纯浪费，现在反而挺享受：戴上耳机听播客，这段路成了我一天里唯一不用回消息、不用管别人的时间。",
+      "primary": "SPA_02",
+      "accept": [
+        "EMO_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S051",
+      "type": "基础",
+      "story": "我特意租在能骑车上班的地方，二十分钟的河边骑行是我一天里最像自己的时刻。",
+      "primary": "SPA_02",
+      "accept": [
+        "EMO_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S052",
+      "type": "基础",
+      "story": "在上海待了六年，我还是说不上喜欢它，但每次出差回来，看到高架上那片灯火，又觉得踏实。",
+      "primary": "SPA_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S053",
+      "type": "基础",
+      "story": "来广州第三年，我从一句粤语不会到能用粤语点菜砍价，周末习惯去珠江边走走；这个城市的松弛感慢慢把我这个急性子北方人泡软了，我开始觉得自己属于这里。",
+      "primary": "SPA_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S054",
+      "type": "基础",
+      "story": "第一次走进国家图书馆的老阅览室，挑高的穹顶、一排排绿色台灯、安静得能听见翻书声，我被那种空间震住了，在里面坐了一下午没看几页书。",
+      "primary": "SPA_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S055",
+      "type": "基础",
+      "story": "老家新修的图书馆是个清水混凝土建筑，光从天窗斜切下来，我在那种空间里连呼吸都会放轻。",
+      "primary": "SPA_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S056",
+      "type": "基础",
+      "story": "我旅行从不做攻略，到一个新地方就先把地图收起来瞎走两个小时，走错路碰到的小店和街景，往往比景点本身更让我记得住。",
+      "primary": "SPA_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S057",
+      "type": "基础",
+      "story": "我是那种一个景点能待一天的人，同行的朋友都嫌我慢，所以后来我基本只一个人旅行。",
+      "primary": "SPA_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S058",
+      "type": "基础",
+      "story": "去年十月我一个人去了甘南，在郎木寺遇到大雪封路，被困在小旅馆两天，反而是那趟旅行最难忘的部分。",
+      "primary": "SPA_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S059",
+      "type": "边界陷阱",
+      "story": "毕业那年我和三个室友自驾了川西环线，一路换着开车，在折多山顶看到了云海。",
+      "primary": "SPA_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S060",
+      "type": "基础",
+      "story": "有天加班到十点出来，一抬头看见特别圆的月亮挂在楼缝里，我站在路边看了很久，那一刻觉得什么烦恼都小了。",
+      "primary": "SPA_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S061",
+      "type": "边界陷阱",
+      "story": "五一去了趟黄山，日出前山顶特别冷，但云海翻上来那一刻，周围所有人都安静了，我起了一身鸡皮疙瘩。",
+      "primary": "SPA_07",
+      "accept": [
+        "SPA_06"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S062",
+      "type": "基础",
+      "story": "疫情那年我开始在阳台种小番茄，从一颗种子到摘下第一个果子花了四个月，现在阳台已经摆不下了。",
+      "primary": "SPA_08",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S063",
+      "type": "基础",
+      "story": "我爷爷的小菜园是我的暑假记忆，现在我自己也在飘窗上种了薄荷和小葱，掐一把葱花的时候总想起他。",
+      "primary": "SPA_08",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S064",
+      "type": "基础",
+      "story": "《老友记》我看了不下十遍，难过的时候放一集当背景音，熟悉的笑声一响起来就安心。",
+      "primary": "SPI_01",
+      "accept": [
+        "EMO_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S065",
+      "type": "基础",
+      "story": "周杰伦的《范特西》从初中听到现在，歌词都能背了还在听，它对我来说不是专辑，是时间胶囊。",
+      "primary": "SPI_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S066",
+      "type": "基础",
+      "story": "考研最黑暗那几个月，每天走去自习室的路上都在听《海阔天空》，现在再听到前奏还会想起那个冬天。",
+      "primary": "SPI_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S067",
+      "type": "基础",
+      "story": "刚工作最迷茫的半年，我反复在看《重版出来》，那部剧里认真做事的劲头撑着我没有摆烂。",
+      "primary": "SPI_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S068",
+      "type": "基础",
+      "story": "读完《置身事内》我才第一次真正理解地方政府是怎么运转的，以前很多想不通的新闻突然都通了。",
+      "primary": "SPI_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S069",
+      "type": "基础",
+      "story": "看完纪录片《监视资本主义》之后，我卸载了两个刷不停的App，第一次意识到「免费」的代价是我自己。",
+      "primary": "SPI_03",
+      "accept": [
+        "GRO_05"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S070",
+      "type": "基础",
+      "story": "第一次在现场听交响乐，《行星组曲》的木星响起来的时候，我眼泪毫无预兆地掉下来，说不清为什么。",
+      "primary": "SPI_04",
+      "accept": [
+        "EMO_10"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S071",
+      "type": "基础",
+      "story": "在美术馆看到莫奈的睡莲真迹，隔着十米我就走不动了，印刷品完全传达不了那种颜色的震动。",
+      "primary": "SPI_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S072",
+      "type": "基础",
+      "story": "我一直戴着外婆留下的那块旧手表，走时已经不准了，但表带上有她用圆珠笔点的一个小蓝点，我舍不得修。",
+      "primary": "SPI_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S073",
+      "type": "基础",
+      "story": "我存了八个月工资买了人生第一台全画幅相机，取货那天我把包装盒都留着，到现在还摆在书架上。",
+      "primary": "SPI_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S074",
+      "type": "基础",
+      "story": "我在网易云一个歌单下面潜水了五年，那个评论区像个树洞，看陌生人写自己的故事，比很多社交都真实。",
+      "primary": "SPI_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S075",
+      "type": "基础",
+      "story": "我的Notion里记了四年日记，几千条了，对我来说它不是软件，更像一个存放我这个人的地方。",
+      "primary": "SPI_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S076",
+      "type": "边界陷阱",
+      "story": "每天睡前我都会上线我的动森小岛浇浇花跟村民聊聊天，四百多天没断过，那个小岛比我房间还整齐。",
+      "primary": "SPI_06",
+      "accept": [
+        "EMO_03",
+        "EMO_06"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S077",
+      "type": "基础",
+      "story": "健身四年了，说不上什么目标，就是每周三次雷打不动，它更像我生活的地基而不是爱好。",
+      "primary": "GRO_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S078",
+      "type": "基础",
+      "story": "我坚持写晨间三页已经两年多了，睁眼先写满三页纸再碰手机，写什么不重要，写这个动作本身像给一天定锚。",
+      "primary": "GRO_01",
+      "accept": [
+        "EMO_06"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S079",
+      "type": "基础",
+      "story": "去年开始学吉他，手指磨出茧的那个阶段最难熬，现在终于能完整弹唱一首《晴天》了。",
+      "primary": "GRO_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S080",
+      "type": "基础",
+      "story": "为了做独立游戏我自学了三个月像素画，从火柴人画到能出完整角色，进步全记录在一个文件夹里。",
+      "primary": "GRO_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S081",
+      "type": "基础",
+      "story": "毕设的算法我调了两个月都不收敛，试到第十七版才突然跑通，出结果那晚我在实验室转了三圈。",
+      "primary": "GRO_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S082",
+      "type": "基础",
+      "story": "为了拿下日语N2，我把三千个单词抄了四遍，考前一个月每天只睡五个小时，出分那天我在宿舍喊出了声。",
+      "primary": "GRO_03",
+      "accept": [
+        "GRO_02"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S083",
+      "type": "基础",
+      "story": "第一次创业赔光了积蓄，冷静下来复盘才发现我压根没验证过需求就闷头做产品，这个教训值那些钱。",
+      "primary": "GRO_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S084",
+      "type": "边界陷阱",
+      "story": "校招我连挂了七家公司，最后一家挂掉那天我很平静地列了张表，把每次面试卡壳的问题全写下来，一条条补。",
+      "primary": "GRO_04",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S085",
+      "type": "基础",
+      "story": "以前我总觉得追求稳定的人是没追求，去年亲眼看到朋友被裁后房贷差点断供的焦头烂额，我才改了想法，承认把日子过稳本身就是一种本事。",
+      "primary": "GRO_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S086",
+      "type": "基础",
+      "story": "以前我看不起「混圈子」的人，觉得实力就够了，被一个内推机会现实教育之后，我承认人脉也是实力的一部分。",
+      "primary": "GRO_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S087",
+      "type": "基础",
+      "story": "最近一直在想毕业后到底回老家还是留在大城市，我开始列两边的清单，越列越发现我怕的不是选错，是不敢选。",
+      "primary": "GRO_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S088",
+      "type": "基础",
+      "story": "我最近在认真想三十岁前要不要转行做产品：一边是做熟了的技术岗，一边是更喜欢但要降薪从头来的方向。约了几个转过行的前辈聊完，我发现自己真正怕的不是降薪，是从头证明自己。",
+      "primary": "GRO_06",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S089",
+      "type": "边界陷阱",
+      "story": "工作三年后我决定辞职读研，我导师那句「三十岁前的时间是用来换可能性的」推了我最后一把。",
+      "primary": "GRO_07",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S090",
+      "type": "基础",
+      "story": "打车被绕路多收了四十块，我本来想算了，最后还是投诉到底拿回了钱，不是为钱，是咽不下这口气。",
+      "primary": "VAL_01",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S091",
+      "type": "边界陷阱",
+      "story": "小区物业挪用维修基金，我牵头业主们开了三次会，最后逼着他们公示了账目。",
+      "primary": "VAL_01",
+      "accept": [],
+      "secondary": "REL_11",
+      "countInAccuracy": true
+    },
+    {
+      "id": "S092",
+      "type": "基础",
+      "story": "客户问我们产品能不能做到某个功能，同事都暗示我先答应下来，我还是照实说了做不到，单子差点飞了，但后来客户反而更信我们。",
+      "primary": "VAL_02",
+      "accept": [
+        "VAL_03"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S093",
+      "type": "基础",
+      "story": "网购了台「99新」的二手相机，到手发现快门数被刷过，卖家死不承认，那次之后我很难再相信个人卖家。",
+      "primary": "VAL_02",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S094",
+      "type": "基础",
+      "story": "上学期期末考，我最好的朋友希望我考试的时候帮他作弊，虽然他是我最好的朋友，但我觉得这种事对其他同学不公平，我还是就拒绝。",
+      "primary": "VAL_03",
+      "accept": [
+        "VAL_02"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S095",
+      "type": "基础",
+      "story": "小组展示前一晚有人提议直接用网上找的模板冒充原创，我坚持连夜重做，虽然效果糙一点，但至少是我们自己的。",
+      "primary": "VAL_03",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S096",
+      "type": "边界陷阱",
+      "story": "上个月我妈生病住院，我一边跑医院一边赶项目，两头烧了半个月，人瘦了五斤。",
+      "primary": "EMO_09",
+      "accept": [],
+      "secondary": "REL_02",
+      "countInAccuracy": true
+    },
+    {
+      "id": "S097",
+      "type": "边界陷阱",
+      "story": "为了跑完人生第一个半马，我练了大半年，从三公里都喘到能一口气跑十五公里，中间膝盖受伤停训一个月也没放弃；比赛那天我爸妈专程坐高铁来终点等我，冲线看到他们举着横幅，我又累又想哭。",
+      "primary": "GRO_03",
+      "accept": [
+        "GRO_01"
+      ],
+      "secondary": "REL_02",
+      "countInAccuracy": true
+    },
+    {
+      "id": "S098",
+      "type": "边界陷阱",
+      "story": "去年我一个人坐高铁去成都看五月天，唱到《倔强》全场大合唱，我和旁边同样一个人来的女生哭得稀里哗啦，互相递了纸巾。",
+      "primary": "SPI_04",
+      "accept": [
+        "EMO_10"
+      ],
+      "secondary": "SPA_06",
+      "countInAccuracy": true
+    },
+    {
+      "id": "S099",
+      "type": "超短文本",
+      "story": "就是喜欢安静吧，人多了累。",
+      "primary": "EMO_03",
+      "accept": [
+        "EMO_01",
+        "EMO_04"
+      ],
+      "secondary": null,
+      "countInAccuracy": true
+    },
+    {
+      "id": "S100",
+      "type": "域外观察条",
+      "story": "最近在攒钱，想买个相机，天天刷测评。",
+      "primary": "SPI_05",
+      "accept": [],
+      "secondary": null,
+      "countInAccuracy": false
+    }
+  ]
+}

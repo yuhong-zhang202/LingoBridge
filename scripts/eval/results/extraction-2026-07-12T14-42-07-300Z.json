@@ -1,0 +1,2336 @@
+{
+  "version": "v1",
+  "generatedAt": "2026-07-12T14:42:07.294Z",
+  "options": {
+    "runs": 1,
+    "only": null
+  },
+  "elapsedMs": 79558,
+  "metrics": {
+    "accDenom": 99,
+    "strictHit": 83,
+    "lenientHit": 89,
+    "dimHit": 93,
+    "secondaryFalseAdd": {
+      "num": 12,
+      "denom": 95
+    },
+    "secondaryMissed": {
+      "num": 1,
+      "denom": 4
+    },
+    "secondaryHit": {
+      "num": 2,
+      "denom": 3
+    },
+    "stability": {
+      "num": 99,
+      "denom": 99
+    },
+    "byType": [
+      {
+        "key": "基础",
+        "denom": 82,
+        "strict": 73,
+        "lenient": 76
+      },
+      {
+        "key": "边界陷阱",
+        "denom": 16,
+        "strict": 9,
+        "lenient": 12
+      },
+      {
+        "key": "超短文本",
+        "denom": 1,
+        "strict": 1,
+        "lenient": 1
+      }
+    ],
+    "byDim": [
+      {
+        "key": "EMO",
+        "name": "情绪内核 emotion",
+        "denom": 27,
+        "strict": 23,
+        "lenient": 24
+      },
+      {
+        "key": "REL",
+        "name": "人际羁绊 relationship",
+        "denom": 22,
+        "strict": 18,
+        "lenient": 19
+      },
+      {
+        "key": "SPA",
+        "name": "空间感知 space",
+        "denom": 16,
+        "strict": 13,
+        "lenient": 15
+      },
+      {
+        "key": "SPI",
+        "name": "精神栖所 spirit",
+        "denom": 14,
+        "strict": 11,
+        "lenient": 12
+      },
+      {
+        "key": "GRO",
+        "name": "成长演进 growth",
+        "denom": 14,
+        "strict": 14,
+        "lenient": 14
+      },
+      {
+        "key": "VAL",
+        "name": "价值底色 value",
+        "denom": 6,
+        "strict": 4,
+        "lenient": 5
+      }
+    ]
+  },
+  "runs": [
+    {
+      "itemId": "S001",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_01",
+          "reason": "叙述聚焦于「最近两三个月」的整体情绪基调——「平稳」「没什么大起大落」「情绪像一条平线」，属持续性状态描述，符合 EMO_01 对整体状态的定义；未涉及具体事件、行为或触发源，排除 EMO_09/EMO_10 等事件类点"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S002",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_01",
+          "reason": "描述的是近半年持续的整体情绪基调——紧绷、疲惫、动力缺失，属于长期状态而非单次事件或具体行为"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S003",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_02",
+          "reason": "描述长期、稳定的精力分布模式——夜间清醒高效、晨间低能，属于日常能量节奏的典型刻画"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S004",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_03",
+          "reason": "叙述重心是「一个人时如何度过时间」，强调独处状态下的沉浸感与脱离人际压力的舒适，行为（玩文明六）只是实现该状态的载体，而非对游戏本身的精神共鸣或技能成长"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S005",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_03",
+          "reason": "重心是「一个人吃晚饭」这一独处状态本身，强调无需迁就的自主性与舒适感；看下饭视频只是独处时的背景行为，不构成精神栖所的主体叙事"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S006",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_04",
+          "reason": "重心是熨衣服这一行为带来的放松效果，强调‘解压’功能与感官体验（蒸汽声、变平整），属于放松机制本身，而非独处状态或情绪事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S007",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_04",
+          "reason": "重心是「冲热水澡」这一具体行为带来的放松感，属于可复现的放松机制；虽涉及空间（浴室）和身体感受，但核心是解压方式本身，不归空间或情绪波动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S008",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_05",
+          "reason": "重心是「逛菜市场」这一行为带来的能量恢复感，强调‘整个人又活过来了’，属于充电机制，而非单纯放松或独处状态；虽涉及空间（菜市场）和食物（买菜），但食物和空间均为手段，核心是情绪能量的 replenishment"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S009",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_05",
+          "reason": "重心是「和老朋友打桌游」这件事带来的能量恢复效果（比睡十小时还管用、上班带劲），强调充电感，而非人际互动本身或桌游内容；虽有他人参与，但叙述焦点在自身能量状态的提升"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S010",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_06",
+          "reason": "描述一个持续四五年、具有仪式感的固定小习惯，核心是行为本身带来的心理稳定感和秩序感，符合「会反复回到的小习惯」定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S011",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_06",
+          "reason": "重心是「睡前叠衣」这一反复执行、带来心理安定的小习惯，体现对秩序与仪式感的依赖，属于情绪内核中对稳定性的需求"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S012",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_04",
+          "reason": "重心是「通过整理房间来缓解压力」这一放松机制本身，属于应对压力时的具身化舒缓行为；虽涉及空间（房间），但房间只是工具载体，非对空间本身的感知或依恋"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S013",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_04",
+          "reason": "重心是「遇到烦心事时用跑步来放松」这一应对机制本身，属于典型的放松行为；虽有‘跑完再想怎么办’的后续，但叙述核心落在‘跑两圈’这个解压动作上，而非问题解决过程或情绪波动事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S014",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_08",
+          "reason": "整段重心落在「我与食物的关系」——以食物为行动轴心（找、信、不信），体现对真实风味的执着和判断标准，是食物作为主角的稳定态度；虽涉及城市和他人（当地人），但「当地人吃的馆子」只是判断依据，非人际互动或空间体验本身"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S015",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_08",
+          "reason": "整段叙述聚焦于「我」与食物的关系——把工资花在吃上、为美食排队、视吃为「正经事」，强调食物在个人生活中的核心地位和主动选择，而非与家人共食的互动或情绪事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S016",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_09",
+          "reason": "重心是「答辩前硬盘损坏导致论文丢失」这一具体压力事件，有明确时间（答辩前一周）、场景（数据恢复与重写）和情绪反应（几乎没睡、最崩溃），属于单次高压力经历"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S017",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_09",
+          "reason": "重心是「同时赶三个项目截止」这一具体高压事件及其即时身心反应（手抖、行军床过夜），属于单次压力经历，而非长期状态或应对模式"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S018",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_04",
+          "reason": "重心是电影作品带来的强烈、纯粹的情绪击中感，属于艺术触发的即时感受，而非成长复盘或人际互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": false,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S019",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_10",
+          "reason": "叙述重心是「情绪突然爆发、当场落泪」这一明显的情绪波动事件，有具体场景（会议室→楼梯间）和身体反应（红眼眶、哭十分钟），符合EMO_10对单次情绪事件的定义；虽提及工作纰漏，但强调的是情绪反应强度远超事件本身，非成长复盘或压力模式"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S020",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_11",
+          "reason": "重心是「因即将公开展示而持续反刍、导致失眠」，明确指向焦虑触发与夜间清醒的生理反应，符合 EMO_11 对失眠具体诱因的定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S021",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_11",
+          "reason": "重心是「因重要事件引发的反复反刍与失眠」，明确指向焦虑触发的具体机制，符合 EMO_11 对失眠触发事由的定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S022",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_12",
+          "reason": "核心是「从未向任何人袒露的内心感受」——对朋友的羡慕及其引发的自我厌恶，属于自我袒露的边界与内在羞耻感，符合难以启齿/不会跟人说的事"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S023",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_12",
+          "reason": "整段叙述聚焦于「不敢向他人袒露的内心脆弱」——对电话的恐惧及其带来的羞耻感与自我压抑，核心是自我袒露的边界，而非情绪本身或具体事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S024",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_13",
+          "reason": "重心是「与外表/形象的关系」的长期态度转变——从在意身高、躲合照，到和解并主动穿搭扬长避短，体现对自我形象的持续认知与调适"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S025",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_13",
+          "reason": "重心是长期对外表/形象的自我认知与态度转变（从遮掩到接纳），属于对自我形象的稳定关系描述，而非单次情绪事件或人际互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S026",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_01",
+          "reason": "整段叙述聚焦于与父亲长期、稳定的日常相处模式——话少但通过养生文章、做饭等具体行为传递关心，是典型的关系模式而非单次事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S027",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_01",
+          "reason": "描述的是与家人长期、稳定的日常相处模式（固定时间、固定行为、固定角色分工），重心在关系的结构与节奏，而非某次具体事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S028",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_02",
+          "reason": "叙述重心是「一次与家人（母亲）发生的具体温暖事件」，有明确时间、场景、动作和情绪反应，属于单次共处的亲密互动，而非长期模式"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S029",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_02",
+          "reason": "核心是「和家人之间的一次具体冲突事件」，有明确时间（过年）、人物（我爸）、行为（吵架、摔门）和后续（他默默做饭），属于单次家庭互动事件"
+        },
+        "secondary": {
+          "pointCode": "EMO_07",
+          "reason": "摔门后的沉默与日常饭菜的回归，隐含「应对压力时惯常的回避-修复模式」，构成情绪维度的独立叙事层：冲突后不言和但以行动缓释，是关系张力下的情绪调节惯性"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S030",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_03",
+          "reason": "整段叙述聚焦于对这位朋友的整体感受和关系特质——长期稳定、无需伪装、自然舒适，属于对某段关系的概括性描述，而非单次共度事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S031",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_03",
+          "reason": "重心是描述一段长期、稳定、令人舒服的友谊关系，强调彼此间的默契与信任，属于对某段关系的整体感受，而非单次共度事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S032",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_04",
+          "reason": "重心是「和室友共度跨年夜」这一单次共同事件，核心在互动与共处的温暖感，而非长期关系模式或空间体验"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S033",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_04",
+          "reason": "叙述重心是「和发小一次具体的共度夜晚」，有明确时间（上个月）、人物（发小）、场景（大排档）和互动内容（从八卦聊到人生规划），属于单次朋友共度事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S034",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_05",
+          "reason": "核心是「暗恋」这一段未展开但真实存在的亲密关系倾向，主角是心动对象及其引发的心理状态，符合单身者对心动/暧昧/暗恋的叙述"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S035",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_05",
+          "reason": "叙述核心是「和对象的异地亲密关系」，通过固定仪式维系情感联结，重心在关系本身而非仪式习惯或精神作品"
+        },
+        "secondary": {
+          "pointCode": "EMO_06",
+          "reason": "「每周五同步看电影」作为反复回归的小习惯，承载稳定感与情感锚点，构成独立的情绪仪式维度"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S036",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_06",
+          "reason": "核心是与一位陌生老爷爷的单次相遇，重点在于他穿汉服的认真态度带来的印象，属于陌生人之间的具体相遇事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S037",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_06",
+          "reason": "重心是与一位陌生司机师傅的单次相遇，其善意言行带来情感触动，符合「印象深刻陌生人」的定义；虽有情绪反应，但情绪是结果而非叙述重心"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S038",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_07",
+          "reason": "重心是猫作为日常陪伴者带来的稳定存在感和情感依赖，属于与宠物的日常互动关系；「踩脸叫醒」是持续性行为，体现猫在生活节奏中的角色"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S039",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_07",
+          "reason": "重心是与流浪猫长期、日常的互动关系，体现动物作为稳定陪伴者存在，符合「日常陪伴」定义；虽有时间长度和行为变化，但核心在「我和猫之间持续建立的信任与联结」"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S040",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_02",
+          "reason": "重心是「与家人共同经历宠物离世」这一具体事件，强调全家陪伴的共同时刻，属于家人间一次有情感重量的具体共处，而非日常模式或宠物本身的行为"
+        },
+        "secondary": {
+          "pointCode": "REL_08",
+          "reason": "狗临终前摇尾巴是与宠物的一次特殊互动，构成独立的情感瞬间，具有叙事重量，可作为副维度"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S041",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_07",
+          "reason": "重心是仓鼠作为家庭成员的日常陪伴与互动，「越狱失踪」「翻箱倒柜寻找」「在鞋柜深处找到」体现的是人与宠物之间持续、具象的依恋与照护关系，而非单次事件或情感波动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S042",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_09",
+          "reason": "主语是「我帮」——主动共享笔记给陌生人，行为本质是无偿帮助他人，且故事落点在「他考上了」这一帮助结果上"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S043",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_09",
+          "reason": "主语是「我帮」，核心是主动提供帮助（给巧克力、陪伴确认安全），行为动机明确指向利他支持"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S044",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_06",
+          "reason": "重心是与一位陌生人的单次相遇及他给予的善意，强调「那位大叔」及其行为带来的印象，属于陌生人层面的联结"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S045",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_10",
+          "reason": "故事重心是「被陌生人（学姐）主动帮助」这一单次事件，核心主语是‘我被帮’，且帮助行为具有具体时长（半个月）和情感温度（她分享自身经历）"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S046",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_11",
+          "reason": "故事重心是「与室友因生活习惯冲突而爆发摊牌、争吵、冷战」这一完整的关系摩擦过程，属于一次真实且有叙事重量的对抗事件"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S047",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_01",
+          "reason": "重心是遭遇持续性不公平干扰（深夜装修）、主动依据规则和证据维权，核心是争取环境正义与合理权益，而非单纯情绪反应或人际冲突"
+        },
+        "secondary": {
+          "pointCode": "REL_11",
+          "reason": "与邻居之间发生了三次沟通及后续正式交涉，构成一次有过程、有张力、未被消解的实质性关系摩擦，是独立于维权主线的第二叙事层"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": false,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S048",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_01",
+          "reason": "重心是长期居住空间带来的归属感与情感依恋，强调「出租屋→我的地方→最安心」的空间情感转化过程，属对住所的长期关系"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S049",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_01",
+          "reason": "重心是「对家乡居住空间的长期情感依恋」，老街口与炸串味作为具身化的空间锚点，唤起归属感与安定感；虽有感官细节，但核心在空间带来的心理落点，而非情绪状态本身或食物偏好"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S050",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_04",
+          "reason": "重心是通勤时段带来的「放松」体验——不回消息、不管他人，强调紧绷消解后的心理状态；虽涉及通勤行为，但空间移动只是载体，核心在情绪机制"
+        },
+        "secondary": {
+          "pointCode": "SPA_02",
+          "reason": "通勤本身作为日常位移状态被明确提及（单程一个半小时），构成独立的空间感知副维度"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": false,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S051",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_02",
+          "reason": "重心是日常通勤方式（骑车上班）及其带来的空间体验，强调「二十分钟的河边骑行」这一固定位移路径与自我状态的关联，属于日常移动/通勤的长期模式"
+        },
+        "secondary": {
+          "pointCode": "EMO_03",
+          "reason": "「最像自己的时刻」指向独处时的内在状态与自我认同，是情绪内核中「一个人时怎么度过时间」的深层表达，构成独立的第二叙事角度"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S052",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_03",
+          "reason": "重心是「对所在城市的长期复杂感受」——六年居住形成的疏离与依恋并存的态度，属于对城市/街区的长期关系"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S053",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_03",
+          "reason": "整段重心是「与所在城市的关系演变」——从初来乍到的隔阂，到语言习得、日常习惯养成、气质被浸润、最终产生归属感，呈现长期态度转变"
+        },
+        "secondary": {
+          "pointCode": "GRO_02",
+          "reason": "粤语能力从零到能点菜砍价，是明确可识别的技能习得过程，构成独立的成长叙事层"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S054",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_04",
+          "reason": "重心是「第一次走进国家图书馆老阅览室」这一具体公共空间带来的强烈感官与情绪冲击，描述聚焦于建筑特征（穹顶、台灯）与空间氛围（安静、震撼），属单次具体空间体验"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S055",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_04",
+          "reason": "重心是单次、具体的空间体验——对新修图书馆建筑的感官印象与身体反应（光、呼吸变化），属于对特定公共空间的深刻感受"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S056",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_05",
+          "reason": "重心是旅行时主动放弃规划、依赖直觉漫游的长期偏好与行为模式，体现「你是什么样的旅行者」这一基调，而非某次具体远行或空间感受"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S057",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_05",
+          "reason": "重心落在「旅行节奏与偏好」——对景点的沉浸式停留、拒绝赶路，体现「我是怎样的旅行者」这一长期模式；朋友嫌慢只是佐证该偏好的外部反馈，不构成人际互动的叙事重心"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S058",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_06",
+          "reason": "重心是「一次具体的远行」，甘南之行是完整事件，大雪封路是其中关键情节，空间移动与环境突变构成叙事核心"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S059",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_06",
+          "reason": "叙述重心是「毕业自驾川西环线」这一具体远行事件，包含路线、行为（换着开车）、标志性场景（折多山顶云海），空间移动与地理体验是核心"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S060",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_04",
+          "reason": "重心是「在城市楼缝间偶遇圆月」这一具体空间场景带来的瞬间感受，属于对特定公共空间（城市天际线缝隙）的单次深刻印象；虽有情绪缓释效果，但叙述锚点是月亮与建筑构成的空间画面，而非情绪本身或独处状态"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S061",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_06",
+          "reason": "重心是「一次具体的远行」，包含时间（五一）、地点（黄山）、核心体验（日出、云海），空间位移与自然景观共同构成叙事主干"
+        },
+        "secondary": {
+          "pointCode": "SPA_07",
+          "reason": "云海翻涌时的震撼感触及人与自然的深层联结，属于「自然里让你有感觉的时刻」，与远行事件并存且具独立情感分量"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S062",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_08",
+          "reason": "全程围绕种植小番茄这一具体园艺实践展开，强调从种子到结果的过程、时间跨度及空间变化（阳台摆不下），核心是人与植物生长过程的持续互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S063",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_08",
+          "reason": "核心是种植行为及其承载的情感联结——从爷爷的小菜园到自己在飘窗种薄荷小葱，重心落在「亲手种植」这一空间实践与代际记忆的延续上"
+        },
+        "secondary": {
+          "pointCode": "REL_02",
+          "reason": "爷爷作为关键人物，其小菜园构成一次具体、温暖的家人共处场景（暑假陪伴），且‘想起他’指向这段关系中的具象互动而非抽象模式，符合REL_02单次事件的温情向定义"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S064",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_01",
+          "reason": "重心是《老友记》作为长期反复观看、提供情绪锚定的作品，体现其贯穿性陪伴功能"
+        },
+        "secondary": {
+          "pointCode": "EMO_04",
+          "reason": "「难过时放一集当背景音」明确指向该作品作为放松机制的使用场景，构成独立的情绪调节叙事层"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S065",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_01",
+          "reason": "重心是《范特西》作为贯穿多年、反复聆听的陪伴型作品，强调长期重听与情感绑定，符合「反复回去的作品」定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S066",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_02",
+          "reason": "重心是《海阔天空》在考研特定困难时期提供的陪伴与精神支撑，属于阶段型作品陪伴"
+        },
+        "secondary": {
+          "pointCode": "EMO_09",
+          "reason": "考研最黑暗那几个月是明确的压力事件背景，构成一次具体、有时间锚点的压力经历"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S067",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_02",
+          "reason": "重心是《重版出来》在特定迷茫时期提供的陪伴与支撑，属于阶段型精神陪伴"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S068",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_03",
+          "reason": "重心是作品带来的认知转变——从「想不通」到「真正理解」，明确呈现「以前→现在」的看法变化"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S069",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_03",
+          "reason": "重心是纪录片带来的认知转变——从无意识到「免费即付费」的深层逻辑，属于作品改变看法的典型场景"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S070",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_04",
+          "reason": "重心是作品（《行星组曲》木星乐章）带来的瞬间、纯粹、非理性的身体与情绪反应（流泪），属于艺术击中感受的典型表现，不涉及认知改变、长期陪伴或物品意义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S071",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_04",
+          "reason": "重心是作品（莫奈睡莲）带来的瞬间、纯粹的感官震撼与情绪击中，强调颜色震动这一被艺术击中的感受，符合「一首歌/一件作品带来的纯粹感受」的定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S072",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_05",
+          "reason": "重心是「外婆留下的旧手表」这件物品，及其承载的情感意义（小蓝点、舍不得修），属于物背后的故事与分量，而非情绪状态或人际互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S073",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_05",
+          "reason": "重心是「相机」这件物品对「我」的特殊意义——积蓄八个月、郑重取货、保留包装盒至今，强调物承载的情感与仪式感，而非技能学习或空间/人际等其他维度"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S074",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_06",
+          "reason": "重心是「在网易云评论区长期潜水、把评论区当树洞」这一数字空间里的精神栖居行为，体现对数字社区的情感依恋与日常栖居感"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S075",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_05",
+          "reason": "重心是Notion作为「存放我这个人」的特殊物品，强调其承载自我、情感与存在意义，符合「物背后的意义/来历/分量」的核心定义；虽涉及数字工具，但非日常依恋行为（SPI_06），而是具象化的精神容器"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S076",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_03",
+          "reason": "叙述重心是「每天睡前独处时上线动森」这一持续性独处行为本身，强调时间规律（每天睡前）、行为惯性（四百多天没断过）和心理状态（小岛比房间还整齐暗示秩序感与自我安顿），而非游戏内容或数字栖居体验"
+        },
+        "secondary": {
+          "pointCode": "SPI_06",
+          "reason": "动森小岛作为数字空间被长期依恋、精心打理，体现数字世界里的深度栖居，与主维度的独处行为构成双轨并存的叙事重心"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": false,
+        "goldHasSecondary": false,
+        "predHasSecondary": true,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S077",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_01",
+          "reason": "重心是「四年持续、规律、无功利目标的健身投入」，体现长期坚持的投入状态，符合GRO_01对「无终点、贯穿性投入」的定义；虽提到「地基」的比喻，但未转向情绪体验或空间/精神等其他维度"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S078",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_01",
+          "reason": "重心是「长期坚持晨间三页」这一无终点的持续投入，强调时间长度（两年多）和仪式性动作本身，符合GRO_01对长期坚持行为的定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S079",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_02",
+          "reason": "重心是「学会一项具体技能（吉他弹唱）」，有明确习得对象和阶段性成果（从磨茧到完整弹唱《晴天》）"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S080",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_02",
+          "reason": "重心是「学会一项明确技能——像素画」，包含学习过程、阶段性成果（火柴人→完整角色）和可验证的习得证据（文件夹记录）"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S081",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_03",
+          "reason": "重心是「靠反复试错、死磕十七版最终攻克算法不收敛难题」，属于高投入、高难度、有明确成果的死磕型成就"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S082",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_03",
+          "reason": "重心是「靠极端投入和死磕攻克N2考试」这一高光成就事件，强调过程强度与结果达成，符合死磕型突破的定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S083",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_04",
+          "reason": "叙述重心是失败后「看清问题根源（未验证需求）→形成认知调整」，属于成长维度的复盘机制，而非单纯情绪崩溃或单次事件描述"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S084",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_04",
+          "reason": "重心是失败后系统性复盘与改进——列问题表、逐条补足，体现「失败→认知调整→行动修正」的成长逻辑，而非情绪反应本身"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S085",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_05",
+          "reason": "叙述重心是「以前→现在」的明确想法转变：从轻视稳定到承认过稳日子是本事，且转变由具体事件触发，符合GRO_05定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S086",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_05",
+          "reason": "叙述重心是「认知的转变」——从「看不起混圈子」到「承认人脉也是实力」，明确呈现了以前→现在的观念变化，符合GRO_05定义"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S087",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_06",
+          "reason": "叙述重心是「对毕业去向的持续思考与内在觉察」，聚焦于当下对未来方向的思辨过程，而非已做出的决定或具体行动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S088",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_06",
+          "reason": "重心是「对自身未来职业方向的深度思考」，明确呈现了当前阶段的权衡、困惑与自我觉察，符合「现在怎么想方向」的定义，而非已发生的行动或决定"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S089",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_07",
+          "reason": "故事重心是「做出辞职读研这一重要人生决定」，导师的话是促成决定的关键影响因素，而非聚焦于师生关系本身"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S090",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_01",
+          "reason": "重心是「被司机不公平对待→主动投诉争取公正」，核心在于对不公的反应与坚持，而非单纯情绪或消费纠纷"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S091",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_01",
+          "reason": "重心是物业挪用资金这一不公平行为，以及我作为业主为争取透明与公正所采取的集体行动，核心是公平感与正义诉求"
+        },
+        "secondary": {
+          "pointCode": "REL_11",
+          "reason": "三次开会过程包含与物业方的多轮对峙、交涉与施压，构成一次有始有终、具叙事重量的冲突对抗事件，非单纯背景或配角存在"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": true,
+        "predHasSecondary": true,
+        "secondaryHit": true
+      }
+    },
+    {
+      "itemId": "S092",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_03",
+          "reason": "重心是「在业务压力下坚持如实告知、拒绝虚假承诺」，体现对专业底线和真实性的坚守，属于原则性选择"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S093",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_02",
+          "reason": "故事核心是「被欺骗后对诚信体系的信任崩塌」，重心在「信任被破坏」这一价值层面的冲击，而非单纯情绪反应或人际互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S094",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_01",
+          "reason": "故事重心是面对朋友提出的作弊请求时，因「对其他同学不公平」而选择拒绝，核心张力在于公平感与正义原则的坚守，而非友情本身或人际互动过程"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S095",
+      "type": "基础",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "VAL_03",
+          "reason": "重心是「在他人提议走捷径的压力下，坚持原创原则、拒绝虚假呈现」，体现对真实性和责任的坚守"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S096",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "REL_02",
+          "reason": "重心是「母亲生病住院」这一与家人发生的单次具体事件，伴随照料行动和身心消耗，属于家人间一次真实、有张力的具体互动"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": false,
+        "goldHasSecondary": true,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S097",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "GRO_03",
+          "reason": "重心是「靠长期死磕完成半马」这一高光成就，包含系统训练、伤病坚持、最终达成，符合‘靠死磕做成的事’定义"
+        },
+        "secondary": {
+          "pointCode": "REL_02",
+          "reason": "爸妈专程赴终点等待并举横幅，是与家人之间一次具体、有情感张力的单次事件，构成独立于成长主线的亲情叙事层"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": true,
+        "predHasSecondary": true,
+        "secondaryHit": true
+      }
+    },
+    {
+      "itemId": "S098",
+      "type": "边界陷阱",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPA_06",
+          "reason": "叙述重心是「一次具体的远行」——独自坐高铁赴成都看演唱会，空间位移与事件完整性构成核心；虽有互动，但人际是远行中的自然发生，非关系本身被刻画"
+        },
+        "secondary": {
+          "pointCode": "REL_04",
+          "reason": "「和陌生女生哭着递纸巾」是一次有温度、有细节的单次共度，构成独立的人际互动叙事层，去掉它，故事的情感厚度会明显削弱"
+        }
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": false,
+        "lenientHit": false,
+        "dimHit": false,
+        "goldHasSecondary": true,
+        "predHasSecondary": true,
+        "secondaryHit": false
+      }
+    },
+    {
+      "itemId": "S099",
+      "type": "超短文本",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "EMO_03",
+          "reason": "重心是「一个人时偏好安静、人多感到累」，描述的是独处状态下的内在体验与倾向，属于与自己相处的独处行为模式"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": {
+        "strictHit": true,
+        "lenientHit": true,
+        "dimHit": true,
+        "goldHasSecondary": false,
+        "predHasSecondary": false,
+        "secondaryHit": null
+      }
+    },
+    {
+      "itemId": "S100",
+      "type": "域外观察条",
+      "run": 1,
+      "status": "ok",
+      "prediction": {
+        "primary": {
+          "pointCode": "SPI_06",
+          "reason": "重心是「在数字世界（测评平台）中持续栖居、主动搜寻信息」，属于数字产品/社区与日常依恋的关系；攒钱和买相机是目标，但行为主线是刷测评这一数字栖居实践"
+        },
+        "secondary": null
+      },
+      "errorMessage": null,
+      "judged": null
+    }
+  ],
+  "errorRuns": []
+}
