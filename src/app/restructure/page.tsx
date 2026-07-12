@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { MOCK_RAW_STORY } from '@/data/restructure'
-import { takeHandoff } from '@/lib/handoff'
+import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
 import { getSupabase } from '@/lib/supabase'
@@ -32,23 +32,29 @@ function RestructureContent() {
   const router   = useRouter()
   const params   = useSearchParams()
   const qid      = params.get('qid')
-  // 故事正文从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
-  // 旧链接兜底：回退读 rawText；都为空则用 MOCK_RAW_STORY。
-  const [rawStory] = useState<string>(() => {
+  // 故事正文（及可选的预检整理结果）从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
+  // 新版结构化 handoff 携 { rawText, cleanedText }：直接进已整理态、跳过首次整理调用；
+  // 旧版纯字符串 handoff（网络/非 402 错误兜底）仍原样读出，走自行整理。都无则回退 rawText / MOCK。
+  const [handoff] = useState<{ rawStory: string; cleanedText: string | null }>(() => {
     const h = params.get('h')
     if (h) {
-      const v = takeHandoff(h)
-      if (v !== null) return v
+      const j = takeHandoffJson<{ rawText?: unknown; cleanedText?: unknown }>(h)
+      if (j && typeof j.rawText === 'string' && typeof j.cleanedText === 'string') {
+        return { rawStory: j.rawText, cleanedText: j.cleanedText }
+      }
+      const s = takeHandoff(h)   // 解析失败时未消费，此处原样读出旧版纯文本
+      if (s !== null) return { rawStory: s, cleanedText: null }
     }
-    return params.get('rawText') ?? MOCK_RAW_STORY
+    return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null }
   })
-  const [isLoading, setIsLoading] = useState(true)
-  const [aiText,     setAiText]     = useState('')
+  const rawStory = handoff.rawStory
+  const [isLoading, setIsLoading] = useState(handoff.cleanedText === null)
+  const [aiText,     setAiText]     = useState(handoff.cleanedText ?? '')
   // AI 产出的原始整理文本基准；aiText 与它不一致 = 用户编辑过（未保存）
-  const [aiBaseline, setAiBaseline] = useState('')
+  const [aiBaseline, setAiBaseline] = useState(handoff.cleanedText ?? '')
   const [isEditing, setIsEditing] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
-  const [usable,    setUsable]    = useState<boolean | null>(null)
+  const [usable,    setUsable]    = useState<boolean | null>(handoff.cleanedText !== null ? true : null)
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层
@@ -90,10 +96,11 @@ function RestructureContent() {
   }, [rawStory])
 
   useEffect(() => {
+    if (handoff.cleanedText !== null) return   // 预检已带整理结果，跳过首次 API 调用
     const ac = new AbortController()
     void runRestructure(ac.signal)
     return () => ac.abort()
-  }, [runRestructure])
+  }, [runRestructure, handoff.cleanedText])
   // A13 防重入：「重新整理」「重试」两个按钮共用一个 ref 守卫，连点只发一次 AI 整理
   const [reRestructure] = useAsyncAction(runRestructure)
 

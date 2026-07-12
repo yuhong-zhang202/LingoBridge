@@ -9,12 +9,13 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
-import { putHandoff } from '@/lib/handoff'
+import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { getSupabase } from '@/lib/supabase'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
 import type { RecordingViewProps } from './types'
 
 /** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
@@ -32,6 +33,8 @@ function RecordingContent(): JSX.Element {
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  // 预检 402（匿名整理额度用尽）→ 弹试用结束覆盖层，不带用户去 restructure 页再失败一次
+  const [quotaReached, setQuotaReached] = useState(false)
   const { audioLevel, start, stop } = useAudioRecorder()
 
   // 计时（转写时暂停）
@@ -82,7 +85,7 @@ function RecordingContent(): JSX.Element {
         setTranscribing(false)
         return
       }
-      // 第二层：让 restructure 判断 usable
+      // 第二层：让 restructure 判断 usable；usable 时把整理结果一并带走，restructure 页免二次整理调用
       try {
         const checkRes = await fetch('/api/restructure', {
           method: 'POST',
@@ -90,6 +93,11 @@ function RecordingContent(): JSX.Element {
           body: JSON.stringify({ rawText: data.text }),
           signal: ac.signal,
         })
+        // 匿名整理额度用尽：不跳转，弹试用结束提示
+        if (checkRes.status === 402) {
+          if (!ac.signal.aborted) { setQuotaReached(true); setTranscribing(false) }
+          return
+        }
         if (checkRes.ok) {
           const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean }
           if (!checkData.usable) {
@@ -97,7 +105,11 @@ function RecordingContent(): JSX.Element {
             setTranscribing(false)
             return
           }
+          if (ac.signal.aborted) return          // 已跳页则不再导航
+          router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText })}${qid ? `&qid=${qid}` : ''}`)
+          return
         }
+        // 其他非 402 错误：落到 try 外的放行分支，restructure 页兜底自行整理
       } catch { /* API 错误（含中断）放行，restructure 页面兜底 */ }
       if (ac.signal.aborted) return          // 已跳页则不再导航
       router.push(`/restructure?h=${putHandoff(data.text)}${qid ? `&qid=${qid}` : ''}`)
@@ -139,6 +151,8 @@ function RecordingContent(): JSX.Element {
           <RecordingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
+      {/* 匿名整理额度用尽：试用结束覆盖层，关闭即回首页 */}
+      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

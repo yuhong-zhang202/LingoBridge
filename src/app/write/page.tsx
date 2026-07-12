@@ -27,7 +27,7 @@ function WriteContent(): JSX.Element {
   const qid = useSearchParams().get('qid')
   const [textStory, setTextStory] = useState('')
   const [questionContext, setQuestionContext] = useState<WriteQuestionContext | null>(null)
-  const { submitting, toastMsg, submit, dismissToast } = useStorySubmit({ text: textStory, qid })
+  const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid })
 
   // 软守卫：本月故事额度已满时进页即提示，让用户在写作/整理前就知道（服务端 402 仍是硬兜底）。只读走 RLS，安全。
   const [storyQuotaReached, setStoryQuotaReached] = useState(false)
@@ -94,6 +94,8 @@ function WriteContent(): JSX.Element {
       <Toast message={toastMsg} onDismiss={dismissToast} />
       {/* 故事额度已满软守卫：进页即提示，关闭回首页 */}
       {storyQuotaReached && <QuotaReached variant="story" asOverlay onClose={() => router.push('/')} />}
+      {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
+      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={dismissQuota} />}
     </>
   )
 }

@@ -178,7 +178,7 @@ export default function HomePage() {
   const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
   const { question, loading, error, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
-  const { submitting, toastMsg, submit, dismissToast } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
+  const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
 
   // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）。
   // 这是 JS 驱动的循环动画，globals.css 的 reduced-motion 兜底管不住 → 开启「减弱动效」时直接显示完整标题、不启动定时器。
@@ -622,6 +622,8 @@ export default function HomePage() {
         onUseText={() => { setMicSheet(null); setShowTextInput(true) }}
         onDismiss={() => setMicSheet(null)}
       />
+      {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
+      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={dismissQuota} />}
     </>
   )
 }

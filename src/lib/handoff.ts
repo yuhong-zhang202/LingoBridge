@@ -37,3 +37,29 @@ export function takeHandoff(id: string): string | null {
   sessionStorage.removeItem(key)
   return v
 }
+
+/**
+ * 把任意可序列化值 JSON 序列化后暂存，返回短 id（用于 URL）。
+ * @returns 短 id；服务端环境返回空串
+ */
+export function putHandoffJson<T>(value: T): string {
+  return putHandoff(JSON.stringify(value))
+}
+
+/**
+ * 按 id 取出并 JSON 反序列化；仅在解析成功时消费（删除并返回值），解析失败或不存在返回 null。
+ * 解析失败故意不消费——旧版纯字符串 handoff 走此路会返回 null，调用方可回退用 takeHandoff 原样读出。
+ */
+export function takeHandoffJson<T>(id: string): T | null {
+  if (typeof window === 'undefined' || !id) return null
+  const key = PREFIX + id
+  const raw = sessionStorage.getItem(key)
+  if (raw === null) return null
+  try {
+    const parsed = JSON.parse(raw) as T
+    sessionStorage.removeItem(key)
+    return parsed
+  } catch {
+    return null
+  }
+}
