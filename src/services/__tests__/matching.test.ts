@@ -225,4 +225,37 @@ describe('matchByStory · 三层漏斗', () => {
     // 邻居借道用 includeSec=true
     expect(mockGetQs).toHaveBeenCalledWith('REL_11', true)
   })
+
+  test('7. 邻居增援（召回不足补足）：L1 只召回 2 道（<NEIGHBOR_MIN=3）→ 借邻居补题，matchedViaNeighbor=true', async () => {
+    mockExtract.mockResolvedValue({
+      primary:   { pointCode: 'SPA_03', reason: 'r' },  // 邻居表 SPA_03: [SPA_01, SPA_04, SPA_02]
+      secondary: null,
+    })
+    const q1 = makeQ('q1', 1)
+    const q2 = makeQ('q2', 1)
+    const n1 = makeQ('n1', 2)
+    const n2 = makeQ('n2', 2)
+    mockGetQs.mockImplementation(async (code) => {
+      if (code === 'SPA_03') return [q1, q2]  // L1 主观察点仅 2 道（<3）
+      if (code === 'SPA_01') return [n1, n2]  // 首位邻居补 2 道 → 共 4
+      return []
+    })
+    mockRank.mockResolvedValue([
+      { id: 'q1', score: 90, reason: '' },
+      { id: 'n1', score: 80, reason: '' },
+      { id: 'q2', score: 70, reason: '' },
+      { id: 'n2', score: 60, reason: '' },
+    ])
+
+    const r = await matchByStory(STORY)
+
+    expect(r.noMatch).toBe(false)
+    expect(r.matchedViaSecondary).toBe(false)
+    expect(r.matchedViaNeighbor).toBe(true)          // 召回不足触发了邻居补题
+    expect(r.count).toBe(4)                           // 2 主 + 2 邻居（seen 去重生效）
+    expect(r.neighborPointsUsed.map(p => p.pointCode)).toEqual(['SPA_01'])
+    const byId = new Map(r.questions.map(q => [q.id, q]))
+    expect(byId.get('q1')!.isPrimaryMatch).toBe(true)   // 主题保持主命中
+    expect(byId.get('n1')!.isPrimaryMatch).toBe(false)  // 邻居题非主命中
+  })
 })

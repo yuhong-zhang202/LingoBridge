@@ -111,9 +111,13 @@ function MatchingContent() {
 
   const foldedCount  = midGroup.length + lowGroup.length
   const hasMore      = foldedCount > 0
+  // noneVisible：当前 Tab 三档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可
   const noneVisible  = highGroup.length === 0 && midGroup.length === 0 && lowGroup.length === 0
+  // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_LOW 计数）。
+  // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
+  const globalNoneVisible = !!result && !result.noMatch && totalVisible === 0
 
-  const viewProps: MatchingViewProps = {
+  const viewProps: MatchingViewProps & { globalNoneVisible: boolean } = {
     result,
     loading,
     error,
@@ -127,6 +131,7 @@ function MatchingContent() {
     foldedCount,
     hasMore,
     noneVisible,
+    globalNoneVisible,
     selectedId,
     expanded,
     onSelectTab: (tab) => setActiveTab(tab),

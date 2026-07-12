@@ -13,7 +13,9 @@ import { DIMENSION_LABEL } from '@/lib/constants'
 import { OBSERVATION_ADJACENCY } from '@/lib/observation-adjacency'
 import type { MatchedPoint } from '@/lib/types'
 
-/** 邻居兜底层累计到此题数即停止继续借相邻观察点 */
+/** 召回题数低于此值就进入邻居增援层补题（含 L1/L2 已召回到少量题的情况，非仅完全为空） */
+const NEIGHBOR_MIN = 3
+/** 邻居增援层累计到此题数即停止继续借相邻观察点 */
 const NEIGHBOR_TARGET = 5
 
 export interface FunnelMatchedQuestion {
@@ -115,10 +117,10 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
   if (primary) {
     // 第一层含副标签：副挂（is_primary=false）语义为「该点故事也能直接答此题」，首层必须能召回
     const primaryHits = await collectFrom(primary, true, true)
+    allQuestions.push(...primaryHits)
 
     if (primaryHits.length > 0) {
       // 第一层命中：主维度有题；若 secondary 非空，再追加副维度题作为补充
-      allQuestions.push(...primaryHits)
       if (secondary) {
         const secondaryHits = await collectFrom(secondary, false)
         allQuestions.push(...secondaryHits)
@@ -129,22 +131,26 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
       if (secondaryHits.length > 0) {
         allQuestions.push(...secondaryHits)
         matchedViaSecondary = true
-      } else {
-        // 第三层·邻居兜底：主/副皆空，按优先级借主观察点的相邻观察点，累计 ≥NEIGHBOR_TARGET 或邻居用尽即停
-        for (const code of OBSERVATION_ADJACENCY[primary.pointCode] ?? []) {
-          const neighbor = toMatchedPoint({ pointCode: code, reason: '' })
-          if (!neighbor) continue
-          const hits = await collectFrom(neighbor, false, true)
-          if (hits.length > 0) {
-            allQuestions.push(...hits)
-            neighborPointsUsed.push(neighbor)
-          }
-          if (allQuestions.length >= NEIGHBOR_TARGET) break
-        }
-        if (allQuestions.length > 0) matchedViaNeighbor = true
-        else noMatch = true
       }
     }
+
+    // 第三层·邻居增援：不论 L1/L2 是否命中，只要召回不足（< NEIGHBOR_MIN）就按优先级借相邻观察点补题，
+    // 累计到 ≥NEIGHBOR_TARGET 或邻居用尽即停；seen 去重避免与已召回题重复。命中即标记 matchedViaNeighbor。
+    if (allQuestions.length < NEIGHBOR_MIN) {
+      for (const code of OBSERVATION_ADJACENCY[primary.pointCode] ?? []) {
+        const neighbor = toMatchedPoint({ pointCode: code, reason: '' })
+        if (!neighbor) continue
+        const hits = await collectFrom(neighbor, false, true)
+        if (hits.length > 0) {
+          allQuestions.push(...hits)
+          neighborPointsUsed.push(neighbor)
+        }
+        if (allQuestions.length >= NEIGHBOR_TARGET) break
+      }
+      if (neighborPointsUsed.length > 0) matchedViaNeighbor = true
+    }
+
+    noMatch = allQuestions.length === 0
   } else {
     // 理论上萃取保证 primary 非 null，此处作保险兜底
     noMatch = true

@@ -155,11 +155,11 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
 
 export default function MatchingDesktop({
   result, loading, error, totalVisible, availableTabs, activeTab, filtered,
-  highGroup, midGroup, lowGroup, noneVisible, selectedId,
+  highGroup, midGroup, lowGroup, noneVisible, globalNoneVisible, selectedId,
   onSelectTab, onSelect, onPractice, onRetry, onExit,
-}: MatchingViewProps) {
+}: MatchingViewProps & { globalNoneVisible: boolean }) {
 
-  const hasList = !loading && !error && !!result && !result.noMatch
+  const hasList = !loading && !error && !!result && !result.noMatch && !globalNoneVisible
   // 有序可导航列表：高→中→低（与左栏展示顺序一致）
   const ordered = [...highGroup, ...midGroup, ...lowGroup]
   const selected = result ? (result.questions.find(q => q.id === selectedId) ?? null) : null
@@ -168,9 +168,9 @@ export default function MatchingDesktop({
   // 仅桌面断点生效——两视图同时挂载，matchMedia 守卫避免在移动端改写共享 selectedId。
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia('(min-width: 1024px)').matches) return
-    if (!result || result.noMatch || filtered.length === 0) return
+    if (!result || result.noMatch || globalNoneVisible || filtered.length === 0) return
     if (!filtered.some(q => q.id === selectedId)) onSelect(filtered[0].id)
-  }, [filtered, selectedId, result, onSelect])
+  }, [filtered, selectedId, result, globalNoneVisible, onSelect])
 
   // 键盘：↑↓ 切题、Enter/→ 进入分析、Esc 退出（仅桌面断点、有列表时才挂）
   const latest = useRef({ ordered, selectedId, onSelect, onPractice, onExit })
@@ -249,14 +249,15 @@ export default function MatchingDesktop({
 
   if (!result) return <div className={STAGE} />
 
-  // noMatch 温柔收尾：不套 master-detail，focus 档居中复用 NoMatchView
-  if (result.noMatch) {
+  // noMatch（真没题）与 globalNoneVisible（有题但全部低分被隐藏）统一：不套 master-detail，居中复用 NoMatchView
+  if (result.noMatch || globalNoneVisible) {
     return (
       <div className={`${STAGE} flex items-center justify-center px-8`}>
         <div className="w-full max-w-[600px]">
           <NoMatchView
             primaryDimension={result.primary?.dimension ?? ''}
             primaryPointName={result.primary?.pointName ?? ''}
+            variant={result.noMatch ? 'noMatch' : 'lowScore'}
           />
         </div>
       </div>

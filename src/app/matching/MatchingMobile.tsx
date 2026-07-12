@@ -40,10 +40,10 @@ function GroupHeader({ label, count, variant }: {
 
 export default function MatchingMobile({
   result, loading, error, totalVisible, availableTabs, activeTab,
-  highGroup, midGroup, lowGroup, foldedCount, hasMore, noneVisible,
+  highGroup, midGroup, lowGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
   selectedId, expanded,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry,
-}: MatchingViewProps) {
+}: MatchingViewProps & { globalNoneVisible: boolean }) {
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
       <TopBar title="题目匹配" />
@@ -99,14 +99,16 @@ export default function MatchingMobile({
           )
         )}
 
-        {!loading && !error && result && result.noMatch && (
+        {/* noMatch（真没题）与 globalNoneVisible（有题但全部低分被隐藏）统一升级为 NoMatchView 引导 */}
+        {!loading && !error && result && (result.noMatch || globalNoneVisible) && (
           <NoMatchView
             primaryDimension={result.primary?.dimension ?? ''}
             primaryPointName={result.primary?.pointName ?? ''}
+            variant={result.noMatch ? 'noMatch' : 'lowScore'}
           />
         )}
 
-        {!loading && !error && result && !result.noMatch && (
+        {!loading && !error && result && !result.noMatch && !globalNoneVisible && (
           <>
             {/* 匹配标题 + 识别出的维度 */}
             <div className="mb-4">
