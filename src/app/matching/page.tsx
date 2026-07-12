@@ -11,19 +11,12 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { saveExtraction } from '@/lib/db/corpus'
-import { getSupabase } from '@/lib/supabase'
+import { authHeaders } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import type { FunnelResult, PartTab, MatchingViewProps } from './types'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
 
 function MatchingContent() {
   const router = useRouter()

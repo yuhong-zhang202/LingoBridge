@@ -22,7 +22,7 @@ import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
-import { getSupabase } from '@/lib/supabase'
+import { authHeaders } from '@/lib/api-client'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -32,13 +32,6 @@ import type { PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
 
 /** 视口断点：SSR/首屏默认移动端（避免 hydration 抖动），挂载后按 ≥1024px 切桌面，随窗口变化更新。 */
 function useIsDesktop(): boolean {

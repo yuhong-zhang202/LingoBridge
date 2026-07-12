@@ -17,14 +17,7 @@ import type { AnalysisViewProps } from './types'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { addSavedWord, removeSavedWord } from '@/lib/db/saved-words'
 import { useSavedWords, refreshSavedWords } from '@/hooks/library-data'
-import { getSupabase } from '@/lib/supabase'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
+import { authHeaders } from '@/lib/api-client'
 
 function AnalysisContent() {
   const router     = useRouter()

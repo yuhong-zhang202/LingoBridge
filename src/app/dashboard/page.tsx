@@ -11,14 +11,7 @@ import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
-import { getSupabase } from '@/lib/supabase'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
+import { authHeaders } from '@/lib/api-client'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
 type DashboardData = {

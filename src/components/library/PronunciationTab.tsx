@@ -18,16 +18,9 @@ import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { removeSavedPronunciation, updateSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
-import { getSupabase } from '@/lib/supabase'
+import { authHeaders } from '@/lib/api-client'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
 
 /** 用浏览器 TTS 读一个英文词 */
 function speak(text: string): void {

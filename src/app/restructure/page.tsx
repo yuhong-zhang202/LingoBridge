@@ -13,6 +13,7 @@ import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
 import { getSupabase } from '@/lib/supabase'
+import { authHeaders } from '@/lib/api-client'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -20,13 +21,6 @@ import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import type { RestructureViewProps } from './types'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
 
 /** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText } */
 interface StructuredHandoff { rawText: string; cleanedText: string }

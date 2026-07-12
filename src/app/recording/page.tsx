@@ -11,19 +11,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { getSupabase } from '@/lib/supabase'
+import { authHeaders } from '@/lib/api-client'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import type { RecordingViewProps } from './types'
-
-/** 取当前 session 的 Bearer 头，供受保护 API 鉴权使用（无 session 时返回空对象） */
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  const token = session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()
