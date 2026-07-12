@@ -17,7 +17,7 @@ import type { AnalysisViewProps } from './types'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
 import { addSavedWord, removeSavedWord } from '@/lib/db/saved-words'
 import { useSavedWords, refreshSavedWords } from '@/hooks/library-data'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 function AnalysisContent() {
   const router     = useRouter()
@@ -46,7 +46,7 @@ function AnalysisContent() {
     ;(async () => {
       setLoading(true); setError(null)
       try {
-        const res = await fetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { headers: await authHeaders(), signal: ac.signal })
+        const res = await apiFetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
@@ -67,7 +67,7 @@ function AnalysisContent() {
     setPhrasesLoading(true)
     ;(async () => {
       try {
-        const res = await fetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`, { headers: await authHeaders() })
+        const res = await apiFetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
         if (!res.ok) throw new Error('换词失败')
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)

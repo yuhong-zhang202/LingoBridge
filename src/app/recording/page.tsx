@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -60,8 +60,8 @@ function RecordingContent(): JSX.Element {
       if (blob.size > 10 * 1024 * 1024) throw new Error('录音过长，请分段录制') // ENGINEERING §9
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
-      // multipart 上传：只加 Authorization，不设 Content-Type，让 fetch 自动带 boundary
-      const res = await fetch('/api/transcribe', { method: 'POST', headers: await authHeaders(), body: form, signal: ac.signal })
+      // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
+      const res = await apiFetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
         throw new Error(
@@ -80,10 +80,9 @@ function RecordingContent(): JSX.Element {
       }
       // 第二层：让 restructure 判断 usable；usable 时把整理结果一并带走，restructure 页免二次整理调用
       try {
-        const checkRes = await fetch('/api/restructure', {
+        const checkRes = await apiFetch('/api/restructure', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ rawText: data.text }),
+          json: { rawText: data.text },
           signal: ac.signal,
         })
         // 匿名整理额度用尽：不跳转，弹试用结束提示

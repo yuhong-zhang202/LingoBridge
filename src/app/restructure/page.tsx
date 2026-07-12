@@ -13,7 +13,7 @@ import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
 import { getSupabase } from '@/lib/supabase'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -73,10 +73,9 @@ function RestructureContent() {
     setError(null)
     setUsable(null)
     try {
-      const res = await fetch('/api/restructure', {
+      const res = await apiFetch('/api/restructure', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ rawText: rawStory }),
+        json: { rawText: rawStory },
         signal,
       })
       // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」
@@ -109,10 +108,9 @@ function RestructureContent() {
     setSaveError(null)
     try {
       // 创建这一步服务端化（配额 + 落库防绕过）；后续整理/匹配/跳转仍走客户端 RLS
-      const res = await fetch('/api/corpus', {
+      const res = await apiFetch('/api/corpus', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ source: 'voice', rawText: rawStory }),
+        json: { source: 'voice', rawText: rawStory },
       })
       if (res.status === 402) { setStoryQuotaReached(true); setIsSaving(false); return }
       if (!res.ok) throw new Error('语料保存失败，请重试')

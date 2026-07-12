@@ -18,7 +18,7 @@ import useSelectMode from '@/hooks/useSelectMode'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
 import { removeSavedPronunciation, updateSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
 
@@ -68,10 +68,9 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
     setLoading(true)
     void (async () => {
       try {
-        const res = await fetch('/api/pronounce', {
+        const res = await apiFetch('/api/pronounce', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ intended: item.intended, heard: item.heard, context: item.context }),
+          json: { intended: item.intended, heard: item.heard, context: item.context },
           signal: ac.signal,
         })
         if (!res.ok) throw new Error('请求失败')

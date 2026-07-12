@@ -11,7 +11,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { saveExtraction } from '@/lib/db/corpus'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import MatchingMobile from './MatchingMobile'
@@ -42,10 +42,9 @@ function MatchingContent() {
     ;(async () => {
       setLoading(true); setError(null)
       try {
-        const res = await fetch('/api/matching', {
+        const res = await apiFetch('/api/matching', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ corpusId }),
+          json: { corpusId },
           signal: ac.signal,
         })
         if (!res.ok) throw new Error('匹配失败')

@@ -16,7 +16,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 interface UseStorySubmitArgs {
   /** 待提交的故事文本 */
@@ -58,10 +58,9 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
       const qidParam = qid ? `&qid=${qid}` : ''
       try {
         // 第二层：让 restructure 判断 usable
-        const res = await fetch('/api/restructure', {
+        const res = await apiFetch('/api/restructure', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ rawText: text }),
+          json: { rawText: text },
         })
         // 匿名整理额度用尽：不跳转，弹试用结束提示（避免带到 restructure 页再失败一次）
         if (res.status === 402) {

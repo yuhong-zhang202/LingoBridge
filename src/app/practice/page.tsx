@@ -22,7 +22,7 @@ import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -97,10 +97,9 @@ function PracticeContent(): JSX.Element {
     const ac = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch('/api/practice', {
+        const res = await apiFetch('/api/practice', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-          body: JSON.stringify({ questionId, storyId, messages: [], level, isReview }),
+          json: { questionId, storyId, messages: [], level, isReview },
           signal: ac.signal,
         })
         // 服务端复练额度拦截（402）：弹 QuotaReached 覆盖层而非普通错误态
@@ -128,8 +127,8 @@ function PracticeContent(): JSX.Element {
       if (!blob) throw new Error('没有录到声音')
       const form = new FormData()
       form.append('audio', blob, 'turn.webm')
-      // multipart 上传：只加 Authorization，不设 Content-Type，让 fetch 自动带 boundary
-      const tr = await fetch('/api/transcribe', { method: 'POST', headers: await authHeaders(), body: form })
+      // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
+      const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
       if (!tr.ok) throw new Error('转写失败')
       const { text } = (await tr.json()) as { text: string }
 
@@ -137,10 +136,9 @@ function PracticeContent(): JSX.Element {
       setMessages(next)
       setPhase('replying')
 
-      const res = await fetch('/api/practice', {
+      const res = await apiFetch('/api/practice', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ scaffold, messages: next }),
+        json: { scaffold, messages: next },
       })
       if (!res.ok) throw new Error('对话失败')
       const data = (await res.json()) as { reply: string }
@@ -157,10 +155,9 @@ function PracticeContent(): JSX.Element {
     setPolishResult(null)
     setPolishLoading(true)
     try {
-      const res = await fetch('/api/practice/polish', {
+      const res = await apiFetch('/api/practice/polish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ sentence, aiQuestion, level }),
+        json: { sentence, aiQuestion, level },
       })
       if (!res.ok) throw new Error('优化失败')
       const data = (await res.json()) as PolishResult

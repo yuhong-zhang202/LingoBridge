@@ -11,7 +11,7 @@ import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
-import { authHeaders } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
 type DashboardData = {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
     setLoading(true)
     ;(async () => {
       try {
-        const res = await fetch(`/api/dashboard?range=${range}`, { headers: await authHeaders(), signal: ac.signal })
+        const res = await apiFetch(`/api/dashboard?range=${range}`, { signal: ac.signal })
         if (ac.signal.aborted) return
         if (res.status === 401 || res.status === 403) { setDenied(true); setLoading(false); return }
         if (!res.ok) { setLoading(false); return }
