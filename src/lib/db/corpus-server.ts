@@ -63,6 +63,21 @@ export async function bumpAnonRestructureTodayServer(userId: string): Promise<nu
 }
 
 /**
+ * 原子递增某用户「今日某类用量」并返回递增后的值（含本次）。通用每日计数，
+ * 供 practice/polish/pronounce/transcribe 等付费接口判匿名试用上限与注册熔断上限。
+ * @param  userId  requireUserAllowAnon 反查出的用户 id
+ * @param  kind    用量类别（practice / polish / pronounce / transcribe）
+ * @returns        递增后的当日该类计数
+ * @throws         Error —— RPC 出错
+ * @sideEffect     service_role 调 RPC bump_daily_usage（原子 upsert 计数，绕 RLS）
+ */
+export async function bumpDailyUsageServer(userId: string, kind: string): Promise<number> {
+  const { data, error } = await getSupabaseServer().rpc('bump_daily_usage', { p_user_id: userId, p_kind: kind })
+  if (error) throw new Error(`每日用量计数失败：${error.message}`)
+  return (data as number) ?? 0
+}
+
+/**
  * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
  * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
  * @param  input   source（voice/text）与原始文本

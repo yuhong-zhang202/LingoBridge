@@ -10,6 +10,8 @@ import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
 import type { AppError } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
@@ -41,7 +43,7 @@ function mimeToExt(mimeType: string): string {
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    await requireUserAllowAnon(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const form = await req.formData()
     const file = form.get('audio')
     if (!(file instanceof Blob)) {
@@ -49,6 +51,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     if (file.size > MAX_AUDIO_BYTES) {
       return NextResponse.json({ error: '录音文件过大，请分段录制' }, { status: 400 })
+    }
+    // 服务端硬防线：先计次再转码/ASR。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code）。
+    const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
+    if (isAnonymous ? dailyCount > ANON_TRANSCRIBE_LIMIT : dailyCount > REG_TRANSCRIBE_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
 
     const inputBuf = Buffer.from(await file.arrayBuffer())

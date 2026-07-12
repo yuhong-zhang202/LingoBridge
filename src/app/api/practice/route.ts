@@ -10,7 +10,9 @@ import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
+import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { ANON_PRACTICE_TURN_LIMIT, REG_PRACTICE_DAILY_LIMIT } from '@/lib/constants'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -25,7 +27,23 @@ export async function POST(req: Request): Promise<NextResponse> {
       level?: string
       isReview?: boolean
     }
-    const messages = Array.isArray(body.messages) ? body.messages : []
+    const rawMessages = Array.isArray(body.messages) ? body.messages : []
+    // 输入上限（对所有用户生效，防单请求刷 token）：条数上限（8 轮对话约 17–20 条，24 为安全余量）+ 单条内容截断
+    if (rawMessages.length > 24) {
+      return NextResponse.json({ error: '对话过长，请重新开始练习' }, { status: 400 })
+    }
+    const messages: PracticeMessage[] = rawMessages.map((m) =>
+      typeof m.content === 'string' && m.content.length > 2000 ? { ...m, content: m.content.slice(0, 2000) } : m,
+    )
+
+    // 服务端硬防线：每次调用先计次（放在 scaffold 分支之前，伪造 scaffold 也无法绕过），且在任何 AI 调用之前。
+    // 匿名超每日轮次上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。
+    const dailyCount = await bumpDailyUsageServer(userId, 'practice')
+    if (isAnonymous ? dailyCount > ANON_PRACTICE_TURN_LIMIT : dailyCount > REG_PRACTICE_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+    }
 
     // 首轮没有 scaffold：用 questionId 构建一次
     let scaffold = body.scaffold

@@ -35,6 +35,22 @@ export const ANON_CORPUS_LIMIT = 1
 /** 匿名用户每日整理次数上限（restructure 不落库，单独计数；容忍重录试错，故给 5 次余量） */
 export const ANON_RESTRUCTURE_LIMIT = 5
 
+// ── 付费接口每日次数上限（服务端按 (user_id, 当日, kind) 计次；超额匿名 402、注册 429）
+/** 匿名每日：practice 对话轮次（约两场 8 轮对话）*/
+export const ANON_PRACTICE_TURN_LIMIT = 16
+/** 匿名每日：polish 润色次数 */
+export const ANON_POLISH_LIMIT = 10
+/** 匿名每日：pronounce 发音提示次数 */
+export const ANON_PRONOUNCE_LIMIT = 10
+/** 匿名每日：transcribe 转写次数 */
+export const ANON_TRANSCRIBE_LIMIT = 10
+
+// 注册用户熔断上限：正常使用永远碰不到，仅防脚本滥用（触发返回 429，不走配额弹层）
+export const REG_PRACTICE_DAILY_LIMIT = 200
+export const REG_POLISH_DAILY_LIMIT = 100
+export const REG_PRONOUNCE_DAILY_LIMIT = 100
+export const REG_TRANSCRIBE_DAILY_LIMIT = 200
+
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
   emotion: '情绪内核',

@@ -8,17 +8,29 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { ANON_POLISH_LIMIT, REG_POLISH_DAILY_LIMIT } from '@/lib/constants'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    // 放行匿名试用：polish 依附练习会话，会话本身已受 corpus 单条额度约束，此处无需独立计数
-    await requireUserAllowAnon(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
     const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
     const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined
     const level = typeof body.level === 'string' ? body.level : '6.0'
     if (!sentence) {
       return NextResponse.json({ error: 'sentence 不能为空' }, { status: 400 })
+    }
+    // 输入上限（对所有用户生效，防刷 token）
+    if (sentence.length > 500) {
+      return NextResponse.json({ error: '句子过长，请精简后再试' }, { status: 400 })
+    }
+    // 服务端硬防线：先计次再调 AI。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code）。
+    const dailyCount = await bumpDailyUsageServer(userId, 'polish')
+    if (isAnonymous ? dailyCount > ANON_POLISH_LIMIT : dailyCount > REG_POLISH_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
     const result = await polishSentence(sentence, aiQuestion, level)
     return NextResponse.json(result)
