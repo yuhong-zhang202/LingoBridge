@@ -1,7 +1,8 @@
 /**
  * @module   run-extraction
  * @desc     故事萃取准确率回归脚本 —— 读金标集，按并发批量调用【真实线上链路】extractCorpus，
- *           计算严格/宽容/维度命中、副维度增漏、稳定性等指标，产出 JSON 原始数据 + Markdown 报告。
+ *           计算严格/宽容/维度命中、副维度增漏（机械口径）、稳定性等指标，并产出「副维度人工复核清单」，
+ *           输出 JSON 原始数据 + Markdown 报告。
  *           运行：npm run eval:extraction -- [--runs=N | --quick] [--only=S014,S037]
  *           底层：npx tsx --conditions=react-server --env-file=.env.local scripts/eval/run-extraction.ts
  *           说明：extraction.ts / llm.ts 含 `import 'server-only'`，该包在 Next 之外默认抛错；
@@ -61,12 +62,24 @@ interface CliOptions {
   only: Set<string> | null
 }
 
+/** 副维度人工复核清单的一项：一次运行与金标在副维度上的分歧，交人工按严格定义逐条判定 */
+type SecReviewType = 'A' | 'B' | 'C'
+interface SecReviewEntry {
+  itemId: string
+  /** A=疑似误增（gold 无副 / AI 给副）｜B=疑似漏检（gold 有副 / AI 无副）｜C=副维度不匹配（双方有副、code 不同） */
+  type: SecReviewType
+  run: number
+  story: string
+  gold: { primary: string; accept: string[]; secondary: string | null }
+  pred: ExtractionResult
+}
+
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 
 const CONCURRENCY = 4
 const DEFAULT_RUNS = 3
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const GOLDEN_PATH = join(__dirname, 'golden', 'extraction.v1.json')
+const GOLDEN_PATH = join(__dirname, 'golden', 'extraction.v2.json')
 const RESULTS_DIR = join(__dirname, 'results')
 
 /** 维度前缀 → 中文维度名（用于分组与报告） */
@@ -311,6 +324,30 @@ function buildReport(gold: GoldSet, items: GoldItem[], records: RunRecord[], opt
   const domainOutItems = items.filter((it) => !it.countInAccuracy)
   const errorRuns = records.filter((r) => r.status === 'error')
 
+  // ── 副维度人工复核清单（机械规则只负责「圈出分歧」，是否真误判交人工按严格定义判）──
+  // 口径与副维度机械指标一致：仅在计入准确率且成功的运行（accRuns）上比对 gold.secondary 与 pred.secondary。
+  const secondaryReviewList: SecReviewEntry[] = []
+  for (const r of accRuns) {
+    const item = itemById.get(r.itemId)!
+    const pred = r.prediction!
+    const goldSec = item.secondary
+    const predSec = pred.secondary
+    let type: SecReviewType | null = null
+    if (goldSec === null && predSec !== null) type = 'A'                                   // 疑似误增
+    else if (goldSec !== null && predSec === null) type = 'B'                              // 疑似漏检
+    else if (goldSec !== null && predSec !== null && predSec.pointCode !== goldSec) type = 'C' // 副维度不匹配
+    if (!type) continue
+    secondaryReviewList.push({
+      itemId: r.itemId,
+      type,
+      run: r.run,
+      story: item.story,
+      gold: { primary: item.primary, accept: item.accept, secondary: item.secondary },
+      pred,
+    })
+  }
+  secondaryReviewList.sort((a, b) => a.itemId.localeCompare(b.itemId) || a.run - b.run)
+
   // ── 指标总表（同时用于控制台） ──
   const summaryTable = [
     '## 指标总表（微平均，分母已排除 域外条目 与 error 运行）',
@@ -320,9 +357,9 @@ function buildReport(gold: GoldSet, items: GoldItem[], records: RunRecord[], opt
     `| 严格命中率 | ${pct(strict, accDenom)} |`,
     `| 宽容命中率 | ${pct(lenient, accDenom)} |`,
     `| 维度命中率 | ${pct(dim, accDenom)} |`,
-    `| 副维度误增率 | ${pct(faNum, faDenom)} |`,
-    `| 副维度漏检率 | ${pct(msNum, msDenom)} |`,
-    `| 副维度命中率 | ${pct(shNum, shDenom)} |`,
+    `| 副维度误增率（机械口径，含需人工复核项） | ${pct(faNum, faDenom)} |`,
+    `| 副维度漏检率（机械口径，含需人工复核项） | ${pct(msNum, msDenom)} |`,
+    `| 副维度命中率（机械口径，含需人工复核项） | ${pct(shNum, shDenom)} |`,
     `| 稳定性（按故事，R=${opts.runs}） | ${pct(stableNum, stableDenom)} |`,
   ].join('\n')
 
@@ -337,6 +374,10 @@ function buildReport(gold: GoldSet, items: GoldItem[], records: RunRecord[], opt
   md.push(`- 用时：${(elapsedMs / 1000).toFixed(1)}s`)
   md.push('')
   md.push(summaryTable)
+  md.push('')
+  md.push('> 脚注 · 副维度误增率：机械口径可能高估误增——AI 给出的合理副维度会被计为误增；准确值以文末「副维度人工复核清单」逐条判定为准。')
+  md.push('> 脚注 · 副维度漏检率：机械口径以 gold 副维度为准，若金标偏严则漏检被高估；准确值以文末「副维度人工复核清单」逐条判定为准。')
+  md.push('> 脚注 · 副维度命中率：机械口径仅按 code 精确相等计命中，未含人工认可的合理副维度；准确值以文末「副维度人工复核清单」逐条判定为准。')
   md.push('')
 
   md.push('## 分组表')
@@ -392,6 +433,38 @@ function buildReport(gold: GoldSet, items: GoldItem[], records: RunRecord[], opt
     md.push('')
   }
 
+  md.push('## 副维度人工复核清单')
+  md.push('')
+  md.push('> 以下为需人工判断的副维度分歧。逐条判定 AI 给出的副维度是否符合『两段当下并存、各自撑起一道题』的严格定义：若合理，说明金标偏严（应补副维度）；若为凭空脑补语料未触及的方向，才是真误增。')
+  md.push('')
+  const secTypeLabel: Record<SecReviewType, string> = {
+    A: '疑似误增（gold 无副 / AI 给副）',
+    B: '疑似漏检（gold 有副 / AI 无副）',
+    C: '副维度不匹配（双方有副、code 不同）',
+  }
+  if (secondaryReviewList.length === 0) {
+    md.push('（本次运行无副维度分歧）')
+    md.push('')
+  } else {
+    for (const t of ['A', 'B', 'C'] as const) {
+      const rows = secondaryReviewList.filter((e) => e.type === t)
+      if (rows.length === 0) continue
+      md.push(`### 类型 ${t}｜${secTypeLabel[t]}（${rows.length} 条）`)
+      md.push('')
+      for (const e of rows) {
+        const goldAccept = e.gold.accept.length ? e.gold.accept.map((c) => `\`${c}\``).join(', ') : '（无）'
+        const goldSec = e.gold.secondary ? `\`${e.gold.secondary}\`` : 'null'
+        const predSec = e.pred.secondary ? `\`${e.pred.secondary.pointCode}\`（${e.pred.secondary.reason}）` : 'null'
+        md.push(`#### ${e.itemId}（类型 ${e.type}，运行 ${e.run}）`)
+        md.push('')
+        md.push(`- 故事全文：${e.story}`)
+        md.push(`- 金标：主 = \`${e.gold.primary}\`｜备选 = ${goldAccept}｜副 = ${goldSec}`)
+        md.push(`- 预测：主 = \`${e.pred.primary.pointCode}\`（${e.pred.primary.reason}）｜副 = ${predSec}`)
+        md.push('')
+      }
+    }
+  }
+
   md.push('## error 清单')
   md.push('')
   if (errorRuns.length === 0) md.push('（无）')
@@ -420,6 +493,7 @@ function buildReport(gold: GoldSet, items: GoldItem[], records: RunRecord[], opt
       byType,
       byDim,
     },
+    secondaryReviewList,
     runs: records,
     errorRuns,
   }
