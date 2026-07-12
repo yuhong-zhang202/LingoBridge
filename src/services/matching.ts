@@ -10,7 +10,11 @@ import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { DIMENSION_LABEL } from '@/lib/constants'
+import { OBSERVATION_ADJACENCY } from '@/lib/observation-adjacency'
 import type { MatchedPoint } from '@/lib/types'
+
+/** 邻居兜底层累计到此题数即停止继续借相邻观察点 */
+const NEIGHBOR_TARGET = 5
 
 export interface FunnelMatchedQuestion {
   id: string
@@ -35,6 +39,10 @@ export interface FunnelMatchResult {
   questions: FunnelMatchedQuestion[]
   count: number
   matchedViaSecondary: boolean
+  /** 主/副皆空时经「邻居观察点」兜底层召回到题（第三层） */
+  matchedViaNeighbor: boolean
+  /** 邻居兜底层实际借用（贡献了题）的相邻观察点，按借用顺序，供前端「换个角度」文案 */
+  neighborPointsUsed: MatchedPoint[]
   noMatch: boolean
 }
 
@@ -100,10 +108,13 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
 
   const allQuestions: FunnelMatchedQuestion[] = []
   let matchedViaSecondary = false
+  let matchedViaNeighbor = false
+  const neighborPointsUsed: MatchedPoint[] = []
   let noMatch = false
 
   if (primary) {
-    const primaryHits = await collectFrom(primary, true)
+    // 第一层含副标签：副挂（is_primary=false）语义为「该点故事也能直接答此题」，首层必须能召回
+    const primaryHits = await collectFrom(primary, true, true)
 
     if (primaryHits.length > 0) {
       // 第一层命中：主维度有题；若 secondary 非空，再追加副维度题作为补充
@@ -112,18 +123,27 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
         const secondaryHits = await collectFrom(secondary, false)
         allQuestions.push(...secondaryHits)
       }
-    } else if (secondary) {
-      // 第二层触发：primary 无题时才尝试 secondary，避免混淆主题
-      const secondaryHits = await collectFrom(secondary, false, true)
+    } else {
+      // 第二层借道：primary 无题时才尝试故事副观察点，避免混淆主题
+      const secondaryHits = secondary ? await collectFrom(secondary, false, true) : []
       if (secondaryHits.length > 0) {
         allQuestions.push(...secondaryHits)
         matchedViaSecondary = true
       } else {
-        noMatch = true
+        // 第三层·邻居兜底：主/副皆空，按优先级借主观察点的相邻观察点，累计 ≥NEIGHBOR_TARGET 或邻居用尽即停
+        for (const code of OBSERVATION_ADJACENCY[primary.pointCode] ?? []) {
+          const neighbor = toMatchedPoint({ pointCode: code, reason: '' })
+          if (!neighbor) continue
+          const hits = await collectFrom(neighbor, false, true)
+          if (hits.length > 0) {
+            allQuestions.push(...hits)
+            neighborPointsUsed.push(neighbor)
+          }
+          if (allQuestions.length >= NEIGHBOR_TARGET) break
+        }
+        if (allQuestions.length > 0) matchedViaNeighbor = true
+        else noMatch = true
       }
-    } else {
-      // primary 无题且无 secondary
-      noMatch = true
     }
   } else {
     // 理论上萃取保证 primary 非 null，此处作保险兜底
@@ -172,6 +192,8 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
     questions: allQuestions,
     count: allQuestions.length,
     matchedViaSecondary,
+    matchedViaNeighbor,
+    neighborPointsUsed,
     noMatch,
   }
 }

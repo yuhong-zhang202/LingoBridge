@@ -130,6 +130,9 @@ describe('matchByStory · 三层漏斗', () => {
     expect(r.questions).toEqual([])
     expect(r.count).toBe(0)
     expect(r.matchedViaSecondary).toBe(false)
+    // 三层全空（主/副/邻居皆无题）：邻居兜底也未命中
+    expect(r.matchedViaNeighbor).toBe(false)
+    expect(r.neighborPointsUsed).toEqual([])
     // 候选为空时不应调排名
     expect(mockRank).not.toHaveBeenCalled()
   })
@@ -197,5 +200,29 @@ describe('matchByStory · 三层漏斗', () => {
 
     expect(r.questions.map(q => q.id)).toEqual(['q3', 'q2', 'q1'])
     expect(r.questions.map(q => q.relevanceScore)).toEqual([95, 75, 55])
+  })
+
+  test('6. 第三层邻居兜底：主/副皆空 → 借相邻观察点命中，matchedViaNeighbor=true、noMatch=false', async () => {
+    mockExtract.mockResolvedValue({
+      primary:   { pointCode: 'VAL_01', reason: 'r' },  // 邻居表 VAL_01: [REL_11, VAL_03, VAL_02]
+      secondary: null,
+    })
+    const qN = makeQ('qN', 2)
+    mockGetQs.mockImplementation(async (code) => {
+      if (code === 'REL_11') return [qN]  // 首位邻居有题；主观察点 VAL_01 及其余邻居皆空
+      return []
+    })
+    mockRank.mockResolvedValue([{ id: 'qN', score: 70, reason: 'nb' }])
+
+    const r = await matchByStory(STORY)
+
+    expect(r.noMatch).toBe(false)
+    expect(r.matchedViaSecondary).toBe(false)
+    expect(r.matchedViaNeighbor).toBe(true)
+    expect(r.questions.map(q => q.id)).toEqual(['qN'])
+    expect(r.questions[0].isPrimaryMatch).toBe(false)  // 邻居题不算主命中
+    expect(r.neighborPointsUsed.map(p => p.pointCode)).toContain('REL_11')
+    // 邻居借道用 includeSec=true
+    expect(mockGetQs).toHaveBeenCalledWith('REL_11', true)
   })
 })
