@@ -31,7 +31,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (error) throw error
     }
 
-    for (const table of ['corpus', 'phrase_cards', 'feedback'] as const) {
+    // practice_sessions 显式删（防御性）：schema drift 期间线上真实 FK 是否 on delete cascade 不确定，显式删一行最稳（与 corpus/phrase_cards/feedback 同理）
+    for (const table of ['corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
       const { error } = await admin.from(table).delete().eq('user_id', userId)
       if (error) throw error
     }
