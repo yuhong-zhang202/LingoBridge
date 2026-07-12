@@ -5,7 +5,7 @@
  * @created  2026-05-15
  */
 import 'server-only'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { checkTranscriptUsable } from '@/lib/transcript-guard'
 import type { AppError } from '@/types/errors'
 

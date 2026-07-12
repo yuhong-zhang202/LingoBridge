@@ -5,7 +5,7 @@
  * @created  2026-06-03
  */
 import 'server-only'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
 import { MODEL_ANALYSIS } from '@/lib/constants'
 import type { QuestionAnalysis, AnalysisPhraseGroup } from '@/lib/types'

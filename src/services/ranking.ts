@@ -5,7 +5,7 @@
  * @created  2026-06-06
  */
 import 'server-only'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
 import { MODEL_RANKING } from '@/lib/constants'
 import type { RelevanceScore } from '@/lib/types'

@@ -5,7 +5,7 @@
  * @created  2026-06-02
  */
 import 'server-only'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
 import { MODEL_EXTRACTION } from '@/lib/constants'
 

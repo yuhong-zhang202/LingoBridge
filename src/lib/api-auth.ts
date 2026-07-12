@@ -9,7 +9,7 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import type { AppError } from '@/types/errors'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
 
 /** 带 HTTP 状态的鉴权错误：authErrorResponse 据此映射响应；其余异常仍交回各路由原有 500 分支。 */

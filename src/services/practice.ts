@@ -5,7 +5,7 @@
  * @created  2026-06-03
  */
 import 'server-only'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env-server'
 import { getQuestionById, getQuestionsByParent } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'

@@ -8,7 +8,7 @@
 import 'server-only'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { env } from './env'
+import { env } from './env-server'
 
 // 直接读取 service_role key，不经过 env.ts（env.ts 被客户端链路 import，字符串会泄漏进 bundle）
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
