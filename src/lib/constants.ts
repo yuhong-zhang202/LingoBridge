@@ -38,12 +38,12 @@ export const ANON_RESTRUCTURE_LIMIT = 5
 // ── 付费接口每日次数上限（服务端按 (user_id, 当日, kind) 计次；超额匿名 402、注册 429）
 /** 匿名每日：practice 对话轮次（约两场 8 轮对话）*/
 export const ANON_PRACTICE_TURN_LIMIT = 16
-/** 匿名每日：polish 润色次数 */
-export const ANON_POLISH_LIMIT = 10
+/** 匿名每日：polish 润色次数（16 轮内每轮可优化一次 + 换个说法重试余量）*/
+export const ANON_POLISH_LIMIT = 20
 /** 匿名每日：pronounce 发音提示次数 */
 export const ANON_PRONOUNCE_LIMIT = 10
-/** 匿名每日：transcribe 转写次数 */
-export const ANON_TRANSCRIBE_LIMIT = 10
+/** 匿名每日：transcribe 转写次数（练习每轮消耗一次转写，16 轮 + 故事录音与重录余量）*/
+export const ANON_TRANSCRIBE_LIMIT = 25
 
 // 注册用户熔断上限：正常使用永远碰不到，仅防脚本滥用（触发返回 429，不走配额弹层）
 export const REG_PRACTICE_DAILY_LIMIT = 200

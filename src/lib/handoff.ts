@@ -47,19 +47,28 @@ export function putHandoffJson<T>(value: T): string {
 }
 
 /**
- * 按 id 取出并 JSON 反序列化；仅在解析成功时消费（删除并返回值），解析失败或不存在返回 null。
- * 解析失败故意不消费——旧版纯字符串 handoff 走此路会返回 null，调用方可回退用 takeHandoff 原样读出。
+ * 按 id 取出并 JSON 反序列化，validate 校验形状后返回；仅在「解析成功且校验通过」时消费（删除）。
+ * 三种输入的行为：
+ *   1) 新版结构化 handoff（putHandoffJson 写入的合法 JSON 且形状匹配）→ 消费并返回值；
+ *   2) 旧版纯文本 handoff（非合法 JSON）→ parse 失败，不消费、返回 null，调用方可回退用 takeHandoff 原样读出；
+ *   3) 旧版纯文本恰为合法 JSON（如 "123"、"[1,2]"）→ parse 成功但 validate 不通过，不消费、返回 null，
+ *      同样可被 takeHandoff 原样兜底，避免误消费。
+ * @param id        handoff 短 id
+ * @param validate  类型守卫，判定 parse 结果是否为期望形状 T
+ * @returns         校验通过的 T；否则 null
  */
-export function takeHandoffJson<T>(id: string): T | null {
+export function takeHandoffJson<T>(id: string, validate: (v: unknown) => v is T): T | null {
   if (typeof window === 'undefined' || !id) return null
   const key = PREFIX + id
   const raw = sessionStorage.getItem(key)
   if (raw === null) return null
+  let parsed: unknown
   try {
-    const parsed = JSON.parse(raw) as T
-    sessionStorage.removeItem(key)
-    return parsed
+    parsed = JSON.parse(raw)
   } catch {
     return null
   }
+  if (!validate(parsed)) return null
+  sessionStorage.removeItem(key)
+  return parsed
 }

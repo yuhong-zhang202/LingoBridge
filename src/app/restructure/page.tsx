@@ -28,6 +28,14 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+/** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText } */
+interface StructuredHandoff { rawText: string; cleanedText: string }
+function isStructuredHandoff(v: unknown): v is StructuredHandoff {
+  return typeof v === 'object' && v !== null
+    && typeof (v as Record<string, unknown>).rawText === 'string'
+    && typeof (v as Record<string, unknown>).cleanedText === 'string'
+}
+
 function RestructureContent() {
   const router   = useRouter()
   const params   = useSearchParams()
@@ -38,11 +46,9 @@ function RestructureContent() {
   const [handoff] = useState<{ rawStory: string; cleanedText: string | null }>(() => {
     const h = params.get('h')
     if (h) {
-      const j = takeHandoffJson<{ rawText?: unknown; cleanedText?: unknown }>(h)
-      if (j && typeof j.rawText === 'string' && typeof j.cleanedText === 'string') {
-        return { rawStory: j.rawText, cleanedText: j.cleanedText }
-      }
-      const s = takeHandoff(h)   // 解析失败时未消费，此处原样读出旧版纯文本
+      const j = takeHandoffJson(h, isStructuredHandoff)
+      if (j) return { rawStory: j.rawText, cleanedText: j.cleanedText }
+      const s = takeHandoff(h)   // 未通过校验时未消费，此处原样读出旧版纯文本
       if (s !== null) return { rawStory: s, cleanedText: null }
     }
     return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null }
