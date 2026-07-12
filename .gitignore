@@ -36,6 +36,9 @@ dev.log
 *.tsbuildinfo
 next-env.d.ts
 
+# eval 跑分产物（每跑一次堆一个带时间戳文件；保留 scripts/eval/golden 金标集与 run-extraction.ts）
+/scripts/eval/results/
+
 # next-pwa 构建产物
 public/sw.js
 public/sw.js.map
