@@ -87,6 +87,7 @@ function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
   const s  = size / 300
   const cx = size / 2
 
+  const rootRef      = useRef<HTMLDivElement | null>(null)
   const particleRefs = useRef<(HTMLDivElement | null)[]>([])
   const orbCoreRef   = useRef<HTMLDivElement | null>(null)
   const coreRefs     = useRef<(HTMLDivElement | null)[]>([])
@@ -100,7 +101,8 @@ function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
     const _s  = size / 300
     const _cx = size / 2
     const t0  = performance.now()
-    let raf: number
+    let raf = 0
+    let running = false
 
     const state = PARTICLES.map((p, i) => {
       const rad = (p.angle - 90) * Math.PI / 180
@@ -170,12 +172,27 @@ function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
       raf = requestAnimationFrame(tick)
     }
 
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    // 首页流程页用 lg:hidden / hidden lg:block 双挂载 Orb：rAF 不因祖先 display:none 停止，
+    // 被隐藏（或滚出视口）的那套仍满帧空转，白耗 CPU/电量（移动端最吃亏）。故加一层可见性开关。
+    const start = (): void => { if (!running) { running = true; raf = requestAnimationFrame(tick) } }
+    const stop  = (): void => { if (running) { running = false; cancelAnimationFrame(raf) } }
+
+    // 只在客户端 useEffect 内创建 IntersectionObserver，SSR 安全。
+    // 不可见（含祖先 display:none 与滚出视口）→ 停循环；恢复可见 → 重启（呼吸相位基于 now - t0，
+    // 相位随真实时间推进，重启时相位跳变视觉无感，无需重置 t0，粒子位置 state 也一并保留）。
+    const el = rootRef.current
+    const io = el && typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((entries) => { if (entries[0]?.isIntersecting) start(); else stop() }, { threshold: 0 })
+      : null
+    if (io && el) io.observe(el)
+    else start()   // 无 IO 的极旧环境兜底：直接跑
+
+    return () => { stop(); io?.disconnect() }
   }, [size])
 
   return (
     <div
+      ref={rootRef}
       className={cn('relative flex-shrink-0', className)}
       style={{ width: size, height: size }}
     >
