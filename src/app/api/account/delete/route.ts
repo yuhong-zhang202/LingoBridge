@@ -38,6 +38,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     const { error: profErr } = await admin.from('profiles').delete().eq('id', userId)
     if (profErr) throw profErr
 
+    // 头像 storage 清理（best-effort）：avatars 桶公开读，删号后残留文件凭旧 URL 仍可被任何人访问，属被遗忘权缺口。
+    // 单独 try/catch、只 logErr 不中断——账号与数据库数据的删除是核心，头像清理是补充，不能因它失败导致删不掉号。
+    try {
+      const { data: avatarObjs, error: listErr } = await admin.storage.from('avatars').list(userId)
+      if (listErr) throw listErr
+      // 头像按 {user_id}/xxx.ext 存放（见 migration 0008），拼完整路径后整批删除
+      const paths = (avatarObjs ?? []).map((o) => `${userId}/${o.name}`)
+      if (paths.length > 0) {
+        const { error: rmErr } = await admin.storage.from('avatars').remove(paths)
+        if (rmErr) throw rmErr
+      }
+    } catch (e) {
+      logErr('[account/delete] 头像清理失败（不中断删号）', e)
+    }
+
     // 3) 删账号本体
     const { error: delErr } = await admin.auth.admin.deleteUser(userId)
     if (delErr) throw delErr
