@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, Fragment } from 'react'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import GradientButton from '@/components/GradientButton'
 import { useAccount } from '@/hooks/useAccount'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import OrbSoft from './_components/OrbSoft'
@@ -150,13 +151,12 @@ export default function PracticeDesktop({
           {isCapped ? (
             <div className="flex flex-col items-center gap-3">
               <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
-              <button
+              <GradientButton
                 onClick={onEnd}
-                className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
-                style={GRADIENT_BORDER_STYLE}
+                className="px-6 py-3 rounded-full text-[14px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
               >
                 查看反馈
-              </button>
+              </GradientButton>
             </div>
           ) : (
             <>

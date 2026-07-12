@@ -11,6 +11,7 @@ import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import EmptyState from '@/components/EmptyState'
+import GradientButton from '@/components/GradientButton'
 import { useAccount } from '@/hooks/useAccount'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import OrbSoft from './_components/OrbSoft'
@@ -116,13 +117,9 @@ export default function PracticeMobile({
         {isCapped ? (
           <div className="flex flex-col items-center gap-3">
             <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
-            <button
-              onClick={onEnd}
-              className="px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
-              style={GRADIENT_BORDER_STYLE}
-            >
+            <GradientButton onClick={onEnd} className="px-6 py-3 rounded-full text-[14px] font-medium">
               查看反馈
-            </button>
+            </GradientButton>
           </div>
         ) : (
         <>

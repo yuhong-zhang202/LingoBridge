@@ -10,7 +10,6 @@
 开发新页面前必须先阅读这些文件的源代码：
 
 - 主要基准：src/app/feedback/page.tsx（反馈卡片页）
-- 辅助参考：src/app/feedback/page.tsx（反馈卡片页）
 
 具体要求：
 - 背景色、卡片样式、阴影、边框、按钮必须与基准页面视觉上完全一致
@@ -36,7 +35,7 @@
 | `brand-accent-light` | `#C8DDD9` | 副品牌浅色：辅助背景、AI tag 背景 |
 | `v2-text-primary` | `#2C2420` | 正文主色 |
 | `v2-text-secondary` | `#6B5B52` | 次要文字 |
-| `v2-text-muted` | `#A89990` | 辅助文字、字数统计、时间戳 |
+| `v2-text-muted` | `#7C6B5E` | 辅助文字、字数统计、时间戳（深化达 WCAG AA） |
 | `phrase-warm-bg` | `#F7EBE1` | analysis 词组分组色（暖橙底）；文字/描边复用 `brand-primary-dark` / `brand-primary-light` |
 | `phrase-blue-bg` | `#E9EEF4` | analysis 词组分组色（雾青蓝底） |
 | `phrase-blue-text` | `#4A6178` | analysis 词组分组色（雾青蓝文字） |
@@ -79,7 +78,7 @@
 |---|---|---|
 | `success` | `#5BA08A` | 成功态 |
 | `warning` | `#C4965A` | 警告态 / 临近上限提示 |
-| `error` | `#C47A6A` | 错误态 |
+| `error` | `#AB5344` | 错误态 |
 
 ### IELTS 分数段色
 
@@ -187,7 +186,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 元素 | 规范 |
 |---|---|
 | 小标签 / badge | 极浅底色（`brand-accent-light #C8DDD9` 或 `brand-primary-light #F2D5C0`）+ 对应浅边框，文字用对应深色 token |
-| 辅助文字按钮 | `text-v2-text-muted`（`#A89990`），不使用品牌色 |
+| 辅助文字按钮 | `text-v2-text-muted`（`#7C6B5E`），不使用品牌色 |
 | 图标 | 使用 lucide-react outline 风格，`size` 传 px 数值，颜色跟随父元素 |
 
 ### 颜色冲突处理原则
