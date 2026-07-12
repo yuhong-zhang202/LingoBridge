@@ -117,6 +117,7 @@ function PracticeContent(): JSX.Element {
       }
     })()
     return () => { cancelled = true; ac.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 初次加载用默认 level 初始化对话；切换水平走独立分支，列入依赖会重复初始化
   }, [questionId, storyId, retryKey, isReview])
 
   // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
@@ -176,6 +177,7 @@ function PracticeContent(): JSX.Element {
     } finally {
       setPolishLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 优化按当前 level 取值即可；level 变更由独立分支处理，列入依赖会无谓重建回调
   }, [scaffold])
   // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
   const [runPolish] = useAsyncAction(handlePolish)

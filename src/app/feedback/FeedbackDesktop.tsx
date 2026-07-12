@@ -9,11 +9,9 @@
  */
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { X, Heart, Sparkles } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import type { FeedbackViewProps } from './types'
 
 const partLabel = (p: 1 | 2 | 3) => `Part ${p}` as 'Part 1' | 'Part 2' | 'Part 3'
@@ -32,14 +30,10 @@ function TerminalState({ tone, title, desc }: {
       <Sparkles size={40} className={iconClass} />
       <p className="text-[24px] font-bold text-v2-text-primary">{title}</p>
       <p className="text-[15px] text-v2-text-muted leading-relaxed">{desc}</p>
-      {/* 复刻 GradientButton 皮肤（无法把 <button> 组件嵌进 <a>），保持视觉一致 */}
-      <Link
-        href="/"
-        style={GRADIENT_BORDER_STYLE}
-        className="mt-3 inline-flex items-center justify-center px-6 py-3 rounded-full text-[15px] font-medium text-v2-text-secondary transition-transform duration-150 active:scale-[0.97]"
-      >
+      {/* 回首页用 <Link> 形态的 GradientButton（可 Cmd+click 新开），皮肤统一由组件维护、不再复刻 */}
+      <GradientButton href="/" className="mt-3 inline-flex items-center justify-center px-6 py-3 rounded-full text-[15px] font-medium">
         回首页
-      </Link>
+      </GradientButton>
     </div>
   )
 }

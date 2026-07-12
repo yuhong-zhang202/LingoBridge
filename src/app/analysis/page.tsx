@@ -58,6 +58,7 @@ function AnalysisContent() {
       }
     })()
     return () => { cancelled = true; ac.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- storyId 随首帧固定不变，初次加载即取用；列入依赖只会无谓重跑分析
   }, [questionId, retryKey])
 
   function changeLevel(newLevel: string) {
