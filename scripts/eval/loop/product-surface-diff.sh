@@ -86,7 +86,7 @@ THRESH=$(echo "$FILES" | grep -E "\.(ts|tsx)$" || true)
 section "阈值常量" \
         "SCORE_HIGH/MID/LOW、NEIGHBOR_MIN/TARGET、timeout —— 改一个数,全盘分档就变" \
         "$THRESH" \
-        "SCORE_HIGH|SCORE_MID|SCORE_LOW|NEIGHBOR_MIN|NEIGHBOR_TARGET|TIMEOUT|timeoutMs|maxTokens|MAX_ATTEMPTS"
+        "SCORE_HIGH|SCORE_MID|NEIGHBOR_MIN|NEIGHBOR_TARGET|TIMEOUT|timeoutMs|maxTokens|MAX_ATTEMPTS"
 
 # ── 第 3 类:展示逻辑 ──────────────────────────────────────────────────────────
 section "展示逻辑（决定用户首屏看到什么）" \

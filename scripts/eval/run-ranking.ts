@@ -16,7 +16,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { questionFace } from '@/lib/question-face'
-import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 
 // ── 类型 ──────────────────────────────────────────────────────────────────────
 
@@ -156,7 +156,6 @@ function bucketOf(score: number | null): Bucket {
   if (score === null) return 'unscored'
   if (score >= SCORE_HIGH) return 'high'
   if (score >= SCORE_MID) return 'mid'
-  if (score >= SCORE_LOW) return 'low'
   return 'hidden'
 }
 
@@ -302,7 +301,7 @@ function buildReport(gold: GoldSet, outcomes: StoryOutcome[], opts: CliOptions, 
       else if (c.relevanceScore >= SCORE_HIGH) high++
       else if (c.relevanceScore >= SCORE_MID) mid++
       else low++
-      if (c.relevanceScore !== null && c.relevanceScore < SCORE_LOW) hiddenCount++
+      if (c.relevanceScore !== null && c.relevanceScore < SCORE_MID) hiddenCount++
     }
   }
   const firstScreenHigh = high
@@ -485,11 +484,11 @@ interface LabelRow {
 
 /**
  * 选出一条故事要盲标的候选并中性排序（Part→观察点→id，抹掉 AI 降序痕迹）。
- * 可见区（score≥SCORE_LOW 或 unscored）全取，zone=visible；隐藏区（<SCORE_LOW）系统抽样 1/5，zone=hidden_sampled。
+ * 可见区（score≥SCORE_MID 或 unscored）全取，zone=visible；隐藏区（<SCORE_MID）系统抽样 1/5，zone=hidden_sampled。
  */
 function selectForLabeling(candidates: CandidateExport[]): LabelRow[] {
-  const visible = candidates.filter((c) => c.relevanceScore === null || c.relevanceScore >= SCORE_LOW)
-  const hidden = candidates.filter((c) => c.relevanceScore !== null && c.relevanceScore < SCORE_LOW)
+  const visible = candidates.filter((c) => c.relevanceScore === null || c.relevanceScore >= SCORE_MID)
+  const hidden = candidates.filter((c) => c.relevanceScore !== null && c.relevanceScore < SCORE_MID)
   const hiddenSampled = hidden.filter((_, i) => i % HIDDEN_SAMPLE_STEP === 0)
   const rows: LabelRow[] = [
     ...visible.map((c) => toRow(c, 'visible')),

@@ -20,14 +20,20 @@ export const MODEL_ANALYSIS    = 'qwen-plus'    // 侧重点分析（flash 跟�
 export const MODEL_RESTRUCTURE = 'qwen-flash'
 export const MODEL_PRONOUNCE   = 'qwen-plus'    // 发音音标 + 怎么念提示
 
-// ── 相关性排名三档阈值（调参时改这里，不要散落硬编码）
-/** score ≥ 此值：高匹配，默认直接展示 */
+// ── 相关性排名两条线、三档语义（调参时改这里，不要散落硬编码）
+//
+// 模型输出仍是 0-100 分；三档语义由这两条线映射而成：
+//   ≥ SCORE_HIGH        高匹配 —— 首屏直接展示（= 这道题能原样用语料回答，见产品不变式 1）
+//   [SCORE_MID, HIGH)   中匹配 —— 折叠进"查看更多"（= 换角度/挪重心/习惯套单次才能答）
+//   < SCORE_MID         不展示、不入库（= 必须换故事 / 答非所问）
+//
+// 为什么没有第三条线：原 SCORE_LOW=40 划出的「低匹配折叠可见（40-59）」档已于 2026-07-16
+// 由产品方拍板取消（台账 042）。依据是实测——低档在模型输出里是假精度：40-59 区间的 21 条
+// 候选全部堆在 40 这一个点上，题目显示与否取决于模型凑整到 40 还是 35。
+/** score ≥ 此值：高匹配，首屏直接展示 */
 export const SCORE_HIGH = 85
-/** score ≥ 此值且 < SCORE_HIGH：中匹配，折叠进"查看更多" */
+/** score ≥ 此值且 < SCORE_HIGH：中匹配，折叠进"查看更多"。低于此值：不展示、不入库 */
 export const SCORE_MID  = 60
-/** score ≥ 此值且 < SCORE_MID：低匹配，折叠进"查看更多" */
-export const SCORE_LOW  = 40
-// score < SCORE_LOW：不展示
 
 // ── 匿名试用额度（未注册用户免费体验一遍；控 AI 成本 + 促注册转化）
 /** 匿名用户可建语料条数（体验一条完整链路即到上限，引导注册） */

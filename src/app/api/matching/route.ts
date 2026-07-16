@@ -11,21 +11,23 @@ import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
-import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 
 /**
- * 相关性分数 → 匹配档位（< SCORE_LOW 不展示亦不入库）。
+ * 相关性分数 → 匹配档位（< SCORE_MID 不展示亦不入库）。
  *
  * 无 score（重排降级或模型漏题）一律返回 null = 不落库。历史上这里是 `score ?? 100`，
  * 等于把「我们不知道它贴不贴合」永久写成 `match_level='high'`，且下游任何读这张表的
  * 功能都会继承这个谎。展示层可以选择乐观降级（那是产品决策），但落库层不行：
  * 写进库的必须是我们真的知道的事。
+ *
+ * 2026-07-16：'low' 档随产品方拍板取消（台账 042），< SCORE_MID 一律不入库——
+ * 与展示层同一条线，不再有「库里有、界面没有」的档位。
  */
-function levelForScore(score: number | undefined): 'high' | 'mid' | 'low' | null {
+function levelForScore(score: number | undefined): 'high' | 'mid' | null {
   if (score === undefined) return null
   if (score >= SCORE_HIGH) return 'high'
   if (score >= SCORE_MID) return 'mid'
-  if (score >= SCORE_LOW) return 'low'
   return null
 }
 
@@ -46,7 +48,7 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
 
   const rows = result.questions
     .map((q) => ({ q, level: levelForScore(q.relevanceScore) }))
-    .filter((x): x is { q: typeof x.q; level: 'high' | 'mid' | 'low' } => x.level !== null)
+    .filter((x): x is { q: typeof x.q; level: 'high' | 'mid' } => x.level !== null)
     .map((x) => ({ user_id: userId, corpus_id: corpusId, question_id: x.q.id, match_level: x.level }))
   if (rows.length === 0) return
 

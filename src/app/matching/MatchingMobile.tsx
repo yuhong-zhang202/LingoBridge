@@ -23,7 +23,7 @@ import type { MatchingViewProps } from './types'
 function GroupHeader({ label, count, variant }: {
   label: string
   count: number
-  variant: 'high' | 'mid' | 'low'
+  variant: 'high' | 'mid'
 }) {
   const textClass =
     variant === 'high' ? 'text-brand-accent font-semibold'
@@ -40,7 +40,7 @@ function GroupHeader({ label, count, variant }: {
 
 export default function MatchingMobile({
   result, loading, error, totalVisible, availableTabs, activeTab,
-  highGroup, midGroup, lowGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
+  highGroup, midGroup, foldedCount, hasMore, autoExpand, noneVisible, globalNoneVisible,
   selectedId, expanded,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
@@ -189,25 +189,6 @@ export default function MatchingMobile({
                 </div>
               )}
 
-              {/* 展开后：低匹配组 */}
-              {expanded && lowGroup.length > 0 && (
-                <div className="mt-5">
-                  <GroupHeader label="低匹配" count={lowGroup.length} variant="low" />
-                  <div className="flex flex-col gap-3">
-                    {lowGroup.map((q) => (
-                      <MatchedQuestionCard
-                        key={q.id}
-                        question={q}
-                        selected={selectedId === q.id}
-                        onToggle={() => onToggleSelect(q.id)}
-                        onPractice={() => onPractice(q.id)}
-                        isPrimaryMatch={q.isPrimaryMatch}
-                        isHighMatch={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 空态 */}
               {noneVisible && (
@@ -215,7 +196,7 @@ export default function MatchingMobile({
               )}
             </div>
 
-            {/* 查看更多 / 收起 toggle（中 + 低匹配折叠区） */}
+            {/* 查看更多 / 收起 toggle（折叠区 = 中匹配）。autoExpand 时不渲染：见 page.tsx 的 showToggle */}
             {hasMore && (
               <div className="text-center mb-6">
                 <button

@@ -28,15 +28,22 @@ const STAGE = 'min-h-[calc(100vh-72px)]'
 /** 选中行左侧竖条渐变：全站复用的品牌竖向渐变 */
 const SELECTED_BAR = BRAND_GRADIENT_VERTICAL
 
-type Tier = 'high' | 'mid' | 'low'
+/**
+ * 档位（只有两档：< SCORE_MID 的候选根本不会进 ordered，见 page.tsx 分组）。
+ * 不用 `score ?? 100` 兜底：未打分的候选在 page.tsx 就被滤掉了，这里再给个默认分
+ * 等于把「我们不知道它贴不贴合」当成 100 分——正是产品不变式 2 要根除的那个模式。
+ * 真的收到 undefined 说明上游分组坏了，按 mid 保守处理并留证，不静默假装它是高匹配。
+ */
+type Tier = 'high' | 'mid'
 function tierOf(score?: number): Tier {
-  const s = score ?? 100
-  if (s >= SCORE_HIGH) return 'high'
-  if (s >= SCORE_MID) return 'mid'
-  return 'low'
+  if (score === undefined) {
+    console.error('[MatchingDesktop] 收到未打分候选，上游分组应已滤除', { score })
+    return 'mid'
+  }
+  return score >= SCORE_HIGH ? 'high' : 'mid'
 }
 
-/** 分组标题行：label + 横线（沿用移动端 GroupHeader 高/中/低样式） */
+/** 分组标题行：label + 横线（沿用移动端 GroupHeader 高/中样式） */
 function GroupHeader({ label, count, variant }: { label: string; count: number; variant: Tier }) {
   const textClass =
     variant === 'high' ? 'text-brand-accent font-semibold'
@@ -55,7 +62,6 @@ function TierBadge({ tier }: { tier: Tier }) {
   const map = {
     high: { label: '高匹配', cls: 'text-brand-accent bg-brand-accent/10 border-brand-accent/25' },
     mid:  { label: '中匹配', cls: 'text-v2-text-secondary bg-black/[0.04] border-black/[0.08]' },
-    low:  { label: '低匹配', cls: 'text-v2-text-muted bg-black/[0.03] border-black/[0.06]' },
   }[tier]
   return <span className={`text-[11px] font-medium px-[9px] py-[3px] rounded-full border ${map.cls}`}>{map.label}</span>
 }
@@ -155,13 +161,13 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
 
 export default function MatchingDesktop({
   result, loading, error, totalVisible, availableTabs, activeTab, filtered,
-  highGroup, midGroup, lowGroup, noneVisible, globalNoneVisible, selectedId,
+  highGroup, midGroup, noneVisible, globalNoneVisible, selectedId,
   onSelectTab, onSelect, onPractice, onRetry, onExit,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
 
   const hasList = !loading && !error && !!result && !result.noMatch && !globalNoneVisible
   // 有序可导航列表：高→中→低（与左栏展示顺序一致）
-  const ordered = [...highGroup, ...midGroup, ...lowGroup]
+  const ordered = [...highGroup, ...midGroup]
   const selected = result ? (result.questions.find(q => q.id === selectedId) ?? null) : null
 
   // 筛选联动：切 Part 后若选中题不在筛选结果里，自动选中第一题，右栏不空。
@@ -320,16 +326,6 @@ export default function MatchingDesktop({
                   <GroupHeader label="中匹配" count={midGroup.length} variant="mid" />
                   <div className="flex flex-col gap-2.5">
                     {midGroup.map((q) => (
-                      <QuestionRow key={q.id} q={q} isHigh={false} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {lowGroup.length > 0 && (
-                <div>
-                  <GroupHeader label="低匹配" count={lowGroup.length} variant="low" />
-                  <div className="flex flex-col gap-2.5">
-                    {lowGroup.map((q) => (
                       <QuestionRow key={q.id} q={q} isHigh={false} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
                     ))}
                   </div>

@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { saveExtraction } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
-import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
@@ -89,11 +89,11 @@ function MatchingContent() {
     })
   }, [result, corpusId])
 
-  // 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响）。
+  // 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响）。
   // 未打分不计入：标题「匹配到 N 道」必须与真正展示出的卡片数一致，否则又是一次「说有 N 道却没有」。
   const totalVisible = useMemo(() => {
     if (!result) return 0
-    return result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW).length
+    return result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length
   }, [result])
 
   // 当前 Tab 过滤后的题目
@@ -116,18 +116,24 @@ function MatchingContent() {
     () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH),
     [filtered]
   )
-  const lowGroup = useMemo(
-    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW && q.relevanceScore < SCORE_MID),
-    [filtered]
-  )
 
-  const foldedCount  = midGroup.length + lowGroup.length
+  const foldedCount  = midGroup.length
   const hasMore      = foldedCount > 0
-  // noneVisible：当前 Tab 三档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可
-  const noneVisible  = highGroup.length === 0 && midGroup.length === 0 && lowGroup.length === 0
-  // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_LOW 计数）。
+  // noneVisible：当前 Tab 两档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可
+  const noneVisible  = highGroup.length === 0 && midGroup.length === 0
+  // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_MID 计数）。
   // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
   const globalNoneVisible = !!result && !result.noMatch && totalVisible === 0
+
+  // 002 修复：highGroup=0 且 midGroup>0 时，此前三个空态判断会全部落空——
+  // 高匹配块不渲染（组为空）、中匹配块不渲染（expanded 初值 false）、
+  // noneVisible=false（mid 非空）、globalNoneVisible=false（totalVisible>0）
+  // → 用户看到大标题「匹配到 N 道当季真题」+ 零张卡 + 一个「查看更多 N 道 →」按钮。
+  // 标题说有题，屏幕上没题。修法：没有高匹配时把折叠区默认展开，让那 N 道真的出现。
+  const autoExpand = highGroup.length === 0 && midGroup.length > 0
+  // 自动展开时不给折叠开关：没有高匹配时中匹配就是全部内容，"收起"只会把用户送回那个洞里
+  const expandedEffective = expanded || autoExpand
+  const showToggle = hasMore && !autoExpand
 
   const viewProps: MatchingViewProps & { globalNoneVisible: boolean } = {
     result,
@@ -139,13 +145,13 @@ function MatchingContent() {
     filtered,
     highGroup,
     midGroup,
-    lowGroup,
     foldedCount,
-    hasMore,
+    hasMore: showToggle,
     noneVisible,
     globalNoneVisible,
     selectedId,
-    expanded,
+    expanded: expandedEffective,
+    autoExpand,
     onSelectTab: (tab) => setActiveTab(tab),
     onToggleSelect: (id) => setSelectedId(prev => prev === id ? null : id),
     onSelect: (id) => setSelectedId(id),

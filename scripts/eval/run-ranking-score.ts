@@ -23,7 +23,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 
 // ── 类型 ──────────────────────────────────────────────────────────────────────
 
@@ -111,12 +111,18 @@ function fileStamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-')
 }
 
-/** 分数 → AI 档（null 记 unscored=重排降级） */
+/**
+ * 分数 → AI 档（null 记 unscored=重排降级）。
+ * 2026-07-16 起 AI 侧只有三带：≥85 高 / 60-84 中 / <60 隐藏（=不展示）。
+ * 原「低(40-59)」档随产品方拍板取消（台账 042）——低档在模型输出里是假精度，
+ * 且展示层已不再有这一档，评估侧保留它就是在测一个用户永远看不到的东西。
+ * 金标侧仍是四档（高/中/低/隐藏），gating 时低与隐藏同归「不展示」。
+ */
 function aiTierOf(score: number | null): AiTier {
   if (score === null) return 'unscored'
   if (score >= SCORE_HIGH) return '高'
   if (score >= SCORE_MID) return '中'
-  if (score >= SCORE_LOW) return '低'
+
   return '隐藏'
 }
 
@@ -188,7 +194,7 @@ function align(gold: GoldSet, exp: RankingExport): AlignResult {
       const c = candById.get(lb.questionId)
       if (!c) { goldNotRecalled.push({ storyId: gs.storyId, questionId: lb.questionId, goldBucket: lb.goldBucket }); continue }
       // zone 以金标记录为准（=标注当轮的抽样归属）；缺失则按当前分数兜底推断，并保证与 AI 隐藏定义一致
-      const zone: Zone = lb.zone ?? (c.relevanceScore !== null && c.relevanceScore < SCORE_LOW ? 'hidden_sampled' : 'visible')
+      const zone: Zone = lb.zone ?? (c.relevanceScore !== null && c.relevanceScore < SCORE_MID ? 'hidden_sampled' : 'visible')
       pairs.push({
         storyId: gs.storyId,
         isOutOfScope: story.isOutOfScope,
@@ -203,10 +209,10 @@ function align(gold: GoldSet, exp: RankingExport): AlignResult {
       })
     }
 
-    // 导出里「可见（≥SCORE_LOW 或 unscored）却没金标」的候选 → 缺口，提示补标
+    // 导出里「可见（≥SCORE_MID 或 unscored）却没金标」的候选 → 缺口，提示补标
     for (const c of story.candidates) {
       if (labeledIds.has(c.questionId)) continue
-      const visible = c.relevanceScore === null || c.relevanceScore >= SCORE_LOW
+      const visible = c.relevanceScore === null || c.relevanceScore >= SCORE_MID
       if (visible) {
         goldGapVisible.push({
           storyId: gs.storyId,
@@ -434,7 +440,7 @@ function main(): void {
   let hiddenTotal = 0
   for (const s of primary.stories) {
     if (!gateStoryIds.has(s.storyId)) continue
-    for (const c of s.candidates) if (c.relevanceScore !== null && c.relevanceScore < SCORE_LOW) hiddenTotal++
+    for (const c of s.candidates) if (c.relevanceScore !== null && c.relevanceScore < SCORE_MID) hiddenTotal++
   }
 
   const gates = computeGates(aligned.pairs, hiddenTotal)

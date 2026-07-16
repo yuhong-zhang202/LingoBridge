@@ -39,21 +39,22 @@ export interface MatchingViewProps {
   result: FunnelResult | null
   loading: boolean
   error: string | null
-  /** 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响） */
+  /** 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响） */
   totalVisible: number
   /** 动态 Part 标签：只含有结果的 Part */
   availableTabs: PartTab[]
   activeTab: PartTab
   /** 当前 Tab 过滤后的题目（桌面筛选联动用） */
   filtered: FunnelQuestion[]
-  /** 三档分组（已按 activeTab 过滤） */
+  /** 两档分组（已按 activeTab 过滤）。< SCORE_MID 不展示，故无 lowGroup */
   highGroup: FunnelQuestion[]
   midGroup: FunnelQuestion[]
-  lowGroup: FunnelQuestion[]
-  /** 折叠区（中+低）题数，及是否有折叠区 —— 移动端「查看更多」用 */
+  /** 折叠区（= 中匹配）题数，及是否显示「查看更多」开关 —— 自动展开时不显示 */
   foldedCount: number
   hasMore: boolean
-  /** 当前 Tab 下三档皆空 */
+  /** 无高匹配时中匹配自动展开（002 修复）：此时折叠区就是全部内容，不给"收起" */
+  autoExpand: boolean
+  /** 当前 Tab 下两档皆空 */
   noneVisible: boolean
   /** 当前选中题 id（加载时默认第一题） */
   selectedId: string | null
