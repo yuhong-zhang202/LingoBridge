@@ -1,6 +1,6 @@
 /**
  * @module   extraction
- * @desc     把一段整理后的中文语料归类到 48 个观察点（服务端调 LLM（dashscope）），判断主/副维度
+ * @desc     把一段整理后的中文语料归类到 49 个观察点（服务端调 LLM（dashscope）），判断主/副维度
  * @author   LingoBridge
  * @created  2026-06-02
  */
@@ -10,7 +10,7 @@ import { callLLMJson } from '@/lib/llm'
 import { MODEL_EXTRACTION } from '@/lib/constants'
 
 const SYSTEM_PROMPT = `你是 LingoBridge 的语料分类器。用户会给你一段「整理后的中文叙述」（来自雅思口语备考者讲述的真实生活片段）。
-你的任务：判断这段语料应该归到下面 48 个「观察点」中的哪一个，并区分主维度和副维度。
+你的任务：判断这段语料应该归到下面 49 个「观察点」中的哪一个，并区分主维度和副维度。
 
 # 6 个维度
 - emotion 情绪内核：这个人如何与自己相处（情绪、独处、解压、节奏）
@@ -20,7 +20,7 @@ const SYSTEM_PROMPT = `你是 LingoBridge 的语料分类器。用户会给你�
 - growth 成长演进：如何蜕变（技能、死磕、复盘、未来方向）
 - value 价值底色：相信什么、看重什么（公平/诚信/原则/正义感）
 
-# 48 个观察点（code｜名称 —— 收什么；不收什么/边界）
+# 49 个观察点（code｜名称 —— 收什么；不收什么/边界）
 
 ## 情绪内核 emotion
 EMO_01｜最近一段时间的整体状态 —— 持续状态/基调；不收具体事件
@@ -40,15 +40,16 @@ EMO_13｜你和外表/形象的关系 —— 穿着/外表/自我形象的经历
 ## 人际羁绊 relationship
 REL_01｜和家人的日常相处模式 —— 长期模式；不收"那一次"
 REL_02｜一次和家人之间的具体事件 —— 单次，可正可负（吵架/温暖都算）
-REL_03｜一个让你舒服的朋友 —— 对某人/某段关系的整体描述；不收"那一次共度"
+REL_03｜一个让你舒服的朋友 —— 对某人/某段关系的整体描述；不收"那一次共度"；⚠️ 仅限交心的密友/好友，认识但非密友（同事/邻居/长辈/老师/店主/同学等）归 REL_12
 REL_04｜一次和朋友的具体共度 —— 单次共同事件
 REL_05｜一段亲密关系里的人或事 —— 伴侣/心动/暧昧/暗恋，单身也能填
-REL_06｜一个让你印象深刻的陌生人 —— 单次相遇，不必是帮助性质
+REL_06｜一个让你印象深刻的陌生人 —— 单次相遇/偶遇（地铁/路上/店里/景点遇到的人），重心可以就是"这个人本身"（长相/穿着/做派/说过的话）；哪怕简短交谈、听他自述几句，仍是陌生人，归这里（交谈≠认识，"无信息交换"不是 REL_06 的条件）；⚠️ REL_06 vs REL_12 只看一条硬线：这个人你能不能反复见到——不能（一面之缘），无论多聚焦其人都是 REL_06，不许升级 REL_12；能反复见到的熟人（同事/邻居/长辈/老师/店主/同学）才归 REL_12
 REL_07｜和宠物/动物的日常陪伴 —— 日常存在感；⚠️ "宠物很可爱"那种纯偏好归精神栖所，这里收互动
 REL_08｜一次和宠物/动物的特殊互动 —— 单次（生病/走失/告别等）
 REL_09｜一次你帮助别人的经历 —— 主语是"我帮"
 REL_10｜一次被别人帮助的经历 —— 主语是"我被帮"
 REL_11｜一次关系摩擦或冲突 —— 一次真实的关系紧张/摩擦，可冲突可冷战，不要求和解；家人/朋友/伴侣/同事/机构都走这，重心是「那场冲突/对抗过程」；⚠️ 若重心是「感到被不公平对待/规则不公/原则被违背」，归 VAL_01
+REL_12｜一个让你印象深刻的人 —— 收：同事/邻居/长辈/老师/店主/同学等"认识但非密友"的人物描述，重在这个人本身（性格/做派/让你印象深的点）；⚠️ REL_12 限有持续关系基础、能反复见到的熟人（同事/邻居/长辈/老师/店主/同学等）；偶遇/一面之缘一律不归 REL_12，无论叙述多聚焦其人——单次相遇的陌生人（哪怕简短交谈、听其自述）归 REL_06；密友归 REL_03、与此人的冲突归 REL_11、被此人帮助归 REL_10
 
 ## 空间感知 space
 SPA_01｜你和居住空间的关系 —— 对住所/家乡的长期感受与依恋
@@ -183,6 +184,74 @@ export interface ExtractionResult {
   secondary: ExtractionPick | null
 }
 
+/**
+ * 合法观察点 code 全集，直接从上面 SYSTEM_PROMPT 的清单行（`CODE｜名称 —— …`）解析。
+ *
+ * 为什么不读 DB（listObservationPoints 才是元信息权威表）：
+ * 1) validate 是同步类型守卫，拿不到 await；
+ * 2) 这道校验要回答的问题是「模型有没有照我们给它的清单选」——那份清单就是 SYSTEM_PROMPT 本身，
+ *    拿 DB 去校验反而可能否掉 prompt 合法提供的 code，或放行 prompt 里根本没有的 code；
+ * 3) 从 prompt 现场解析 ⇒ 清单与校验永不漂移（改 prompt 即改校验），也不给 extraction 平添 DB 依赖
+ *    （scripts/eval/run-extraction.ts 只预检 DASHSCOPE_API_KEY，不预检 Supabase）。
+ * prompt 与 DB 之间的漂移，由 matching.ts 的 toMatchedPoint 在运行时兜住并报错。
+ * 行首锚定 + 全角｜双重约束，正文里的「归 VAL_01」等行内提及不会被误收。
+ */
+export const TAXONOMY_CODES: ReadonlySet<string> = new Set(
+  [...SYSTEM_PROMPT.matchAll(/^([A-Z]{3}_\d{2})｜/gm)].map((m) => m[1]),
+)
+
+/** 一个 pick 是否合法：必须是对象，且 pointCode 在 taxonomy 白名单里（模型自创 code 一律不认） */
+function isValidPick(v: unknown): v is ExtractionPick {
+  if (typeof v !== 'object' || v === null) return false
+  const code = (v as { pointCode?: unknown }).pointCode
+  return typeof code === 'string' && TAXONOMY_CODES.has(code)
+}
+
+/**
+ * 萃取结果类型守卫：primary 必须是合法 pick；secondary 要么明确为 null，要么也是合法 pick。
+ * secondary 同样校验：它一样会被 matching 拿去生成给用户看的观察点，漏掉它等于留半扇门。
+ * @param v  已 JSON.parse 的模型输出
+ * @returns  是否为合法 ExtractionResult
+ */
+function isExtractionResult(v: unknown): v is ExtractionResult {
+  if (typeof v !== 'object' || v === null) return false
+  const obj = v as { primary?: unknown; secondary?: unknown }
+  if (!isValidPick(obj.primary)) {
+    console.error('[Extraction] primary 观察点非法（不在 49 个 taxonomy code 内）', {
+      got: (obj.primary as { pointCode?: unknown } | undefined)?.pointCode,
+    })
+    return false
+  }
+  // secondary 缺字段（undefined）视同 null：prompt 要求显式给 null，但少个键不值得为此重试
+  if (obj.secondary !== null && obj.secondary !== undefined && !isValidPick(obj.secondary)) {
+    console.error('[Extraction] secondary 观察点非法（不在 49 个 taxonomy code 内）', {
+      got: (obj.secondary as { pointCode?: unknown }).pointCode,
+    })
+    return false
+  }
+  return true
+}
+
+/**
+ * 校验失败时退回给模型的整改要求。必须同时覆盖两类失败因（validate 只返回布尔，重试时已分不清是哪类）：
+ * JSON 语法坏了 / pointCode 自创。原「修引号」的指引整段保留，避免削弱既有 JSON 纠错效果。
+ */
+const EXTRACTION_FIX_INSTRUCTION =
+  '你上次的输出没有通过校验，请对照下面两类原因自查后重新输出。' +
+  '原因一：pointCode 不在给定清单内。pointCode 只能从 system 里列出的 49 个观察点 code 中原样挑一个' +
+  '（形如 EMO_04、REL_11、VAL_01），绝不允许自创、改写或臆造 code；secondary 没有就明确写 null，' +
+  '不要为了凑数编一个 code。原因二：JSON 无法解析，最常见是字符串值内部出现了未转义的英文双引号 " ——' +
+  '字符串值内部如需引用或强调，一律改用中文引号「」，绝不使用英文双引号。' +
+  '只输出 JSON 本身，前后不要任何说明文字，也不要 markdown 代码块。'
+
+/**
+ * 把整理后的中文语料萃取为主/副观察点。
+ * 模型返回的 pointCode 强制过 taxonomy 白名单：不合法先带整改要求退回重试一次，
+ * 重试仍不合法则抛错（extraction 无 fallback）——绝不把自创 code 放行到下游去捏造维度。
+ * @param cleanedText  整理后的中文故事
+ * @returns            ExtractionResult（primary 必为合法 code）
+ * @sideEffect         调用 DashScope；code 非法时打 error 日志
+ */
 export async function extractCorpus(cleanedText: string): Promise<ExtractionResult> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
@@ -201,9 +270,8 @@ export async function extractCorpus(cleanedText: string): Promise<ExtractionResu
       temperature: 0,
       maxTokens: 1024,
     },
-    validate: (v): v is ExtractionResult =>
-      typeof v === 'object' && v !== null &&
-      typeof (v as { primary?: { pointCode?: unknown } }).primary?.pointCode === 'string',
+    validate: isExtractionResult,
+    retryInstruction: EXTRACTION_FIX_INSTRUCTION,
   })
   return extraction
 }

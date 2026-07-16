@@ -89,9 +89,12 @@ export async function getQuestions(part?: 1 | 2 | 3): Promise<QuestionWithLinks[
 
 /**
  * 根据观察点 code 获取匹配的题目
+ * 顺序：显式按 question_id 升序。不加 order 时 PostgREST 不保证返回顺序，而下游重排把候选顺序
+ * 直接喂给模型（顺序影响模型输出），顺序不定会让线上问题无法复现、eval 结果无法逐次比对。
+ * 按 question_id 而非本表主键 id：question_id 才是稳定的业务键（映射行重建后主键会变）。
  * @param observationPointId  观察点 code（如 'SPA_03'）
  * @param includeSecondary    true 时同时返回副标签命中的题；默认 false（仅主标签）
- * @returns                   匹配的题目列表，每项带 isPrimaryMatch 标记
+ * @returns                   匹配的题目列表（按 question_id 升序），每项带 isPrimaryMatch 标记
  */
 export async function getQuestionsByObservation(
   observationPointId: string,
@@ -104,7 +107,9 @@ export async function getQuestionsByObservation(
     .select(`is_primary, questions(*, question_observation_links(observation_point_id))`)
     .eq('observation_point_id', observationPointId)
 
-  const { data, error } = await (includeSecondary ? base : base.eq('is_primary', true))
+  // order 必须挂在 eq 之后：supabase-js 的 TransformBuilder 上没有 eq
+  const filtered = includeSecondary ? base : base.eq('is_primary', true)
+  const { data, error } = await filtered.order('question_id')
   if (error) throw new Error(`按观察点读取题目失败：${error.message}`)
   return (data as unknown as RawNestedRow[]).map((row) => ({
     ...mapQuestion(row.questions),

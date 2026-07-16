@@ -75,10 +75,25 @@ function MatchingContent() {
     return tabs
   }, [result])
 
-  // 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响）
+  // 未打分候选（重排 3 轮补缺全失败后的兜底残留）属极罕见边缘态：它们一律不展示，
+  // 但绝不能静默——静默就等于这条路径永远不会被发现。每次取到新结果时报一次。
+  useEffect(() => {
+    if (!result) return
+    const unscored = result.questions.filter((q) => q.relevanceScore == null)
+    if (unscored.length === 0) return
+    console.error('[MatchingPage] 存在未打分候选，按「无分数依据」一律不展示、不标档', {
+      corpusId,
+      unscoredCount: unscored.length,
+      totalCandidates: result.questions.length,
+      unscoredQuestionIds: unscored.map((q) => q.id),
+    })
+  }, [result, corpusId])
+
+  // 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响）。
+  // 未打分不计入：标题「匹配到 N 道」必须与真正展示出的卡片数一致，否则又是一次「说有 N 道却没有」。
   const totalVisible = useMemo(() => {
     if (!result) return 0
-    return result.questions.filter((q) => (q.relevanceScore ?? 100) >= SCORE_LOW).length
+    return result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW).length
   }, [result])
 
   // 当前 Tab 过滤后的题目
@@ -89,23 +104,20 @@ function MatchingContent() {
     return result.questions.filter((q) => q.part === n)
   }, [result, activeTab])
 
-  // 三档分组；无 score（排名服务降级）时默认归入高匹配，保持全量展示
+  // 三档分组。未打分（relevanceScore == null/undefined）一律不进任何档、不展示：
+  // 产品不变式 2「用户看到的每道题必须有分数依据；无分数 → 不展示、不落库、不标任何档」。
+  // 曾经这里是 `?? 100`，把我们一无所知的题当「高匹配」顶在首屏——正是不变式 2 要根除的
+  // 「我们不知道 X 却声称 X」。与 matching.ts 排序用的 `?? -1`（未打分沉底）方向一致：都当它不存在。
   const highGroup = useMemo(
-    () => filtered.filter((q) => (q.relevanceScore ?? 100) >= SCORE_HIGH),
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH),
     [filtered]
   )
   const midGroup = useMemo(
-    () => filtered.filter((q) => {
-      const s = q.relevanceScore ?? 100
-      return s >= SCORE_MID && s < SCORE_HIGH
-    }),
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH),
     [filtered]
   )
   const lowGroup = useMemo(
-    () => filtered.filter((q) => {
-      const s = q.relevanceScore ?? 100
-      return s >= SCORE_LOW && s < SCORE_MID
-    }),
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW && q.relevanceScore < SCORE_MID),
     [filtered]
   )
 

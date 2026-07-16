@@ -1,6 +1,7 @@
 /**
  * @module   db/observation-points
- * @desc     读取 43 个观察点（参考数据，前端用来 code→id 映射与显示名称）
+ * @desc     读取 49 个观察点（参考数据，前端用来 code→id 映射与显示名称）。
+ *           唯一真源是 extraction.ts 的 SYSTEM_PROMPT（产品不变式 5），本表是它的下游。
  * @author   LingoBridge
  * @created  2026-06-02
  */
@@ -32,7 +33,7 @@ function mapRow(row: ObservationPointRow): ObservationPoint {
 }
 
 /**
- * 读取全部 43 个观察点，按 sort_order 升序
+ * 读取全部 49 个观察点，按 sort_order 升序
  * @returns  ObservationPoint 列表
  */
 export async function listObservationPoints(): Promise<ObservationPoint[]> {

@@ -46,11 +46,21 @@ function makeQ(id: string, part: 1 | 2 | 3) {
 function makePoint(code: string, name: string, dimensionId: 'emotion' | 'space' | 'value' | 'relationship') {
   return { id: `id-${code}`, code, name, dimensionId, layer: 'state' as const, mappedQuestionCount: 0, richThreshold: 0, sortOrder: 0 }
 }
+// 必须覆盖用例里会被走到的全部 code——含 OBSERVATION_ADJACENCY 中 SPA_03 / VAL_01 的邻居。
+// toMatchedPoint 对 DB 里查无此 code 的观察点一律返回 null（不再捏造维度兜底），
+// 桩缺一个 code 就等于在测「DB 漂移」而非测漏斗，会误伤邻居增援用例。
 const POINTS = [
   makePoint('EMO_01', '放松的事',     'emotion'),
   makePoint('SPA_03', '自然的地方',   'space'),
   makePoint('VAL_01', '公平感与正义', 'value'),
   makePoint('REL_11', '冲突/道歉',    'relationship'),
+  // SPA_03 的邻居
+  makePoint('SPA_01', '居住空间',     'space'),
+  makePoint('SPA_04', '公共空间',     'space'),
+  makePoint('SPA_02', '日常移动',     'space'),
+  // VAL_01 的邻居（REL_11 已在上面）
+  makePoint('VAL_03', '价值原则',     'value'),
+  makePoint('VAL_02', '诚实与信任',   'value'),
 ]
 
 beforeEach(() => {
@@ -257,5 +267,134 @@ describe('matchByStory · 三层漏斗', () => {
     const byId = new Map(r.questions.map(q => [q.id, q]))
     expect(byId.get('q1')!.isPrimaryMatch).toBe(true)   // 主题保持主命中
     expect(byId.get('n1')!.isPrimaryMatch).toBe(false)  // 邻居题非主命中
+  })
+})
+
+describe('matchByStory · 观察点元信息二道网（DB 漂移时不许捏造维度）', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  test('11. primary 的 code 在 DB 查无此点：显式 error + 走 noMatch，绝不捏造「情绪内核」', async () => {
+    // 模拟 prompt 清单与 DB observation_points 漂移（extraction 放行了 DB 里没有的 code）
+    mockExtract.mockResolvedValue({ primary: { pointCode: 'EMO_99', reason: 'r' }, secondary: null })
+    mockGetQs.mockResolvedValue([])
+
+    const r = await matchByStory(STORY)
+
+    expect(console.error).toHaveBeenCalledWith(
+      '[Matching] 观察点 code 在 DB observation_points 中不存在，已按「无此观察点」处理',
+      expect.objectContaining({ pointCode: 'EMO_99' }),
+    )
+    expect(r.primary).toBeNull()        // 不返回捏造的 MatchedPoint
+    expect(r.noMatch).toBe(true)        // 如实走温柔收尾，而非拿假维度骗用户
+    expect(r.questions).toEqual([])
+  })
+
+  test('12. secondary 的 code 查无此点：primary 正常，secondary 置空而非捏造', async () => {
+    mockExtract.mockResolvedValue({
+      primary:   { pointCode: 'SPA_03', reason: 'r1' },
+      secondary: { pointCode: 'ZZZ_42', reason: 'r2' },
+    })
+    mockGetQs.mockImplementation(async (code) => (code === 'SPA_03' ? [makeQ('q1', 1), makeQ('q2', 1), makeQ('q3', 1)] : []))
+    mockRank.mockResolvedValue([
+      { id: 'q1', score: 90, reason: 'a' }, { id: 'q2', score: 80, reason: 'b' }, { id: 'q3', score: 70, reason: 'c' },
+    ])
+
+    const r = await matchByStory(STORY)
+
+    expect(r.secondary).toBeNull()
+    expect(r.primary?.dimension).toBe('空间感知')  // 合法的那个不受影响
+    expect(r.count).toBe(3)
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('观察点 code 在 DB observation_points 中不存在'),
+      expect.objectContaining({ pointCode: 'ZZZ_42' }),
+    )
+  })
+
+  test('13. 合法 code：维度取自 DB，无任何 error（正常路径未被影响）', async () => {
+    mockExtract.mockResolvedValue({
+      primary:   { pointCode: 'VAL_01', reason: 'r1' },
+      secondary: { pointCode: 'REL_11', reason: 'r2' },
+    })
+    mockGetQs.mockImplementation(async (code) => (code === 'VAL_01' ? [makeQ('q1', 1), makeQ('q2', 1), makeQ('q3', 1)] : []))
+    mockRank.mockResolvedValue([
+      { id: 'q1', score: 90, reason: 'a' }, { id: 'q2', score: 80, reason: 'b' }, { id: 'q3', score: 70, reason: 'c' },
+    ])
+
+    const r = await matchByStory(STORY)
+
+    expect(r.primary).toEqual({ pointCode: 'VAL_01', pointName: '公平感与正义', dimension: '价值底色', reason: 'r1' })
+    expect(r.secondary?.dimension).toBe('人际羁绊')
+    expect(console.error).not.toHaveBeenCalled()
+  })
+})
+
+describe('matchByStory · 重排回填的 id 集合校验（第二道网）', () => {
+  /** 三题都来自 SPA_03 的标准场景，供本组各用例复用 */
+  function arrange(): void {
+    mockExtract.mockResolvedValue({ primary: { pointCode: 'SPA_03', reason: 'r' }, secondary: null })
+    mockGetQs.mockImplementation(async (code) => (code === 'SPA_03' ? [makeQ('q1', 1), makeQ('q2', 1), makeQ('q3', 1)] : []))
+  }
+
+  beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    jest.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  test('8. 不在候选中的 id：显式 error 并丢弃，不静默', async () => {
+    arrange()
+    mockRank.mockResolvedValue([
+      { id: 'q1', score: 90, reason: 'a' },
+      { id: 'q2', score: 80, reason: 'b' },
+      { id: 'q3', score: 70, reason: 'c' },
+      { id: 'ghost', score: 99, reason: '幽灵题' },
+    ])
+
+    const r = await matchByStory(STORY)
+
+    expect(console.error).toHaveBeenCalledWith('[Matching] 重排返回了不在候选中的 id，已丢弃', { id: 'ghost' })
+    expect(r.questions.map(q => q.id)).toEqual(['q1', 'q2', 'q3'])
+    expect(r.questions.map(q => q.relevanceScore)).toEqual([90, 80, 70])
+  })
+
+  test('9. 重复 id：显式 error，保留首次而非让后者静默覆盖', async () => {
+    arrange()
+    mockRank.mockResolvedValue([
+      { id: 'q1', score: 90, reason: '首次' },
+      { id: 'q1', score: 10, reason: '重复' },
+      { id: 'q2', score: 80, reason: 'b' },
+      { id: 'q3', score: 70, reason: 'c' },
+    ])
+
+    const r = await matchByStory(STORY)
+
+    expect(console.error).toHaveBeenCalledWith(
+      '[Matching] 重排返回重复 id，保留首次、丢弃后续',
+      { id: 'q1', kept: 90, dropped: 10 },
+    )
+    const byId = new Map(r.questions.map(q => [q.id, q]))
+    expect(byId.get('q1')!.relevanceScore).toBe(90)
+    expect(byId.get('q1')!.relevanceReason).toBe('首次')
+  })
+
+  test('10. 缺失 id：显式 warn 并列出缺哪些，不静默留 undefined', async () => {
+    arrange()
+    mockRank.mockResolvedValue([{ id: 'q1', score: 90, reason: 'a' }])
+
+    const r = await matchByStory(STORY)
+
+    expect(console.warn).toHaveBeenCalledWith(
+      '[Matching] 部分候选题未拿到重排分（将按未打分展示）',
+      { missingCount: 2, totalCandidates: 3, missingIds: ['q2', 'q3'] },
+    )
+    const byId = new Map(r.questions.map(q => [q.id, q]))
+    expect(byId.get('q2')!.relevanceScore).toBeUndefined()
   })
 })

@@ -7,6 +7,7 @@
 import 'server-only'
 import { extractCorpus, type ExtractionPick } from '@/services/extraction'
 import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
+import { questionFace } from '@/lib/question-face'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { DIMENSION_LABEL } from '@/lib/constants'
@@ -61,13 +62,25 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
   const points = await listObservationPoints()
   const pointMeta = new Map(points.map((p) => [p.code, p]))
 
+  // 观察点元信息的二道网。主防线是 extraction 的 taxonomy 白名单校验；能走到这里说明
+  // 「prompt 清单」与「DB observation_points」漂移了（DB 少了某个 code）——那是配置事故，必须留证。
+  // 不再兜底的理由：旧写法 pointName 退化成裸 code、dimension 硬编码成「情绪内核」，等于凭空捏造一个
+  // 维度显示给用户；且该 code 在 DB 里查不到题，召回必然为 0。与其拿假维度骗用户，不如如实判定为
+  // 「这个观察点不存在」返回 null：primary 为 null 时下游走既有 noMatch 收尾页，secondary/邻居直接跳过。
   function toMatchedPoint(pick: ExtractionPick | null): MatchedPoint | null {
     if (!pick) return null
     const meta = pointMeta.get(pick.pointCode)
+    if (!meta) {
+      console.error('[Matching] 观察点 code 在 DB observation_points 中不存在，已按「无此观察点」处理', {
+        pointCode: pick.pointCode,
+        hint: 'extraction 的 SYSTEM_PROMPT 清单与 DB observation_points 表可能已漂移，请核对',
+      })
+      return null
+    }
     return {
       pointCode: pick.pointCode,
-      pointName: meta?.name ?? pick.pointCode,
-      dimension: meta ? DIMENSION_LABEL[meta.dimensionId] : '情绪内核',
+      pointName: meta.name,
+      dimension: DIMENSION_LABEL[meta.dimensionId],
       reason: pick.reason,
     }
   }
@@ -158,16 +171,45 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
 
   // 4. 相关性排名（仅在有候选题时调用；降级返回空数组时回退到漏斗排序）
   if (allQuestions.length > 0) {
-    const candidates: CandidateQuestion[] = allQuestions.map((q) => ({
-      id: q.id,
-      en: q.cue_card_title ?? q.question_text,
-      zh: q.cue_card_title_zh ?? q.question_text_zh ?? '',
-      obs: q.pointName,
-    }))
+    const candidates: CandidateQuestion[] = allQuestions.map((q) => {
+      // 题面走单一事实源 questionFace：Part2 cue card 带完整题面（含 "You should say" 约束 bullet），
+      // 与盲标表呈现给标注人的题面一致；Part1/3 行为不变。
+      const face = questionFace(q)
+      return { id: q.id, en: face.en, zh: face.zh, obs: q.pointName }
+    })
     const scores = await rankQuestions(cleanedText, candidates)
 
     if (scores.length > 0) {
-      const scoreMap = new Map(scores.map((s) => [s.id, s]))
+      // 回填前先核对「返回的 id 集合」与「候选 id 集合」。ranking.ts 已在模型边界做过严格对齐，
+      // 这里是第二道网（主要兜 fallback 抢救路径）：三类异常一律显式记账，不静默吞掉。
+      // 不抛错的取舍：本层只是防御性复核，为一条脏数据整条链路报错、让用户看到错误页，代价大于收益；
+      // 真正的拦截点在 ranking.ts 的 validate。
+      const candidateIds = new Set(candidates.map((c) => c.id))
+      const scoreMap = new Map<string, (typeof scores)[number]>()
+      for (const s of scores) {
+        if (!candidateIds.has(s.id)) {
+          console.error('[Matching] 重排返回了不在候选中的 id，已丢弃', { id: s.id })
+          continue
+        }
+        if (scoreMap.has(s.id)) {
+          console.error('[Matching] 重排返回重复 id，保留首次、丢弃后续', {
+            id: s.id,
+            kept: scoreMap.get(s.id)?.score,
+            dropped: s.score,
+          })
+          continue
+        }
+        scoreMap.set(s.id, s)
+      }
+      const missing = [...candidateIds].filter((id) => !scoreMap.has(id))
+      if (missing.length > 0) {
+        console.warn('[Matching] 部分候选题未拿到重排分（将按未打分展示）', {
+          missingCount: missing.length,
+          totalCandidates: candidateIds.size,
+          missingIds: missing,
+        })
+      }
+
       for (const q of allQuestions) {
         const s = scoreMap.get(q.id)
         if (s) {

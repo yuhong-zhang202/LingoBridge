@@ -10,6 +10,30 @@ import { callLLMJson } from '@/lib/llm'
 import { MODEL_ANALYSIS } from '@/lib/constants'
 import type { QuestionAnalysis, AnalysisPhraseGroup } from '@/lib/types'
 
+/**
+ * 超时预算 = BASE + PER_INPUT_CHAR × 输入字符数，与输入规模挂钩，绝不吃 llm.ts 的 30s 默认值。
+ *
+ * 为什么必须显式给（2026-07-16 实测）：
+ * · [Analysis] 11.8s / [Phrases] 10.1s，30s 默认只剩 2.5×~3.0× 余量；
+ * · 作为参照，ranking 35 道候选实测 20s（1.5× 余量）就是 6 个故事全挂的那条线，这里离它只差一步；
+ * · maxTokens 2560/2048 允许输出比实测再翻约 2 倍 → 外推 ~24s，余量基本归零；
+ * · 上面那次实测用的故事仅约 130 字符，真实用户的整理后语料要长得多——所以预算必须随输入涨，
+ *   拍一个固定值等于赌用户不讲长故事。
+ * 宁可给宽：本环节【没有 fallback、没有截断抢救】，超时 = 用户直接看到报错页。
+ * 标定：约 130 字符输入 → 60s（实测 11.8s 的 5×）；每多 1 字符 +40ms（约 1000 字符的长语料 → 95s）。
+ */
+const TIMEOUT_BASE_MS = 55_000
+const TIMEOUT_PER_INPUT_CHAR_MS = 40
+
+/**
+ * 按输入规模算超时预算
+ * @param userMsg  送给模型的 user 消息（含题目与用户故事，是输出长度的主要驱动）
+ * @returns        本次调用的超时毫秒数
+ */
+function timeoutFor(userMsg: string): number {
+  return TIMEOUT_BASE_MS + TIMEOUT_PER_INPUT_CHAR_MS * userMsg.length
+}
+
 const SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定一道雅思口语题（可能附用户的真实故事），为中国考生生成「答题侧重点」和「可用词组」。本页只会出现 Part 1 和 Part 2 的题（Part 3 不会走到这里，不用考虑）。
 
 # 怎么分析（每次都按这三样来想）
@@ -90,6 +114,7 @@ export async function generateAnalysis(input: {
       ],
       maxTokens: 2560,
     },
+    timeoutMs: timeoutFor(userMsg),
     validate: (v): v is QuestionAnalysis =>
       typeof v === 'object' && v !== null &&
       Array.isArray((v as { focusPoints?: unknown }).focusPoints) &&
@@ -156,6 +181,7 @@ export async function generatePhrases(input: {
       ],
       maxTokens: 2048,
     },
+    timeoutMs: timeoutFor(userMsg),
     validate: (v): v is { phrases: AnalysisPhraseGroup[] } =>
       typeof v === 'object' && v !== null &&
       Array.isArray((v as { phrases?: unknown }).phrases),
