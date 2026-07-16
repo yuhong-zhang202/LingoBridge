@@ -1,0 +1,40 @@
+{
+  "pkg": "lingobridge",
+  "globalName": "LB",
+  "shape": "package",
+  "srcDir": "src/components",
+  "tsconfig": "./tsconfig.json",
+  "cssEntry": ".design-sync/.cache/ds-styles.css",
+  "componentSrcMap": {
+    "GradientButton": "src/components/GradientButton.tsx",
+    "Card": "src/components/Card.tsx",
+    "Tag": "src/components/Tag.tsx",
+    "Chip": "src/components/Chip.tsx",
+    "PartTag": "src/components/PartTag.tsx",
+    "StepBar": "src/components/StepBar.tsx",
+    "Orb": "src/components/Orb.tsx",
+    "Skeleton": "src/components/Skeleton.tsx",
+    "EmptyState": "src/components/EmptyState.tsx",
+    "Toast": "src/components/Toast.tsx"
+  },
+  "dtsPropsFor": {
+    "GradientButton": "children?: React.ReactNode; onClick?: React.MouseEventHandler<HTMLButtonElement>; disabled?: boolean; className?: string",
+    "Card": "children?: React.ReactNode; variant?: 'plain' | 'gradient'; className?: string",
+    "Tag": "label: string; variant?: 'green' | 'gradient' | 'gray'; icon?: React.ReactNode; className?: string",
+    "Chip": "children?: React.ReactNode; onClick?: React.MouseEventHandler<HTMLButtonElement>; active?: boolean; variant?: 'gradient' | 'ghost' | 'default'; size?: 'sm' | 'md'; className?: string",
+    "PartTag": "label: string",
+    "StepBar": "currentStep: 'story' | 'restructure' | 'matching' | 'analysis' | 'practice'",
+    "Orb": "size?: number; audioLevel?: number; pulse?: boolean; className?: string",
+    "Skeleton": "className?: string",
+    "EmptyState": "title: string; subtitle?: string; ctaLabel?: string; onCta?: () => void; orbSize?: number; className?: string",
+    "Toast": "message: string | null; onDismiss: () => void; duration?: number"
+  },
+  "overrides": {
+    "Toast": {
+      "cardMode": "single",
+      "viewport": "420x140"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "projectId": "4d903e43-5ad2-428a-a692-7973c3da909e"
+}

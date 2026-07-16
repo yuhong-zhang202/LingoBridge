@@ -1,0 +1,443 @@
+[
+  {
+    "id": "d67eaf7d-c485-4da3-ae97-0f4bfdbbbee3",
+    "part": 2,
+    "cue_card_title": "A Person Who Solved a Problem",
+    "question_text": "Describe a person who solved a problem in a smart way. You should say: who he / she is what the problem was how he or she solved it And explain why you think he / she did it in a smart way.",
+    "question_text_zh": null
+  },
+  {
+    "id": "a4dc0e54-23f3-435c-bd83-0362ef830fd1",
+    "part": 2,
+    "cue_card_title": "A Person Who Protects the Nature",
+    "question_text": "Describe a person who encouraged you to protect the nature. You should say: who this person is how he / she encouraged you what he / she encourage you to do And explain how you feel about this person.",
+    "question_text_zh": null
+  },
+  {
+    "id": "262afacd-5690-47bb-8fcb-c48acbc099f5",
+    "part": 2,
+    "cue_card_title": "A Helpful Person",
+    "question_text": "Describe a person who often helps others You should say: who this person is how often he / she helps others how / why he / she helps others And explain how you feel about this person.",
+    "question_text_zh": null
+  },
+  {
+    "id": "abc1de3e-b469-4f6e-adfb-bb9610537871",
+    "part": 2,
+    "cue_card_title": "An Organized Person",
+    "question_text": "Describe a person who makes plans a lot and is good at planning. You should say: who he / she is how you knew him / her what plans he / she makes. And explain how you feel about this person.",
+    "question_text_zh": null
+  },
+  {
+    "id": "21757085-c9f8-453f-8f58-3fafa91257f6",
+    "part": 2,
+    "cue_card_title": "A Child Who Loves To Draw",
+    "question_text": "Describe a child who loves drawing or painting. You should say: who this person is how / when you knew him / her how often he / she draws / paints And explain why you think he / she loves drawing / painting.",
+    "question_text_zh": null
+  },
+  {
+    "id": "806b2bfd-d6fb-4b44-860a-045c8d6d9eb7",
+    "part": 2,
+    "cue_card_title": "A Person Who Learned a Skill",
+    "question_text": "Describe one of your friends who learned something without a teacher. You should say: who this person is what skill he / she learned how he / she learned And explain whether it would be easier to learn from a teacher.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f3292a43-4f57-4a80-a6f4-8da80712da63",
+    "part": 2,
+    "cue_card_title": "A Famous Person",
+    "question_text": "Describe a famous person you would like to meet. You should say: who he / she is how you knew him / her how and where you would like to meet him / her And explain why you would like to meet him / her.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f9febb5a-eaad-414e-90bd-936bd709ff42",
+    "part": 2,
+    "cue_card_title": "An Important Friend",
+    "question_text": "Describe a good friend who is important to you. You should say: who he / she is how / where you got to know him / her how long you have known each other And explain why he / she is important to you.",
+    "question_text_zh": null
+  },
+  {
+    "id": "c17b1f65-41b9-4a6a-a4d6-5a190ab1866f",
+    "part": 2,
+    "cue_card_title": "A Person Who Enjoys Working for a Family Business",
+    "question_text": "Describe a person you know who enjoys working for a family business (e.g. a shop, etc.). You should say: who he / she is what the business is what his / her job is And explain why he / she enjoys working there.",
+    "question_text_zh": null
+  },
+  {
+    "id": "0aa6aa8c-7ae2-41f8-8749-5c4ea069f663",
+    "part": 2,
+    "cue_card_title": "A Friend Who Is Good at Music",
+    "question_text": "Describe a friend of yours who is good at music / singing. You should say: who he / she is when / where you listen to his / her music / singing what kind of music / songs he / she is good at And explain how you feel when listening to his / her music / singing.",
+    "question_text_zh": null
+  },
+  {
+    "id": "530e069f-9d2c-4532-85db-f6232cbac4ca",
+    "part": 2,
+    "cue_card_title": "A Creative Person",
+    "question_text": "Describe a creative person (e.g. an artist, a musician, an architect etc.) you admire. You should say: who he/she is how you knew him/her what his/her greatest achievement is And explain why you think he/she is creative.",
+    "question_text_zh": null
+  },
+  {
+    "id": "a64bf661-3504-4a50-8412-eefb7968b796",
+    "part": 2,
+    "cue_card_title": "A Sportsperson",
+    "question_text": "Describe a successful sportsperson you admire. You should say: who he / she is what you know about him / her what he / she is like in real life what achievement he / she has made And explain why you admire him / her.",
+    "question_text_zh": null
+  },
+  {
+    "id": "2366f19b-6ee7-4d4f-88c2-bb95dc7ca046",
+    "part": 2,
+    "cue_card_title": "A Popular Person",
+    "question_text": "Describe a popular person. You should say: who this person is what kind of person he or she is when you see him / her normally And explain why you think this person is popular.",
+    "question_text_zh": null
+  },
+  {
+    "id": "d5da46d2-d128-432a-b72b-2a34750b2510",
+    "part": 2,
+    "cue_card_title": "A Foreign Country",
+    "question_text": "Describe a foreign country you would like to stay or work for a short period of time. You should say: which country it is where you got to know this country what you will do there And explain why you will stay or work there just for a short period of time.",
+    "question_text_zh": null
+  },
+  {
+    "id": "6bb2df3e-e0b0-4ec5-a289-4794605748e8",
+    "part": 2,
+    "cue_card_title": "A Shopping Mall",
+    "question_text": "Describe a shopping mall. You should say: where it is what its name is how often you visit it And what you usually buy at the mall.",
+    "question_text_zh": null
+  },
+  {
+    "id": "5649b7fa-c53c-4ff5-9cd8-822c7703b8a3",
+    "part": 2,
+    "cue_card_title": "An Interesting Building",
+    "question_text": "Describe an interesting building. You should say: what it looks like where it is what function it has And explain why you think it is interesting.",
+    "question_text_zh": null
+  },
+  {
+    "id": "cd1df162-29dc-4f28-9453-4277669e01a1",
+    "part": 2,
+    "cue_card_title": "A Relaxing Place",
+    "question_text": "Describe your favorite place in your house where you can relax. You should say: where it is what it is like what you enjoy doing there And explain why you feel relaxed at this place.",
+    "question_text_zh": null
+  },
+  {
+    "id": "81f0772f-1dcf-4a3d-9704-cafc6db9475b",
+    "part": 2,
+    "cue_card_title": "A Natural Place",
+    "question_text": "Describe a natural place (e.g. parks, mountains, etc.). You should say: where this place is how you knew this place what it is like And explain why you like to visit it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "c2111b2f-2766-4be3-9eed-79c9f6544f3e",
+    "part": 2,
+    "cue_card_title": "An Interesting Building",
+    "question_text": "Describe an interesting building you saw during a trip. You should say: where you saw it what it looks like what you have known about it And explain why you think it is interesting.",
+    "question_text_zh": null
+  },
+  {
+    "id": "a08415ee-b3d2-43f1-b3f5-866468a960c7",
+    "part": 2,
+    "cue_card_title": "A Place With a Lot of Trees",
+    "question_text": "Describe a place with a lot of trees that you would like to visit (e.g. a forest, oasis). You should say: where it is how you knew this place what it was like And explain why you would like to visit it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "cda04d1e-db76-4244-83bc-b7bb114878ea",
+    "part": 2,
+    "cue_card_title": "An Important Old Thing in Family",
+    "question_text": "Describe something important that has been kept in your family for a long time. You should say: what it is when your family had it how your family got it And explain why it is important to your family.",
+    "question_text_zh": null
+  },
+  {
+    "id": "aa51b44f-9e97-4f06-b3a5-37c3cbdec3bc",
+    "part": 2,
+    "cue_card_title": "An Expensive Item",
+    "question_text": "Describe an item on which you spent more than expected. You should say: what it is how much you spent on it why you bought it And explain why you think you spent more than expected.",
+    "question_text_zh": null
+  },
+  {
+    "id": "c8938b2a-dbcf-4be0-9454-7db8e79d7cd3",
+    "part": 2,
+    "cue_card_title": "A Piece of Technology",
+    "question_text": "Describe a piece of technology (not a phone) that you would like to own. You should say: what it is how much it costs how you knew it And explain why you would like to own it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "ef3ac1af-49f0-46f3-8133-f80ce0062c7a",
+    "part": 2,
+    "cue_card_title": "Something You Can’t Live Without",
+    "question_text": "Describe something that you can't live without (not a computer / phone). You should say: what it is what you do with it how it helps you in your life And explain why you can't live without it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "1ef5a49a-5bbc-46e2-89be-677e0b3a8f4f",
+    "part": 2,
+    "cue_card_title": "A Wild Animal",
+    "question_text": "Describe a wild animal that you want to know more about. You should say: what it is when / where you saw it why you want to know more about it And explain what you want to know more about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "bd6f2383-432f-4dc3-aea7-0f274555d336",
+    "part": 2,
+    "cue_card_title": "A Toy",
+    "question_text": "Describe a toy you liked in your childhood. You should say: what kind of toy it is when you received it how you played it And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "29950005-fcc8-4eaf-be64-bfaf8d1bb860",
+    "part": 2,
+    "cue_card_title": "An Old Thing",
+    "question_text": "Describe an important old thing that your family has kept for a long time. You should say: what it is how / when your family first got this thing how long your family has kept it And explain why this thing is important to your family.",
+    "question_text_zh": null
+  },
+  {
+    "id": "64731d64-cfeb-4bb9-ac62-78131f248fb7",
+    "part": 2,
+    "cue_card_title": "A Perfect Job",
+    "question_text": "Describe your perfect job. You should say: what it is where you heard about it from what you need to learn to get the job And explain why you think it is your perfect job.",
+    "question_text_zh": null
+  },
+  {
+    "id": "4991fa18-2df8-417e-b1aa-4f3175124520",
+    "part": 2,
+    "cue_card_title": "A Movie You Watched Recently",
+    "question_text": "Describe a movie you watched and enjoyed recently. You should say: when and where you watched it who you watched it with what it was about And explain why you watched this movie.",
+    "question_text_zh": null
+  },
+  {
+    "id": "df378fd9-ab85-4903-9bc4-06d5159d38aa",
+    "part": 2,
+    "cue_card_title": "A Disappointing Movie",
+    "question_text": "Describe a movie you watched recently that you felt disappointed about. You should say: when it was why you didn't like it why you decided to watch it And explain why you felt disappointed about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "95df6563-b761-4545-a2c2-84e4ebfbad87",
+    "part": 2,
+    "cue_card_title": "An App",
+    "question_text": "Describe a program or app on your computer or phone. You should say: what it is when / how you use it where you found it And explain how you feel about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+    "part": 2,
+    "cue_card_title": "A Story",
+    "question_text": "Describe a story (e.g. a fairy tale, etc.) you have read recently. You should say: what it is about when you read it whether you liked it And explain what you have learned from it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f09c2e63-3ab3-4302-b751-932a7d2cb37d",
+    "part": 2,
+    "cue_card_title": "A Useful Book",
+    "question_text": "Describe a book you read that you found useful. You should say: what it is when you read it why you think it is useful And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "9bf7ea3d-8acf-447b-9cae-a880303c715c",
+    "part": 2,
+    "cue_card_title": "A Traditional Story",
+    "question_text": "Describe an interesting traditional story. You should say: what the story is about when / how you knew it who told you the story And explain how you felt when you first heard it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "afb90a41-14ff-45d8-acb2-bf3615f184a7",
+    "part": 2,
+    "cue_card_title": "A Talent You Want To Improve",
+    "question_text": "Describe a natural talent (sport, music, etc.) you want to improve. You should say: what it is when you discovered it how you want to improve it And explain how you feel about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f01806ab-9921-4ebf-ab2f-befa8c51bbb6",
+    "part": 2,
+    "cue_card_title": "A Good Habit",
+    "question_text": "Describe a good habit your friend has and you want to develop. You should say: who your friend is what habit he / she has when you noticed this habit And explain why you want to develop this habit.",
+    "question_text_zh": null
+  },
+  {
+    "id": "db00054c-fdd9-4a6f-82aa-922b681b72b1",
+    "part": 2,
+    "cue_card_title": "An Area / Subject of Science",
+    "question_text": "Describe an area / subject of science (biology, robotics, etc.) that you are interested in and would like to learn more about. You should say: which area / subject it is when and where you came to know this area / subject how you get information about this area / subject And explain why you are interested in this area / subject.",
+    "question_text_zh": null
+  },
+  {
+    "id": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+    "part": 2,
+    "cue_card_title": "An Important Decision",
+    "question_text": "Describe an important decision made with the help of other people. You should say: what the decision was why you made the decision who helped you make the decision And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "abcd4891-e3ef-4c58-b012-1bc58c5f1dc8",
+    "part": 2,
+    "cue_card_title": "Something Interesting on Social Media",
+    "question_text": "Describe a time when you saw something interesting on social media. You should say: when it was where you saw it what you saw And explain why you think it was interesting.",
+    "question_text_zh": null
+  },
+  {
+    "id": "be89a0fc-9ec2-4ee4-bcdb-98342779540e",
+    "part": 2,
+    "cue_card_title": "A Music Event",
+    "question_text": "Describe a music event you attended in which you didn't enjoy the music played. You should say what it was who you went with why you decided to go there And explain why you didn't enjoy it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "168fb244-c8f7-42b2-b5d3-78aad055da30",
+    "part": 2,
+    "cue_card_title": "An Exciting Activity",
+    "question_text": "Describe an exciting activity you have tried for the first time. You should say: what it is when / where you did it why you thought it was exciting And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "813ec6ef-1cbc-4dfc-89ad-3788e76ba31d",
+    "part": 2,
+    "cue_card_title": "An Occasion When People Were Smiling",
+    "question_text": "Describe an occasion when many people were smiling. You should say: when it happened who you were with what happened And explain why most people were smiling.",
+    "question_text_zh": null
+  },
+  {
+    "id": "744762f2-265c-4428-987c-16fa35d211da",
+    "part": 2,
+    "cue_card_title": "A Trip",
+    "question_text": "Describe a bicycle / motorcycle / car trip you would like to go. You should say: who you would like to go with where you would like to go when you would like to go And explain why you would like to go by this transport.",
+    "question_text_zh": null
+  },
+  {
+    "id": "ee65f746-eeaa-4b25-9f86-1e8e20b01760",
+    "part": 2,
+    "cue_card_title": "A Time When You Encouraged Someone",
+    "question_text": "Describe a time when you encouraged someone to do something that he / she didn't want to do. You should say: who he or she is what you encouraged him / her to do how he / she reacted and explain why you encouraged him / her to do it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "400bf3ce-7d73-44b8-8022-506debc84c88",
+    "part": 2,
+    "cue_card_title": "Giving Advice",
+    "question_text": "Describe a time when you gave advice to others. You should say: when it was to whom you gave the advice what the advice was and explain why you gave the advice.",
+    "question_text_zh": null
+  },
+  {
+    "id": "a896a232-09a7-45bb-96f6-67b210e4865b",
+    "part": 2,
+    "cue_card_title": "An Occasion When Mobile Phone Was Not Allowed",
+    "question_text": "Describe an occasion when you were not allowed to use your mobile phone. You should say: when it was where it was why you were not allowed to use your mobile phone And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "31099c41-50af-4580-89e5-a0593638fd22",
+    "part": 2,
+    "cue_card_title": "A Time You Were Proud",
+    "question_text": "Describe a time when you felt proud of a family member. You should say: when it happened who the person is what the person did And explain why you felt proud of him / her.",
+    "question_text_zh": null
+  },
+  {
+    "id": "7e872ea7-b936-4ef3-b90f-aca8c544bf08",
+    "part": 2,
+    "cue_card_title": "A Long Journey",
+    "question_text": "Describe a long journey you had and would like to take again. You should say: when / where you went who you had the journey with why you had the journey And explain why you would like to have it again.",
+    "question_text_zh": null
+  },
+  {
+    "id": "76217956-3864-4690-ba66-073447b1a8d3",
+    "part": 2,
+    "cue_card_title": "A Trip You’d Like To Make Again",
+    "question_text": "Describe a trip you would like to take again. You should say: when / where you went who you had the trip with what you did during the trip And explain why you would like to make the trip again.",
+    "question_text_zh": null
+  },
+  {
+    "id": "5c64dcd6-205a-4bb5-8386-a10aafc7bc7a",
+    "part": 2,
+    "cue_card_title": "An Occasion You Got Lost",
+    "question_text": "Describe an occasion when you lost your way. You should say: where you were what happened how you felt And explain how you found your way.",
+    "question_text_zh": null
+  },
+  {
+    "id": "c0ab207a-7415-482d-aaf5-8678c2504e4b",
+    "part": 2,
+    "cue_card_title": "A Dinner You Had",
+    "question_text": "Describe a great dinner you and your friend or family members enjoyed. You should say: what you had who you had the dinner with what you talked about during the dinner And explain why you enjoyed it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+    "part": 2,
+    "cue_card_title": "A Time You Broke Something",
+    "question_text": "Describe a time when you broke something. You should say: what it was when / where that happened how you broke it And explain what you did after that.",
+    "question_text_zh": null
+  },
+  {
+    "id": "e86bcb99-94bd-4b02-aa4a-28f1a7572ab9",
+    "part": 2,
+    "cue_card_title": "The Time You First Talked in a Foreign Language",
+    "question_text": "Describe the time you first talked in a foreign language. You should say: where you were who you were with what you talked about And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f24bf5ca-f646-42ae-92b5-a7329c9dcf92",
+    "part": 2,
+    "cue_card_title": "A Time When Electricity Went Off",
+    "question_text": "Describe a time when the electricity suddenly went off. You should say: when / where it happened how long it lasted what you did during that time And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
+    "part": 2,
+    "cue_card_title": "A Time When Someone Apologized to You",
+    "question_text": "Describe a time when someone apologized to you. You should say: when it was who this person is why he or she apologized to you And explain how you felt about it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "2a6fbb40-fc4d-431b-af71-dd81f198d56e",
+    "part": 2,
+    "cue_card_title": "A Time You Told a Truth",
+    "question_text": "Describe a time when you told your friend an important truth. You should say: who your friend is what the truth was what your friend's reaction was And explain why you think it was important to tell your friend the truth.",
+    "question_text_zh": null
+  },
+  {
+    "id": "9615e0f3-768e-4ea5-9d46-cf13103879b2",
+    "part": 2,
+    "cue_card_title": "A Good Service",
+    "question_text": "Describe a time when you received good service in a shop / store. You should say where the shop is when you went to the shop what service you received from the staff And explain how you felt about the service.",
+    "question_text_zh": null
+  },
+  {
+    "id": "f5f90702-0aba-40bd-9da6-739bde2bd027",
+    "part": 2,
+    "cue_card_title": "Wait for Something Special",
+    "question_text": "Describe a time when you waited for something special that would happen. You should say: what you waited for where you waited why it was special And explain how you felt while you were waiting.",
+    "question_text_zh": null
+  },
+  {
+    "id": "82810dd5-04d6-4c06-b31a-e31d653700b2",
+    "part": 2,
+    "cue_card_title": "A Positive Change",
+    "question_text": "Describe a positive change that you have made recently in your daily routine. You should say what the change is how you have changed the routine why you think it is a positive change And explain how you feel about the change.",
+    "question_text_zh": null
+  },
+  {
+    "id": "9a367b08-519d-4613-b854-64f404b51b21",
+    "part": 2,
+    "cue_card_title": "A Talk You Gave",
+    "question_text": "Describe a talk you gave to a group of people. You should say: who you gave the talk to what the talk was about why you gave the talk And explain how you felt about the talk.",
+    "question_text_zh": null
+  },
+  {
+    "id": "4ef790ac-ff5d-4f53-8010-61c6f1c14078",
+    "part": 2,
+    "cue_card_title": "An Unusual Meal",
+    "question_text": "Describe an unusual meal you had. You should say: when you had it where you had it whom you had it with And explain why it was unusual.",
+    "question_text_zh": null
+  },
+  {
+    "id": "fbc84a63-1341-414b-a5da-cd3b25951643",
+    "part": 2,
+    "cue_card_title": "A Water Sport",
+    "question_text": "Describe a water sport you would like to try in the future. You should say: what it is where you would like to try it whether it is difficult And explain why you would like to try it.",
+    "question_text_zh": null
+  },
+  {
+    "id": "b00c345f-3701-4ac2-ac71-ed1f34ff8a0b",
+    "part": 2,
+    "cue_card_title": "A Time You Needed To Use Your Imagination",
+    "question_text": "Describe a time when you needed to use your imagination. You should say: when it was why you needed to use imagination how difficult or easy it was And explain how you felt about it.",
+    "question_text_zh": null
+  }
+]

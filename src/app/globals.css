@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,10 +7,17 @@
   html, body {
     height: 100%;
     overflow: hidden;
-    background: #F5F2EE;
+    background: #FBFAF7;
     color: #111111;
-    font-family: 'Plus Jakarta Sans', 'PingFang SC', sans-serif;
+    font-family: var(--font-jakarta), 'PingFang SC', 'Noto Sans SC', sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* 站点级键盘焦点环（无障碍基线；:focus-visible 仅键盘触发，鼠标/触控点击无视觉变化）。
+     outline-none 的输入框（write/restructure textarea）在各自处用 focus-visible:ring 补回。 */
+  :focus-visible {
+    outline: 2px solid theme('colors.brand-primary');
+    outline-offset: 2px;
   }
 }
 
@@ -81,14 +86,6 @@
   }
   .btn-ghost:active { opacity: 0.6; }
 
-  /* 卡片 */
-  .card {
-    background: #FFFFFF;
-    border-radius: 20px;
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  }
-
   /* 内嵌表面（输入框/次级内容）*/
   .surface {
     background: #F4F4F4;
@@ -142,6 +139,19 @@
     animation: accordionDown 200ms ease-out both;
   }
 
+  /* 底部浮层提示 滑入·淡出（替代 framer-motion，参数与原 motion 一致：y 14→0 / 0.18s / easeOut；
+     transform 内含 translateX(-50%) 以兼容 left-1/2 水平居中） */
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 14px); }
+    to   { opacity: 1; transform: translate(-50%, 0);    }
+  }
+  @keyframes toast-out {
+    from { opacity: 1; transform: translate(-50%, 0);    }
+    to   { opacity: 0; transform: translate(-50%, 14px); }
+  }
+  .toast-enter { animation: toast-in 0.18s ease-out forwards; }
+  .toast-exit  { animation: toast-out 0.18s ease-out forwards; }
+
   /* line-clamp 工具 */
   .line-clamp-1 {
     display: -webkit-box;
@@ -150,4 +160,29 @@
     overflow: hidden;
   }
 
+  /* 骨架屏 shimmer（暖灰，贴合奶油底） */
+  @keyframes skeleton-shimmer {
+    0%   { background-position: -180px 0; }
+    100% { background-position: calc(180px + 100%) 0; }
+  }
+  .skeleton {
+    background: #E9E5DE;
+    background-image: linear-gradient(90deg, #E9E5DE 0, #F4F0EA 70px, #E9E5DE 140px);
+    background-size: 180px 100%;
+    background-repeat: no-repeat;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: 7px;
+  }
+
+}
+
+/* 减弱动效：系统开启「减少动态效果」时，把动画/过渡压到近 0、平滑滚动改瞬时
+   （Orb 呼吸/粒子、Waveform、feedback coverflow 位移+模糊、各处 hover 位移、smooth scroll 一并覆盖）。 */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

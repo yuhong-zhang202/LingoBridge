@@ -1,0 +1,2652 @@
+{
+  "metadata": {
+    "source": "新东方 IELTS 口语题库 2026年1-4月 Version 3",
+    "part1_topics": 37,
+    "part1_questions": 224,
+    "part2_cards": 63,
+    "part3_questions": 370,
+    "total_rows": 657,
+    "translation_status": {
+      "part1_questions": "complete",
+      "part2_titles": "complete",
+      "part3_questions": "pending_claude_code"
+    },
+    "mapping_stats": {
+      "part1_mapped": "37/37",
+      "part2_mapped": "53/63",
+      "part2_topic_only": 10,
+      "part3": "all_value"
+    }
+  },
+  "part1": [
+    {
+      "topic": "HOMETOWN",
+      "is_new": false,
+      "questions": [
+        "Where do you come from?",
+        "What do you like about your hometown?",
+        "What don't you like about your hometown?",
+        "Is it a good place to grow up?",
+        "Is it a big city or a small place?",
+        "Has your hometown changed a lot in the last few years?",
+        "Does your city have a lot of entertainment facilities?",
+        "Would you like to move to the countryside?",
+        "Do you think you will continue living there in the future?",
+        "What city do you live in?",
+        "Do you like this city? Why?",
+        "How long have you lived in this city?",
+        "Are there big changes in this city?",
+        "Is this city your permanent residence?",
+        "Are there people of different ages living in this city?"
+      ],
+      "observation_point": "SPA_03",
+      "obs_name": "所在城市",
+      "topic_zh": "家乡/城市",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Where do you come from?",
+          "zh": "你来自哪里？"
+        },
+        {
+          "en": "What do you like about your hometown?",
+          "zh": "你喜欢你家乡的什么？"
+        },
+        {
+          "en": "What don't you like about your hometown?",
+          "zh": "你不喜欢你家乡的什么？"
+        },
+        {
+          "en": "Is it a good place to grow up?",
+          "zh": "那里适合成长吗？"
+        },
+        {
+          "en": "Is it a big city or a small place?",
+          "zh": "那是大城市还是小地方？"
+        },
+        {
+          "en": "Has your hometown changed a lot in the last few years?",
+          "zh": "你的家乡近几年变化大吗？"
+        },
+        {
+          "en": "Does your city have a lot of entertainment facilities?",
+          "zh": "你的城市有很多娱乐设施吗？"
+        },
+        {
+          "en": "Would you like to move to the countryside?",
+          "zh": "你想搬到乡下吗？"
+        },
+        {
+          "en": "Do you think you will continue living there in the future?",
+          "zh": "你以后会继续住在那里吗？"
+        },
+        {
+          "en": "What city do you live in?",
+          "zh": "你住在哪个城市？"
+        },
+        {
+          "en": "Do you like this city? Why?",
+          "zh": "你喜欢这个城市吗？为什么？"
+        },
+        {
+          "en": "How long have you lived in this city?",
+          "zh": "你在这个城市住了多久？"
+        },
+        {
+          "en": "Are there big changes in this city?",
+          "zh": "这个城市有很大变化吗？"
+        },
+        {
+          "en": "Is this city your permanent residence?",
+          "zh": "这个城市是你的常住地吗？"
+        },
+        {
+          "en": "Are there people of different ages living in this city?",
+          "zh": "这个城市有不同年龄段的人吗？"
+        }
+      ]
+    },
+    {
+      "topic": "STUDY",
+      "is_new": false,
+      "questions": [
+        "Do you work or are you a student?",
+        "Where do you study? / Where is your school?",
+        "What subjects do you study? / What's your major?",
+        "Do you like your major?",
+        "What's the most exciting thing about your major?",
+        "How important is having an interest in studying?",
+        "Which subject do you find challenging?",
+        "Do you like your school?",
+        "What is the environment like in your school?",
+        "Do you think your school is a good place to study?",
+        "What do you think could be improved in your school?",
+        "What do you usually do during a typical school day?",
+        "Who is more important in your studies, your teacher or your classmate?",
+        "Which one would you prefer, studying alone or studying with others?",
+        "What technologies can help you study better?",
+        "What's your plan after you finish your studies?",
+        "How would you use your major in the future?",
+        "How did you go to school when you were young?",
+        "What kind of job would you like to do in the future?"
+      ],
+      "observation_point": "GRO_01",
+      "obs_name": "长期投入",
+      "topic_zh": "学业",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you work or are you a student?",
+          "zh": "你是在工作还是在读书？"
+        },
+        {
+          "en": "Where do you study? / Where is your school?",
+          "zh": "你在哪里上学？"
+        },
+        {
+          "en": "What subjects do you study? / What's your major?",
+          "zh": "你学什么专业？"
+        },
+        {
+          "en": "Do you like your major?",
+          "zh": "你喜欢你的专业吗？"
+        },
+        {
+          "en": "What's the most exciting thing about your major?",
+          "zh": "你专业里最让你兴奋的是什么？"
+        },
+        {
+          "en": "How important is having an interest in studying?",
+          "zh": "学习兴趣有多重要？"
+        },
+        {
+          "en": "Which subject do you find challenging?",
+          "zh": "你现在有好的学习伙伴吗？"
+        },
+        {
+          "en": "Do you like your school?",
+          "zh": "你喜欢你的学校吗？"
+        },
+        {
+          "en": "What is the environment like in your school?",
+          "zh": "你学校的环境怎么样？"
+        },
+        {
+          "en": "Do you think your school is a good place to study?",
+          "zh": "你觉得你的学校适合学习吗？"
+        },
+        {
+          "en": "What do you think could be improved in your school?",
+          "zh": "你觉得学校哪里可以改进？"
+        },
+        {
+          "en": "What do you usually do during a typical school day?",
+          "zh": "你平时上学的一天是怎样的？"
+        },
+        {
+          "en": "Who is more important in your studies, your teacher or your classmate?",
+          "zh": "老师和同学，谁对你学习更重要？"
+        },
+        {
+          "en": "Which one would you prefer, studying alone or studying with others?",
+          "zh": "你更喜欢独自学习还是和别人一起？"
+        },
+        {
+          "en": "What technologies can help you study better?",
+          "zh": "什么技术能帮助你更好地学习？"
+        },
+        {
+          "en": "What's your plan after you finish your studies?",
+          "zh": "毕业后你有什么计划？"
+        },
+        {
+          "en": "How would you use your major in the future?",
+          "zh": "你将来打算怎么用你的专业？"
+        },
+        {
+          "en": "How did you go to school when you were young?",
+          "zh": "你小时候怎么去上学？"
+        },
+        {
+          "en": "What kind of job would you like to do in the future?",
+          "zh": "你将来想做什么工作？"
+        }
+      ]
+    },
+    {
+      "topic": "WORK",
+      "is_new": false,
+      "questions": [
+        "What work do you do?",
+        "Do you like your job?",
+        "What do you like best about your job?",
+        "How long have you been at this job?",
+        "Do you currently have a good work environment?",
+        "What do you think could be improved at your workplace?",
+        "What technology do you use at work?",
+        "Do you prefer to work in the mornings or afternoons?",
+        "Is there anything you don't like about this job?",
+        "Will you change to another job in the future? / Have you ever thought about changing jobs?",
+        "Is there anything you would like to change about your work?",
+        "Why did you choose that job?",
+        "What's a typical day at work like for you?",
+        "Do you need any specific skills or abilities for your job?",
+        "Is there a place in your company that makes you feel relaxed?",
+        "What are the advantages of a company having a relaxation room?"
+      ],
+      "observation_point": "GRO_01",
+      "obs_name": "长期投入",
+      "topic_zh": "工作",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What work do you do?",
+          "zh": "你做什么工作？"
+        },
+        {
+          "en": "Do you like your job?",
+          "zh": "你喜欢你的工作吗？"
+        },
+        {
+          "en": "What do you like best about your job?",
+          "zh": "你最喜欢工作的哪个方面？"
+        },
+        {
+          "en": "How long have you been at this job?",
+          "zh": "你做这份工作多久了？"
+        },
+        {
+          "en": "Do you currently have a good work environment?",
+          "zh": "你现在的工作环境好吗？"
+        },
+        {
+          "en": "What do you think could be improved at your workplace?",
+          "zh": "你觉得工作中哪里可以改进？"
+        },
+        {
+          "en": "What technology do you use at work?",
+          "zh": "你工作中用什么技术？"
+        },
+        {
+          "en": "Do you prefer to work in the mornings or afternoons?",
+          "zh": "你更喜欢早上还是下午工作？"
+        },
+        {
+          "en": "Is there anything you don't like about this job?",
+          "zh": "工作中有你不喜欢的地方吗？"
+        },
+        {
+          "en": "Will you change to another job in the future? / Have you ever thought about changing jobs?",
+          "zh": "你将来会换工作吗？"
+        },
+        {
+          "en": "Is there anything you would like to change about your work?",
+          "zh": "你希望改变工作中的什么？"
+        },
+        {
+          "en": "Why did you choose that job?",
+          "zh": "你为什么选择这份工作？"
+        },
+        {
+          "en": "What's a typical day at work like for you?",
+          "zh": "你工作中典型的一天是怎样的？"
+        },
+        {
+          "en": "Do you need any specific skills or abilities for your job?",
+          "zh": "你的工作需要什么特定技能吗？"
+        },
+        {
+          "en": "Is there a place in your company that makes you feel relaxed?",
+          "zh": "公司里有让你感到舒适的地方吗？"
+        },
+        {
+          "en": "What are the advantages of a company having a relaxation room?",
+          "zh": "你觉得公司有娱乐室有什么好处？"
+        }
+      ]
+    },
+    {
+      "topic": "ACCOMMODATION",
+      "is_new": false,
+      "questions": [
+        "Do you live in a house or a flat?",
+        "Who do you live with?",
+        "What do you like about the place you're living?",
+        "Is there anything you don't like about where you live?",
+        "Do you think the environment of your neighborhood is suitable for children?",
+        "What are the disadvantages of the place where you're living?",
+        "Are you familiar with the people living nearby?",
+        "What can you see from your window?",
+        "What kind of accommodation did you grow up in?",
+        "Which room do you like best?",
+        "Has anything changed in the place where you live?",
+        "What kind of house or at do you want to live in in the future?",
+        "Do you like the area that you live in?",
+        "Do you live in a noisy or a quiet area?",
+        "Where do you like to go in that area?",
+        "Do you know any famous people in your area?",
+        "What are some changes in the area recently?",
+        "Do you know any of your neighbours?",
+        "Are the people in your neighbourhood nice and friendly?"
+      ],
+      "observation_point": "SPA_01",
+      "obs_name": "居住空间",
+      "topic_zh": "住所",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you live in a house or a flat?",
+          "zh": "你住的是房子还是公寓？"
+        },
+        {
+          "en": "Who do you live with?",
+          "zh": "你和谁一起住？"
+        },
+        {
+          "en": "What do you like about the place you're living?",
+          "zh": "你喜欢你住的地方的什么？"
+        },
+        {
+          "en": "Is there anything you don't like about where you live?",
+          "zh": "你住的地方有你不喜欢的吗？"
+        },
+        {
+          "en": "Do you think the environment of your neighborhood is suitable for children?",
+          "zh": "你觉得你的社区环境适合孩子吗？"
+        },
+        {
+          "en": "What are the disadvantages of the place where you're living?",
+          "zh": "你住的地方有什么不方便的？"
+        },
+        {
+          "en": "Are you familiar with the people living nearby?",
+          "zh": "你熟悉附近的邻居吗？"
+        },
+        {
+          "en": "What can you see from your window?",
+          "zh": "你从窗户能看到什么？"
+        },
+        {
+          "en": "What kind of accommodation did you grow up in?",
+          "zh": "你在什么样的住所长大的？"
+        },
+        {
+          "en": "Which room do you like best?",
+          "zh": "你最喜欢哪个房间？"
+        },
+        {
+          "en": "Has anything changed in the place where you live?",
+          "zh": "你住的地方有什么变化吗？"
+        },
+        {
+          "en": "What kind of house or at do you want to live in in the future?",
+          "zh": "你将来想住什么样的房子？"
+        },
+        {
+          "en": "Do you like the area that you live in?",
+          "zh": "你喜欢你住的区域吗？"
+        },
+        {
+          "en": "Do you live in a noisy or a quiet area?",
+          "zh": "你住在安静还是嘈杂的地方？"
+        },
+        {
+          "en": "Where do you like to go in that area?",
+          "zh": "你喜欢去那个区域的哪里？"
+        },
+        {
+          "en": "Do you know any famous people in your area?",
+          "zh": "你知道你那个区域的名人吗？"
+        },
+        {
+          "en": "What are some changes in the area recently?",
+          "zh": "你的区域最近有什么变化？"
+        },
+        {
+          "en": "Do you know any of your neighbours?",
+          "zh": "你认识你的邻居吗？"
+        },
+        {
+          "en": "Are the people in your neighbourhood nice and friendly?",
+          "zh": "你所在的城市哪个区域最好？"
+        }
+      ]
+    },
+    {
+      "topic": "Childhood Activities",
+      "is_new": true,
+      "questions": [
+        "What are your favourite activities?",
+        "What were your favourite activities when you were a child?",
+        "Did you prefer to do activities alone or with a group of people when you were a child?",
+        "Is there something you liked as a child that you still enjoy now?",
+        "What do you think is the biggest difference between now and your childhood?",
+        "Who was the person who spent the most time with you when you were little?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "习惯",
+      "topic_zh": "童年活动",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What are your favourite activities?",
+          "zh": "你最喜欢的活动是什么？"
+        },
+        {
+          "en": "What were your favourite activities when you were a child?",
+          "zh": "你小时候最喜欢什么活动？"
+        },
+        {
+          "en": "Did you prefer to do activities alone or with a group of people when you were a child?",
+          "zh": "你小时候更喜欢独自活动还是和一群人一起？"
+        },
+        {
+          "en": "Is there something you liked as a child that you still enjoy now?",
+          "zh": "有没有小时候喜欢现在还在做的事？"
+        },
+        {
+          "en": "What do you think is the biggest difference between now and your childhood?",
+          "zh": "你觉得现在和童年最大的区别是什么？"
+        },
+        {
+          "en": "Who was the person who spent the most time with you when you were little?",
+          "zh": "小时候谁陪你最多？"
+        }
+      ]
+    },
+    {
+      "topic": "Walking",
+      "is_new": true,
+      "questions": [
+        "Do you walk a lot?",
+        "Did you often go outside to go for a walk when you were a child?",
+        "Why do people like to walk in parks?",
+        "Where would you like to take a long walk if you had the chance?",
+        "Where did you go for a walk lately?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "放松",
+      "topic_zh": "散步",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you walk a lot?",
+          "zh": "你经常走路吗？"
+        },
+        {
+          "en": "Did you often go outside to go for a walk when you were a child?",
+          "zh": "你小时候经常出去散步吗？"
+        },
+        {
+          "en": "Why do people like to walk in parks?",
+          "zh": "人们为什么喜欢在公园散步？"
+        },
+        {
+          "en": "Where would you like to take a long walk if you had the chance?",
+          "zh": "如果有机会，你想去哪里长距离散步？"
+        },
+        {
+          "en": "Where did you go for a walk lately?",
+          "zh": "你最近去哪里散步了？"
+        }
+      ]
+    },
+    {
+      "topic": "Scenery & Views",
+      "is_new": true,
+      "questions": [
+        "Do you look out of the window at the scenery when traveling by car or bus?",
+        "Do you like to take scenery pictures?",
+        "Do you prefer the mountains or the sea?",
+        "What are the most beautiful sights you have seen while traveling?",
+        "Do you like taking pictures of different views?",
+        "Do you prefer views in urban areas or rural areas?",
+        "Do you prefer views in your own country or in other countries?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然时刻",
+      "topic_zh": "风景",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you look out of the window at the scenery when traveling by car or bus?",
+          "zh": "坐车或公交时你会看窗外的风景吗？"
+        },
+        {
+          "en": "Do you like to take scenery pictures?",
+          "zh": "你喜欢拍风景照片吗？"
+        },
+        {
+          "en": "Do you prefer the mountains or the sea?",
+          "zh": "你更喜欢山还是海？"
+        },
+        {
+          "en": "What are the most beautiful sights you have seen while traveling?",
+          "zh": "你旅行时看到过的最美风景是什么？"
+        },
+        {
+          "en": "Do you like taking pictures of different views?",
+          "zh": "你喜欢拍不同的风景吗？"
+        },
+        {
+          "en": "Do you prefer views in urban areas or rural areas?",
+          "zh": "你更喜欢城市还是农村的风景？"
+        },
+        {
+          "en": "Do you prefer views in your own country or in other countries?",
+          "zh": "你更喜欢自己国家还是其他国家的风景？"
+        }
+      ]
+    },
+    {
+      "topic": "Morning Time",
+      "is_new": true,
+      "questions": [
+        "Do you like getting up early in the morning?",
+        "What do you usually do in the morning?",
+        "What did you do in the morning when you were little? Why?",
+        "Are there any differences between what you do in the morning now and what you did in the past?",
+        "Do you spend your mornings doing the same things on both weekends and weekdays? Why?"
+      ],
+      "observation_point": "EMO_02",
+      "obs_name": "能量节奏",
+      "topic_zh": "早晨时光",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like getting up early in the morning?",
+          "zh": "你喜欢早起吗？"
+        },
+        {
+          "en": "What do you usually do in the morning?",
+          "zh": "你早上通常做什么？"
+        },
+        {
+          "en": "What did you do in the morning when you were little? Why?",
+          "zh": "你小时候早上做什么？"
+        },
+        {
+          "en": "Are there any differences between what you do in the morning now and what you did in the past?",
+          "zh": "你觉得早上效率更高吗？"
+        },
+        {
+          "en": "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+          "zh": "工作日和周末的早上你做的事一样吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Food",
+      "is_new": true,
+      "questions": [
+        "What's your favourite food?",
+        "What kind of food did you like when you were young?",
+        "Do you eat different foods at different times of the year?",
+        "Has your favourite food changed since you were a child?"
+      ],
+      "observation_point": "EMO_08",
+      "obs_name": "食物",
+      "topic_zh": "食物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What's your favourite food?",
+          "zh": "你最喜欢的食物是什么？"
+        },
+        {
+          "en": "What kind of food did you like when you were young?",
+          "zh": "你小时候喜欢什么食物？"
+        },
+        {
+          "en": "Do you eat different foods at different times of the year?",
+          "zh": "你在一年的不同时间会吃不同的食物吗？"
+        },
+        {
+          "en": "Has your favourite food changed since you were a child?",
+          "zh": "你最喜欢的食物从小到大变了吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Hobby",
+      "is_new": true,
+      "questions": [
+        "Do you have any hobbies?",
+        "Did you have any hobbies when you were a child?",
+        "Do you have a hobby that you've had since childhood?",
+        "Do you have the same hobbies as your family members?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "充电",
+      "topic_zh": "爱好",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you have any hobbies?",
+          "zh": "你有什么爱好？"
+        },
+        {
+          "en": "Did you have any hobbies when you were a child?",
+          "zh": "你什么时候开始有这个爱好的？"
+        },
+        {
+          "en": "Do you have a hobby that you've had since childhood?",
+          "zh": "你的爱好有变化吗？"
+        },
+        {
+          "en": "Do you have the same hobbies as your family members?",
+          "zh": "你觉得爱好对人重要吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Building",
+      "is_new": true,
+      "questions": [
+        "Do you take photos of buildings?",
+        "Is there a building that you would like to visit?",
+        "Are there tall buildings near your home?",
+        "Do you want to live in a tall building?"
+      ],
+      "observation_point": "SPA_04",
+      "obs_name": "建筑/公共空间",
+      "topic_zh": "建筑",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you take photos of buildings?",
+          "zh": "你对建筑感兴趣吗？"
+        },
+        {
+          "en": "Is there a building that you would like to visit?",
+          "zh": "你喜欢什么样的建筑？"
+        },
+        {
+          "en": "Are there tall buildings near your home?",
+          "zh": "你家附近有高楼吗？"
+        },
+        {
+          "en": "Do you want to live in a tall building?",
+          "zh": "你更喜欢现代建筑还是传统建筑？"
+        }
+      ]
+    },
+    {
+      "topic": "Sports Team",
+      "is_new": true,
+      "questions": [
+        "Have you ever been part of a sports team?",
+        "Is team sports popular in your culture?",
+        "Do you like to watch team games? Why?",
+        "What are the differences between team sports and individual sports?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "充电",
+      "topic_zh": "运动队",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever been part of a sports team?",
+          "zh": "你喜欢运动队吗？"
+        },
+        {
+          "en": "Is team sports popular in your culture?",
+          "zh": "你有支持的运动队吗？"
+        },
+        {
+          "en": "Do you like to watch team games? Why?",
+          "zh": "你更喜欢看团队运动还是个人运动？"
+        },
+        {
+          "en": "What are the differences between team sports and individual sports?",
+          "zh": "团队运动和个人运动有什么区别？"
+        }
+      ]
+    },
+    {
+      "topic": "Typing",
+      "is_new": true,
+      "questions": [
+        "Do you prefer typing or handwriting?",
+        "Do you type on a desktop or laptop keyboard everyday?",
+        "When did you learn how to type on a keyboard?",
+        "How do you improve your typing?"
+      ],
+      "observation_point": "GRO_02",
+      "obs_name": "学会的技能",
+      "topic_zh": "打字",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you prefer typing or handwriting?",
+          "zh": "你经常打字吗？"
+        },
+        {
+          "en": "Do you type on a desktop or laptop keyboard everyday?",
+          "zh": "你更喜欢打字还是手写？"
+        },
+        {
+          "en": "When did you learn how to type on a keyboard?",
+          "zh": "你打字快吗？"
+        },
+        {
+          "en": "How do you improve your typing?",
+          "zh": "你觉得打字是一项重要技能吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Life Stages",
+      "is_new": true,
+      "questions": [
+        "At what age do you think people are the happiest?",
+        "Do you have any plans for the next ve years?",
+        "What do you think is the most important at the moment?",
+        "Are you satis ed with your current life?",
+        "What did you often do with your friends in your childhood?",
+        "How do people remember each stage of their lives?"
+      ],
+      "observation_point": "EMO_01",
+      "obs_name": "整体状态",
+      "topic_zh": "人生阶段",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "At what age do you think people are the happiest?",
+          "zh": "你觉得人生中最重要的阶段是什么？"
+        },
+        {
+          "en": "Do you have any plans for the next ve years?",
+          "zh": "你享受目前的人生阶段吗？"
+        },
+        {
+          "en": "What do you think is the most important at the moment?",
+          "zh": "在这个阶段你学到了什么？"
+        },
+        {
+          "en": "Are you satis ed with your current life?",
+          "zh": "你觉得目前最重要的是什么？"
+        },
+        {
+          "en": "What did you often do with your friends in your childhood?",
+          "zh": "你觉得未来几年你的生活会怎样变化？"
+        },
+        {
+          "en": "How do people remember each stage of their lives?",
+          "zh": "你最喜欢人生中的哪个阶段？"
+        }
+      ]
+    },
+    {
+      "topic": "Gifts",
+      "is_new": true,
+      "questions": [
+        "Have you ever sent handmade gifts to others?",
+        "Have you ever received a great gift?",
+        "What do you consider when choosing a gift?",
+        "Do you think you are good at choosing gifts?",
+        "What gifts have you received recently?"
+      ],
+      "observation_point": "REL_03",
+      "obs_name": "舒服的朋友",
+      "topic_zh": "礼物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever sent handmade gifts to others?",
+          "zh": "你喜欢收到什么样的礼物？"
+        },
+        {
+          "en": "Have you ever received a great gift?",
+          "zh": "你觉得送礼物重要吗？"
+        },
+        {
+          "en": "What do you consider when choosing a gift?",
+          "zh": "你上次收到的礼物是什么？"
+        },
+        {
+          "en": "Do you think you are good at choosing gifts?",
+          "zh": "你觉得你擅长挑选礼物吗？"
+        },
+        {
+          "en": "What gifts have you received recently?",
+          "zh": "你小时候收到的最难忘的礼物是什么？"
+        }
+      ]
+    },
+    {
+      "topic": "Pets and Animals",
+      "is_new": true,
+      "questions": [
+        "What's your favourite animal? Why?",
+        "Where do you prefer to keep your pet, indoors or outdoors?",
+        "Have you ever had a pet before?",
+        "What is the most popular animal in China?"
+      ],
+      "observation_point": "REL_07",
+      "obs_name": "宠物日常",
+      "topic_zh": "宠物与动物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What's your favourite animal? Why?",
+          "zh": "你喜欢动物吗？"
+        },
+        {
+          "en": "Where do you prefer to keep your pet, indoors or outdoors?",
+          "zh": "你养过宠物吗？"
+        },
+        {
+          "en": "Have you ever had a pet before?",
+          "zh": "你觉得孩子应该养宠物吗？"
+        },
+        {
+          "en": "What is the most popular animal in China?",
+          "zh": "你觉得动物对人有什么好处？"
+        }
+      ]
+    },
+    {
+      "topic": "Reading",
+      "is_new": true,
+      "questions": [
+        "Do you like reading?",
+        "Do you prefer to read on paper or on a screen?",
+        "When do you need to read carefully, and when do you not need to?",
+        "Do you prefer scanning or detailed reading?"
+      ],
+      "observation_point": "SPI_01",
+      "obs_name": "反复回去的作品",
+      "topic_zh": "阅读",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like reading?",
+          "zh": "你喜欢读书吗？"
+        },
+        {
+          "en": "Do you prefer to read on paper or on a screen?",
+          "zh": "你喜欢读什么类型的书？"
+        },
+        {
+          "en": "When do you need to read carefully, and when do you not need to?",
+          "zh": "你更喜欢电子书还是纸质书？"
+        },
+        {
+          "en": "Do you prefer scanning or detailed reading?",
+          "zh": "你小时候喜欢读书吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Day Off",
+      "is_new": true,
+      "questions": [
+        "When was the last time you had a few days off?",
+        "What do you usually do when you have days off?",
+        "Do you usually spend your days off with your parents or your friends?",
+        "What would you like to do if you had a day off tomorrow?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "放松",
+      "topic_zh": "休息日",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "When was the last time you had a few days off?",
+          "zh": "你休息日通常做什么？"
+        },
+        {
+          "en": "What do you usually do when you have days off?",
+          "zh": "你更喜欢在家还是出去？"
+        },
+        {
+          "en": "Do you usually spend your days off with your parents or your friends?",
+          "zh": "你上次休息日做了什么？"
+        },
+        {
+          "en": "What would you like to do if you had a day off tomorrow?",
+          "zh": "你觉得有足够的休息时间吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Keys",
+      "is_new": true,
+      "questions": [
+        "Do you always bring a lot of keys with you?",
+        "Have you ever lost your keys?",
+        "Do you often forget the keys and lock yourself out?",
+        "Do you think it's a good idea to leave your keys with a neighbour?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "习惯",
+      "topic_zh": "钥匙",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you always bring a lot of keys with you?",
+          "zh": "你经常忘带钥匙吗？"
+        },
+        {
+          "en": "Have you ever lost your keys?",
+          "zh": "你觉得钥匙重要吗？"
+        },
+        {
+          "en": "Do you often forget the keys and lock yourself out?",
+          "zh": "你丢过钥匙吗？"
+        },
+        {
+          "en": "Do you think it's a good idea to leave your keys with a neighbour?",
+          "zh": "你觉得将来还会用钥匙吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Dreams",
+      "is_new": true,
+      "questions": [
+        "Can you remember the dreams you had?",
+        "Do you share your dreams with others?",
+        "Do you think dreams have special meanings?",
+        "Do you want to make your dreams come true?"
+      ],
+      "observation_point": "GRO_06",
+      "obs_name": "未来方向",
+      "topic_zh": "梦想",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Can you remember the dreams you had?",
+          "zh": "你经常做梦吗？"
+        },
+        {
+          "en": "Do you share your dreams with others?",
+          "zh": "你记得你的梦吗？"
+        },
+        {
+          "en": "Do you think dreams have special meanings?",
+          "zh": "你觉得梦有意义吗？"
+        },
+        {
+          "en": "Do you want to make your dreams come true?",
+          "zh": "你有过什么有趣的梦吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Doing Something Well",
+      "is_new": false,
+      "questions": [
+        "Do you have an experience that you did something well?",
+        "Do you have an experience that your teacher thought you did a good job?",
+        "Do you often tell your friends when they do something well?"
+      ],
+      "observation_point": "GRO_03",
+      "obs_name": "死磕做成",
+      "topic_zh": "擅长的事",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you have an experience that you did something well?",
+          "zh": "你擅长什么？"
+        },
+        {
+          "en": "Do you have an experience that your teacher thought you did a good job?",
+          "zh": "你从什么时候开始擅长这个的？"
+        },
+        {
+          "en": "Do you often tell your friends when they do something well?",
+          "zh": "你觉得做好一件事重要吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Shoes",
+      "is_new": false,
+      "questions": [
+        "Do you like buying shoes? How often?",
+        "Have you ever bought shoes online?",
+        "How much money do you usually spend on shoes?",
+        "Which do you prefer, fashionable shoes or comfortable shoes?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "习惯",
+      "topic_zh": "鞋子",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like buying shoes? How often?",
+          "zh": "你喜欢买鞋吗？"
+        },
+        {
+          "en": "Have you ever bought shoes online?",
+          "zh": "你更喜欢舒适的鞋还是好看的鞋？"
+        },
+        {
+          "en": "How much money do you usually spend on shoes?",
+          "zh": "你有多少双鞋？"
+        },
+        {
+          "en": "Which do you prefer, fashionable shoes or comfortable shoes?",
+          "zh": "你买过最贵的鞋是什么？"
+        }
+      ]
+    },
+    {
+      "topic": "Rules",
+      "is_new": false,
+      "questions": [
+        "Are there any rules for students at your school?",
+        "Do you think students would benefit more from more rules?",
+        "Have you ever had a really dedicated teacher?",
+        "Do you prefer to have more or fewer rules at school?",
+        "Have you ever had a really strict teacher?",
+        "Would you like to work as a teacher in a rule-free school?"
+      ],
+      "observation_point": "EMO_07",
+      "obs_name": "压力模式",
+      "topic_zh": "规则",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Are there any rules for students at your school?",
+          "zh": "你小时候家里有什么规矩？"
+        },
+        {
+          "en": "Do you think students would benefit more from more rules?",
+          "zh": "你的学校有什么规定？"
+        },
+        {
+          "en": "Have you ever had a really dedicated teacher?",
+          "zh": "你觉得学生应该有更多规矩吗？"
+        },
+        {
+          "en": "Do you prefer to have more or fewer rules at school?",
+          "zh": "你觉得规矩对孩子来说重要吗？"
+        },
+        {
+          "en": "Have you ever had a really strict teacher?",
+          "zh": "你更喜欢学校有更多还是更少的规矩？"
+        },
+        {
+          "en": "Would you like to work as a teacher in a rule-free school?",
+          "zh": "你在公共场所会遵守规矩吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Public Places",
+      "is_new": false,
+      "questions": [
+        "Have you ever talked with someone you don't know in public places?",
+        "Do you wear headphones in public places?",
+        "Would you like to see more public places near where you live?",
+        "Do you often go to public places with your friends?"
+      ],
+      "observation_point": "SPA_04",
+      "obs_name": "建筑/公共空间",
+      "topic_zh": "公共场所",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever talked with someone you don't know in public places?",
+          "zh": "你经常去公共场所吗？"
+        },
+        {
+          "en": "Do you wear headphones in public places?",
+          "zh": "你喜欢什么样的公共场所？"
+        },
+        {
+          "en": "Would you like to see more public places near where you live?",
+          "zh": "你觉得公共场所安全吗？"
+        },
+        {
+          "en": "Do you often go to public places with your friends?",
+          "zh": "你觉得你城市的公共场所怎么样？"
+        }
+      ]
+    },
+    {
+      "topic": "Art",
+      "is_new": false,
+      "questions": [
+        "Do you like art?",
+        "Do you like visiting art galleries?",
+        "Do you want to be an artist?",
+        "Do you like modern art or traditional art?"
+      ],
+      "observation_point": "SPI_04",
+      "obs_name": "音乐/艺术感受",
+      "topic_zh": "艺术",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like art?",
+          "zh": "你对艺术感兴趣吗？"
+        },
+        {
+          "en": "Do you like visiting art galleries?",
+          "zh": "你小时候学过画画吗？"
+        },
+        {
+          "en": "Do you want to be an artist?",
+          "zh": "你觉得艺术对人有什么好处？"
+        },
+        {
+          "en": "Do you like modern art or traditional art?",
+          "zh": "你喜欢什么类型的艺术？"
+        }
+      ]
+    },
+    {
+      "topic": "Plants",
+      "is_new": false,
+      "questions": [
+        "Do you keep plants at home?",
+        "What plant did you grow when you were young?",
+        "Do you know anything about growing a plant?",
+        "Do Chinese people send plants as gift?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然时刻",
+      "topic_zh": "植物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you keep plants at home?",
+          "zh": "你喜欢植物吗？"
+        },
+        {
+          "en": "What plant did you grow when you were young?",
+          "zh": "你家里养植物吗？"
+        },
+        {
+          "en": "Do you know anything about growing a plant?",
+          "zh": "你去过植物园吗？"
+        },
+        {
+          "en": "Do Chinese people send plants as gift?",
+          "zh": "中国人会送植物当礼物吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Growing Vegetables / Fruits",
+      "is_new": false,
+      "questions": [
+        "Are you interested in growing vegetables and fruits?",
+        "Is growing vegetables popular in your country?",
+        "Do many people grow vegetables in your city?",
+        "Do you think it's easy to grow vegetables?",
+        "Should schools teach students how to grow vegetables?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然时刻",
+      "topic_zh": "种蔬菜/水果",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Are you interested in growing vegetables and fruits?",
+          "zh": "你种过蔬菜或水果吗？"
+        },
+        {
+          "en": "Is growing vegetables popular in your country?",
+          "zh": "你觉得自己种食物重要吗？"
+        },
+        {
+          "en": "Do many people grow vegetables in your city?",
+          "zh": "在你的国家人们会自己种菜吗？"
+        },
+        {
+          "en": "Do you think it's easy to grow vegetables?",
+          "zh": "你小时候种过植物吗？"
+        },
+        {
+          "en": "Should schools teach students how to grow vegetables?",
+          "zh": "你觉得城市里种菜有什么好处？"
+        }
+      ]
+    },
+    {
+      "topic": "Crowded Place",
+      "is_new": false,
+      "questions": [
+        "Is the city where you live crowded?",
+        "Is there a crowded place where you live?",
+        "Do you like crowded places?",
+        "Do most people like crowded places?",
+        "When was the last time you were in a crowded place?"
+      ],
+      "observation_point": "SPA_04",
+      "obs_name": "建筑/公共空间",
+      "topic_zh": "拥挤的地方",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Is the city where you live crowded?",
+          "zh": "你去过拥挤的地方吗？"
+        },
+        {
+          "en": "Is there a crowded place where you live?",
+          "zh": "你喜欢拥挤的地方吗？"
+        },
+        {
+          "en": "Do you like crowded places?",
+          "zh": "你通常什么时候去拥挤的地方？"
+        },
+        {
+          "en": "Do most people like crowded places?",
+          "zh": "你城市里哪些地方最拥挤？"
+        },
+        {
+          "en": "When was the last time you were in a crowded place?",
+          "zh": "你觉得拥挤的地方有什么问题？"
+        }
+      ]
+    },
+    {
+      "topic": "Going Out",
+      "is_new": false,
+      "questions": [
+        "Do you bring food or snacks with you when going out?",
+        "Do you always take your mobile phone with you when going out?",
+        "Do you often carry cash with you?",
+        "How often do you use cash?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "充电",
+      "topic_zh": "出门",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you bring food or snacks with you when going out?",
+          "zh": "你经常出去玩吗？"
+        },
+        {
+          "en": "Do you always take your mobile phone with you when going out?",
+          "zh": "你更喜欢和朋友还是独自出去？"
+        },
+        {
+          "en": "Do you often carry cash with you?",
+          "zh": "你通常去哪里？"
+        },
+        {
+          "en": "How often do you use cash?",
+          "zh": "你上次出去玩是什么时候？"
+        }
+      ]
+    },
+    {
+      "topic": "Staying With Old People",
+      "is_new": false,
+      "questions": [
+        "Have you ever worked with old people?",
+        "Are you happy to work with people who are older than you?",
+        "What are the benefits of being friends with or working with old people?",
+        "Do you enjoy spending time with old people?"
+      ],
+      "observation_point": "REL_01",
+      "obs_name": "家人日常",
+      "topic_zh": "与老人相处",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever worked with old people?",
+          "zh": "你经常和老人待在一起吗？"
+        },
+        {
+          "en": "Are you happy to work with people who are older than you?",
+          "zh": "你觉得和老人相处有什么好处？"
+        },
+        {
+          "en": "What are the benefits of being friends with or working with old people?",
+          "zh": "你觉得年轻人应该和老人住在一起吗？"
+        },
+        {
+          "en": "Do you enjoy spending time with old people?",
+          "zh": "你小时候和老人一起做过什么？"
+        }
+      ]
+    },
+    {
+      "topic": "Advertisement",
+      "is_new": false,
+      "questions": [
+        "Is there an advertisement that made an impression on you when you were a child?",
+        "Do you see a lot of advertising on trains or other transport?",
+        "Do you like advertisements?",
+        "What kind of advertising do you like?",
+        "Do you often see advertisements when you are on your phone or computer?"
+      ],
+      "observation_point": "SPI_06",
+      "obs_name": "数字世界",
+      "topic_zh": "广告",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Is there an advertisement that made an impression on you when you were a child?",
+          "zh": "你在哪里通常看到广告？"
+        },
+        {
+          "en": "Do you see a lot of advertising on trains or other transport?",
+          "zh": "你觉得广告有用吗？"
+        },
+        {
+          "en": "Do you like advertisements?",
+          "zh": "你被广告影响过购买决定吗？"
+        },
+        {
+          "en": "What kind of advertising do you like?",
+          "zh": "你喜欢什么类型的广告？"
+        },
+        {
+          "en": "Do you often see advertisements when you are on your phone or computer?",
+          "zh": "你觉得广告太多了吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Borrowing / Lending",
+      "is_new": false,
+      "questions": [
+        "Have you borrowed books from others?",
+        "Have you ever borrowed money from others?",
+        "Do you like to lend things to others?",
+        "How do you feel when people don't return things they borrowed from you?",
+        "Do you mind if others borrow money from you?"
+      ],
+      "observation_point": "REL_09",
+      "obs_name": "你帮别人",
+      "topic_zh": "借与还",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you borrowed books from others?",
+          "zh": "你经常向别人借东西吗？"
+        },
+        {
+          "en": "Have you ever borrowed money from others?",
+          "zh": "你介意把东西借给别人吗？"
+        },
+        {
+          "en": "Do you like to lend things to others?",
+          "zh": "你借过什么重要的东西吗？"
+        },
+        {
+          "en": "How do you feel when people don't return things they borrowed from you?",
+          "zh": "你觉得借东西好吗？"
+        },
+        {
+          "en": "Do you mind if others borrow money from you?",
+          "zh": "你会把贵重物品借给朋友吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Chatting",
+      "is_new": false,
+      "questions": [
+        "Do you like chatting with friends?",
+        "What do you usually chat about with friends?",
+        "Do you prefer to chat with a group of people or with only one friend?",
+        "Do you prefer to communicate face-to-face or via social media?",
+        "Do you argue with friends?"
+      ],
+      "observation_point": "REL_03",
+      "obs_name": "舒服的朋友",
+      "topic_zh": "聊天",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like chatting with friends?",
+          "zh": "你喜欢和别人聊天吗？"
+        },
+        {
+          "en": "What do you usually chat about with friends?",
+          "zh": "你更喜欢面对面聊天还是发消息？"
+        },
+        {
+          "en": "Do you prefer to chat with a group of people or with only one friend?",
+          "zh": "你通常和谁聊天？"
+        },
+        {
+          "en": "Do you prefer to communicate face-to-face or via social media?",
+          "zh": "你觉得聊天对友谊重要吗？"
+        },
+        {
+          "en": "Do you argue with friends?",
+          "zh": "你喜欢和陌生人聊天吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Museum",
+      "is_new": false,
+      "questions": [
+        "Do you often visit a museum?",
+        "Are there many museums in your hometown?",
+        "Do you think museums are important?",
+        "When was the last time you visited a museum?"
+      ],
+      "observation_point": "SPI_03",
+      "obs_name": "改变看法的作品",
+      "topic_zh": "博物馆",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you often visit a museum?",
+          "zh": "你去过博物馆吗？"
+        },
+        {
+          "en": "Are there many museums in your hometown?",
+          "zh": "你喜欢什么类型的博物馆？"
+        },
+        {
+          "en": "Do you think museums are important?",
+          "zh": "你觉得博物馆对孩子有好处吗？"
+        },
+        {
+          "en": "When was the last time you visited a museum?",
+          "zh": "你觉得博物馆应该免费吗？"
+        }
+      ]
+    },
+    {
+      "topic": "Having a Break",
+      "is_new": false,
+      "questions": [
+        "How often do you take a rest or a break?",
+        "What do you usually do when you are resting?",
+        "Do you take a nap when you are taking your rest?",
+        "How do you feel after taking a nap?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "放松",
+      "topic_zh": "休息",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "How often do you take a rest or a break?",
+          "zh": "你通常怎么休息？"
+        },
+        {
+          "en": "What do you usually do when you are resting?",
+          "zh": "你觉得休息重要吗？"
+        },
+        {
+          "en": "Do you take a nap when you are taking your rest?",
+          "zh": "你工作或学习时会定期休息吗？"
+        },
+        {
+          "en": "How do you feel after taking a nap?",
+          "zh": "你觉得短暂休息和长假期哪个更好？"
+        }
+      ]
+    },
+    {
+      "topic": "Sharing",
+      "is_new": false,
+      "questions": [
+        "Did your parents teach you to share when you were a child?",
+        "What kind of things do you like to share with others?",
+        "What kind of things are not suitable for sharing?",
+        "Do you have anything to share with others recently?",
+        "Who is the first person you would like to share good news with?",
+        "Do you prefer to share news with your friends or your parents?"
+      ],
+      "observation_point": "REL_09",
+      "obs_name": "你帮别人",
+      "topic_zh": "分享",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Did your parents teach you to share when you were a child?",
+          "zh": "你喜欢和别人分享东西吗？"
+        },
+        {
+          "en": "What kind of things do you like to share with others?",
+          "zh": "你小时候会和别人分享玩具吗？"
+        },
+        {
+          "en": "What kind of things are not suitable for sharing?",
+          "zh": "你觉得分享重要吗？"
+        },
+        {
+          "en": "Do you have anything to share with others recently?",
+          "zh": "你更愿意分享什么东西？"
+        },
+        {
+          "en": "Who is the first person you would like to share good news with?",
+          "zh": "你觉得网络上的分享文化怎么样？"
+        },
+        {
+          "en": "Do you prefer to share news with your friends or your parents?",
+          "zh": "你和家人之间经常分享什么？"
+        }
+      ]
+    },
+    {
+      "topic": "Friends",
+      "is_new": false,
+      "questions": [
+        "Do you have a friend you have known for a long time?",
+        "What do you usually do with your friends?",
+        "Where do you often meet each other?",
+        "Do you often go out with your friends?",
+        "How important are friends to you?",
+        "Do you prefer to spend time with one friend or with a group of friends?",
+        "Would you invite friends to your home?",
+        "Is there a difference between where you meet friends now and where you used to meet them in the past?",
+        "Why are some places suitable for meeting while others are not?"
+      ],
+      "observation_point": "REL_03",
+      "obs_name": "舒服的朋友",
+      "topic_zh": "朋友",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you have a friend you have known for a long time?",
+          "zh": "你的朋友多吗？"
+        },
+        {
+          "en": "What do you usually do with your friends?",
+          "zh": "你经常和朋友见面吗？"
+        },
+        {
+          "en": "Where do you often meet each other?",
+          "zh": "你更喜欢和朋友做什么？"
+        },
+        {
+          "en": "Do you often go out with your friends?",
+          "zh": "你小时候和现在的交友方式有什么不同？"
+        },
+        {
+          "en": "How important are friends to you?",
+          "zh": "你觉得什么样的品质对朋友来说最重要？"
+        },
+        {
+          "en": "Do you prefer to spend time with one friend or with a group of friends?",
+          "zh": "你更喜欢有几个亲密朋友还是很多普通朋友？"
+        },
+        {
+          "en": "Would you invite friends to your home?",
+          "zh": "你和朋友一般怎么保持联系？"
+        },
+        {
+          "en": "Is there a difference between where you meet friends now and where you used to meet them in the past?",
+          "zh": "你觉得网上交朋友好吗？"
+        },
+        {
+          "en": "Why are some places suitable for meeting while others are not?",
+          "zh": "你觉得随着年龄增长，交朋友会更难吗？"
+        }
+      ]
+    }
+  ],
+  "part2": [
+    {
+      "title": "A Person Who Solved a Problem",
+      "is_new": true,
+      "cue_text": "Describe a person who solved a problem in a smart way. You should say: who he / she is what the problem was how he or she solved it And explain why you think he / she did it in a smart way.",
+      "part3_questions": [
+        "How do children become smart at school?",
+        "Do you think children are born smart or they learn to become smart?",
+        "Why does modern society need talents of all kinds?",
+        "Why are some people well rounded and others only good at one thing?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个聪明解决问题的人"
+    },
+    {
+      "title": "A Person Who Protects the Nature",
+      "is_new": true,
+      "cue_text": "Describe a person who encouraged you to protect the nature. You should say: who this person is how he / she encouraged you what he / she encourage you to do And explain how you feel about this person.",
+      "part3_questions": [
+        "How can parents teach the children to protect the nature?",
+        "Should schools teach children to get close to nature?",
+        "Do you think there should be laws to protect nature?",
+        "Do all people need some nature?",
+        "Are people hard-wired to protect the environment?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个鼓励你保护自然的人"
+    },
+    {
+      "title": "A Helpful Person",
+      "is_new": true,
+      "cue_text": "Describe a person who often helps others You should say: who this person is how often he / she helps others how / why he / she helps others And explain how you feel about this person.",
+      "part3_questions": [
+        "What kind of help do people need when looking for a new job?",
+        "What can children do to help their parents?",
+        "Who should people ask for help, colleagues or family members?",
+        "Should children help their parents with household chores?",
+        "Do you think schools should teach children to do household chores?",
+        "Why are employees reluctant to ask their managers to help?"
+      ],
+      "observation_point": "REL_10",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个经常帮助别人的人"
+    },
+    {
+      "title": "An Organized Person",
+      "is_new": true,
+      "cue_text": "Describe a person who makes plans a lot and is good at planning. You should say: who he / she is how you knew him / her what plans he / she makes. And explain how you feel about this person.",
+      "part3_questions": [
+        "What activities do we need to plan ahead?",
+        "Do you think it's important to plan ahead?",
+        "Is making study plans popular among young people?",
+        "Should children ask their teachers or parents for advice when making plans?",
+        "Do you think children should plan their future careers?",
+        "Do you think choosing a college major is closely related to a future career?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个善于计划的人"
+    },
+    {
+      "title": "A Child Who Loves To Draw",
+      "is_new": true,
+      "cue_text": "Describe a child who loves drawing or painting. You should say: who this person is how / when you knew him / her how often he / she draws / paints And explain why you think he / she loves drawing / painting.",
+      "part3_questions": [
+        "Why do most children draw more often than adults do?",
+        "What is the right age for a child to learn drawing?",
+        "Why do some people visit art galleries or museums instead of viewing artworks online?",
+        "What are the differences between reading a book and visiting a museum?",
+        "Do you think galleries and museums should be free of charge?",
+        "How do artworks inspire people?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个喜欢画画的孩子"
+    },
+    {
+      "title": "A Person Who Learned a Skill",
+      "is_new": true,
+      "cue_text": "Describe one of your friends who learned something without a teacher. You should say: who this person is what skill he / she learned how he / she learned And explain whether it would be easier to learn from a teacher.",
+      "part3_questions": [
+        "Is it necessary to keep learning after graduating from school?",
+        "Should teachers make learning in their classes fun?",
+        "Which do you think is more important practical skills or academic skills?",
+        "Which age group is better at learning new things?",
+        "What can be done to improve modern teaching methods?",
+        "Why do some young people refuse to learn from older people?",
+        "Do you think there are too many subjects for students to learn?",
+        "Is it better to focus on a few subjects or to learn many subjects?",
+        "Do you think enterprises should provide training for their employees?",
+        "Do you think it is good for older adults to continue learning?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个自学技能的朋友"
+    },
+    {
+      "title": "A Famous Person",
+      "is_new": true,
+      "cue_text": "Describe a famous person you would like to meet. You should say: who he / she is how you knew him / her how and where you would like to meet him / her And explain why you would like to meet him / her.",
+      "part3_questions": [
+        "What are the advantages and disadvantages of being a famous child?",
+        "What can children do with their fame?",
+        "What can today's children do to become famous?",
+        "Is it easy to become famous in your country?",
+        "Do people become famous because of their talent?",
+        "Do you think that most people want to become famous?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一位你想见的名人"
+    },
+    {
+      "title": "An Important Friend",
+      "is_new": false,
+      "cue_text": "Describe a good friend who is important to you. You should say: who he / she is how / where you got to know him / her how long you have known each other And explain why he / she is important to you.",
+      "part3_questions": [
+        "How do children make friends at school?",
+        "How do children make friends when they are not at school?",
+        "Do you think it is better for children to have a few close friends or many casual friends?",
+        "Do you think a child's relationship with friends can be replaced by that with other people, like parents or other family members?",
+        "What are the differences between friends made inside and outside the workplace?",
+        "Do you think it's possible for bosses and their employees to become friends?"
+      ],
+      "observation_point": "REL_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个重要的好朋友"
+    },
+    {
+      "title": "A Person Who Enjoys Working for a Family Business",
+      "is_new": false,
+      "cue_text": "Describe a person you know who enjoys working for a family business (e.g. a shop, etc.). You should say: who he / she is what the business is what his / her job is And explain why he / she enjoys working there.",
+      "part3_questions": [
+        "Would you like to start a family business?",
+        "Would you like to work in a family business?",
+        "Why do some people choose to start their own company?",
+        "What are the advantages and disadvantages of family business?",
+        "What family businesses do you know in your local area?",
+        "What makes a successful family business?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个喜欢在家族企业工作的人"
+    },
+    {
+      "title": "A Friend Who Is Good at Music",
+      "is_new": false,
+      "cue_text": "Describe a friend of yours who is good at music / singing. You should say: who he / she is when / where you listen to his / her music / singing what kind of music / songs he / she is good at And explain how you feel when listening to his / her music / singing.",
+      "part3_questions": [
+        "What kind of music is popular in your country?",
+        "What kind of music do young people like?",
+        "Do you think music is bene cial for children at school?",
+        "What are the benefits of children learning a musical instrument?",
+        "Do you know what kind of music children like today?",
+        "Do you think the government should invest more money on concerts?"
+      ],
+      "observation_point": "REL_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个擅长音乐的朋友"
+    },
+    {
+      "title": "A Creative Person",
+      "is_new": false,
+      "cue_text": "Describe a creative person (e.g. an artist, a musician, an architect etc.) you admire. You should say: who he/she is how you knew him/her what his/her greatest achievement is And explain why you think he/she is creative.",
+      "part3_questions": [
+        "Do you think children should learn to play musical instruments?",
+        "How do artists acquire inspiration?",
+        "Do you think pictures and videos in news reports are important?",
+        "What can we do to help children keep creative?",
+        "How does drawing help to enhance children's creativity?",
+        "What kind of jobs require creativity?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个有创造力的人"
+    },
+    {
+      "title": "A Sportsperson",
+      "is_new": false,
+      "cue_text": "Describe a successful sportsperson you admire. You should say: who he / she is what you know about him / her what he / she is like in real life what achievement he / she has made And explain why you admire him / her.",
+      "part3_questions": [
+        "Should students have physical education and do sports at school?",
+        "What qualities should an athlete have?",
+        "Is talent important in sports?",
+        "Is it easy to identify children's talents?",
+        "What is the most popular sports in your country?",
+        "Why are there so few top athletes?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一位你欣赏的运动员"
+    },
+    {
+      "title": "A Popular Person",
+      "is_new": false,
+      "cue_text": "Describe a popular person. You should say: who this person is what kind of person he or she is when you see him / her normally And explain why you think this person is popular.",
+      "part3_questions": [
+        "Why are some students popular in school?",
+        "Is it important for a teacher to be popular?",
+        "Do you think good teachers are always popular among students?",
+        "What are the qualities of being a good teacher?",
+        "Is it easier to become popular nowadays?",
+        "Why do people want to be popular?"
+      ],
+      "observation_point": "REL_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个受欢迎的人"
+    },
+    {
+      "title": "A Foreign Country",
+      "is_new": true,
+      "cue_text": "Describe a foreign country you would like to stay or work for a short period of time. You should say: which country it is where you got to know this country what you will do there And explain why you will stay or work there just for a short period of time.",
+      "part3_questions": [
+        "Why do people sometimes go to other cities or other countries to travel?",
+        "Is it important to take photos while traveling?",
+        "Can you trust other people's travel journals on the Internet?",
+        "What factors affect how people feel about traveling?",
+        "Will you go to a foreign country to travel because of the distinct landscape?",
+        "How can tourists have a good travel experience?",
+        "What kinds of comments do travelers typically leave online after a trip?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个你想去的外国"
+    },
+    {
+      "title": "A Shopping Mall",
+      "is_new": true,
+      "cue_text": "Describe a shopping mall. You should say: where it is what its name is how often you visit it And what you usually buy at the mall.",
+      "part3_questions": [
+        "Why do people buy things they don't need?",
+        "Do people in your country go to the shopping mall frequently?",
+        "How have people's shopping habits changed in recent decades?",
+        "Do you think shops and shopping malls will disappear in the future?",
+        "What are the differences between shopping in street markets and big shopping malls?",
+        "What are the differences in the shopping habits of different age groups?",
+        "What are the differences between shopping online and instore?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个购物中心"
+    },
+    {
+      "title": "An Interesting Building",
+      "is_new": true,
+      "cue_text": "Describe an interesting building. You should say: what it looks like where it is what function it has And explain why you think it is interesting.",
+      "part3_questions": [
+        "What types of buildings are popular in your country?",
+        "Is it more important for a building to look good on the outside or on the inside?",
+        "Why do people like to visit historical sites?",
+        "Is it worth spending a lot of money on the exterior appearance of a building?",
+        "Do you think a city's buildings affect its vibe or atmosphere?",
+        "Do you think old buildings should be preserved?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一座有趣的建筑"
+    },
+    {
+      "title": "A Relaxing Place",
+      "is_new": true,
+      "cue_text": "Describe your favorite place in your house where you can relax. You should say: where it is what it is like what you enjoy doing there And explain why you feel relaxed at this place.",
+      "part3_questions": [
+        "What are the benefits of doing exercise?",
+        "Why is it dif cult for some people to relax?",
+        "Which is more important, mental relaxation or physical relaxation?",
+        "What is the place where people spend most of their time at home?",
+        "Do you think there should be classes for training young people and children how to relax?",
+        "Do people in your country exercise after work?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你家里最喜欢的地方"
+    },
+    {
+      "title": "A Natural Place",
+      "is_new": false,
+      "cue_text": "Describe a natural place (e.g. parks, mountains, etc.). You should say: where this place is how you knew this place what it is like And explain why you like to visit it.",
+      "part3_questions": [
+        "What kind of people like to visit natural places?",
+        "What are the differences between a natural place and a city?",
+        "Do you think that going to the park is the only way to get close to nature?",
+        "What can people gain from going to natural places?",
+        "Are there any wild animals in the city?",
+        "Do you think it is a good idea to let animals stay in local parks for people to see?"
+      ],
+      "observation_point": "SPA_07",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个自然的地方"
+    },
+    {
+      "title": "An Interesting Building",
+      "is_new": false,
+      "cue_text": "Describe an interesting building you saw during a trip. You should say: where you saw it what it looks like what you have known about it And explain why you think it is interesting.",
+      "part3_questions": [
+        "Should all scenic spots charge an entry fee?",
+        "Is visiting scenic spots the best choice for us while traveling?",
+        "Why do some people like to live in big cities?",
+        "Is it necessary for tourists to go to visit landmarks when traveling in a place?",
+        "Which do most people prefer, living in a bungalow or in a tall building?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一座有趣的建筑"
+    },
+    {
+      "title": "A Place With a Lot of Trees",
+      "is_new": false,
+      "cue_text": "Describe a place with a lot of trees that you would like to visit (e.g. a forest, oasis). You should say: where it is how you knew this place what it was like And explain why you would like to visit it.",
+      "part3_questions": [
+        "Why do people like visiting places with trees or forests?",
+        "Are natural views better than city views?",
+        "Do all people need some nature?",
+        "Are people hard-wired to protect the environment?"
+      ],
+      "observation_point": "SPA_07",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个有很多树的地方"
+    },
+    {
+      "title": "An Important Old Thing in Family",
+      "is_new": true,
+      "cue_text": "Describe something important that has been kept in your family for a long time. You should say: what it is when your family had it how your family got it And explain why it is important to your family.",
+      "part3_questions": [
+        "What things do families keep for a long time?",
+        "What's the difference between things valued by people in the past and today.",
+        "What kinds of things are kept in museums?",
+        "Why do people visit museums?",
+        "What are the benefits of technology for learning history?",
+        "What's the influence of technology on museums?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "家里保存的一件重要旧物"
+    },
+    {
+      "title": "An Expensive Item",
+      "is_new": true,
+      "cue_text": "Describe an item on which you spent more than expected. You should say: what it is how much you spent on it why you bought it And explain why you think you spent more than expected.",
+      "part3_questions": [
+        "What do you think young people spend most of their money on?",
+        "What kind of things are people happy to pay a high price for?",
+        "Do people buy things they don't need?",
+        "Do you often buy more than you expected?",
+        "Do you think it is important to save money? Why?",
+        "Do you think it is the rich people's responsibility to donate money to people in need?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件昂贵的物品"
+    },
+    {
+      "title": "A Piece of Technology",
+      "is_new": true,
+      "cue_text": "Describe a piece of technology (not a phone) that you would like to own. You should say: what it is how much it costs how you knew it And explain why you would like to own it.",
+      "part3_questions": [
+        "What technology do young people like to use?",
+        "What are the differences between the technology of the past and that of today?",
+        "What are the differences between online and face-toface communication?",
+        "What are the differences between making friends in real life and online?",
+        "What kind of technologies can be used at school?",
+        "What negative effects does technology have on people's relationship?",
+        "Do those electronic products benefit students?",
+        "Do you think middle school students should own computers?",
+        "Do you think robots can replace human teachers?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件科技产品"
+    },
+    {
+      "title": "Something You Can’t Live Without",
+      "is_new": true,
+      "cue_text": "Describe something that you can't live without (not a computer / phone). You should say: what it is what you do with it how it helps you in your life And explain why you can't live without it.",
+      "part3_questions": [
+        "Why do all children like toys?",
+        "Why are children attracted to new things (such as electronics)?",
+        "Why do some grown-ups hate to throw out old things (such as clothes)?",
+        "Is the way people buy things affected? How?",
+        "What do you think influences people to buy new things? tablet fancy black, stunning cracks, screen, mean relatively big, a bit heavy study/video games-home, composing-sometimes, alsofilms irreplaceable-online, Internet, big screen"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件你离不开的东西"
+    },
+    {
+      "title": "A Wild Animal",
+      "is_new": false,
+      "cue_text": "Describe a wild animal that you want to know more about. You should say: what it is when / where you saw it why you want to know more about it And explain what you want to know more about it.",
+      "part3_questions": [
+        "Why should we protect wild animals?",
+        "Why are some people more willing to protect wild animals than others?",
+        "Do you think it's important to take children to the zoo to see animals?",
+        "Why do people attach more importance to protecting rare animals?",
+        "Should people educate children to protect wild animals?",
+        "Is it more important to protect wild animals or the environment?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一种野生动物"
+    },
+    {
+      "title": "A Toy",
+      "is_new": false,
+      "cue_text": "Describe a toy you liked in your childhood. You should say: what kind of toy it is when you received it how you played it And explain how you felt about it.",
+      "part3_questions": [
+        "How do advertisements influence children?",
+        "Should advertising aimed at kids be prohibited?",
+        "What's the difference between the toys kids play now and those they played in the past?",
+        "Do you think parents should buy more toys for their kids or spend more time with them?",
+        "What's the difference between the toys boys play with and girls play with?",
+        "What are the advantages and disadvantages of modern toys?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个玩具"
+    },
+    {
+      "title": "An Old Thing",
+      "is_new": false,
+      "cue_text": "Describe an important old thing that your family has kept for a long time. You should say: what it is how / when your family first got this thing how long your family has kept it And explain why this thing is important to your family.",
+      "part3_questions": [
+        "What kind of old things do people like to keep?",
+        "Why do people keep old things?",
+        "What are the differences between the things old people keep and those young people keep?",
+        "What are the differences between the things that people keep today and the things that people kept in the past?",
+        "What can we see in a museum?",
+        "What can we learn from a museum?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件旧物品"
+    },
+    {
+      "title": "A Perfect Job",
+      "is_new": true,
+      "cue_text": "Describe your perfect job. You should say: what it is where you heard about it from what you need to learn to get the job And explain why you think it is your perfect job.",
+      "part3_questions": [
+        "What jobs do children want to do when they grow up?",
+        "What kind of jobs are the most popular in your country?",
+        "What kind of job can be called a ‘dream job'?",
+        "Do people's ideal jobs change as they grow up?",
+        "What should people consider when choosing jobs?",
+        "Is salary the main reason people choose a certain job?"
+      ],
+      "observation_point": "GRO_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一份理想的工作"
+    },
+    {
+      "title": "A Movie You Watched Recently",
+      "is_new": true,
+      "cue_text": "Describe a movie you watched and enjoyed recently. You should say: when and where you watched it who you watched it with what it was about And explain why you watched this movie.",
+      "part3_questions": [
+        "What kind of movies do you think are successful in your country?",
+        "What are the factors that make a successful movie?",
+        "Do Chinese people prefer to watch domestic movies or foreign movies?",
+        "Do you think only world-known directors can create the best movies?",
+        "Why do people prefer to watch movies in the cinema?",
+        "Do you think successful movies should have more known actors or actresses in leading roles?"
+      ],
+      "observation_point": "SPI_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "最近看的一部电影"
+    },
+    {
+      "title": "A Disappointing Movie",
+      "is_new": true,
+      "cue_text": "Describe a movie you watched recently that you felt disappointed about. You should say: when it was why you didn't like it why you decided to watch it And explain why you felt disappointed about it.",
+      "part3_questions": [
+        "Do you believe movie reviews?",
+        "What are the different types of lms in your country?",
+        "Why are Japanese animated lms so popular?",
+        "Should the director pay a lot of money to famous actors?",
+        "Do you think lms with famous actors or actresses are more likely to become successful lms?",
+        "Are historical lms popular in your country? Why?"
+      ],
+      "observation_point": "SPI_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一部令人失望的电影"
+    },
+    {
+      "title": "An App",
+      "is_new": true,
+      "cue_text": "Describe a program or app on your computer or phone. You should say: what it is when / how you use it where you found it And explain how you feel about it.",
+      "part3_questions": [
+        "What are the differences between old and young people when using apps?",
+        "Why do some people not like using apps?",
+        "What apps are popular in your country, why?",
+        "Do you think young people rely more and more on these programs?",
+        "Should parents limit their children using computer programs and computer games?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个手机应用"
+    },
+    {
+      "title": "A Story",
+      "is_new": true,
+      "cue_text": "Describe a story (e.g. a fairy tale, etc.) you have read recently. You should say: what it is about when you read it whether you liked it And explain what you have learned from it.",
+      "part3_questions": [
+        "Why do most children like listening to stories before bedtime?",
+        "What lms are popular in China right now?",
+        "Is a good storyline important for a movie?",
+        "Do you think lms with many celebrities are more likely to be popular?"
+      ],
+      "observation_point": "SPI_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个故事"
+    },
+    {
+      "title": "A Useful Book",
+      "is_new": false,
+      "cue_text": "Describe a book you read that you found useful. You should say: what it is when you read it why you think it is useful And explain how you felt about it.",
+      "part3_questions": [
+        "What are the types of books that young people like to read?",
+        "What should government do to make libraries better?",
+        "Do you think old people spend more time reading than young people?",
+        "Which one is better, paper books or e-books?",
+        "Have libraries changed a lot with the development of the internet?",
+        "What should we do to prevent modern libraries from closing down?"
+      ],
+      "observation_point": "SPI_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一本有用的书"
+    },
+    {
+      "title": "A Traditional Story",
+      "is_new": false,
+      "cue_text": "Describe an interesting traditional story. You should say: what the story is about when / how you knew it who told you the story And explain how you felt when you first heard it.",
+      "part3_questions": [
+        "What kind of stories do children like?",
+        "What are the benefits of bedtime stories for children?",
+        "Why do most children like listening to stories before bedtime?",
+        "What can children learn from stories?",
+        "Do all stories for children have happy endings?",
+        "Is a good storyline important for a movie?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "value",
+      "title_zh": "一个传统故事"
+    },
+    {
+      "title": "A Talent You Want To Improve",
+      "is_new": false,
+      "cue_text": "Describe a natural talent (sport, music, etc.) you want to improve. You should say: what it is when you discovered it how you want to improve it And explain how you feel about it.",
+      "part3_questions": [
+        "Do you think artists with talents should focus on their talents?",
+        "Is it possible for us to know whether children who are 3 or 4 years old will become musicians and painters when they grow up?",
+        "Why do people like to watch talent shows?",
+        "Do you think it is more interesting to watch famous people's or ordinary people's shows?",
+        "Do you think it's important to develop children's talents?",
+        "Why do some people like to show their talents online?"
+      ],
+      "observation_point": "GRO_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一项你想提升的才能"
+    },
+    {
+      "title": "A Good Habit",
+      "is_new": false,
+      "cue_text": "Describe a good habit your friend has and you want to develop. You should say: who your friend is what habit he / she has when you noticed this habit And explain why you want to develop this habit.",
+      "part3_questions": [
+        "What habits should children have?",
+        "What should parents do to teach their children good habits?",
+        "What influence do children with bad habits have on other children?",
+        "Why do some habits change when people get older?",
+        "How do we develop bad habits?",
+        "What can we do to get rid of bad habits?"
+      ],
+      "observation_point": "EMO_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个好习惯"
+    },
+    {
+      "title": "An Area / Subject of Science",
+      "is_new": false,
+      "cue_text": "Describe an area / subject of science (biology, robotics, etc.) that you are interested in and would like to learn more about. You should say: which area / subject it is when and where you came to know this area / subject how you get information about this area / subject And explain why you are interested in this area / subject.",
+      "part3_questions": [
+        "Why do some children not like learning science at school?",
+        "Is it important to study science at school?",
+        "Which science subject is the most important for children to learn?",
+        "Should people continue to study science after graduating from school?",
+        "How do you get to know about scientific news?",
+        "Should scientists explain the research process to the public?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一个科学领域"
+    },
+    {
+      "title": "An Important Decision",
+      "is_new": false,
+      "cue_text": "Describe an important decision made with the help of other people. You should say: what the decision was why you made the decision who helped you make the decision And explain how you felt about it.",
+      "part3_questions": [
+        "Why kind of decisions do you think are meaningful?",
+        "What important decisions should be made by teenagers themselves?",
+        "Why are some people unwilling to make quick decisions?",
+        "Do people like to ask for advice about their personal life or their work?",
+        "Why do people like to ask others for advice?"
+      ],
+      "observation_point": "GRO_07",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个重要的决定"
+    },
+    {
+      "title": "Something Interesting on Social Media",
+      "is_new": false,
+      "cue_text": "Describe a time when you saw something interesting on social media. You should say: when it was where you saw it what you saw And explain why you think it was interesting.",
+      "part3_questions": [
+        "Why do people like to use social media?",
+        "What kinds of things are popular on social media?",
+        "What are the advantages and disadvantages of using social media?",
+        "What do you think of making friends on social network?",
+        "Are there any people who shouldn't use social media?",
+        "Do you think people spend too much time on social media?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "社交媒体上有趣的事"
+    },
+    {
+      "title": "A Music Event",
+      "is_new": true,
+      "cue_text": "Describe a music event you attended in which you didn't enjoy the music played. You should say what it was who you went with why you decided to go there And explain why you didn't enjoy it.",
+      "part3_questions": [
+        "What kind of music events do people like today?",
+        "What kind of music do people like at different ages?",
+        "What kind of music events are there in your country?",
+        "What kind of music is popular in China now and what kind will be in the future?",
+        "What are the differences between old and young people's music preferences?",
+        "Do Chinese parents require their children to learn to play musical instruments?",
+        "Do you think children should receive some musical education?",
+        "Why do some people like to listen to live music while others prefer CDs?"
+      ],
+      "observation_point": "SPI_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次音乐活动"
+    },
+    {
+      "title": "An Exciting Activity",
+      "is_new": false,
+      "cue_text": "Describe an exciting activity you have tried for the first time. You should say: what it is when / where you did it why you thought it was exciting And explain how you felt about it.",
+      "part3_questions": [
+        "Why are some people unwilling to try new things?",
+        "Why are some people keen on doing dangerous activities?",
+        "Do you think that children adapt to new things more easily than adults?",
+        "Do you think fear stops people from trying new things?",
+        "What can people learn from doing dangerous activities?",
+        "What are the benefits of trying new things?"
+      ],
+      "observation_point": "EMO_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次刺激的活动"
+    },
+    {
+      "title": "A Water Sport",
+      "is_new": false,
+      "cue_text": "Describe a water sport you would like to try in the future. You should say: what it is where you would like to try it whether it is dif cult And explain why you would like to try it.",
+      "part3_questions": [
+        "Do you think it is good to teach swimming in school?",
+        "What kinds of water sports are popular nowadays?",
+        "Why do people like to live near water?",
+        "What are the advantages of water transportation?",
+        "What do you think of the people who waste water?",
+        "What are the characteristics of goods transported by water?"
+      ],
+      "observation_point": "GRO_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一项水上运动"
+    },
+    {
+      "title": "An Occasion When People Were Smiling",
+      "is_new": true,
+      "cue_text": "Describe an occasion when many people were smiling. You should say: when it happened who you were with what happened And explain why most people were smiling.",
+      "part3_questions": [
+        "Do you think people who like to smile are more friendly?",
+        "Do people smile more when they are younger or older?",
+        "Why do most people smile in photographs?",
+        "Are there any occasions when people need to pretend to smile?",
+        "Do women smile more than men?",
+        "Is smiling important in your culture?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "人们微笑的场合"
+    },
+    {
+      "title": "A Trip",
+      "is_new": true,
+      "cue_text": "Describe a bicycle / motorcycle / car trip you would like to go. You should say: who you would like to go with where you would like to go when you would like to go And explain why you would like to go by this transport.",
+      "part3_questions": [
+        "Which form of vehicle is more popular in your country, bikes, cars or motorcycles?",
+        "Do you think air pollution comes mostly from mobile vehicles?",
+        "How are the transportation systems in urban areas and rural areas different?",
+        "Do you think people need to change the way of transportation drastically to protect the environment?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次旅行"
+    },
+    {
+      "title": "A Time When You Encouraged Someone",
+      "is_new": true,
+      "cue_text": "Describe a time when you encouraged someone to do something that he / she didn't want to do. You should say: who he or she is what you encouraged him / her to do how he / she reacted and explain why you encouraged him / her to do it.",
+      "part3_questions": [
+        "What kind of encouragement should parents give?",
+        "When should parents encourage their children?",
+        "How can leaders encourage their employees?",
+        "Do you think some people are better than others at persuading?"
+      ],
+      "observation_point": "REL_09",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你鼓励别人的一次经历"
+    },
+    {
+      "title": "Giving Advice",
+      "is_new": true,
+      "cue_text": "Describe a time when you gave advice to others. You should say: when it was to whom you gave the advice what the advice was and explain why you gave the advice.",
+      "part3_questions": [
+        "What are the personalities of people whose job is to give advice to others?",
+        "Should people prepare before giving advice?",
+        "Is it good to ask advice from strangers online?",
+        "What are the problems if you ask too many people for advice?",
+        "Why do some people think it is better to ask for advice from friends than from parents?",
+        "When would old people ask young people for advice?"
+      ],
+      "observation_point": "REL_09",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "给别人建议的一次经历"
+    },
+    {
+      "title": "A Time You Needed To Use Your Imagination",
+      "is_new": true,
+      "cue_text": "Describe a time when you needed to use your imagination. You should say: when it was why you needed to use imagination how dif cult or easy it was And explain how you felt about it.",
+      "part3_questions": [
+        "What kinds of jobs need imagination?",
+        "What subjects are helpful for children's imagination?",
+        "Do you think imagination is essential for scientists?",
+        "Do you think adults can have lots of imagination?",
+        "What games help develop children's imagination?",
+        "How important is imagination to children?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "需要想象力的一次经历"
+    },
+    {
+      "title": "An Occasion When Mobile Phone Was Not Allowed",
+      "is_new": true,
+      "cue_text": "Describe an occasion when you were not allowed to use your mobile phone. You should say: when it was where it was why you were not allowed to use your mobile phone And explain how you felt about it.",
+      "part3_questions": [
+        "How do young people and old people use mobile phones differently?",
+        "What positive and negative impacts do mobile phones have on friendship?",
+        "What are examples of good and poor phone manners?",
+        "How does the internet benefit people?",
+        "Do you think it is necessary to have laws on the use of mobile phones?",
+        "Is it a waste of time to take pictures with mobile phones?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "不能用手机的场合"
+    },
+    {
+      "title": "A Time You Were Proud",
+      "is_new": true,
+      "cue_text": "Describe a time when you felt proud of a family member. You should say: when it happened who the person is what the person did And explain why you felt proud of him / her.",
+      "part3_questions": [
+        "When would parents feel proud of their children?",
+        "On what occasions would adults be proud of themselves?",
+        "Should parents reward children? Why and how?",
+        "Is it good to reward children too often? Why?",
+        "Do rewards help a child become better?",
+        "What do you think about children working hard just for grades?"
+      ],
+      "observation_point": "GRO_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "让你骄傲的一次经历"
+    },
+    {
+      "title": "A Long Journey",
+      "is_new": false,
+      "cue_text": "Describe a long journey you had and would like to take again. You should say: when / where you went who you had the journey with why you had the journey And explain why you would like to have it again.",
+      "part3_questions": [
+        "Do you think it is a good choice to travel by plane?",
+        "What are the differences between group travelling and travelling alone?",
+        "What do we need to prepare for a long journey?",
+        "Why do some people like making long journeys?",
+        "Why do some people prefer to travel in their own country?",
+        "Why do some people prefer to travel abroad?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次长途旅行"
+    },
+    {
+      "title": "A Trip You’d Like To Make Again",
+      "is_new": false,
+      "cue_text": "Describe a trip you would like to take again. You should say: when / where you went who you had the trip with what you did during the trip And explain why you would like to make the trip again.",
+      "part3_questions": [
+        "Why do people like traveling?",
+        "What do we need to prepare for a trip?",
+        "What would happen if no preparation were made before the trip?",
+        "Why do some people prefer to travel in their own country rather than going abroad?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次想重温的旅行"
+    },
+    {
+      "title": "An Occasion You Got Lost",
+      "is_new": false,
+      "cue_text": "Describe an occasion when you lost your way. You should say: where you were what happened how you felt And explain how you found your way.",
+      "part3_questions": [
+        "Why do some people get lost more easily than others?",
+        "Do you think it is important to be able to read a map?",
+        "Do you think it is important to do some preparation before you travel to new places?",
+        "How can people find their way when they are lost?",
+        "Is a paper map still necessary?",
+        "How do people react when they get lost?"
+      ],
+      "observation_point": "EMO_09",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "迷路的一次经历"
+    },
+    {
+      "title": "A Dinner You Had",
+      "is_new": false,
+      "cue_text": "Describe a great dinner you and your friend or family members enjoyed. You should say: what you had who you had the dinner with what you talked about during the dinner And explain why you enjoyed it.",
+      "part3_questions": [
+        "Do people prefer to eat out at restaurants or eat at home during the Spring Festival?",
+        "What food do people eat on special occasions, like during the Spring Festival or the Mid-Autumn Festival?",
+        "Why do people like to have meals together during important festivals?",
+        "Is it a hassle to prepare a meal at home?",
+        "What do people often talk about during meals?",
+        "People are spending less and less time having meals with their families these days. Is it good or bad?"
+      ],
+      "observation_point": "EMO_08",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次晚餐"
+    },
+    {
+      "title": "A Time You Broke Something",
+      "is_new": false,
+      "cue_text": "Describe a time when you broke something. You should say: what it was when / where that happened how you broke it And explain what you did after that.",
+      "part3_questions": [
+        "What kind of things are more likely to be broken by people at home?",
+        "What kind of people like to x things by themselves?",
+        "Do you think clothes produced in the factory are of better quality than those made by hand?",
+        "Do you think handmade clothes are more valuable?",
+        "Is the older generation better at xing things?",
+        "Do you think elderly people should teach young people how to x things?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "弄坏东西的一次经历"
+    },
+    {
+      "title": "The Time You First Talked in a Foreign Language",
+      "is_new": false,
+      "cue_text": "Describe the time you first talked in a foreign language. You should say: where you were who you were with what you talked about And explain how you felt about it.",
+      "part3_questions": [
+        "At what age should children start learning a foreign language?",
+        "Which skill is more important, speaking or writing?",
+        "Does a person still need to learn other languages, if he or she is good at English?",
+        "Do you think minority languages will disappear?",
+        "Does learning a foreign language help in nding a job?",
+        "Which stage of life do you think is the best for learning a foreign language?"
+      ],
+      "observation_point": "GRO_02",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "第一次用外语交流"
+    },
+    {
+      "title": "A Time When Electricity Went Off",
+      "is_new": false,
+      "cue_text": "Describe a time when the electricity suddenly went off. You should say: when / where it happened how long it lasted what you did during that time And explain how you felt about it.",
+      "part3_questions": [
+        "Which is better, electric bicycles or ordinary bicycles?",
+        "Do you think electric bicycles will replace ordinary bicycles in the future?",
+        "Which is better, electric cars or petrol cars?",
+        "How did people manage to live without electricity in the ancient world?",
+        "Is it dif cult for the government to replace all the petrol cars with electric cars?",
+        "Do people use more electricity now than before?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "停电的一次经历"
+    },
+    {
+      "title": "A Time When Someone Apologized to You",
+      "is_new": false,
+      "cue_text": "Describe a time when someone apologized to you. You should say: when it was who this person is why he or she apologized to you And explain how you felt about it.",
+      "part3_questions": [
+        "Do you think people should apologize for anything wrong they do?",
+        "Do people in your country like to say ‘sorry'?",
+        "On what occasion do people usually apologize to others?",
+        "Why do some people refuse to say ‘sorry' to others?",
+        "Do you think every ‘sorry' is from the bottom of the heart?",
+        "Are women better than men at recognizing emotions?"
+      ],
+      "observation_point": "REL_11",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "别人向你道歉的一次经历"
+    },
+    {
+      "title": "A Time You Told a Truth",
+      "is_new": false,
+      "cue_text": "Describe a time when you told your friend an important truth. You should say: who your friend is what the truth was what your friend's reaction was And explain why you think it was important to tell your friend the truth.",
+      "part3_questions": [
+        "Do you think it's more important to win a game or follow the rules in sports?",
+        "Sometimes people should tell lies. Do you agree?",
+        "How do you know when others are telling lies?",
+        "Do you think we should tell the truth all the times?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "value",
+      "title_zh": "你说实话的一次经历"
+    },
+    {
+      "title": "A Good Service",
+      "is_new": false,
+      "cue_text": "Describe a time when you received good service in a shop / store. You should say where the shop is when you went to the shop what service you received from the staff And explain how you felt about the service.",
+      "part3_questions": [
+        "Why are shopping malls so popular in China?",
+        "What are the advantages and disadvantages of shopping in small shops?",
+        "Why do some people not like shopping in small shops?",
+        "What are the differences between online shopping and in-store shopping?",
+        "What are the advantages and disadvantages of shopping online?",
+        "Can consumption drive economic growth?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一次好的服务体验"
+    },
+    {
+      "title": "Wait for Something Special",
+      "is_new": false,
+      "cue_text": "Describe a time when you waited for something special that would happen. You should say: what you waited for where you waited why it was special And explain how you felt while you were waiting.",
+      "part3_questions": [
+        "On what occasions do people usually need to wait?",
+        "Who behave better when waiting, children or adults?",
+        "Compared to the past, are people less patient now? Why?",
+        "What are the positive and negative effects of waiting on society?",
+        "Why are some people unwilling to wait?",
+        "Where do children learn to be patient, at home or at school?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "等待特别事物的经历"
+    },
+    {
+      "title": "A Positive Change",
+      "is_new": false,
+      "cue_text": "Describe a positive change that you have made recently in your daily routine. You should say what the change is how you have changed the routine why you think it is a positive change And explain how you feel about the change.",
+      "part3_questions": [
+        "What do people normally plan in their daily lives?",
+        "Is time management very important in our daily lives?",
+        "What changes would people often make?",
+        "Do you think it is good to change jobs frequently?",
+        "Who do you think would make changes more often, young people or old people?",
+        "Who should get more promotion opportunities in the workplace, young people or older people?"
+      ],
+      "observation_point": "GRO_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个积极的改变"
+    },
+    {
+      "title": "A Talk You Gave",
+      "is_new": false,
+      "cue_text": "Describe a talk you gave to a group of people. You should say: who you gave the talk to what the talk was about why you gave the talk And explain how you felt about the talk.",
+      "part3_questions": [
+        "What benefits does the internet bring to communication?",
+        "Which one is better, being a communicator or a listener?",
+        "What qualities does a person need to have to be a good communicator?",
+        "What qualities do people need to speak in public?",
+        "How important is it to be a good listener when communicating?",
+        "What kinds of people often give speeches?"
+      ],
+      "observation_point": "GRO_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你做过的一次演讲"
+    },
+    {
+      "title": "An Unusual Meal",
+      "is_new": false,
+      "cue_text": "Describe an unusual meal you had. You should say: when you had it where you had it whom you had it with And explain why it was unusual.",
+      "part3_questions": [
+        "What are the advantages and disadvantages of eating in restaurants?",
+        "What fast food restaurants are there in your country?",
+        "Do people eat fast food at home?",
+        "Why do some people choose to eat out instead of ordering takeout?",
+        "Do people in your country socialize in restaurants?",
+        "Do people in your country value food culture?"
+      ],
+      "observation_point": "EMO_08",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次不寻常的用餐"
+    }
+  ]
+}

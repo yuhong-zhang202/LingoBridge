@@ -1,0 +1,621 @@
+{
+  "version": "remap.v1",
+  "createdAt": "2026-07-12",
+  "basis": "雅思口语题库2026年1-4月Version3逐题人工审查 + extraction.ts观察点定义 + 2026-07-12 DB诊断",
+  "matching_rule": "按规范化文本匹配DB:Part1按topic名匹配整组(overrides按题干片段匹配个别题);Part2按cue_card_title匹配。规范化=小写、去首尾空格、弯引号转直引号、压缩空格。multi_match=N表示预期匹配N条记录、同样处理。未匹配项必须报告,禁止猜测。",
+  "reconcile_policy": "声明式:确保每条primary与secondary链接存在(primary→is_primary=true,secondary→is_primary=false);仅按remove_links显式删除;DB中存在但本文件未声明的其他链接一律保留并列入报告(不删)。绝不修改questions表任何字段(含topic_only)。",
+  "part1_topics": [
+    {
+      "topic": "HOMETOWN",
+      "primary": "SPA_03",
+      "secondary": [
+        "SPA_01"
+      ],
+      "note": "新增副挂SPA_01:家乡依恋故事可直接答hometown组题(标注规范第9条)"
+    },
+    {
+      "topic": "STUDY",
+      "primary": "GRO_01",
+      "secondary": []
+    },
+    {
+      "topic": "WORK",
+      "primary": "GRO_01",
+      "secondary": []
+    },
+    {
+      "topic": "ACCOMMODATION",
+      "primary": "SPA_01",
+      "secondary": []
+    },
+    {
+      "topic": "Childhood Activities",
+      "primary": "EMO_06",
+      "secondary": []
+    },
+    {
+      "topic": "Walking",
+      "primary": "EMO_04",
+      "secondary": [],
+      "overrides": [
+        {
+          "match": "do you walk a lot",
+          "add_secondary": [
+            "SPA_02"
+          ]
+        },
+        {
+          "match": "where did you go for a walk",
+          "add_secondary": [
+            "SPA_02"
+          ]
+        }
+      ],
+      "note": "题级副挂SPA_02:步行频率/最近去哪走=日常移动,通勤故事可直接答"
+    },
+    {
+      "topic": "Scenery & Views",
+      "primary": "SPA_07",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "新增副挂SPA_05:旅行看景偏好题"
+    },
+    {
+      "topic": "Morning Time",
+      "primary": "EMO_02",
+      "secondary": []
+    },
+    {
+      "topic": "Food",
+      "primary": "EMO_08",
+      "secondary": []
+    },
+    {
+      "topic": "Hobby",
+      "primary": "EMO_05",
+      "secondary": []
+    },
+    {
+      "topic": "Building",
+      "primary": "SPA_04",
+      "secondary": []
+    },
+    {
+      "topic": "Sports Team",
+      "primary": "EMO_05",
+      "secondary": []
+    },
+    {
+      "topic": "Typing",
+      "primary": "GRO_02",
+      "secondary": []
+    },
+    {
+      "topic": "Life Stages",
+      "primary": "EMO_01",
+      "secondary": []
+    },
+    {
+      "topic": "Gifts",
+      "primary": "REL_03",
+      "secondary": []
+    },
+    {
+      "topic": "Pets and Animals",
+      "primary": "REL_07",
+      "secondary": [],
+      "overrides": [
+        {
+          "match": "ever had a pet before",
+          "add_secondary": [
+            "REL_08"
+          ]
+        }
+      ],
+      "note": "题级副挂REL_08:宠物单次事件故事可直接答「养过宠物吗」"
+    },
+    {
+      "topic": "Reading",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "新增副挂SPI_02"
+    },
+    {
+      "topic": "Day Off",
+      "primary": "EMO_04",
+      "secondary": [
+        "EMO_03"
+      ],
+      "note": "新增副挂EMO_03:独处故事直接答「休息日通常做什么」"
+    },
+    {
+      "topic": "Keys",
+      "primary": "EMO_06",
+      "secondary": []
+    },
+    {
+      "topic": "Dreams",
+      "primary": "GRO_06",
+      "secondary": []
+    },
+    {
+      "topic": "Doing Something Well",
+      "primary": "GRO_03",
+      "secondary": []
+    },
+    {
+      "topic": "Shoes",
+      "primary": "EMO_13",
+      "secondary": [],
+      "remove_links": [
+        "EMO_06"
+      ],
+      "note": "★主挂变更EMO_06→EMO_13:买鞋/穿搭是外表形象话题,原挂小习惯属错挂"
+    },
+    {
+      "topic": "Rules",
+      "primary": "VAL_03",
+      "secondary": [
+        "VAL_01"
+      ],
+      "remove_links": [
+        "EMO_07"
+      ],
+      "note": "★主挂变更EMO_07→VAL_03:规则偏好题,原则/公平故事换角度可答;原挂压力应对属错挂"
+    },
+    {
+      "topic": "Public Places",
+      "primary": "SPA_04",
+      "secondary": []
+    },
+    {
+      "topic": "Art",
+      "primary": "SPI_04",
+      "secondary": []
+    },
+    {
+      "topic": "Plants",
+      "primary": "SPA_08",
+      "secondary": []
+    },
+    {
+      "topic": "Growing Vegetables / Fruits",
+      "primary": "SPA_08",
+      "secondary": []
+    },
+    {
+      "topic": "Crowded Place",
+      "primary": "SPA_04",
+      "secondary": []
+    },
+    {
+      "topic": "Going Out",
+      "primary": "EMO_05",
+      "secondary": []
+    },
+    {
+      "topic": "Staying With Old People",
+      "primary": "REL_01",
+      "secondary": []
+    },
+    {
+      "topic": "Advertisement",
+      "primary": "SPI_06",
+      "secondary": []
+    },
+    {
+      "topic": "Borrowing / Lending",
+      "primary": "REL_09",
+      "secondary": []
+    },
+    {
+      "topic": "Chatting",
+      "primary": "REL_03",
+      "secondary": []
+    },
+    {
+      "topic": "Museum",
+      "primary": "SPI_03",
+      "secondary": []
+    },
+    {
+      "topic": "Having a Break",
+      "primary": "EMO_04",
+      "secondary": [
+        "EMO_03"
+      ],
+      "note": "新增副挂EMO_03"
+    },
+    {
+      "topic": "Sharing",
+      "primary": "REL_09",
+      "secondary": [],
+      "overrides": [
+        {
+          "match": "not suitable for sharing",
+          "add_secondary": [
+            "EMO_12"
+          ]
+        }
+      ],
+      "note": "题级副挂EMO_12:「什么事不适合分享」难以启齿故事可直接答"
+    },
+    {
+      "topic": "Friends",
+      "primary": "REL_03",
+      "secondary": []
+    }
+  ],
+  "part2_cards": [
+    {
+      "title": "A Person Who Solved a Problem",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Person Who Protects the Nature",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Helpful Person",
+      "primary": "REL_10",
+      "secondary": []
+    },
+    {
+      "title": "An Organized Person",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Child Who Loves To Draw",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Person Who Learned a Skill",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Famous Person",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "An Important Friend",
+      "primary": "REL_03",
+      "secondary": []
+    },
+    {
+      "title": "A Person Who Enjoys Working for a Family Business",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Friend Who Is Good at Music",
+      "primary": "REL_03",
+      "secondary": []
+    },
+    {
+      "title": "A Creative Person",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Sportsperson",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Popular Person",
+      "primary": "REL_06",
+      "secondary": []
+    },
+    {
+      "title": "A Foreign Country",
+      "primary": "SPA_06",
+      "secondary": []
+    },
+    {
+      "title": "A Shopping Mall",
+      "primary": "SPA_04",
+      "secondary": []
+    },
+    {
+      "title": "An Interesting Building",
+      "primary": "SPA_04",
+      "secondary": [],
+      "multi_match": 2,
+      "note": "同名卡×2,期望状态相同,脚本应匹配到2张并同样处理"
+    },
+    {
+      "title": "A Relaxing Place",
+      "primary": "SPA_04",
+      "secondary": []
+    },
+    {
+      "title": "A Natural Place",
+      "primary": "SPA_07",
+      "secondary": []
+    },
+    {
+      "title": "A Place With a Lot of Trees",
+      "primary": "SPA_07",
+      "secondary": []
+    },
+    {
+      "title": "An Important Old Thing in Family",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "An Expensive Item",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "A Piece of Technology",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "Something You Can't Live Without",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "A Wild Animal",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "A Toy",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "An Old Thing",
+      "primary": "SPI_05",
+      "secondary": []
+    },
+    {
+      "title": "A Perfect Job",
+      "primary": "GRO_06",
+      "secondary": []
+    },
+    {
+      "title": "A Movie You Watched Recently",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "新增副挂SPI_02"
+    },
+    {
+      "title": "A Disappointing Movie",
+      "primary": "SPI_01",
+      "secondary": []
+    },
+    {
+      "title": "An App",
+      "primary": "SPI_06",
+      "secondary": []
+    },
+    {
+      "title": "A Story",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "新增副挂SPI_02"
+    },
+    {
+      "title": "A Useful Book",
+      "primary": "SPI_03",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "新增副挂SPI_02"
+    },
+    {
+      "title": "A Traditional Story",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "A Talent You Want To Improve",
+      "primary": "GRO_01",
+      "secondary": []
+    },
+    {
+      "title": "A Good Habit",
+      "primary": "EMO_06",
+      "secondary": []
+    },
+    {
+      "title": "An Area / Subject of Science",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "An Important Decision",
+      "primary": "GRO_07",
+      "secondary": []
+    },
+    {
+      "title": "Something Interesting on Social Media",
+      "primary": "SPI_06",
+      "secondary": []
+    },
+    {
+      "title": "A Music Event",
+      "primary": "SPI_04",
+      "secondary": []
+    },
+    {
+      "title": "An Exciting Activity",
+      "primary": "EMO_05",
+      "secondary": []
+    },
+    {
+      "title": "A Water Sport",
+      "primary": "GRO_01",
+      "secondary": []
+    },
+    {
+      "title": "An Occasion When People Were Smiling",
+      "primary": null,
+      "secondary": [
+        "REL_02",
+        "REL_04"
+      ],
+      "topic_only": true,
+      "note": "保持topic_only(仍上首页),新增副挂:家人/朋友单次共度故事可直接答"
+    },
+    {
+      "title": "A Trip",
+      "primary": "SPA_06",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "新增副挂SPA_05"
+    },
+    {
+      "title": "A Time When You Encouraged Someone",
+      "primary": "REL_09",
+      "secondary": []
+    },
+    {
+      "title": "Giving Advice",
+      "primary": "REL_09",
+      "secondary": []
+    },
+    {
+      "title": "A Time You Needed To Use Your Imagination",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "An Occasion When Mobile Phone Was Not Allowed",
+      "primary": "SPI_06",
+      "secondary": []
+    },
+    {
+      "title": "A Time You Were Proud",
+      "primary": "GRO_03",
+      "secondary": []
+    },
+    {
+      "title": "A Long Journey",
+      "primary": "SPA_06",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "新增副挂SPA_05"
+    },
+    {
+      "title": "A Trip You'd Like To Make Again",
+      "primary": "SPA_06",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "新增副挂SPA_05"
+    },
+    {
+      "title": "An Occasion You Got Lost",
+      "primary": "EMO_09",
+      "secondary": []
+    },
+    {
+      "title": "A Dinner You Had",
+      "primary": "EMO_08",
+      "secondary": [
+        "REL_02",
+        "REL_04"
+      ],
+      "note": "★核心修复:家庭/朋友聚餐单次故事可直接答(金标S032跨年火锅案例)"
+    },
+    {
+      "title": "A Time You Broke Something",
+      "primary": "EMO_10",
+      "secondary": [
+        "GRO_04"
+      ],
+      "topic_only": true,
+      "note": "★新增主挂EMO_10:带情绪的单次事件,给情绪波动故事直接通路;副挂GRO_04;保持topic_only仍上首页"
+    },
+    {
+      "title": "The Time You First Talked in a Foreign Language",
+      "primary": "GRO_02",
+      "secondary": []
+    },
+    {
+      "title": "A Time When Electricity Went Off",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "A Time When Someone Apologized to You",
+      "primary": "REL_11",
+      "secondary": [
+        "VAL_01",
+        "REL_02"
+      ],
+      "note": "新增副挂:被不公后对方认错(VAL_01)/家人道歉式和解(REL_02,金标S029案例)"
+    },
+    {
+      "title": "A Time You Told a Truth",
+      "primary": "VAL_02",
+      "secondary": [
+        "VAL_03"
+      ],
+      "note": "主挂VAL_02维持DB现状;新增副挂VAL_03:坚持原则故事直接答"
+    },
+    {
+      "title": "A Good Service",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true
+    },
+    {
+      "title": "Wait for Something Special",
+      "primary": null,
+      "secondary": [
+        "SPI_05"
+      ],
+      "topic_only": true,
+      "note": "保持topic_only,新增副挂SPI_05:渴望之物故事可直接答"
+    },
+    {
+      "title": "A Positive Change",
+      "primary": "GRO_05",
+      "secondary": [
+        "GRO_04"
+      ],
+      "note": "新增副挂GRO_04:失败复盘故事直接答"
+    },
+    {
+      "title": "A Talk You Gave",
+      "primary": "GRO_03",
+      "secondary": []
+    },
+    {
+      "title": "An Unusual Meal",
+      "primary": "EMO_08",
+      "secondary": [
+        "REL_02",
+        "REL_04"
+      ],
+      "note": "与Dinner对称"
+    }
+  ]
+}

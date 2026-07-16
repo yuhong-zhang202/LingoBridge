@@ -1,0 +1,52 @@
+[
+  {
+    "id": "f3292a43-4f57-4a80-a6f4-8da80712da63",
+    "cue_card_title": "A Famous Person",
+    "topic_only": false
+  },
+  {
+    "id": "530e069f-9d2c-4532-85db-f6232cbac4ca",
+    "cue_card_title": "A Creative Person",
+    "topic_only": false
+  },
+  {
+    "id": "a64bf661-3504-4a50-8412-eefb7968b796",
+    "cue_card_title": "A Sportsperson",
+    "topic_only": false
+  },
+  {
+    "id": "d5da46d2-d128-432a-b72b-2a34750b2510",
+    "cue_card_title": "A Foreign Country",
+    "topic_only": false
+  },
+  {
+    "id": "a08415ee-b3d2-43f1-b3f5-866468a960c7",
+    "cue_card_title": "A Place With a Lot of Trees",
+    "topic_only": false
+  },
+  {
+    "id": "df378fd9-ab85-4903-9bc4-06d5159d38aa",
+    "cue_card_title": "A Disappointing Movie",
+    "topic_only": false
+  },
+  {
+    "id": "afb90a41-14ff-45d8-acb2-bf3615f184a7",
+    "cue_card_title": "A Talent You Want To Improve",
+    "topic_only": false
+  },
+  {
+    "id": "be89a0fc-9ec2-4ee4-bcdb-98342779540e",
+    "cue_card_title": "A Music Event",
+    "topic_only": false
+  },
+  {
+    "id": "fbc84a63-1341-414b-a5da-cd3b25951643",
+    "cue_card_title": "A Water Sport",
+    "topic_only": false
+  },
+  {
+    "id": "744762f2-265c-4428-987c-16fa35d211da",
+    "cue_card_title": "A Trip",
+    "topic_only": false
+  }
+]

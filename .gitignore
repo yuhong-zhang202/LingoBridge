@@ -24,6 +24,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+dev.log
 
 # local env files
 .env*.local
@@ -34,3 +35,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# eval 跑分产物（每跑一次堆一个带时间戳文件；保留 scripts/eval/golden 金标集与 run-extraction.ts）
+/scripts/eval/results/
+
+# LLM 原始输出留存（LLM_RAW_LOG_DIR 指向此目录；含用户故事原文，永不入库）
+/.llm-raw/
+
+# next-pwa 构建产物
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/worker-*.js
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
+# Claude Code 个人本地覆盖（团队共用的在 .claude/settings.json）
+.claude/settings.local.json

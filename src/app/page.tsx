@@ -1,116 +1,132 @@
+/**
+ * @module   HomePage
+ * @desc     首页外壳 —— 集中持有全部 state / hook / handler（雅思切换题 useSwitchQuestion、文字提交
+ *           useStorySubmit、登录用户当月额度核对、Hero 打字机、麦克风权限探测等），组装成一份 HomeViewProps
+ *           后按 lg 断点分发两套纯展示视图：<1024 渲染 HomeMobile；≥1024 渲染 HomeDesktop。两端共用同一套
+ *           state/handler，功能完全一致。共享弹层（Toast / 首次同意 / 麦克风权限 / 试用额度）留在外壳。
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Mic2 } from 'lucide-react'
-import Orb from '@/components/Orb'
-import TabBar from '@/components/TabBar'
+import Toast from '@/components/Toast'
+import FirstUseConsent from '@/components/FirstUseConsent'
+import MicPermissionSheet from '@/components/MicPermissionSheet'
+import QuotaReached from '@/components/QuotaReached'
+import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
+import { useStorySubmit } from '@/hooks/useStorySubmit'
+import { computeRichness } from '@/lib/story-richness'
+import { getAccount } from '@/lib/auth'
+import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
+import HomeMobile from './HomeMobile'
+import HomeDesktop from './HomeDesktop'
+import type { HomeViewProps } from './types'
+
+// Hero 标题第二行（故事模式下打字机逐字浮现）
+const HERO_LINE2 = '个性化雅思语料'
 
 export default function HomePage() {
   const router = useRouter()
   const [showTextInput, setShowTextInput] = useState(false)
   const [textStory, setTextStory] = useState('')
+  const [ieltsMode, setIeltsMode] = useState(false)
+  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
+  const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
+  const [typed, setTyped] = useState('')
+  const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
+  const { question, loading, error, next } = useSwitchQuestion()
+  // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
+  const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
+
+  // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）。
+  // 这是 JS 驱动的循环动画，globals.css 的 reduced-motion 兜底管不住 → 开启「减弱动效」时直接显示完整标题、不启动定时器。
+  useEffect(() => {
+    if (ieltsMode) { setTyped(''); return }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setTyped(HERO_LINE2); return }
+    let i = 0
+    let timer = 0
+    const step = () => {
+      i += 1
+      setTyped(HERO_LINE2.slice(0, i))
+      if (i >= HERO_LINE2.length) {
+        timer = window.setTimeout(() => { i = 0; setTyped(''); step() }, 2000)
+      } else {
+        timer = window.setTimeout(step, 160)
+      }
+    }
+    step()
+    return () => window.clearTimeout(timer)
+  }, [ieltsMode])
+
+  // 点「开始录音」先探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）
+  async function handleStartRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
+      router.push(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')
+    } catch (err) {
+      const name = (err as DOMException)?.name
+      setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
+    }
+  }
+
+  // 登录用户：挂载时核当月语料数，达上限即把首页主区切换为「额度用完」态
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const acct = await getAccount()
+        const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
+        if (!loggedIn) return
+        const n = await countCorpusThisMonth()
+        if (!cancelled && n >= STORY_MONTHLY_LIMIT) setStoryQuotaReached(true)
+      } catch { /* 静默：不挡正常流程 */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const viewProps: HomeViewProps = {
+    ieltsMode,
+    showTextInput,
+    storyQuotaReached,
+    question,
+    loading,
+    error,
+    textStory,
+    submitting,
+    canSubmit: computeRichness(textStory).canSubmit,
+    typed,
+    reuseTab,
+    onSetShowTextInput: setShowTextInput,
+    onSelectMyStory: () => setIeltsMode(false),
+    onSelectIelts: () => { if (!ieltsMode) { setIeltsMode(true); void next() } },
+    onNext: () => void next(),
+    onStartRecording: () => void handleStartRecording(),
+    onChangeTextStory: setTextStory,
+    onSubmitStory: submit,
+    onSelectReuseTab: setReuseTab,
+  }
 
   return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <div className="ambient-light" />
+    <>
+      {/* ============ 移动端：原竖排布局 ============ */}
+      <div className="lg:hidden"><HomeMobile {...viewProps} /></div>
 
-      {/* 顶部栏 */}
-      <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
-        <span className="text-[16px] font-bold text-[#111]">
-          LingoBridge
-        </span>
-        <div className="w-[30px] h-[30px] rounded-full bg-white shadow-sm" />
-      </div>
+      {/* ============ 桌面端：营销落地页 ============ */}
+      <div className="hidden lg:block"><HomeDesktop {...viewProps} /></div>
 
-      {/* 主体 */}
-      <div className="flex-1 flex flex-col items-center px-7 relative z-10 pt-6 pb-[72px] overflow-y-auto">
-
-        {/* Orb */}
-        <Orb size={300} pulse={false} />
-
-        {/* Orb 与文字区固定间距 */}
-        <div className="h-[41px]" />
-
-        {/* 文字 + 操作区 */}
-        <div className="w-full flex flex-col items-center">
-
-          {!showTextInput && (
-            <div className="text-center">
-              <h1 className="text-[24px] font-bold text-[#111] tracking-tight">
-                说说你的故事
-              </h1>
-              <p className="text-[13px] text-[#888] mt-2">
-                精准匹配雅思口语题目
-              </p>
-            </div>
-          )}
-
-          {/* 操作区 */}
-          <div className={`w-full ${showTextInput ? 'mt-0' : 'mt-4'}`}>
-
-            {!showTextInput && (
-              <>
-                {/* 主按钮：开始录音 */}
-                <Link href="/recording" className="block">
-                  <button className="btn-gradient w-full h-[50px]">
-                    <Mic2 size={16} className="text-[#555]" />
-                    开始录音
-                  </button>
-                </Link>
-
-                {/* 文字输入入口 */}
-                <button
-                  onClick={() => setShowTextInput(true)}
-                  className="w-full text-center text-[13px] text-[#AAAAAA] mt-3 cursor-pointer"
-                >
-                  或用文字输入
-                </button>
-              </>
-            )}
-
-            {showTextInput && (
-              <div className="w-full animate-fade-up">
-                <textarea
-                  value={textStory}
-                  onChange={e => setTextStory(e.target.value)}
-                  placeholder="用中文写下你的故事，比如：今天去了附近的公园，空气很好，心情也轻松了很多..."
-                  className="w-full min-h-[120px] p-4 rounded-[16px] bg-white border border-[#EEEEEE] text-[15px] text-[#1A1A1A] leading-relaxed placeholder:text-[#CCCCCC] resize-none outline-none shadow-sm focus:border-brand-primary transition-colors"
-                  autoFocus
-                />
-                <div className="flex justify-between items-center mt-2 px-1">
-                  <span className="text-[12px] text-[#CCCCCC]">
-                    {textStory.length > 0 ? `${textStory.length} 字` : '建议 50 字以上，越具体越好'}
-                  </span>
-                  <button
-                    disabled={textStory.trim().length < 10}
-                    onClick={() => router.push('/article')}
-                    className={`px-5 py-2 text-[14px] font-medium transition-all duration-200 ${
-                      textStory.trim().length >= 10
-                        ? 'btn-gradient'
-                        : 'rounded-[50px] bg-[#EEEEEE] text-[#CCCCCC] cursor-not-allowed'
-                    }`}
-                  >
-                    开始匹配 →
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowTextInput(false)}
-                  className="mt-3 text-[13px] text-[#AAAAAA] flex items-center gap-1 mx-auto"
-                >
-                  ← 改用录音
-                </button>
-              </div>
-            )}
-          </div>
-
-        </div>
-
-        {/* 剩余空白沉到底部 */}
-        <div className="flex-1" />
-      </div>{/* end 主体 */}
-
-      <div className="flex-shrink-0"><TabBar /></div>
-    </div>
+      {/* 共享：提示 / 首次同意 / 麦克风权限弹层 */}
+      <Toast message={toastMsg} onDismiss={dismissToast} />
+      <FirstUseConsent />
+      <MicPermissionSheet
+        open={micSheet !== null}
+        reason={micSheet ?? 'denied'}
+        onUseText={() => { setMicSheet(null); setShowTextInput(true) }}
+        onDismiss={() => setMicSheet(null)}
+      />
+      {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
+      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={dismissQuota} />}
+    </>
   )
 }

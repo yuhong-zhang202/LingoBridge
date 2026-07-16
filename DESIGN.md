@@ -9,8 +9,7 @@
 所有新页面的视觉风格必须以下列已完成页面为基准，
 开发新页面前必须先阅读这些文件的源代码：
 
-- 主要基准：src/app/article-view/page.tsx（生成口语文章页）
-- 辅助参考：src/app/feedback/page.tsx（反馈卡片页）
+- 主要基准：src/app/feedback/page.tsx（反馈卡片页）
 
 具体要求：
 - 背景色、卡片样式、阴影、边框、按钮必须与基准页面视觉上完全一致
@@ -26,7 +25,7 @@
 
 | Token | 色值 | 使用场景 |
 |---|---|---|
-| `bg-base` | `#F5F2EE` | v2 页面底层背景（设计稿参考值） |
+| `bg-base` | `#FBFAF7` | v2 页面底层背景（设计稿参考值） |
 | `bg-surface` | `#FFFFFF` | 卡片、面板、输入框表面 |
 | `bg-muted` | `#EEEBE6` | 次级区域、分隔填充、骨架屏 |
 | `brand-primary` | `#D4875A` | 主品牌色（暖橙）：主按钮描边、步骤条激活态、强调文字 |
@@ -36,22 +35,50 @@
 | `brand-accent-light` | `#C8DDD9` | 副品牌浅色：辅助背景、AI tag 背景 |
 | `v2-text-primary` | `#2C2420` | 正文主色 |
 | `v2-text-secondary` | `#6B5B52` | 次要文字 |
-| `v2-text-muted` | `#A89990` | 辅助文字、字数统计、时间戳 |
+| `v2-text-muted` | `#7C6B5E` | 辅助文字、字数统计、时间戳（深化达 WCAG AA） |
+| `phrase-warm-bg` | `#F7EBE1` | analysis 词组分组色（暖橙底）；文字/描边复用 `brand-primary-dark` / `brand-primary-light` |
+| `phrase-blue-bg` | `#E9EEF4` | analysis 词组分组色（雾青蓝底） |
+| `phrase-blue-text` | `#4A6178` | analysis 词组分组色（雾青蓝文字） |
+| `phrase-blue-border` | `#CCD8E6` | analysis 词组分组色（雾青蓝描边） |
+| `neutral-line` | `#EEEEEE` | 极浅分隔线 / StepBar 未达连线 |
+| `neutral-border` | `#E5E5E5` | Chip / Tag 描边 |
+| `neutral-track` | `#DDDDDD` | StepBar 未达圆点 / 轨道底 |
+| `neutral-mute` | `#CCCCCC` | 最弱提示 / 占位文字（如「← 跳过」） |
+| `neutral-mid` | `#A0A09A` | 次级说明文字 |
+| `neutral-slate` | `#555555` | 深灰块 |
+| `surface-ink` | `#111111` | TabBar 激活标记等近黑前景 |
+| `surface-inverse` | `#1A1A1A` | Toast / 更新提示深底 |
+| `cream-subtle` | `#FAFAF8` | 表格行 hover / 弹层近白底 |
+| `cream-soft` | `#F8F7F5` | 卡片内嵌暖白 |
+| `cream-deep` | `#F4F2EE` | 记忆卡底 |
+| `warm-line` | `#E5DED7` | 记忆卡叠层 / 进度点空态 |
+| `warm-mute` | `#D8D2CA` | 记忆卡弱文字 |
+| `warm-taupe` | `#C4B5A9` | 暖调次级文字 |
+| `tag-success-bg` | `#EDF6EB` | 强调标签绿底（见 §5 强调标签） |
+| `tag-success-border` | `#C0DDB9` | 强调标签绿描边 |
+| `tag-success-text` | `#3D7A38` | 强调标签绿文字 |
 
 ### v1 备用 Token（仅旧页面维护，新页面禁用）
 
 | Token | 色值 | 说明 |
 |---|---|---|
-| `bg-page` | `#FEFEFE` | 当前全局页面背景（已更新，见下节） |
+| `bg-page` | `#FBFAF7` | 当前全局页面背景（已更新，见下节） |
 | `bg-card` | `#FFFFFF` | 卡片背景 |
 | `bg-inner` | `#F4F4F4` | 内嵌区域 / `.surface` |
 | `text-1` | `#111111` | 主文字 |
 | `text-2` | `#444444` | 次要文字 |
 | `text-3` | `#888888` | 辅助文字 |
 | `text-4` | `#BBBBBB` | 禁用 / 占位文字 |
+
+### 语义状态色（跨版本通用，v2 页面可用）
+
+> success / warning / error 是语义状态色，与 v1/v2 品牌色体系正交，**不在「新页面禁用 v1」范围内**，v2 页面可直接使用（例如练习页临近录音上限提示用 `text-warning`）。
+
+| Token | 色值 | 说明 |
+|---|---|---|
 | `success` | `#5BA08A` | 成功态 |
-| `warning` | `#C4965A` | 警告态 |
-| `error` | `#C47A6A` | 错误态 |
+| `warning` | `#C4965A` | 警告态 / 临近上限提示 |
+| `error` | `#AB5344` | 错误态 |
 
 ### IELTS 分数段色
 
@@ -77,9 +104,9 @@ linear-gradient(135deg,
 ```css
 radial-gradient(
   circle,
-  rgba(240,188,160,0.14) 0%,
-  rgba(168,210,196,0.10) 35%,
-  rgba(188,210,168,0.06) 55%,
+  rgba(240,188,160,0.18) 0%,
+  rgba(168,210,196,0.13) 35%,
+  rgba(188,210,168,0.08) 55%,
   transparent 72%
 )
 filter: blur(60px)
@@ -94,8 +121,8 @@ position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
 
 ### 背景与卡片层次
 
-- **页面背景**：`bg-bg-page`（`#FEFEFE`），永远不用有色背景，禁止内联色值
-- **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`），无阴影
+- **页面背景**：`bg-bg-page`（`#FBFAF7`），永远不用有色背景，禁止内联色值
+- **普通卡片**：白色背景（`bg-white`）+ 0.5px 浅色边框（`border border-black/[0.05]`）+ 轻阴影（`.card` 类含 `box-shadow: 0 2px 12px rgba(0,0,0,0.06)`）
 - **强调卡片**（AI 输出内容）：白色背景 + 1px 渐变边框，使用 `GRADIENT_BORDER_STYLE_FULL` 常量
 
 ### 渐变色使用规范
@@ -129,13 +156,13 @@ position: fixed; top: -160px; width: 400px; height: 400px; z-index: 0
 - **正确样式**：白色背景 + 渐变描边 + 渐变文字（或品牌主色文字）
 - **错误样式**：渐变填充背景（严禁）、纯橙 / 纯绿填充（严禁）
 
-**实现方式**（参考 `src/app/article-view/page.tsx` 中"去练习 →"按钮）：
+**实现方式**（参考 `src/app/feedback/page.tsx` 里的主按钮）：
 
 ```tsx
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 <button
-  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
+  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
   style={GRADIENT_BORDER_STYLE}
 >
   开始匹配题目 →
@@ -149,7 +176,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 圆角 | `rounded-full`（全圆角胶囊） |
 | 内边距 | `px-6 py-3`（宽松版）/ `px-5 py-2.5`（紧凑版） |
 | 字重 | `font-medium` |
-| 文字色 | `text-[#444]`（深灰），如需渐变文字另加 `background-clip: text` |
+| 文字色 | `text-v2-text-secondary`（深灰），如需渐变文字另加 `background-clip: text` |
 | 交互 | `active:scale-[0.97] transition-transform duration-150` |
 
 - **禁止**：自行内联渐变背景替代 `GRADIENT_BORDER_STYLE`，所有页面必须使用同一常量
@@ -159,7 +186,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 元素 | 规范 |
 |---|---|
 | 小标签 / badge | 极浅底色（`brand-accent-light #C8DDD9` 或 `brand-primary-light #F2D5C0`）+ 对应浅边框，文字用对应深色 token |
-| 辅助文字按钮 | `text-v2-text-muted`（`#A89990`），不使用品牌色 |
+| 辅助文字按钮 | `text-v2-text-muted`（`#7C6B5E`），不使用品牌色 |
 | 图标 | 使用 lucide-react outline 风格，`size` 传 px 数值，颜色跟随父元素 |
 
 ### 颜色冲突处理原则
@@ -172,25 +199,25 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ### 全局页面背景
 
-**唯一来源：`bg-bg-page`（Tailwind `bg-page` token，值 `#F5F2EE`）**
+**唯一来源：`bg-bg-page`（Tailwind `bg-page` token，值 `#FBFAF7`）**
 
 | 位置 | 值 | 写法 |
 |---|---|---|
-| `html, body`（globals.css） | `#F5F2EE` | 硬编码（与 token 同步） |
-| Tailwind `bg-page` token | `#F5F2EE` | `bg-bg-page` |
-| `layout.tsx` themeColor | `#F5F2EE` | viewport meta（与 token 同步） |
-| TopBar（`TopBar.tsx`） | `#F5F2EE` | `bg-bg-page` ✓ |
-| TabBar（`TabBar.tsx`） | `#F5F2EE` | `bg-bg-page` ✓ |
-| 各页底部操作栏 | `#F5F2EE` | `bg-bg-page` ✓ |
-| 所有页面外层容器 | `#F5F2EE` | `bg-bg-page` ✓ |
+| `html, body`（globals.css） | `#FBFAF7` | 硬编码（与 token 同步） |
+| Tailwind `bg-page` token | `#FBFAF7` | `bg-bg-page` |
+| `layout.tsx` themeColor | `#FBFAF7` | viewport meta（与 token 同步） |
+| TopBar（`TopBar.tsx`） | `#FBFAF7` | `bg-bg-page` ✓ |
+| TabBar（`TabBar.tsx`） | `#FBFAF7` | `bg-bg-page` ✓ |
+| 各页底部操作栏 | `#FBFAF7` | `bg-bg-page` ✓ |
+| 所有页面外层容器 | `#FBFAF7` | `bg-bg-page` ✓ |
 
 **强制规则：**
 
 1. **新页面一律用 `bg-bg-page`**，顶栏、底栏、Tab 区、页面容器全部相同
 2. **禁止用 `bg-white` / `bg-[#FEFEFE]` / `bg-[#FFFFFF]` 作为页面级或栏级背景**（只有按钮的圆形底色除外）
-3. **卡片用 `bg-surface`（`#FFFFFF`）保持纯白**——比页面底色 `#F5F2EE` 更白，形成刻意的层次感，不算违规
+3. **卡片用 `bg-surface`（`#FFFFFF`）保持纯白**——比页面底色 `#FBFAF7` 更白，形成刻意的层次感，不算违规
 
-> **背景色统一原则**：TopBar/TabBar/底部操作栏是实心背景（`z-index ≥ 20`），实心栏叠加任何手工配制的渐变都配不准光晕浓度，会产生正向或反向色差。根治方案：**内页不用 ambient-light**，全页只用单一底色 `#F5F2EE`，彻底消除交界线。
+> **背景色统一原则**：TopBar/TabBar/底部操作栏是实心背景（`z-index ≥ 20`），实心栏叠加任何手工配制的渐变都配不准光晕浓度，会产生正向或反向色差。根治方案：**内页不用 ambient-light**，全页只用单一底色 `#FBFAF7`，彻底消除交界线。
 
 ### ambient-light 使用范围
 
@@ -201,23 +228,22 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 首页 | `/`（`src/app/page.tsx`） | 页面无固定顶栏，光晕可自然穿透 |
 | 录音页 | `/recording`（`src/app/recording/page.tsx`） | 顶栏为 `relative z-10`，光晕可自然穿透 |
 
-**所有其他页面禁止使用 `ambient-light`**。原因：这些页面使用 `TopBar`（`sticky z-30`）或其他实心顶栏，光晕会被遮挡，手工补偿渐变无法精确对齐，必然产生横向色差带。整页单一底色 `#F5F2EE` 是唯一无副作用的方案。
+**所有其他页面禁止使用 `ambient-light`**。原因：这些页面使用 `TopBar`（`sticky z-30`）或其他实心顶栏，光晕会被遮挡，手工补偿渐变无法精确对齐，必然产生横向色差带。整页单一底色 `#FBFAF7` 是唯一无副作用的方案。
 
 ### 卡片背景
 
-`#FFFFFF`（`bg-surface` / `bg-white`）——纯白，比页面底色 `#F5F2EE` 明显更亮，形成清晰的卡片层次感。
+`#FFFFFF`（`bg-surface` / `bg-white`）——纯白，比页面底色 `#FBFAF7` 明显更亮，形成清晰的卡片层次感。
 
 ### 组件背景
 
 | 组件 | 背景色 | 说明 |
 |---|---|---|
 | `.surface` 内嵌区域 | `#F4F4F4` | 文本输入框、引用内容、代码块 |
-| `.card` 卡片 | `#FFFFFF` | 带 `border-radius: 20px` 和阴影 |
+| `<Card>` 卡片 | `#FFFFFF` | 带 `rounded-[16px]` 和阴影 |
 | Tab 选中态 | `#F4F4F4` | Tab 切换器激活背景 |
 | 搜索框、统计卡 | `#FFFFFF` | 带细边框 |
 | 用户原句 / AI 优化句区域 | `#F8F7F5` | feedback 页内嵌内容块 |
 | AI 标签背景 | `#EEF7F3` | feedback 页"AI 优化"标签 |
-| 按钮禁用态 | `#EEEEEE` | 不可点击时 |
 | TopBar 返回按钮 | `#FFFFFF` | 圆形 w-30px，shadow-sm |
 
 ---
@@ -256,7 +282,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 | 场景 | 值 |
 |---|---|
-| 标准页面横向内边距 | `px-5`（20px）或 `px-6`（24px） |
+| 标准页面横向内边距 | `px-5`（20）或 `px-6`（24） |
 | 首页内容区 | `px-7`（28px） |
 | 录音底部控制区 | `px-8`（32px） |
 | TopBar 高度 | `h-[52px]` |
@@ -279,7 +305,7 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 | 用途 | 值 |
 |---|---|
 | 主按钮 / 胶囊 / 标签 | `rounded-full`（9999px） |
-| 卡片（`.card`） | `rounded-[20px]` |
+| 卡片（`<Card>`） | `rounded-[16px]` |
 | 小卡片 / 搜索框 | `rounded-[12px]` |
 | 统计卡内层 / Tab 按钮 | `rounded-[14px]` / `rounded-[10px]` |
 | `.surface` 内嵌区域 | `rounded-[14px]` |
@@ -292,31 +318,27 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ## 5. 组件规范
 
-### 主按钮
+### 主按钮 / 渐变 CTA — `<GradientButton>`
 
-所有页面的唯一主操作（继续、确认、开始、完成）统一使用以下样式，不得例外。
+所有页面的主操作（继续、确认、开始、完成、回首页、重试等）统一用 `<GradientButton>`，不得手写。
 
 ```tsx
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import GradientButton from '@/components/GradientButton'
 
-<button
-  className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-[#444] active:scale-[0.97] transition-transform duration-150"
-  style={GRADIENT_BORDER_STYLE}
->
+<GradientButton onClick={...} className="px-6 py-3 rounded-full text-[14px] font-medium">
   按钮文字
-</button>
+</GradientButton>
 ```
 
+组件已内置：渐变描边（`GRADIENT_BORDER_STYLE`）+ 白底 + 文字色 `text-v2-text-secondary` + `active:scale-[0.97]` + `transition` + `disabled:opacity-50`。尺寸 / 形状 / 宽度 / 字号由 `className` 决定。
+
 ```
-形状：rounded-full（9999px 全圆角）
-边框：1.5px 渐变描边，由 GRADIENT_BORDER_STYLE 常量提供
-背景：white padding-box（内部纯白，由常量提供）
-文字：14px / font-medium / text-[#444]
-内边距：px-6 py-3（宽松）/ px-5 py-2.5（紧凑，如底栏内联按钮）
-交互：active:scale-[0.97]，transition-transform duration-150
+形状：默认 rounded-full；error 页等可用 rounded-[12/14px] 圆角矩形
+文字：text-v2-text-secondary（禁止再写 text-v2-text-secondary）
+内边距：px-6 py-3（宽松）/ px-5 py-2（紧凑）
 ```
 
-> `.btn-gradient` CSS class（globals.css）与 `GRADIENT_BORDER_STYLE` 实现原理相同，二者均可用，新页面优先用常量方式，便于 TypeScript 类型推断。见「核心视觉原则 → 主按钮规范」。
+> 例外（不归 GradientButton，各自保留专用样式）：practice 录音条（专用输入组件）、login 验证码按钮（禁用时整体变灰，是另一套）。
 
 ### 录音圆形按钮 `.btn-gradient-circle`
 
@@ -341,37 +363,30 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 ### 禁用态按钮
 
-```
-背景：#EEEEEE
-文字：#CCCCCC
-cursor-not-allowed
-```
+统一 `disabled:opacity-50` + `cursor-not-allowed`（保留按钮原样式，整体降到 50% 透明度，不改灰底）。
 
 ### 文字按钮（无边框）
 
 ```
-text-[13px] text-[#AAAAAA]
+text-[13px] text-v2-text-muted
 无背景、无边框
 用于：「或用文字输入」「← 改用录音」等低优先级入口
 ```
 
-### 卡片 `.card`
+### 卡片 — `<Card>`
 
-**普通卡片（信息展示）：**
-```css
-background: #FFFFFF
-border-radius: 20px
-border: 1px solid rgba(0,0,0,0.05)   /* 0.5px 视觉等效 */
-box-shadow: none                       /* 普通卡片不加阴影 */
+统一用 `<Card>`，不得手写卡片样式。
+
+```tsx
+import Card from '@/components/Card'
+
+<Card className="px-4 py-4">…</Card>                         {/* 普通卡 plain */}
+<Card variant="gradient" className="px-5 pt-4 pb-5">…</Card>  {/* 强调卡 gradient（AI 输出） */}
 ```
 
-**强调卡片（AI 输出内容）：**
-```css
-/* 使用 GRADIENT_BORDER_STYLE_FULL 常量，外层渐变 + 内层白底 */
-border-radius: 20px
-```
-
-使用 `GRADIENT_BORDER_STYLE_FULL` 常量（`src/lib/constants.ts`），padding-box + 渐变 border-box，border-radius: 20px。见「核心视觉原则 → 渐变边框标准实现」。
+**普通卡（plain，默认）：** `bg-white` + `rounded-[16px]` + `border border-black/[0.05]`（0.5px 视觉等效）+ `shadow-[0_2px_12px_rgba(0,0,0,0.06)]`
+**强调卡（gradient）：** `GRADIENT_BORDER_STYLE_FULL` 渐变描边 + 白底 + `rounded-[16px]` + 同款阴影
+内边距由 `className` 决定。
 
 ### 内嵌表面 `.surface`
 
@@ -382,12 +397,15 @@ border-radius: 14px
 
 用于：实时转写预览、文本引用块、可编辑区域。
 
-### Tag / Chip 尺寸规范（全局强制）
+### Tag / Chip 规范（全局强制）
 
-| 类型 | 用途 | padding | 字号 | 字重 | 圆角 |
-|---|---|---|---|---|---|
-| 信息标签 Tag | 当季热题、语料梳理、AI 优化、Part 标签 | `px-[10px] py-[4px]` | `text-[11px]` | `font-medium` | `rounded-full` |
-| 交互按钮 Chip | 全部/Part筛选、编辑/完成、练习 | `px-[14px] py-[5px]` | `text-[12px]` | `font-medium` | `rounded-full` |
+| 组件 | 性质 | 变体 | 默认尺寸 | 圆角 |
+|---|---|---|---|---|
+| `<Tag>` | 展示型（不可点） | `green`（默认）/ `gradient` / `gray` | `text-[11px]` `px-[10px] py-[5px]` `font-medium` | `rounded-full` |
+| `<Chip>` | 交互型（可点） | `gradient`（默认）/ `ghost` / `default` | `md`：`text-[12px]` `px-[14px] py-[5px]`；`sm`：`text-[11px]` `px-[10px] py-[3px]` | `rounded-full` |
+
+- `<Tag>`：展示标签（当季热题、语料梳理、Part 等），不带交互。
+- `<Chip>`：可点胶囊（筛选、切换、练习/分析等小动作）。`ghost + active` 自动切为渐变样式（用于筛选/切换）；`size="sm"` 用于紧凑动作 chip。
 
 实现：使用 `src/components/Tag.tsx` 和 `src/components/Chip.tsx`，禁止页面内直接手写同类样式。
 
@@ -398,19 +416,21 @@ border-radius: 14px
 
 | 属性 | 值 | 说明 |
 |---|---|---|
-| 背景 | `bg-[#EDF6EB]` | 无对应 token，使用该色值 |
-| 边框 | `border border-[#C0DDB9]`（0.5px 视觉等效） | 无对应 token，使用该色值 |
-| 文字 | `text-[#3D7A38]` | 无对应 token，使用该色值 |
+| 背景 | `bg-tag-success-bg` | token `#EDF6EB` |
+| 边框 | `border border-tag-success-border`（0.5px 视觉等效） | token `#C0DDB9` |
+| 文字 | `text-tag-success-text` | token `#3D7A38` |
 | 圆角 | `rounded-full` | — |
 | 字号 | `text-[11px]` | — |
 | 字重 | `font-medium` | — |
 
-若有对应项目 token 则优先使用 token，没有则使用以上色值。
+统一使用 `tag-success-*` token（原「无对应 token，直接用色值」已提为正式 token，色值不变）。
 此规范适用于所有页面，新页面开发时必须遵守。
+
+> 例外：analysis 页「可用词组」chip 按分组循环使用 暖橙 / 标准绿 / 雾青蓝 三色（见 `PHRASE_CHIP_STYLES` 与 `phrase-*` token），这是唯一允许的多色场景——它编码「词组分组」而非「强调」。其余强调标签仍只能用绿。
 
 ### StepBar 步骤条
 
-流程步骤：`story → article → topic → practice → feedback`
+流程步骤：`story → restructure → matching → analysis → practice`
 
 | 状态 | 圆点样式 | 文字样式 | 连线 |
 |---|---|---|---|
@@ -423,16 +443,16 @@ border-radius: 14px
 ### TabBar 底部导航
 
 ```
-背景：bg-[#FEFEFE]（硬编码，与页面背景一致）
+背景：bg-bg-page（#FBFAF7）
 高度：56px + env(safe-area-inset-bottom)
 边框：border-t border-black/[0.06]
 位置：fixed bottom-0，max-w-[430px]，居中
-图标：20px，激活 text-[#111]，未激活 text-[#BBBBBB]
+图标：size={20}，激活 text-[#111]，未激活 text-[#BBBBBB]
 文字：10px / 500，激活 #111，未激活 #BBBBBB
 激活指示器：3×3px 圆点 bg-[#111]
 ```
 
-Tab：首页（/）、素材库（/library）、我的（/profile）
+Tab：首页（/）、题库（/question-bank）、素材库（/library）、我的（/profile）
 
 显示原则：用户正在产出内容时（录音中 /recording、练习对话 /practice）不显示 TabBar，其余所有页面均显示。
 
@@ -489,7 +509,10 @@ orb-pulse：  scale(1.00→1.07)，2.2s ease-in-out infinite
 波形（录音激活）：wave-a1~a5，500ms，交错 0/80/160ms
 底栏滑入：sheet-enter，250ms，cubic-bezier(0.32,0.72,0,1)
 Accordion：accordionDown，200ms ease-out
-按钮点击：active:scale-[0.97]，transition-transform duration-150
+按钮点击（按元素大小分 3 档）：
+  - 普通按钮：active:scale-[0.97]，transition-transform duration-150
+  - 圆形主按钮（.btn-gradient-circle）：scale(0.93)（由 class 提供）
+  - 大卡片 / 列表行：active:scale-[0.99]（大元素轻按）
 ```
 
 ---
@@ -512,7 +535,7 @@ Accordion：accordionDown，200ms ease-out
 
 ### 背景色
 
-- 页面背景：`bg-bg-page`（当前 `#FEFEFE`）
+- 页面背景：`bg-bg-page`（当前 `#FBFAF7`）
 - 禁止直接写 `bg-white` 作为页面底色
 - 卡片保持 `bg-white`，形成层次感
 
@@ -526,6 +549,10 @@ Accordion：accordionDown，200ms ease-out
 
 | 需求 | 组件 |
 |---|---|
+| 卡片（普通 / 强调） | `<Card variant="plain\|gradient">` |
+| 展示标签 | `<Tag variant="green\|gradient\|gray">` |
+| 可点胶囊（筛选 / 切换 / 小动作） | `<Chip variant="gradient\|ghost\|default" size="md\|sm">` |
+| 主操作 / 渐变 CTA 按钮 | `<GradientButton>` |
 | 顶部返回 / 标题栏 | `<TopBar />` |
 | 底部主导航 | `<TabBar />`（除 /recording、/practice 外的所有页面） |
 | 流程进度 | `<StepBar currentStep="..." />` |
@@ -535,14 +562,20 @@ Accordion：accordionDown，200ms ease-out
 ### 禁止事项
 
 - 禁止内联色值（`style={{ color: '#xxx' }}`）替代 Tailwind token，颜色语义不可追踪
-- 禁止新页面使用 v1 色板（`bg-page`, `text-1~4`, `bg-card`, `bg-inner`）
+- 禁止新页面使用 v1 色板（`text-1~4`, `bg-card`, `bg-inner`）——`bg-page` 例外，见「背景色规范」，它是全站唯一标准背景来源
 - 禁止 `bg-white` 作为页面级背景（只用于卡片）
 - 禁止使用 Inter、Roboto、Arial 等通用字体
 - 禁止自定义渐变色值偏离上方渐变参数（破坏视觉一致性）
 - 禁止将渐变用于卡片背景、页面背景或大面积色块（见「核心视觉原则」）
 - 禁止因 prompt 指定了不同色值而新增 token，冲突时一律用项目原有 token
 - 禁止单文件超过 1000 行（参见 ENGINEERING.md §1）
+- 禁止页面内手写卡片 / 标签 / 胶囊 / 渐变 CTA 按钮样式，必须用 `<Card>` / `<Tag>` / `<Chip>` / `<GradientButton>`（防止再次漂移）
 
 ---
 
-*最后更新：2026-05-30（统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页）*
+*2026-07-09：文档页面底色由 `#F8F5F1` 同步为实际代码值 `#FBFAF7`（globals.css / layout.tsx / tailwind `bg-page`·`bg-base` 均为 `#FBFAF7`）；上方 06-16 历史记录保留不改。*
+*2026-06-17：卡片/标签/胶囊/渐变 CTA 统一为 `<Card>`/`<Tag>`/`<Chip>`/`<GradientButton>` 四组件并列为必用；卡片圆角全站统一为 16（删旧 .card 死样式）；示例 v1 色 #444/#AAAAAA 改 v2*
+*2026-06-16：禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则*
+*2026-06-16：analysis 词组分组色改为 暖橙/绿/雾青蓝并提为 `phrase-*` token；强调标签规范追加「分组色」例外*
+*2026-06-16：统一页面背景为 `#F8F5F1`；主基准页引用修正为 `feedback/page.tsx`*
+*2026-05-30：统一 TabBar 显示逻辑；Tab 改为首页/素材库/我的，移除练习；新增 /profile 占位页*

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>三层筛选视觉方案 v2 · 放弃漏斗隐喻(仅供选择参考)</title>
+<style>
+  :root{
+    --bg-base: #F8F5F1;
+    --bg-surface: #FFFFFF;
+    --bg-muted: #EEEBE6;
+    --brand-primary: #D4875A;
+    --brand-primary-light: #F2D5C0;
+    --brand-primary-dark: #B5663A;
+    --brand-accent: #7BA699;
+    --brand-accent-light: #C8DDD9;
+    --text-primary: #2C2420;
+    --text-secondary: #6B5B52;
+    --text-muted: #A89990;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0; background: var(--bg-base); color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 56px 24px;
+  }
+  .page-head{ text-align:center; max-width:680px; margin:0 auto 56px; }
+  .page-head h1{ font-size:26px; font-weight:700; margin:0 0 10px; }
+  .page-head p{ font-size:14px; color: var(--text-secondary); line-height:1.7; margin:0; }
+
+  .options-grid{
+    max-width: 1240px; margin: 0 auto;
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:24px;
+  }
+  .option-card{
+    background: var(--bg-surface); border:1px solid rgba(0,0,0,0.05); border-radius:16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding:28px 24px;
+  }
+  .option-label{
+    display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700;
+    color: var(--brand-primary-dark); background: var(--brand-primary-light);
+    padding:4px 12px; border-radius:999px; margin-bottom:16px;
+  }
+  .option-card h2{ font-size:15.5px; font-weight:600; margin:0 0 6px; }
+  .option-card .why{ font-size:12px; color: var(--text-muted); line-height:1.65; margin:0 0 26px; min-height:64px; }
+
+  /* ============ 方案 E：Orb 缩影式（复用品牌自己的柔光球语言，不是通用漏斗图标） ============ */
+  .e-wrap{ display:flex; flex-direction:column; align-items:center; gap:22px; }
+  .e-row{ display:flex; align-items:center; gap:16px; }
+  .e-orb{ border-radius:50%; filter: blur(10px); flex-shrink:0; }
+  .e-orb.o1{ width:64px; height:64px; background: radial-gradient(circle at 35% 30%, rgba(145,200,122,0.85), rgba(112,182,176,0.85) 55%, rgba(248,168,118,0.85) 100%); }
+  .e-orb.o2{ width:48px; height:48px; background: radial-gradient(circle at 35% 30%, rgba(112,182,176,0.85), rgba(248,168,118,0.85) 100%); }
+  .e-orb.o3{ width:34px; height:34px; background: radial-gradient(circle at 35% 30%, rgba(212,135,90,0.9), rgba(181,102,58,0.9) 100%); }
+  .e-text{ display:flex; flex-direction:column; gap:4px; }
+  .e-text b{ font-size:13px; font-weight:600; }
+  .e-text span{ font-size:11.5px; color: var(--text-muted); }
+  .e-line{ width:1.5px; height:14px; background: var(--bg-muted); margin-left:32px; align-self:flex-start; }
+
+  /* ============ 方案 F：结果计数收窄（用数字自己说话，不需要图形隐喻） ============ */
+  .f-wrap{ display:flex; flex-direction:column; gap:0; }
+  .f-row{ display:flex; align-items:baseline; gap:14px; padding:16px 0; }
+  .f-row + .f-row{ border-top:1px solid rgba(0,0,0,0.06); }
+  .f-num{ font-size:28px; font-weight:700; font-variant-numeric: tabular-nums; flex-shrink:0; width:64px; }
+  .f-row.r1 .f-num{ color: var(--brand-primary); }
+  .f-row.r2 .f-num{ color: var(--brand-accent); }
+  .f-row.r3 .f-num{ color: var(--brand-primary-dark); }
+  .f-text b{ display:block; font-size:13px; font-weight:600; }
+  .f-text span{ font-size:11.5px; color: var(--text-muted); }
+
+  /* ============ 方案 G：卡片 + 箭头（彻底放弃"收窄造型"，回归最朴素的横向流程） ============ */
+  .g-wrap{ display:flex; flex-direction:column; gap:12px; }
+  .g-step{ display:flex; align-items:center; gap:14px; }
+  .g-card{ flex:1; background: var(--bg-muted); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:12px; }
+  .g-icon{ width:32px;height:32px;border-radius:999px; display:flex;align-items:center;justify-content:center; color:#fff; font-size:12px; font-weight:700; flex-shrink:0; }
+  .g-step.g1 .g-icon{ background: var(--brand-primary); }
+  .g-step.g2 .g-icon{ background: var(--brand-accent); }
+  .g-step.g3 .g-icon{ background: var(--brand-primary-dark); }
+  .g-card b{ display:block; font-size:12.5px; font-weight:600; }
+  .g-card span{ font-size:11px; color: var(--text-muted); }
+  .g-arrow{ display:flex; justify-content:center; color: var(--text-muted); }
+
+  .footer-note{ max-width:680px; margin:48px auto 0; text-align:center; font-size:12px; color: var(--text-muted); line-height:1.7; }
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <h1>三层筛选视觉方案 v2 · 放弃"漏斗"隐喻</h1>
+    <p>市场上常见的漏斗信息图大多是财务报表/销售转化率图表的画风，搬到产品首页容易显得像 PPT。这版换了三个完全不同的隐喻，都不再尝试画出"漏斗形状"。</p>
+  </div>
+
+  <div class="options-grid">
+
+    <!-- 方案 E -->
+    <div class="option-card">
+      <div class="option-label">方案 E</div>
+      <h2>Orb 缩影式</h2>
+      <p class="why">复用你们品牌自己的柔光球视觉语言（和 Hero 区域的 Orb 是同一套元素），球体逐层缩小代表"越筛越精准"，不是随便找的通用图标，专属感最强。</p>
+      <div class="e-wrap">
+        <div class="e-row">
+          <div class="e-orb o1"></div>
+          <div class="e-text"><b>先看核心</b><span>直接匹配</span></div>
+        </div>
+        <div class="e-line"></div>
+        <div class="e-row">
+          <div class="e-orb o2"></div>
+          <div class="e-text"><b>换个角度</b><span>二次匹配</span></div>
+        </div>
+        <div class="e-line"></div>
+        <div class="e-row">
+          <div class="e-orb o3"></div>
+          <div class="e-text"><b>如实告知</b><span>诚实收尾</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案 F -->
+    <div class="option-card">
+      <div class="option-label">方案 F</div>
+      <h2>结果计数收窄</h2>
+      <p class="why">不用任何图形隐喻，直接用数字递减表达"筛选越来越精准"——这是很多现代产品官网证明"我们很智能"的常见手法，干净、有说服力，也最不容易显丑。</p>
+      <div class="f-wrap">
+        <div class="f-row r1">
+          <div class="f-num">128</div>
+          <div class="f-text"><b>先看核心</b><span>题库里所有可能相关的题</span></div>
+        </div>
+        <div class="f-row r2">
+          <div class="f-num">12</div>
+          <div class="f-text"><b>换个角度</b><span>换故事角度后仍然贴合的题</span></div>
+        </div>
+        <div class="f-row r3">
+          <div class="f-num">1</div>
+          <div class="f-text"><b>最终推荐</b><span>贴合度最高、直接可用的题</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案 G -->
+    <div class="option-card">
+      <div class="option-label">方案 G</div>
+      <h2>卡片 + 箭头</h2>
+      <p class="why">彻底放弃"收窄造型"，回到最朴素的三步流程卡片+箭头连接，足够克制、不会显丑，代价是"层层筛选"的意味没有那么直观，更偏"步骤说明"而非"筛选过程"。</p>
+      <div class="g-wrap">
+        <div class="g-step g1">
+          <div class="g-card"><div class="g-icon">1</div><div><b>先看核心</b><span>直接匹配</span></div></div>
+        </div>
+        <div class="g-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+        <div class="g-step g2">
+          <div class="g-card"><div class="g-icon">2</div><div><b>换个角度</b><span>二次匹配</span></div></div>
+        </div>
+        <div class="g-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+        <div class="g-step g3">
+          <div class="g-card"><div class="g-icon">3</div><div><b>如实告知</b><span>诚实收尾</span></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer-note">如果这三个都还是不对味，告诉我具体是哪里别扭(太花哨/太单调/隐喻看不懂/颜色太跳)，我可以更针对性地调整，而不是继续大范围换方向。</p>
+
+</body>
+</html>

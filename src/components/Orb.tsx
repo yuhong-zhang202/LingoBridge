@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface OrbProps {
@@ -54,25 +54,43 @@ const PARTICLES = [
   { angle: 349.1, dist: 0.863, r: 2.0,  color: '#EDF2D4' },
 ]
 
-// Stable per-particle random animation params — computed once at module load
-const PARTICLE_ANIM = PARTICLES.map(() => ({
-  vx:      (Math.random() - 0.5) * 0.3,
-  vy:      (Math.random() - 0.5) * 0.3,
-  opMin:   0.3 + Math.random() * 0.1,
-  opMax:   0.6 + Math.random() * 0.1,
-  opFreq:  0.2 + Math.random() * 0.3,
-  opPhase: Math.random() * Math.PI * 2,
+// Deterministic pseudo-random seeded by index — identical on SSR and CSR
+function drand(seed: number): number {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+// Stable per-particle animation params — deterministic so server/client renders agree
+const PARTICLE_ANIM = PARTICLES.map((_, i) => ({
+  vx:      (drand(i * 7 + 1) - 0.5) * 0.3,
+  vy:      (drand(i * 7 + 2) - 0.5) * 0.3,
+  opMin:   0.3 + drand(i * 7 + 3) * 0.1,
+  opMax:   0.6 + drand(i * 7 + 4) * 0.1,
+  opFreq:  0.2 + drand(i * 7 + 5) * 0.3,
+  opPhase: drand(i * 7 + 6) * Math.PI * 2,
 }))
 
 // Orb core breathe frequency
 const CORE_FREQ = 0.95
 
-export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
+// 4 个核心光球：base 为固定基准尺寸（px，未乘 s，取原 audioLevel=0 时尺寸）；tx/ty 为中心偏移（px，未乘 s）；
+// c0/c1 为原 radial-gradient 的实色与透明色停（颜色保持不变）。
+// 音量胀缩改用 transform: scale —— scale = 1 + audioLevel * 18 / base，与原 width = base + audioLevel*18 等价。
+const CORE_ORBS = [
+  { base: 175, tx: -28, ty: -28, c0: 'rgba(145,200,122,0.95)', c1: 'rgba(145,200,122,0)' }, // 绿色 左上
+  { base: 155, tx:  25, ty:  -5, c0: 'rgba(112,182,176,0.95)', c1: 'rgba(112,182,176,0)' }, // 蓝青 右侧
+  { base: 165, tx:  -5, ty:  33, c0: 'rgba(248,168,118,0.95)', c1: 'rgba(248,168,118,0)' }, // 橙色 下方
+  { base: 130, tx: -31, ty:   5, c0: 'rgba(210,226,168,0.80)', c1: 'rgba(210,226,168,0)' }, // 黄绿 左侧
+]
+
+function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
   const s  = size / 300
   const cx = size / 2
 
+  const rootRef      = useRef<HTMLDivElement | null>(null)
   const particleRefs = useRef<(HTMLDivElement | null)[]>([])
   const orbCoreRef   = useRef<HTMLDivElement | null>(null)
+  const coreRefs     = useRef<(HTMLDivElement | null)[]>([])
   const audioRef     = useRef(audioLevel)
 
   // Keep audioRef current without triggering re-renders
@@ -83,7 +101,8 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
     const _s  = size / 300
     const _cx = size / 2
     const t0  = performance.now()
-    let raf: number
+    let raf = 0
+    let running = false
 
     const state = PARTICLES.map((p, i) => {
       const rad = (p.angle - 90) * Math.PI / 180
@@ -111,6 +130,14 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
       if (orbCoreRef.current) {
         orbCoreRef.current.style.transform = `scale(${breathe})`
       }
+
+      // 核心光球：固定尺寸，音量胀缩走 transform: scale（合成层，不触发 layout/重绘）
+      // transform 同时携带静态定位 translate；scale 只随 audioLevel 变，稳定时不触发过渡。
+      CORE_ORBS.forEach((o, i) => {
+        const el = coreRefs.current[i]
+        if (!el) return
+        el.style.transform = `translate(calc(-50% + ${o.tx * _s}px), calc(-50% + ${o.ty * _s}px)) scale(${1 + al * 18 / o.base})`
+      })
 
       const LEASH = 18 * _s
 
@@ -145,12 +172,27 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
       raf = requestAnimationFrame(tick)
     }
 
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    // 首页流程页用 lg:hidden / hidden lg:block 双挂载 Orb：rAF 不因祖先 display:none 停止，
+    // 被隐藏（或滚出视口）的那套仍满帧空转，白耗 CPU/电量（移动端最吃亏）。故加一层可见性开关。
+    const start = (): void => { if (!running) { running = true; raf = requestAnimationFrame(tick) } }
+    const stop  = (): void => { if (running) { running = false; cancelAnimationFrame(raf) } }
+
+    // 只在客户端 useEffect 内创建 IntersectionObserver，SSR 安全。
+    // 不可见（含祖先 display:none 与滚出视口）→ 停循环；恢复可见 → 重启（呼吸相位基于 now - t0，
+    // 相位随真实时间推进，重启时相位跳变视觉无感，无需重置 t0，粒子位置 state 也一并保留）。
+    const el = rootRef.current
+    const io = el && typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((entries) => { if (entries[0]?.isIntersecting) start(); else stop() }, { threshold: 0 })
+      : null
+    if (io && el) io.observe(el)
+    else start()   // 无 IO 的极旧环境兜底：直接跑
+
+    return () => { stop(); io?.disconnect() }
   }, [size])
 
   return (
     <div
+      ref={rootRef}
       className={cn('relative flex-shrink-0', className)}
       style={{ width: size, height: size }}
     >
@@ -159,49 +201,24 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
         ref={orbCoreRef}
         style={{ position: 'absolute', inset: 0, transformOrigin: 'center' }}
       >
-        {/* 绿色 左上 */}
-        <div className="absolute rounded-full" style={{
-          width:  (175 + audioLevel * 18) * s,
-          height: (175 + audioLevel * 18) * s,
-          left: '50%', top: '50%',
-          transform: `translate(calc(-50% - ${28 * s}px), calc(-50% - ${28 * s}px))`,
-          background: 'radial-gradient(circle, rgba(145,200,122,0.95) 0%, rgba(145,200,122,0) 70%)',
-          filter: `blur(${28 * s}px)`,
-          transition: 'width 0.08s ease, height 0.08s ease',
-        }} />
-
-        {/* 蓝青 右侧 */}
-        <div className="absolute rounded-full" style={{
-          width:  (155 + audioLevel * 18) * s,
-          height: (155 + audioLevel * 18) * s,
-          left: '50%', top: '50%',
-          transform: `translate(calc(-50% + ${25 * s}px), calc(-50% - ${5 * s}px))`,
-          background: 'radial-gradient(circle, rgba(112,182,176,0.95) 0%, rgba(112,182,176,0) 70%)',
-          filter: `blur(${28 * s}px)`,
-          transition: 'width 0.08s ease, height 0.08s ease',
-        }} />
-
-        {/* 橙色 下方 */}
-        <div className="absolute rounded-full" style={{
-          width:  (165 + audioLevel * 18) * s,
-          height: (165 + audioLevel * 18) * s,
-          left: '50%', top: '50%',
-          transform: `translate(calc(-50% - ${5 * s}px), calc(-50% + ${33 * s}px))`,
-          background: 'radial-gradient(circle, rgba(248,168,118,0.95) 0%, rgba(248,168,118,0) 70%)',
-          filter: `blur(${28 * s}px)`,
-          transition: 'width 0.08s ease, height 0.08s ease',
-        }} />
-
-        {/* 黄绿 左侧 */}
-        <div className="absolute rounded-full" style={{
-          width:  (130 + audioLevel * 18) * s,
-          height: (130 + audioLevel * 18) * s,
-          left: '50%', top: '50%',
-          transform: `translate(calc(-50% - ${31 * s}px), calc(-50% + ${5 * s}px))`,
-          background: 'radial-gradient(circle, rgba(210,226,168,0.80) 0%, rgba(210,226,168,0) 70%)',
-          filter: `blur(${28 * s}px)`,
-          transition: 'width 0.08s ease, height 0.08s ease',
-        }} />
+        {CORE_ORBS.map((o, i) => (
+          <div
+            key={i}
+            ref={el => { coreRefs.current[i] = el }}
+            className="absolute rounded-full"
+            style={{
+              width:  o.base * s,
+              height: o.base * s,
+              left: '50%', top: '50%',
+              // 静态定位 translate + 初始 scale(1)；rAF 会按 audioLevel 覆写 scale
+              transform: `translate(calc(-50% + ${o.tx * s}px), calc(-50% + ${o.ty * s}px)) scale(1)`,
+              background: `radial-gradient(circle, ${o.c0} 0%, ${o.c1} 70%)`,
+              filter: `blur(${28 * s}px)`,
+              transition: 'transform 0.08s ease',
+              willChange: 'transform',
+            }}
+          />
+        ))}
       </div>
 
       {/* 粒子层 — 初始位置由 rAF 第一帧覆盖 */}
@@ -233,3 +250,5 @@ export default function Orb({ size = 200, audioLevel = 0, className }: OrbProps)
     </div>
   )
 }
+
+export default memo(Orb)

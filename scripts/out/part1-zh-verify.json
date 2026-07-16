@@ -1,0 +1,1122 @@
+[
+  {
+    "id": "00c2303f-e7b5-4d71-8ec0-3b4a6f324648",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "0186bba0-ee28-4f24-b59b-fd3e150966ab",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "036065b6-a896-4771-89bd-d83b29f97c18",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "039cf313-4242-4e76-9fe7-34c0e193f1a1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "04339049-895b-4e7e-a5da-374e19ce770d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+    "verdict": "suspect",
+    "issue": "英文原句语法错误（应为 'Have you had an experience...' 或 'Did you have an experience...'），但翻译未反映该问题；更严重的是，'your teacher thought you did a good job' 强调老师当时的主观判断，中文'老师认为你表现很好'虽可接受，但'表现很好'属泛化表达，漏译了'did a good job'所隐含的具体任务完成语境，且未体现过去时态的完成性，存在语义弱化"
+  },
+  {
+    "id": "0ae5651c-af65-4f18-ada6-b232e3e9e875",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "0f0aa3ab-e7e6-45a9-b55a-517225820107",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1122fa1a-3ad8-42bb-b3cd-f1f14d8bf018",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "11a1aa4e-99e7-42ca-a49f-712fd684a784",
+    "verdict": "suspect",
+    "issue": "英文问的是'通常在鞋子上花多少钱'（spend on shoes），强调消费金额；中文'买鞋花多少钱'将'spend on shoes'窄化为'购买行为'，漏译了可能包含维修、定制、配件等其他与鞋子相关的支出，语义范围缩小"
+  },
+  {
+    "id": "11fc6210-a6b9-4dc3-9c03-62528b2880f2",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "13431717-ceda-4fc9-a57b-2fec50c17749",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "13cd244b-2c46-4566-a983-36df1541da74",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "149c6982-c2ea-49de-87f2-fa837b4b4935",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "14da49c2-5ee3-4191-b637-09c31d20c2cd",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "172cfe24-0030-4736-9b48-0b063685da4e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "17d4b1f6-43a4-4354-967a-7d91980aee63",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "182c4da8-eb42-4a6d-a492-2dde105a0804",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1999f6d4-fefa-4c71-8bd0-16ede601e3dc",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1a2e321e-4b79-495e-aeab-bb97f8246757",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1c2b88bd-3a4b-4466-afc1-a42fb15d45c4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1d9517c0-6e84-4427-b57a-4ffe47f49510",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "1efff4b8-2a7c-4c29-8031-c72296676281",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2132a0c8-cffe-4843-9a2a-053fc53e9b9f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "21349af4-582e-4c9c-bf3a-80b776358b65",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2ab5a987-39f8-47ee-8e3c-99f76a627710",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2ad86a68-cbfd-4d41-ad87-b0e741bc8ae5",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2f62f2b6-1d3d-4f3d-9dd8-28eec1081e9e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2fa44100-bc2c-4412-9890-42e780c00ab7",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "2fa96298-f9ac-49d4-b195-e4c6bd587009",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "31f14cbb-2717-4923-8319-3b022b173b91",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "31fc04c4-d9e4-46e3-8dcf-826774c33eda",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "332f5057-e4e4-4243-a9ba-6fc9fc031451",
+    "verdict": "suspect",
+    "issue": "漏译时间状语‘since you were a child’的关键限定，‘自从小时候’语义不完整，应为‘你小时候以来’或‘自小以来’；且‘最喜欢的吃的’口语化、不准确，应为‘最喜欢的食物’"
+  },
+  {
+    "id": "3389a076-56b6-4940-b0af-05eb384e0e14",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "342820e2-5cf4-4ed5-af38-060cd60115e3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "34c0945d-edd8-4521-8210-c238ac9aab8f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "363178cc-22c7-4f72-8764-ed6debd48f01",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "37e42eec-12c3-4e0c-92b8-a8b2fc9635e0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "392ad649-421f-4645-ab1a-01825d0acb86",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "398665c6-fa82-46cf-a0ee-0e19e09802e5",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "3c972670-5a2c-40ad-b410-e381e321f7bb",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "3e122641-774d-41b6-94e0-ac5c5be637b7",
+    "verdict": "suspect",
+    "issue": "英文为'next ve years'，明显是'five years'的拼写错误，应译为'未来五年'而非've years'；但new_zh正确译作'未来五年'，属合理纠错，且题目意图明确，符合雅思口语题常见笔误处理惯例，故判ok"
+  },
+  {
+    "id": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "3fe126e0-a754-4412-a509-9dde775a1935",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4007b2ab-d00b-4525-bf09-450fd5a6d873",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "41834516-2334-4a8f-82bf-bbb309af4f94",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "427dde83-22e9-4531-91eb-73ec596318b1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "429f63b1-c439-4540-aa9e-0275b104c6c3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "43f61bc6-f0b2-4e1a-aa03-1619f6d223ad",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "44296097-0713-4219-af6e-47e534d9bcc3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4641b5e0-0079-40bb-9c8b-9797d8bd0391",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "46da02e8-a681-44cd-9113-f4845bc23f0f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "46db6c79-bc2a-4493-94e5-3b81835a5540",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4711c3ca-5833-4986-a83e-4f31c508087e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4954b617-8398-4128-8236-9bf20c70e1c4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "49efe71e-d5c5-4135-8674-7339a8e465d7",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4a835219-37c2-4683-869c-44538491e0f3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4c7ad1dd-cb44-4295-9c47-7e8784c51887",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4dac8c1e-1a7e-42c9-966e-c6a17dfa82c6",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4e2ac5a6-9881-4545-aeb2-e1f2230a3523",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "4f43b992-973b-4c91-8242-f21396bd7c5b",
+    "verdict": "suspect",
+    "issue": "英文问'上一次身处拥挤场所的时间'，中文'去人多的地方'偷换了场景——'身处'不等于'去'，可能被动在场（如被挤在地铁里），'去'暗示主动前往动作"
+  },
+  {
+    "id": "52426e9c-d286-4f0f-8723-af921bf1ee22",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "52a43c4d-8c77-4755-8002-5f4eba80535f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "52ac9f88-a77f-4398-8308-203067a42a5c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "52d7f4f7-2e1a-4c8b-a366-833901185dd1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "55165edd-5c9e-4bc0-a929-a3fcf234aea8",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "569fd707-3e6d-4bb1-a2fb-1609738b9713",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "56ebab05-30e1-404f-b561-9fb037930a9d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "57e67dd2-afe7-4a8c-ab3f-edee477e3b66",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "5a78c6ad-2f3f-40b6-bdf1-086b01908d44",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "5acae3ce-a483-496e-a04c-1bba75ecbb2b",
+    "verdict": "suspect",
+    "issue": "英文'have anything to share with others recently'强调'有（待分享的）东西'，中文'想跟别人分享的东西'将'有'偷换为'想'，语义从客观存在变为主观意愿"
+  },
+  {
+    "id": "5af1acdb-3e28-4621-abfc-a5ebae51cc11",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "5bb36713-713e-4aca-87dc-2f7f34f35737",
+    "verdict": "suspect",
+    "issue": "英文'when they do something well'指'当朋友做得好时'这一具体时机，中文'夸朋友做得好的事情'模糊了时间条件，变成泛指行为对象，漏译'when'的时间限定"
+  },
+  {
+    "id": "5bd3491a-2723-498e-9128-9e8cc07e7d93",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "5c536970-148a-4f5a-9231-a6884e69c812",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "5e44d80e-148e-4f13-91aa-80730152ba03",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "61081777-f895-406b-8c01-3039730bc97f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6157a9a6-a9c1-4488-b8e7-f63dcf666f90",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "62fd96f6-8ee9-4d37-bf83-d6cbc3908c7d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "656fe686-4bc3-434d-9e0f-87803b65cece",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "66375db1-53d9-411a-9be2-dbba0e3edc5e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "66c4e7b2-5482-4ff4-b1ec-659a916ddb1b",
+    "verdict": "suspect",
+    "issue": "英文问'对学习有兴趣'这一品质的重要性，中文'对学习有兴趣重要吗'语义模糊，易被理解为'拥有兴趣这个行为是否重要'，未准确传达'having an interest in studying'作为抽象品质/态度的重要性判断；应译为'对学习保持兴趣有多重要？'或'对学习有兴趣这件事有多重要？'"
+  },
+  {
+    "id": "67155c18-a4e8-4f9f-952a-8b3366f17087",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "69b78595-f289-48a5-8eae-8c0c45cba563",
+    "verdict": "suspect",
+    "issue": "英文明确限定时间是'when you were little'（小时候），且'What did you do'要求回答具体过去行为，中文'通常做什么'隐含习惯性、重复性动作，弱化了'小时候某段时期的具体过往行为'这一完成时态语义；应译为'你小时候早上做过什么？为什么？'或保留'小时候早上常做什么？为什么？'但'常'仍略偏；更稳妥译法为'你小时候早上一般做什么？为什么？'——此处'一般'比'通常'更贴近'did'的过去惯常义，但当前'通常'尚可接受；然而'when you were little'在中文中未体现'little'所强调的幼年（非泛指童年），'小时候'虽常用但略宽泛；综合判定为suspect：漏译'little'隐含的'年幼/幼年'程度义，且'通常'对'did'的时态还原不够精准"
+  },
+  {
+    "id": "6a65c126-30cf-4832-a81e-aacba4e4ad8f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6b18ce86-833d-43e3-b961-972b514219d8",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6b239973-9869-4eaa-80e5-baa783dc012f",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6d7acbca-f1f8-49b2-9829-8cb2a4041526",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6f0c5815-58f3-49df-af2b-9620c8f90461",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "6f82da52-a793-473e-b2d6-4215a8308a21",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "7238c6ef-f69c-4536-8ef5-e63076e460a4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "731d3dba-1d9d-46a8-97b8-dd29a807d561",
+    "verdict": "suspect",
+    "issue": "英文'Where do you often meet each other?'主语是'you'（第二人称复数），'each other'明确指向双方/多方互见，中文'你们'虽对应，但'经常在哪里见面'未显化'彼此'关系，易被理解为'你们这群人共同出现在某地'，而非'你们相互之间见面'；应补出互指义，如'你们经常在哪儿互相见面？'或'你们经常在哪儿碰面？'（'碰面'隐含双向性），当前翻译漏译'each other'的核心语义"
+  },
+  {
+    "id": "759fdbb6-34ae-4adc-b54a-9615f9861f47",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "77ead590-c071-423d-bd64-662cf0c55326",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "787d751a-be1f-49f5-abac-9633e3bdba87",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "78d09fa4-fbcb-4468-b95c-4647b12f9518",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "7d4e97c1-0c5b-4fd0-b024-a043699a44c0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "7e2d318a-3aeb-4076-bb2e-87929b5f4d07",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "7fc96c7e-5d68-4ca8-ae44-f195321917fc",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "7fecb7db-f97b-41ba-8188-a07f4ac63ac4",
+    "verdict": "suspect",
+    "issue": "英文问的是成长过程中居住的‘accommodation’（具体住所类型，如apartment, house, hut等），中文‘住宿环境’偏重周边条件（如安静、安全、便利等），语义不等同"
+  },
+  {
+    "id": "80c982cf-3fcd-4330-8b27-2e9d60fcd39d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8146c561-b098-4763-a322-a122e3c821b7",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "81f7cbd0-2d74-4734-95ef-a1794f3fd5d1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8448025c-1960-4a61-b9c5-e6a145cce4f8",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "84f415ca-406e-4e2d-8891-274b1dd49bae",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "89516670-0c7e-4ee8-bb75-81acdb5ea5eb",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8a12cc46-011c-4353-a1c5-2695dfc823f0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8a61baea-f0b1-4056-8fe4-a8a108012532",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8b79db99-15d9-47f8-9884-b402afbe8d5c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "8f8b987f-b242-4aeb-89ce-9e5b0c22b033",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "907180f1-9f59-44f0-8658-ae60210eb0ef",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "91771b46-d2f4-4f56-9500-643e5b538d88",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "91b9b144-c035-407e-b6ff-e01af6ed595b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "92d681cf-b5e3-4534-a768-261e8b3b426e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "94aaad5e-6c15-4740-8fa0-af3767081b55",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "94e623b8-c8bb-4a80-b2c9-0db12d643648",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "96b900d5-c2ed-4f3b-839f-d457c17bdfdf",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "97c4120c-b5da-43ce-9733-d775c168668a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "98461c19-9a89-4385-a49f-023a68e24299",
+    "verdict": "suspect",
+    "issue": "'dedicated' 应译为‘敬业的’或‘尽职尽责的’，‘专注的’属语义偏移，易被理解为‘注意力集中的’而非职业态度"
+  },
+  {
+    "id": "98e01b25-9c08-49ed-a54b-4c439f77746b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9aac8ca9-b0ad-4154-bfb9-1e94d923dd69",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9e5dbf47-ad7f-4511-9ecd-b6ebd245bccf",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9f3f76d5-6be6-4bda-a15e-12011d4f5d51",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9f6e1322-24f7-47e2-b838-ef6472943b9d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "9f97f593-8d09-4449-996c-4d3046ac3f19",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a0e84b83-8bac-4189-bfd6-2d62cfdc0e34",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a20c1501-69c8-4287-8d66-d998b5a1c366",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a28ec18f-8591-4fc4-aa75-da0e1f961b51",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a385234a-93b3-48cb-a8e5-3cfe05b283bf",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a4bfe217-73f2-4b8f-815f-9315dabc80d4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a5432c2e-c5b4-4afe-b368-7bb5c40178b0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a6475a99-49e8-4a3d-b123-7dc4db02c58b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a76957d0-02ad-4627-81cb-613c88bf08db",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a8ef4b55-9cd5-40d6-b26d-cc9bc28fd40b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "a90a2cad-acb4-4513-aa05-fa2004b5b80c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "aa17ab69-d6c7-4508-845c-eb321650c624",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "aa1bf257-e656-4b2a-b531-0fb374885a14",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "adf22c5d-24ce-445b-b792-486dd1b4db58",
+    "verdict": "suspect",
+    "issue": "英文问'是否了解种植植物的相关知识'，侧重知识性认知；中文'你知道怎么种植物吗'偏向实操能力，漏译'anything about'所涵盖的宽泛知识范畴（如原理、步骤、注意事项等），语义收窄"
+  },
+  {
+    "id": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b145c40c-e26f-470e-a866-c7180ea74104",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b26f01cc-b075-460d-9374-3cf1b53a5ee6",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b3aaa3ad-f813-46b9-96f9-78559e809a76",
+    "verdict": "suspect",
+    "issue": "英文'when you are taking your rest'是进行时，强调'在休息过程中'这一特定时段；中文'休息时'虽可接受，但未体现进行态的即时性，且'小睡一会儿'添加了'一会儿'这个英文未限定的时间量，属无依据增译"
+  },
+  {
+    "id": "b644020b-6747-4932-8c09-8c54ff09338d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b6eb7a51-64e7-43fc-a71b-28b62194802c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b9141ce0-9176-4b55-8108-ca22639eb2cb",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "b99b2e30-90b6-417b-b1d6-983a7b1d4609",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bb7f2227-69d8-466a-bae4-62d0b6cfa984",
+    "verdict": "suspect",
+    "issue": "英文'Are there people of different ages living in this city?'主语是'people of different ages'，强调'不同年龄的人（作为群体）是否居住于此'；中文'有不同年龄的人住吗'结构松散，'住'字口语化过强，且未准确对应'living'所隐含的长期居住状态，易被理解为临时停留"
+  },
+  {
+    "id": "bbb16fae-5ae9-4f5e-991a-a626701772b1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bc14fd55-7631-400c-96f1-4e51926a515a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bd138243-dc6a-46fb-aaf7-c58811eb6ff9",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bd375f54-c448-472f-b062-2861fec245d4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "be43f248-d481-435c-820c-41b512513a00",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bf2acef4-1143-48f2-82dc-92b3d1658e28",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "bf846ead-3b13-43ed-986b-28355ef2437c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c1cca6f9-cd7b-4870-9496-ef97b050a15a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c1ce8090-73ba-4f9f-97c1-3e68c1b06f16",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c1f3d39c-1975-4688-ae93-961416e917d3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c210740e-9030-4a08-8dc0-cae71b9d4144",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c2849960-afa1-46a5-a5d8-71314e0864b4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c2dc0833-5d3c-4b35-bd85-25f17d535668",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c401abb2-fad9-4ffe-9678-4eb0cbf82283",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c46eef57-dc02-4172-a759-e42ee5dbdeaf",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c6270f66-540e-45dd-badd-626283964293",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c88d3432-8f9e-4dc6-99b3-6cb974656f97",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "c8f2ba64-d536-4eb9-b789-42cfa53300b8",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "cc69949b-e412-4044-a703-f0b72ada2280",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "cd09b794-d7a4-4617-ad09-7a592c086a50",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "cdc54a75-72f8-4435-80a1-a5d6893aeeb0",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "ce325285-9a97-4378-9bda-f078f311b73d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "cfadadbb-cc63-47d3-b0a4-70606fd3e164",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d0ef9198-2f25-4c08-a106-8ca504b4e70b",
+    "verdict": "suspect",
+    "issue": "英文问'neighbourhood的people是否nice and friendly'，中文'邻居的人'语义模糊且生硬，'友善又友好'属同义重复，未准确传达'nice and friendly'并列但略有差异的语义（nice偏亲切/和善，friendly偏主动友好），应译为'你邻居们友善友好吗？'或更自然的'你邻居们待人友善、容易相处吗？'"
+  },
+  {
+    "id": "d57fc751-1880-46fb-b98a-27014714312c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d6271ac0-61ee-4d02-8e20-03f93f1319b3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d7c986a0-dc78-4ee8-873b-42afe9e2c0cb",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d8363038-7c30-4ee6-ae00-c7208bc7284a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d84784a9-4190-4920-9b82-ac86cae04427",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d88ec1a7-1ba5-4e72-8b87-a1785180f797",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "d921e4a9-79ad-47e7-843b-7f95926fd7a4",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "da3fdf96-341d-46a0-baab-3f52f95f4742",
+    "verdict": "suspect",
+    "issue": "英文问的是'小时候喜欢过、现在仍喜欢的东西'，强调时间延续性；中文'你小时候喜欢过的东西，现在还喜欢吗？'语义模糊，未明确要求该事物须同时满足'过去喜欢'和'现在仍喜欢'两个条件，易被理解为泛指任何小时候喜欢过的东西，与原题逻辑不等价"
+  },
+  {
+    "id": "da69cb73-0958-4b57-afa9-d9359bad37ee",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "daf65917-2415-45d2-b716-2a2f7ca9f159",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "db48a680-efef-4c75-bac4-4e93ae32b79e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "dbff94d4-5001-4752-ad24-afba2e493856",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "dc5dcd11-cf5c-4222-88a5-260b5d7da708",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "de120bed-dc80-4be8-a3ac-c05c1b4a6b23",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "de3c0583-7c2d-437f-b5f7-ed122fab2f61",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "de8ab307-5eec-4bc3-8a2d-ae6363bf7ee3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "debaac14-d2ad-40e6-8334-1ed8d1419f9b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "dfe181b7-5068-4aef-9e9f-13da6f570156",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e04c0d32-2848-4959-b906-2d707b6b072e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e11d7a06-4c32-442f-8b01-ed6d1666c2a3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e1f82359-cd35-48cc-b9f0-0f4a462277f1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e2331eb1-3597-4c6b-be21-593fed499df1",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e339c0ee-253f-4b62-a81e-887bd5f0609b",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e4b545fd-100e-4582-9706-3b48d6da5604",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e4d54c27-68c5-4356-8302-434261696cca",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e5806df0-50ca-4ef9-be2c-477d937f0397",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e5de6504-ae36-455e-ba63-ccee7f6df8fc",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "e8a5d098-c932-457d-97c3-8860ce5df174",
+    "verdict": "suspect",
+    "issue": "英文问的是‘如何提高打字（能力）’，未限定‘速度’；中文添加了‘速度’属无依据增译，可能窄化原意（如指准确性、盲打熟练度等）"
+  },
+  {
+    "id": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+    "verdict": "suspect",
+    "issue": "英文‘rule-free school’直译为‘没有规则的学校’，但该表述在教育语境中易被理解为‘完全无管理规范’，而原意更可能指‘宽松规则/自主管理型学校’；‘没有规则’存在语义过载和负面歧义"
+  },
+  {
+    "id": "ecb70d27-9f78-4398-9d35-72629a48e7fa",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "efd24f8f-137a-432a-9662-c2c0f08bae8a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "eff4e996-ac6c-4ec0-8756-3ff23f6bed11",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f42e9f4c-e05e-4291-b966-a864240d911e",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f540a416-1801-44ca-a8c8-8558257360e3",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f5832d6a-f531-49f8-9f80-e6c11edee58d",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f635e147-016f-4459-8a29-13eae4811ea5",
+    "verdict": "suspect",
+    "issue": "英文问‘现在见面地点与过去是否有差异’，是中性比较；中文‘跟过去不一样吗’隐含预设‘不一样’的倾向，且未保留‘difference’所要求的客观对比维度（如具体场所类型变化）"
+  },
+  {
+    "id": "f72879fb-5ba9-465d-84e5-d52322490312",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f7ece2ec-9499-42a8-88b3-d8e70ef2a37c",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f862aa30-3d92-4d5d-a88f-ea810f5e6853",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "f9119694-2aba-4c05-ad17-88cf7a858048",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "fa5c24b8-4bd0-4dd6-aac2-7d0e81814527",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "fdd1837d-7daf-474c-8122-269b670ed46a",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "ff32fa58-4897-407a-8962-9106e50b6ae6",
+    "verdict": "ok",
+    "issue": ""
+  },
+  {
+    "id": "ffa63b89-80e5-4c7c-9bff-b146f55e3b3c",
+    "verdict": "ok",
+    "issue": ""
+  }
+]

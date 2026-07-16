@@ -1,308 +1,327 @@
 /**
  * @module   PracticePage
- * @desc     练习对话页 — 语音条 AI 消息、按住说话底栏、回复建议气泡
+ * @desc     练习对话页外壳 —— 集中持有全部对话逻辑（单实例 useAudioRecorder、phase 状态机、转写/回复/
+ *           优化/发音捕捉、计时与到上限自动停、满 8 轮收尾、4 个 DOM ref 与其 effect），只把「渲染」抽成两套视图。
+ *
+ *   【单挂载，区别于其他流程页的 CSS 双挂载】本页带一个全局 document「点弹窗外关闭」监听 + 多个 DOM ref
+ *   + 单实例录音器；若像 recording/analysis 那样把两套视图用 `lg:hidden` / `hidden lg:block` 同时挂载，
+ *   被 CSS 藏起来那套的全局监听与 ref 仍会运行、误关桌面弹窗，且绕开它就得改移动端监听（违反移动端零改动）。
+ *   故本页改用视口判断（useIsDesktop，SSR 安全：首屏默认移动端，挂载后按 ≥1024px 切桌面），
+ *   同一时刻只渲染 PracticeMobile 或（FlowShellDesktop + PracticeDesktop）之一 —— ref 只绑一次，外壳 effect 照常工作。
+ *
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
-
-import { useState, useRef, useEffect, Suspense, type RefObject } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mic, X, Quote } from 'lucide-react'
-import TopBar from '@/components/TopBar'
-import { StepBar } from '@/components/StepBar'
-import { useRecording } from '@/hooks/useRecording'
-import { QUESTIONS } from '@/data/questions'
-import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
-import type { Question } from '@/lib/types'
-import OrbSoft from './_components/OrbSoft'
+import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { setSessionPolishes } from '@/lib/storage'
+import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
+import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
+import { applyPronunciationFixes } from '@/lib/pronunciation'
+import { recordPracticeSession } from '@/lib/db/practice-sessions'
+import { apiFetch } from '@/lib/api-client'
+import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
+import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
+import PracticeMobile from './PracticeMobile'
+import PracticeDesktop from './PracticeDesktop'
+import type { PracticeViewProps } from './types'
 
-// ── 对话数据类型
-type RoundEntry   = { round: string }
-type AiEntry      = { role: 'ai';   durationSec: number; transcript: string }
-type UserEntry    = { role: 'user'; text: string }
-type DialogueItem = RoundEntry | AiEntry | UserEntry
+/** 用户发言达此轮数后温柔收尾，不再允许新录音 */
+const PRACTICE_TURN_LIMIT = 8
 
-// ── Mock 数据
-const dialogue: DialogueItem[] = [
-  { round: 'Round 1 · Frequency & Scene' },
-  { role: 'ai',   durationSec: 8, transcript: 'How often do you go to parks? Tell me about the last time you visited one.' },
-  { role: 'user', text: 'I usually go on weekends. Last time was last Saturday — I spent the whole afternoon there.' },
-  { round: 'Round 2 · Feelings & Reasons' },
-  { role: 'ai',   durationSec: 6, transcript: 'How does going to the park make you feel? Why do you enjoy it?' },
-]
-
-const suggestions = [
-  "It helps me relax and clear my mind.",
-  "I love the fresh air and open space.",
-  "It's a nice escape from city life.",
-]
-
-// ── 时长格式化 m:ss
-function formatDuration(sec: number): string {
-  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
+/** 视口断点：SSR/首屏默认移动端（避免 hydration 抖动），挂载后按 ≥1024px 切桌面，随窗口变化更新。 */
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = (): void => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isDesktop
 }
 
-// ── 静态波形竖条
-const WAVE_HEIGHTS = [5, 11, 15, 8, 13, 17, 6, 12, 9, 14, 7, 11]
-
-function StaticWaveBars(): JSX.Element {
-  return (
-    <div className="flex items-center gap-[2px]" style={{ height: 18 }}>
-      {WAVE_HEIGHTS.map((h, i) => (
-        <div key={i} style={{ width: 2, height: h, borderRadius: 2, background: '#B5B5B5', flexShrink: 0 }} />
-      ))}
-    </div>
-  )
-}
-
-// ── Round 分组标签
-function RoundLabel({ text }: { text: string }): JSX.Element {
-  return (
-    <div className="flex justify-center py-2 mb-1">
-      <span className="text-[12px] text-[#A89990]">{text}</span>
-    </div>
-  )
-}
-
-// ── AI 语音条消息
-function AiVoicePill({ durationSec, transcript }: { durationSec: number; transcript: string }): JSX.Element {
-  const [showTranscript, setShowTranscript] = useState(false)
-
-  return (
-    <div className="mb-2">
-      <div className="flex items-center gap-2">
-        {/* 绿叶头像 */}
-        <div className="w-[34px] h-[34px] rounded-full bg-[#E8F3E5] border border-[#C0DDB9] flex items-center justify-center flex-shrink-0 text-[14px]">
-          🌿
-        </div>
-
-        {/* 语音条胶囊（整体可点击播放） */}
-        <button
-          onClick={() => console.log('[PracticePage] play audio')}
-          className="inline-flex items-center gap-[9px] active:opacity-80 transition-opacity"
-          style={{ padding: '9px 14px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,.07)', borderRadius: 9999 }}
-        >
-          <StaticWaveBars />
-          <span className="text-[11px] text-[#888]">{formatDuration(durationSec)}</span>
-        </button>
-
-        {/* 转文字按钮 */}
-        <button
-          onClick={() => setShowTranscript(s => !s)}
-          aria-label="语音转文字"
-          className="w-[24px] h-[24px] rounded-full bg-white flex items-center justify-center active:scale-[0.97] flex-shrink-0"
-          style={{ border: '1px solid rgba(0,0,0,.10)' }}
-        >
-          <span className="text-[11px] font-semibold text-[#6B5B52] leading-none">文</span>
-        </button>
-      </div>
-
-      {/* 展开转写文本 */}
-      {showTranscript && (
-        <p className="ml-[42px] mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">
-          {transcript}
-        </p>
-      )}
-    </div>
-  )
-}
-
-// ── 用户消息气泡
-function UserBubble({ text }: { text: string }): JSX.Element {
-  return (
-    <div className="flex items-start gap-2 max-w-[85%] ml-auto flex-row-reverse mb-4">
-      <div
-        className="w-[34px] h-[34px] rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
-        style={{ background: '#F5D5BC', color: '#B5663A' }}
-      >
-        你
-      </div>
-      <div
-        className="px-3.5 py-2.5"
-        style={{
-          background:   '#EDF6EB',
-          border:       '1px solid rgba(192,221,185,.55)',
-          borderRadius: '16px 6px 16px 16px',
-        }}
-      >
-        <p className="text-[14px] text-[#1A1A1A] leading-[1.6]">{text}</p>
-      </div>
-    </div>
-  )
-}
-
-// ── 回复建议气泡
-interface SuggestionsPopupProps {
-  items: string[]
-  onClose: () => void
-  onSelect: (text: string) => void
-  popupRef: RefObject<HTMLDivElement>
-}
-
-function SuggestionsPopup({ items, onClose, onSelect, popupRef }: SuggestionsPopupProps): JSX.Element {
-  return (
-    <div
-      ref={popupRef}
-      className="fixed z-[40] rounded-[16px]"
-      style={{ ...GRADIENT_BORDER_STYLE_FULL, left: 14, right: 14, bottom: 100, padding: '11px 13px 12px' }}
-    >
-      {/* 向下三角，左对齐云团按钮 */}
-      <div
-        className="absolute"
-        style={{
-          bottom:       -7,
-          left:         18,
-          width:        12,
-          height:       12,
-          background:   '#FFFFFF',
-          transform:    'rotate(45deg)',
-          borderRight:  '1px solid rgba(168,210,196,.80)',
-          borderBottom: '1px solid rgba(188,210,168,.75)',
-        }}
-      />
-
-      {/* 头部 */}
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[13px] font-semibold text-v2-text-primary">回复建议</span>
-        <button onClick={onClose} className="active:opacity-60 transition-opacity">
-          <X size={14} color="#A89990" />
-        </button>
-      </div>
-
-      {/* 建议句列表 */}
-      <div className="flex flex-col gap-1.5">
-        {items.map((item, i) => (
-          <button
-            key={i}
-            onClick={() => { console.log('[PracticePage] suggestion selected:', item); onSelect(item) }}
-            className="flex items-center gap-[7px] text-left w-full active:opacity-70 transition-opacity"
-            style={{ padding: '7px 11px', background: '#F8F7F5', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}
-          >
-            <Quote size={11} color="#A89990" style={{ flexShrink: 0 }} />
-            <span className="text-[12.5px] leading-[1.45] text-v2-text-primary">{item}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── 主内容（包在 Suspense 内以支持 useSearchParams）
 function PracticeContent(): JSX.Element {
   const router = useRouter()
   const params = useSearchParams()
-  const { handlePressStart, handlePressEnd } = useRecording()
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const popupRef = useRef<HTMLDivElement>(null)
-  const orbRef   = useRef<HTMLButtonElement>(null)
-
   const questionId = params.get('questionId') ?? ''
-  const q: Question | null = QUESTIONS.find(sq => sq.id === questionId) ?? null
+  const storyId = params.get('storyId') ?? ''
+  const level = params.get('level') ?? '6.0'
+  const isReview = params.get('review') === '1'
 
-  // 点弹窗外关闭：backdrop 在 z-[19]（低于底栏 z-20），内容区点击关闭，底栏按钮仍可直接交互
+  const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
+  const [messages, setMessages]           = useState<PracticeMessage[]>([])
+  const [phase, setPhase]                 = useState<'init' | 'idle' | 'recording' | 'transcribing' | 'replying' | 'error'>('init')
+  const [elapsed, setElapsed]             = useState(0)
+  const [error, setError]                 = useState<string | null>(null)
+  const [showPolish, setShowPolish]       = useState(false)
+  const [polishLoading, setPolishLoading] = useState(false)
+  const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
+  const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
+  const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number; savedIds: string[] } | null>(null)
+  const [retryKey, setRetryKey]           = useState(0)
+  // 服务端复练额度超限（/api/practice 返回 402）→ 弹 QuotaReached 覆盖层
+  const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
+
+  const popupRef  = useRef<HTMLDivElement>(null)
+  const orbRef    = useRef<HTMLButtonElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const pronounceRef = useRef<HTMLDivElement>(null)
+  const { start, stop, audioLevel } = useAudioRecorder()
+
+  // 发音收藏（云端，读收藏入口顺带触发迁移）；用 ref 供同步回调即时读最新，免把 pronunciations 塞进 useCallback 依赖
+  const { pronunciations } = useSavedPronunciations()
+  const pronunciationsRef = useRef(pronunciations)
+  pronunciationsRef.current = pronunciations
+
+  // 自动滚到底
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, phase])
+
+  // 弹出发音纠错卡时滚动到可视区，避免被底部输入区遮挡
   useEffect(() => {
-    if (!showSuggestions) return
+    if (!capture) return
+    requestAnimationFrame(() => {
+      pronounceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    })
+  }, [capture])
+
+  // 进页面：构建脚手架 + 拿开场白
+  useEffect(() => {
+    if (!questionId) { setPhase('error'); setError('缺少题目'); return }
+    let cancelled = false
+    const ac = new AbortController()
+    ;(async () => {
+      try {
+        const res = await apiFetch('/api/practice', {
+          method: 'POST',
+          json: { questionId, storyId, messages: [], level, isReview },
+          signal: ac.signal,
+        })
+        // 服务端复练额度拦截（402）：弹 QuotaReached 覆盖层而非普通错误态
+        if (res.status === 402) { if (!cancelled) setReviewQuotaShown(true); return }
+        if (!res.ok) throw new Error('对话初始化失败')
+        const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
+        if (!cancelled) {
+          setScaffold(data.scaffold)
+          setMessages([{ role: 'assistant', content: data.reply }])
+          setPhase('idle')
+        }
+      } catch (e) {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
+        if (!cancelled) { setPhase('error'); setError(e instanceof Error ? e.message : '对话初始化失败') }
+      }
+    })()
+    return () => { cancelled = true; ac.abort() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 初次加载用默认 level 初始化对话；切换水平走独立分支，列入依赖会重复初始化
+  }, [questionId, storyId, retryKey, isReview])
+
+  // 一轮：录音停止 → 转写 → 追加用户消息 → 拿 AI 回复
+  const handleUserTurn = useCallback(async () => {
+    setPhase('transcribing')
+    try {
+      const blob = await stop()
+      if (!blob) throw new Error('没有录到声音')
+      const form = new FormData()
+      form.append('audio', blob, 'turn.webm')
+      // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
+      const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
+      if (!tr.ok) throw new Error('转写失败')
+      const { text } = (await tr.json()) as { text: string }
+
+      const next: PracticeMessage[] = [...messages, { role: 'user', content: text }]
+      setMessages(next)
+      setPhase('replying')
+
+      const res = await apiFetch('/api/practice', {
+        method: 'POST',
+        json: { scaffold, messages: next },
+      })
+      if (!res.ok) throw new Error('对话失败')
+      const data = (await res.json()) as { reply: string }
+      setMessages([...next, { role: 'assistant', content: data.reply }])
+      setPhase('idle')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '出错了，请重试')
+      setPhase('idle')
+    }
+  }, [stop, messages, scaffold])
+
+  const handlePolish = useCallback(async (sentence: string, aiQuestion?: string) => {
+    setShowPolish(true)
+    setPolishResult(null)
+    setPolishLoading(true)
+    try {
+      const res = await apiFetch('/api/practice/polish', {
+        method: 'POST',
+        json: { sentence, aiQuestion, level },
+      })
+      if (!res.ok) throw new Error('优化失败')
+      const data = (await res.json()) as PolishResult
+      setPolishResult(data)
+      if (data.needsWork && data.optimized) {
+        setPolishHistory(h => [...h, {
+          original: sentence,
+          optimized: data.optimized,
+          note: data.note,
+          part: scaffold?.part ?? 1,
+          questionEn: scaffold?.displayEn ?? '',
+        }])
+      }
+    } catch {
+      setPolishResult({ needsWork: false, optimized: '', note: '优化失败，请重试' })
+    } finally {
+      setPolishLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 优化按当前 level 取值即可；level 变更由独立分支处理，列入依赖会无谓重建回调
+  }, [scaffold])
+  // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
+  const [runPolish] = useAsyncAction(handlePolish)
+
+  // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"异步落库；成功后失效缓存供素材库读到最新
+  const handleSavePronunciation = useCallback((intended: string) => {
+    if (!capture) return
+    const heard = capture.heard
+    void addSavedPronunciation({
+      id: `${intended.toLowerCase()}__${heard.toLowerCase()}`,
+      intended,
+      heard,
+      context: capture.context,
+      createdAt: new Date().toISOString(),
+    })
+      .then(() => refreshSavedPronunciations())
+      .catch((e) => console.error('[Practice] 收藏发音失败', e))
+    setCapture(null)
+  }, [capture])
+
+  const onStartRecord = useCallback(() => {
+    if (phase !== 'idle') return
+    setError(null)
+    setPhase('recording')
+    void start()
+  }, [phase, start])
+
+  // 取消录音：停掉并丢弃这段，不转写、不发送，回到空闲
+  const onCancelRecord = useCallback(() => {
+    if (phase !== 'recording') return
+    void stop()
+    setError(null)
+    setPhase('idle')
+  }, [phase, stop])
+
+  // 录音计时（驱动计时器 + 临近上限提示）；离开录音态即归零
+  useEffect(() => {
+    if (phase !== 'recording') { setElapsed(0); return }
+    const startedAt = Date.now()
+    const id = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    }, 250)
+    return () => window.clearInterval(id)
+  }, [phase])
+
+  // 到达上限自动停止并发送：Part 2 = 150s，Part 1/3 = 90s
+  useEffect(() => {
+    const cap = scaffold?.part === 2 ? 150 : 90
+    if (phase === 'recording' && elapsed >= cap) void handleUserTurn()
+  }, [phase, elapsed, scaffold, handleUserTurn])
+
+  // 点弹窗外关闭
+  useEffect(() => {
+    if (!showPolish) return
     const handler = (e: MouseEvent) => {
-      if (
-        popupRef.current && !popupRef.current.contains(e.target as Node) &&
-        orbRef.current   && !orbRef.current.contains(e.target as Node)
-      ) {
-        setShowSuggestions(false)
+      if (popupRef.current && !popupRef.current.contains(e.target as Node) &&
+          orbRef.current && !orbRef.current.contains(e.target as Node)) {
+        setShowPolish(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showSuggestions])
+  }, [showPolish])
 
+  const recordCap = scaffold?.part === 2 ? 150 : 90
+  const nearLimit = phase === 'recording' && recordCap - elapsed <= 20
+
+  // 满 8 轮温柔收尾：用户已说够 8 次且最后一条是教练回复 → 隐藏录音条，显示「查看反馈」收尾区
+  const userTurnCount = messages.filter(m => m.role === 'user').length
+  const lastMsg = messages[messages.length - 1]
+  const isCapped = userTurnCount >= PRACTICE_TURN_LIMIT && lastMsg?.role === 'assistant'
+
+  const handleEnd = useCallback(() => {
+    setSessionPolishes(polishHistory)
+    void recordPracticeSession(questionId || null, isReview).catch((e) =>
+      console.warn('[Practice] 记录练习场次失败', e))
+    router.push('/feedback')
+  }, [polishHistory, questionId, isReview, router])
+  // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
+  const [endSession] = useAsyncAction(handleEnd)
+  const capHint =
+    scaffold?.part === 2
+      ? '真实雅思 Part 2 约 2 分钟会被喊停，可以开始收尾啦'
+      : '快到录音上限了，可以开始收尾啦'
+  const recTime = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
+  const micLabel = phase === 'transcribing' ? '转写中…' : phase === 'replying' ? '思考中…' : '点击说话'
+
+  // 点某个词 → 打开发音纠错卡（逻辑集中在外壳，视图仅透传 word/句子/下标）
+  const onWordTap = useCallback((word: string, content: string, index: number) => {
+    setCapture({ heard: word, context: content, msgIndex: index, savedIds: pronunciationsRef.current.map(p => p.id) })
+  }, [])
+
+  // 换个说法：用该句上做过的发音纠错替换听错的词后再优化（防重入走 runPolish）
+  const onPolish = useCallback((content: string, index: number) => {
+    const prev = messages[index - 1]
+    const aiQuestion = prev?.role === 'assistant' ? prev.content : undefined
+    const fixes = pronunciationsRef.current.filter(c => c.context === content)
+    void runPolish(applyPronunciationFixes(content, fixes), aiQuestion)
+  }, [messages, runPolish])
+
+  const isDesktop = useIsDesktop()
+
+  const viewProps: PracticeViewProps = {
+    scaffold, messages, phase, error, showPolish, polishLoading, polishResult, capture, audioLevel,
+    recTime, nearLimit, micLabel, capHint, isCapped,
+    popupRef, orbRef, bottomRef, pronounceRef,
+    onStartRecord,
+    onCancelRecord,
+    onSend: () => void handleUserTurn(),
+    onWordTap,
+    onPolish,
+    onReopenPolish: () => { if (polishResult) setShowPolish(true) },
+    onClosePolish: () => setShowPolish(false),
+    onSavePronunciation: handleSavePronunciation,
+    onCloseCapture: () => setCapture(null),
+    onEnd: () => void endSession(),
+    onRetry: () => { setPhase('init'); setRetryKey(k => k + 1) },
+    onExit: () => router.push('/'),
+  }
+
+  // 复练额度超限覆盖层：练习无法开始，关闭即返回上一页
+  const quotaOverlay = reviewQuotaShown
+    ? <QuotaReached variant="ielts" asOverlay onClose={() => router.back()} />
+    : null
+
+  // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。
+  if (isDesktop) {
+    return (
+      <>
+        <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit}>
+          <PracticeDesktop {...viewProps} />
+        </FlowShellDesktop>
+        {quotaOverlay}
+      </>
+    )
+  }
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <TopBar
-        title="练习对话"
-        right={
-          <button onClick={() => router.push('/feedback')} className="text-[13px] text-[#AAAAAA]">
-            结束
-          </button>
-        }
-      />
-      <StepBar currentStep="practice" />
-
-      {/* 对话区域 */}
-      <div className="flex-1 overflow-y-auto px-5 pt-2 pb-[100px] relative z-10">
-        {/* 题目条（不变） */}
-        <div className="flex items-center gap-2 bg-[#F7F5F1] border border-black/[0.05] rounded-[8px] px-[11px] py-[6px] mb-4">
-          <span className="text-[11px] text-[#AAAAAA] flex-shrink-0">{q?.part ?? 'Part 1'}</span>
-          <div className="w-px h-3 bg-[#DDDDDD] flex-shrink-0" />
-          <span className="text-[12px] font-medium text-[#444] flex-1 truncate min-w-0">
-            {q?.en ?? 'Do you often go to parks or outdoor spaces?'}
-          </span>
-          <span className="text-[11px] text-[#AAAAAA] flex-shrink-0">1 / 3</span>
-        </div>
-
-        {/* 对话列表 */}
-        {dialogue.map((item, i) => {
-          if ('round' in item) return <RoundLabel key={i} text={item.round} />
-          if (item.role === 'ai') return (
-            <AiVoicePill key={i} durationSec={item.durationSec} transcript={item.transcript} />
-          )
-          return <UserBubble key={i} text={item.text} />
-        })}
-      </div>
-
-      {/* 遮罩：z-[19]，低于底栏，点内容区关闭气泡 */}
-      {showSuggestions && (
-        <div
-          className="fixed inset-0 z-[19]"
-          onClick={() => setShowSuggestions(false)}
-        />
-      )}
-
-      {/* 回复建议气泡 */}
-      {showSuggestions && (
-        <SuggestionsPopup
-          items={suggestions}
-          onClose={() => setShowSuggestions(false)}
-          onSelect={text => console.log('[PracticePage] suggestion selected:', text)}
-          popupRef={popupRef}
-        />
-      )}
-
-      {/* 底部输入区 */}
-      <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-bg-page border-t border-black/[0.05] z-20 flex items-center gap-[12px] px-[14px]"
-        style={{
-          paddingTop:    18,
-          paddingBottom: 'max(18px, env(safe-area-inset-bottom))',
-        }}
-      >
-        {/* 云团 OrbSoft 按钮 */}
-        <button
-          ref={orbRef}
-          onClick={() => setShowSuggestions(s => !s)}
-          aria-label="回复建议"
-          className="flex-shrink-0 active:scale-[0.94] transition-transform duration-150"
-        >
-          <OrbSoft size={50} />
-        </button>
-
-        {/* 按住说话胶囊 */}
-        <button
-          className="flex flex-1 items-center justify-center gap-[9px] active:scale-[0.97] transition-transform duration-150"
-          style={{ ...GRADIENT_BORDER_STYLE, height: 52, borderRadius: 9999 }}
-          onPointerDown={handlePressStart}
-          onPointerUp={handlePressEnd}
-        >
-          <Mic size={19} color="#D4875A" />
-          <span className="text-[14px] font-medium text-[#444]">按住说话</span>
-        </button>
-      </div>
-    </div>
+    <>
+      <PracticeMobile {...viewProps} />
+      {quotaOverlay}
+    </>
   )
 }
 
-/**
- * 练习对话页入口，包裹 Suspense 支持 useSearchParams
- */
 export default function PracticePage(): JSX.Element {
   return <Suspense><PracticeContent /></Suspense>
 }

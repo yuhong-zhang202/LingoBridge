@@ -1,164 +1,177 @@
 /**
  * @module   MatchingPage
- * @desc     题目匹配页 — 展示与当前故事匹配的雅思真题，选题后跳转练习
+ * @desc     题目匹配页外壳 —— 集中持有取数/筛选/选中/跳转逻辑：/api/matching 取数与 saveExtraction 单份、
+ *           三档分组 useMemo、动态 Part 标签、默认选中第一题等全部留在外壳，按 lg 断点分发移动/桌面两套视图：
+ *           <1024 渲染 MatchingMobile；≥1024 用 FlowShellDesktop（matching 步激活）包住 MatchingDesktop。
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Star, ArrowRight, Sparkles } from 'lucide-react'
-import TopBar from '@/components/TopBar'
-import { StepBar } from '@/components/StepBar'
-import TabBar from '@/components/TabBar'
-import PartTag from '@/components/PartTag'
-import Chip from '@/components/Chip'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { QUESTIONS } from '@/data/questions'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { saveExtraction } from '@/lib/db/corpus'
+import { apiFetch } from '@/lib/api-client'
+import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
+import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import MatchingMobile from './MatchingMobile'
+import MatchingDesktop from './MatchingDesktop'
+import type { FunnelResult, PartTab, MatchingViewProps } from './types'
 
-const PARTS = ['全部', 'Part 1', 'Part 2', 'Part 3']
-
-// Hardcoded until multi-story navigation is implemented
-const STORY_ID = '1'
-
-export default function MatchingPage() {
+function MatchingContent() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'全部' | 'Part 1' | 'Part 2' | 'Part 3'>('全部')
-  const [selectedId, setSelectedId] = useState<string | null>(
-    QUESTIONS.length > 0 ? QUESTIONS[0].id : null
+  const params = useSearchParams()
+  const corpusId = params.get('corpusId') ?? ''
+  const [result, setResult] = useState<FunnelResult | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<PartTab>('全部')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
+  // A12 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新匹配
+  const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
+
+  // 切换 Tab 时收起折叠
+  useEffect(() => { setExpanded(false) }, [activeTab])
+
+  useEffect(() => {
+    if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
+    let cancelled = false
+    const ac = new AbortController()
+    ;(async () => {
+      setLoading(true); setError(null)
+      try {
+        const res = await apiFetch('/api/matching', {
+          method: 'POST',
+          json: { corpusId },
+          signal: ac.signal,
+        })
+        if (!res.ok) throw new Error('匹配失败')
+        const data = (await res.json()) as FunnelResult
+        if (!cancelled) { setResult(data); setSelectedId(data.questions[0]?.id ?? null) }
+        // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
+        if (!cancelled && corpusId && data.primary) {
+          saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
+            .catch((err: unknown) => console.warn('[MatchingPage] saveExtraction 失败，跳过', err))
+        }
+      } catch (e) {
+        if (ac.signal.aborted) return          // 中断不算错误，忽略
+        if (!cancelled) setError(e instanceof Error ? e.message : '匹配失败')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true; ac.abort() }
+  }, [corpusId, retryKey])
+
+  // 动态 Part 标签：只显示有结果的 Part
+  const availableTabs = useMemo<PartTab[]>(() => {
+    if (!result) return ['全部']
+    const parts = new Set(result.questions.map((q) => q.part))
+    const tabs: PartTab[] = ['全部']
+    if (parts.has(1)) tabs.push('Part 1')
+    if (parts.has(2)) tabs.push('Part 2')
+    return tabs
+  }, [result])
+
+  // 未打分候选（重排 3 轮补缺全失败后的兜底残留）属极罕见边缘态：它们一律不展示，
+  // 但绝不能静默——静默就等于这条路径永远不会被发现。每次取到新结果时报一次。
+  useEffect(() => {
+    if (!result) return
+    const unscored = result.questions.filter((q) => q.relevanceScore == null)
+    if (unscored.length === 0) return
+    console.error('[MatchingPage] 存在未打分候选，按「无分数依据」一律不展示、不标档', {
+      corpusId,
+      unscoredCount: unscored.length,
+      totalCandidates: result.questions.length,
+      unscoredQuestionIds: unscored.map((q) => q.id),
+    })
+  }, [result, corpusId])
+
+  // 标题计数：≥ SCORE_LOW 的总量，跨所有 Part（不受 Tab 过滤影响）。
+  // 未打分不计入：标题「匹配到 N 道」必须与真正展示出的卡片数一致，否则又是一次「说有 N 道却没有」。
+  const totalVisible = useMemo(() => {
+    if (!result) return 0
+    return result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW).length
+  }, [result])
+
+  // 当前 Tab 过滤后的题目
+  const filtered = useMemo(() => {
+    if (!result) return []
+    if (activeTab === '全部') return result.questions
+    const n = activeTab === 'Part 1' ? 1 : 2
+    return result.questions.filter((q) => q.part === n)
+  }, [result, activeTab])
+
+  // 三档分组。未打分（relevanceScore == null/undefined）一律不进任何档、不展示：
+  // 产品不变式 2「用户看到的每道题必须有分数依据；无分数 → 不展示、不落库、不标任何档」。
+  // 曾经这里是 `?? 100`，把我们一无所知的题当「高匹配」顶在首屏——正是不变式 2 要根除的
+  // 「我们不知道 X 却声称 X」。与 matching.ts 排序用的 `?? -1`（未打分沉底）方向一致：都当它不存在。
+  const highGroup = useMemo(
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH),
+    [filtered]
+  )
+  const midGroup = useMemo(
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH),
+    [filtered]
+  )
+  const lowGroup = useMemo(
+    () => filtered.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_LOW && q.relevanceScore < SCORE_MID),
+    [filtered]
   )
 
-  const filteredQuestions = QUESTIONS.filter(q =>
-    activeTab === '全部' ? true : q.part === activeTab
-  )
+  const foldedCount  = midGroup.length + lowGroup.length
+  const hasMore      = foldedCount > 0
+  // noneVisible：当前 Tab 三档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可
+  const noneVisible  = highGroup.length === 0 && midGroup.length === 0 && lowGroup.length === 0
+  // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_LOW 计数）。
+  // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
+  const globalNoneVisible = !!result && !result.noMatch && totalVisible === 0
 
-  const handleTabChange = (p: typeof activeTab) => {
-    setActiveTab(p)
-    const filtered = p === '全部' ? QUESTIONS : QUESTIONS.filter(q => q.part === p)
-    setSelectedId(filtered.length > 0 ? filtered[0].id : null)
+  const viewProps: MatchingViewProps & { globalNoneVisible: boolean } = {
+    result,
+    loading,
+    error,
+    totalVisible,
+    availableTabs,
+    activeTab,
+    filtered,
+    highGroup,
+    midGroup,
+    lowGroup,
+    foldedCount,
+    hasMore,
+    noneVisible,
+    globalNoneVisible,
+    selectedId,
+    expanded,
+    onSelectTab: (tab) => setActiveTab(tab),
+    onToggleSelect: (id) => setSelectedId(prev => prev === id ? null : id),
+    onSelect: (id) => setSelectedId(id),
+    onToggleExpanded: () => setExpanded(v => !v),
+    onPractice: (id) => router.push(`/analysis?questionId=${id}&storyId=${corpusId}`),
+    onRetry: () => void retry(),
+    onExit: () => router.push('/'),
   }
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <TopBar title="题目匹配" />
-      <StepBar currentStep="matching" />
-
-      <div className="flex-1 overflow-y-auto px-6 pb-[72px] relative z-10">
-
-        {/* 故事预览 */}
-        <div className="surface px-3.5 py-2.5 mb-5 flex items-center gap-2">
-          <Sparkles size={13} className="text-[#AAAAAA] flex-shrink-0" />
-          <span className="text-[12px] text-[#888] italic truncate">
-            「上周末我去了附近的公园...」
-          </span>
-        </div>
-
-        {/* 匹配标题 */}
-        <div className="mb-4">
-          <h2 className="text-[20px] font-bold text-[#111]">
-            匹配到 5 道当季真题
-          </h2>
-          <p className="text-[12px] text-[#888] mt-1">
-            覆盖 Part 1 · Part 2 · Part 3
-          </p>
-        </div>
-
-        {/* Part 筛选 */}
-        <div className="flex gap-2 mb-5 flex-wrap">
-          {PARTS.map(p => {
-            const active = activeTab === p
-            return (
-              <Chip
-                key={p}
-                onClick={() => handleTabChange(p as typeof activeTab)}
-                variant="ghost"
-                active={active}
-              >
-                {p}
-              </Chip>
-            )
-          })}
-        </div>
-
-        {/* 题目卡片 */}
-        <div className="flex flex-col gap-3 mb-6">
-          {filteredQuestions.map((item) => {
-            const isSelected = selectedId === item.id
-            return (
-              <div
-                key={item.id}
-                onClick={() => setSelectedId(isSelected ? null : item.id)}
-                className={`
-                  bg-white rounded-[14px] overflow-hidden flex cursor-pointer
-                  border border-black/[0.05] transition-shadow duration-200
-                  ${isSelected
-                    ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]'
-                    : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)]'
-                  }
-                `}
-              >
-                {/* 左侧竖条 */}
-                <div className="w-[4px] flex-shrink-0 self-stretch">
-                  {isSelected ? (
-                    <div
-                      className="w-full h-full"
-                      style={{ background: 'linear-gradient(to bottom, rgba(240,188,160,0.85), rgba(168,210,196,0.80))' }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-transparent" />
-                  )}
-                </div>
-
-                <div className="flex-1 p-4">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <PartTag label={item.part} />
-                    {item.hot && (
-                      <span className="text-[10px] font-medium bg-[#EDF6EB] border border-[#C0DDB9] text-[#3D7A38] px-[8px] py-[3px] rounded-full">
-                        当季热题
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[16px] font-bold text-[#111] leading-snug">
-                    {item.en}
-                  </p>
-                  <p className="text-[12px] text-[#AAAAAA] mt-0.5">
-                    {item.zh}
-                  </p>
-
-                  {/* 底部操作行：收藏图标 + 原因标签 + 练习按钮 */}
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="p-1"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <Star size={14} className="text-[#CCCCCC]" />
-                      </button>
-                      <span className="text-[11px] text-[#888888]">
-                        {item.reason}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/analysis?questionId=${item.id}&storyId=${STORY_ID}`)
-                      }}
-                      className="flex items-center gap-1 text-[12px] font-semibold text-[#444] px-3 py-1.5 rounded-full flex-shrink-0"
-                      style={GRADIENT_BORDER_STYLE}
-                    >
-                      练习
-                      <ArrowRight size={12} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+    <>
+      <div className="lg:hidden"><MatchingMobile {...viewProps} /></div>
+      {/* 桌面端：FlowShellDesktop 沉浸外壳（匹配步激活）+ master-detail 舞台 */}
+      <div className="hidden lg:block">
+        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit}>
+          <MatchingDesktop {...viewProps} />
+        </FlowShellDesktop>
       </div>
+    </>
+  )
+}
 
-      <div className="relative z-20 flex-shrink-0"><TabBar /></div>
-    </div>
+export default function MatchingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg-page" />}>
+      <MatchingContent />
+    </Suspense>
   )
 }

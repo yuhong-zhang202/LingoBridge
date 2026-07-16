@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LingoBridge · 我的（顶部导航 + 调整版 C）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg-page:#FBFAF7; --surface:#FFFFFF; --muted:#EEEBE6; --inner:#F4F2EE;
+  --primary:#D4875A; --primary-light:#F2D5C0; --primary-dark:#B5663A;
+  --accent:#7BA699; --accent-light:#C8DDD9;
+  --tx1:#2C2420; --tx2:#6B5B52; --tx3:#A89990;
+  --danger:#B5663A;
+  --grad:linear-gradient(135deg,rgba(240,188,160,.85),rgba(168,210,196,.80),rgba(188,210,168,.75));
+  --shadow-sm:0 1px 6px rgba(60,40,30,.05);
+  --sans:'Plus Jakarta Sans','PingFang SC','Noto Sans SC',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg-page);color:var(--tx1);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding:0 64px}
+
+/* 顶部导航 */
+.topbar{position:sticky;top:0;z-index:30;background:var(--bg-page);border-bottom:1px solid rgba(0,0,0,.045)}
+.tb{display:flex;align-items:center;gap:34px;height:68px}
+.logo{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px}
+.logo .m{width:38px;height:38px;border-radius:11px;background:var(--primary);display:grid;place-items:center;color:#fff}
+.nav{display:flex;gap:6px}
+.nav a{font-size:15px;color:var(--tx2);text-decoration:none;font-weight:500;padding:7px 14px;border-radius:999px}
+.nav a.on{background:var(--muted);color:var(--tx1);font-weight:600}
+.right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.iconbtn{width:38px;height:38px;border-radius:999px;border:none;background:transparent;color:var(--tx2);display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{background:var(--muted)}
+.ava-nav{width:38px;height:38px;border-radius:999px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px}
+
+/* 页头 */
+.head{padding:24px 0 20px;display:flex;align-items:center;justify-content:space-between}
+.head-l{}
+.crumb{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--tx3)}
+.crumb .cur{color:var(--tx2);font-weight:500}
+.head h1{font-size:26px;font-weight:700;letter-spacing:-.01em;margin-top:8px}
+.settings-btn{width:40px;height:40px;border-radius:999px;border:1px solid rgba(0,0,0,.08);background:var(--surface);color:var(--tx2);display:grid;place-items:center;cursor:pointer}
+.settings-btn:hover{background:var(--muted)}
+
+/* 通用面板 */
+.panel{background:var(--surface);border:1px solid rgba(0,0,0,.06);border-radius:16px;box-shadow:var(--shadow-sm)}
+.panel.grad{border:1.5px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--grad) border-box}
+.panel-pad{padding:20px 22px}
+.panel-h{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.panel-h .ic{color:var(--primary);display:inline-flex}
+.panel-h h2{font-size:15px;font-weight:700;letter-spacing:-.2px;flex:1}
+.panel-h .tag{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:999px}
+.panel-h .link{font-size:12.5px;color:var(--primary);text-decoration:none;font-weight:600}
+.panel-sub{font-size:12px;color:var(--tx3);margin-bottom:14px}
+
+/* Profile head：头像光斑(收清晰容器) + 邮箱 + 三统计一行，合并成一条横幅，解决头重脚轻 */
+.pf-head{margin-bottom:20px}
+.pf-row{display:flex;align-items:center;gap:22px}
+.orb-frame{
+  width:76px;height:76px;border-radius:999px;flex-shrink:0;overflow:hidden;position:relative;
+  background:var(--surface);
+  border:1px solid rgba(0,0,0,.06);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.orb-frame .blob{position:absolute;inset:0}
+.orb-frame .blob i{position:absolute;border-radius:50%;filter:blur(16px)}
+.blob .green{width:60px;height:60px;left:8px;top:2px;background:radial-gradient(circle,rgba(145,200,122,.9),transparent 70%)}
+.blob .blue{width:52px;height:52px;right:2px;top:16px;background:radial-gradient(circle,rgba(112,182,176,.9),transparent 70%)}
+.blob .orange{width:56px;height:56px;left:18px;bottom:0px;background:radial-gradient(circle,rgba(248,168,118,.85),transparent 70%)}
+.pf-info{flex:1;min-width:0}
+.pf-info .email{font-size:16px;font-weight:600;color:var(--tx1)}
+.pf-info .sub{font-size:12.5px;color:var(--tx3);margin-top:3px}
+.pf-stats{display:flex;gap:10px}
+.pf-stat{background:var(--inner);border-radius:12px;padding:12px 20px;text-align:center;min-width:84px}
+.pf-stat.streak{background:linear-gradient(135deg,rgba(212,135,90,.10),rgba(212,135,90,.04))}
+.pf-stat .v{font-size:20px;font-weight:700;color:var(--tx1);display:flex;align-items:baseline;justify-content:center;gap:3px}
+.pf-stat .v .unit{font-size:12px;font-weight:400;color:var(--tx3)}
+.pf-stat .k{font-size:11.5px;color:var(--tx3);margin-top:3px}
+.pf-stat .flame{color:var(--primary);display:inline-flex}
+
+/* 两栏主体 */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;padding-bottom:56px}
+
+/* 画像雷达 */
+.radar-wrap{display:flex;justify-content:center;padding:6px 0 2px}
+
+/* 本月额度 */
+.quota-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+.quota-row:first-of-type{margin-top:4px}
+.quota-name{font-size:14px;font-weight:600;color:var(--tx1)}
+.quota-val{font-size:13px;color:var(--tx3)}
+.quota-bar{height:6px;border-radius:3px;background:var(--muted);margin-top:8px;overflow:hidden}
+.quota-bar i{display:block;height:100%;border-radius:3px;background:var(--primary)}
+
+/* 右下：功能列表 */
+.list{margin-top:20px}
+.list-item{display:flex;align-items:center;gap:12px;padding:13px 4px;border-top:1px solid rgba(0,0,0,.05);cursor:pointer;transition:background .12s;border-radius:8px}
+.list-item:first-child{border-top:none}
+.list-item:hover{background:var(--inner)}
+.list-item .ic{width:34px;height:34px;border-radius:10px;background:var(--inner);color:var(--tx2);display:grid;place-items:center;flex-shrink:0}
+.list-item .t{flex:1;font-size:14.5px;font-weight:500;color:var(--tx1)}
+.list-item .n{font-size:13px;color:var(--tx3)}
+.list-item .v{font-size:12.5px;color:var(--tx3)}
+.list-item .chev{color:var(--tx3);flex-shrink:0}
+
+/* 退出登录 */
+.logout-wrap{display:flex;justify-content:center;padding-bottom:64px}
+.logout-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;border:1px solid rgba(0,0,0,.08);border-radius:999px;
+  font-family:inherit;font-size:14px;font-weight:500;color:var(--tx3);
+  padding:11px 24px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+.logout-btn:hover{background:var(--inner);color:var(--danger);border-color:rgba(181,102,58,.25)}
+
+@media (max-width:980px){
+  .wrap{padding:0 32px}
+  .cols{grid-template-columns:1fr}
+  .pf-row{flex-wrap:wrap}
+  .pf-stats{width:100%}
+  .pf-stat{flex:1}
+  .nav{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar"><div class="wrap tb">
+  <div class="logo"><span class="m"><i data-lucide="mic" width="20" height="20"></i></span>LingoBridge</div>
+  <nav class="nav"><a href="#">首页</a><a href="#">题库</a><a href="#">素材库</a><a href="#" class="on">我的</a></nav>
+  <div class="right">
+    <button class="iconbtn" aria-label="通知"><i data-lucide="bell" width="20" height="20"></i></button>
+    <div class="ava-nav">B</div>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <div class="head">
+    <div class="head-l">
+      <div class="crumb"><span>首页</span><i data-lucide="chevron-right" width="14" height="14"></i><span class="cur">我的</span></div>
+      <h1>我的</h1>
+    </div>
+    <button class="settings-btn" aria-label="设置"><i data-lucide="settings" width="18" height="18"></i></button>
+  </div>
+
+  <!-- Profile head：头像 + 邮箱 + 三统计合成一条横幅 -->
+  <div class="panel grad panel-pad pf-head">
+    <div class="pf-row">
+      <div class="orb-frame">
+        <div class="blob"><i class="green"></i><i class="blue"></i><i class="orange"></i></div>
+      </div>
+      <div class="pf-info">
+        <div class="email">b***@hotmail.com</div>
+        <div class="sub">基于你的 3 段语料生成画像</div>
+      </div>
+      <div class="pf-stats">
+        <div class="pf-stat streak">
+          <div class="v"><span class="flame"><i data-lucide="flame" width="16" height="16"></i></span>0<span class="unit">天</span></div>
+          <div class="k">连续打卡</div>
+        </div>
+        <div class="pf-stat">
+          <div class="v">3</div>
+          <div class="k">语料</div>
+        </div>
+        <div class="pf-stat">
+          <div class="v">0</div>
+          <div class="k">练习</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 两栏：左画像雷达 · 右额度+功能列表 -->
+  <div class="cols">
+    <!-- 左：我的画像（5 维雷达）-->
+    <div class="panel panel-pad">
+      <div class="panel-h">
+        <span class="ic"><i data-lucide="radar" width="17" height="17"></i></span>
+        <h2>我的画像</h2>
+        <span class="tag">AI 生成</span>
+        <a href="#" class="link">查看完整 →</a>
+      </div>
+      <div class="panel-sub">基于你的 3 段语料</div>
+      <div class="radar-wrap">
+        <svg width="280" height="240" viewBox="0 0 240 200" role="img" aria-label="我的画像五维雷达图">
+          <g fill="none" stroke="rgba(0,0,0,0.09)" stroke-width="1">
+            <polygon points="120,10 199,64 169,167 71,167 41,64"/>
+            <polygon points="120,44 170,80 152,131 88,131 70,80"/>
+            <polygon points="120,78 141,96 135,113 105,113 99,96"/>
+            <line x1="120" y1="100" x2="120" y2="10"/>
+            <line x1="120" y1="100" x2="199" y2="64"/>
+            <line x1="120" y1="100" x2="169" y2="167"/>
+            <line x1="120" y1="100" x2="71" y2="167"/>
+            <line x1="120" y1="100" x2="41" y2="64"/>
+          </g>
+          <circle cx="120" cy="99" r="2.5" fill="#D4875A"/>
+          <g fill="#A89990" font-size="11" font-family="'Plus Jakarta Sans','Noto Sans SC',sans-serif">
+            <text x="120" y="6" text-anchor="middle">情绪内核</text>
+            <text x="205" y="62" text-anchor="start">人际羁绊</text>
+            <text x="175" y="182" text-anchor="start">场域</text>
+            <text x="65" y="182" text-anchor="end">精神角落</text>
+            <text x="35" y="62" text-anchor="end">成长演进</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 右：本月额度 + 功能列表 -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="panel panel-pad">
+        <div class="panel-h"><span class="ic"><i data-lucide="gauge" width="17" height="17"></i></span><h2>本月额度</h2><span class="v" style="font-size:12px;color:var(--tx3)">8 月 1 日重置</span></div>
+        <div class="quota-row"><span class="quota-name">故事练习</span><span class="quota-val">0 / 10</span></div>
+        <div class="quota-bar"><i style="width:0%"></i></div>
+        <div class="quota-row"><span class="quota-name">题目练习</span><span class="quota-val">0 / 10</span></div>
+        <div class="quota-bar"><i style="width:0%"></i></div>
+      </div>
+
+      <div class="panel panel-pad">
+        <div class="list">
+          <div class="list-item">
+            <span class="ic"><i data-lucide="bookmark" width="17" height="17"></i></span>
+            <span class="t">收藏的卡片</span>
+            <span class="n">0</span>
+            <span class="chev"><i data-lucide="chevron-right" width="16" height="16"></i></span>
+          </div>
+          <div class="list-item">
+            <span class="ic"><i data-lucide="history" width="17" height="17"></i></span>
+            <span class="t">练习历史</span>
+            <span class="chev"><i data-lucide="chevron-right" width="16" height="16"></i></span>
+          </div>
+          <div class="list-item">
+            <span class="ic"><i data-lucide="circle-help" width="17" height="17"></i></span>
+            <span class="t">帮助与反馈</span>
+            <span class="chev"><i data-lucide="chevron-right" width="16" height="16"></i></span>
+          </div>
+          <div class="list-item">
+            <span class="ic"><i data-lucide="info" width="17" height="17"></i></span>
+            <span class="t">关于 LingoBridge</span>
+            <span class="v">v0.6.0</span>
+            <span class="chev"><i data-lucide="chevron-right" width="16" height="16"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logout-wrap">
+    <button class="logout-btn"><i data-lucide="log-out" width="15" height="15"></i>退出登录</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>if(window.lucide)lucide.createIcons();</script>
+</body>
+</html>

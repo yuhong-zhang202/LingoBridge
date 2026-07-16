@@ -1,40 +1,46 @@
 /**
  * @module   Chip
- * @desc     交互型胶囊按钮 — 可点击，支持 gradient / ghost / default 三种样式
+ * @desc     交互型胶囊按钮 — 可点击，gradient / ghost / default 三种样式，sm / md 两种尺寸
  * @author   LingoBridge
  * @created  2026-05-29
  */
 'use client'
-import type { ReactNode } from 'react'
+import type { ReactNode, MouseEventHandler } from 'react'
 import { cn } from '@/lib/utils'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 
 interface ChipProps {
   children: ReactNode
-  onClick?: () => void
+  onClick?: MouseEventHandler<HTMLButtonElement>
   active?: boolean
   variant?: 'gradient' | 'ghost' | 'default'
+  size?: 'sm' | 'md'
   className?: string
 }
 
-const BASE = 'text-[12px] rounded-full inline-flex items-center gap-1 px-3.5 py-[5px] transition-all duration-150 active:scale-[0.97]'
+const SIZES = {
+  sm: 'text-[11px] px-[10px] py-[3px]',
+  md: 'text-[12px] px-3.5 py-[5px]',
+}
+const BASE = 'rounded-full inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.97]'
 
 /**
  * 交互型胶囊按钮
  * @param children  按钮内容
- * @param onClick   点击回调
+ * @param onClick   点击回调（接收鼠标事件）
  * @param active    激活态（ghost 时切换为 gradient 样式）
  * @param variant   样式变体，默认 gradient
+ * @param size      尺寸，默认 md（sm 用于紧凑动作 chip）
  * @param className 额外 class
  */
-export default function Chip({ children, onClick, active, variant = 'gradient', className }: ChipProps) {
+export default function Chip({ children, onClick, active, variant = 'gradient', size = 'md', className }: ChipProps) {
   const useGradient = variant === 'gradient' || (variant === 'ghost' && active)
 
   if (useGradient) {
     return (
       <button
         onClick={onClick}
-        className={cn(BASE, 'bg-white text-[#444] font-semibold', className)}
+        className={cn(BASE, SIZES[size], 'bg-white text-v2-text-secondary font-semibold', className)}
         style={GRADIENT_BORDER_STYLE}
       >
         {children}
@@ -43,13 +49,13 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
   }
 
   const variantClass = variant === 'ghost'
-    ? 'bg-transparent border border-[#E5E5E5] text-[#AAAAAA]'
-    : 'bg-white border border-[#E5E5E5] text-[#444]'
+    ? 'bg-transparent border border-neutral-border text-v2-text-muted'
+    : 'bg-white border border-neutral-border text-v2-text-secondary'
 
   return (
     <button
       onClick={onClick}
-      className={cn(BASE, variantClass, className)}
+      className={cn(BASE, SIZES[size], variantClass, className)}
     >
       {children}
     </button>

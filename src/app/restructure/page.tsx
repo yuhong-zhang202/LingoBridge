@@ -1,132 +1,182 @@
 /**
  * @module   RestructurePage
- * @desc     AI 整理确认页 — 展示原始语料与 AI 整理结果，支持编辑后进入题目匹配
+ * @desc     AI 整理确认页外壳 —— 集中持有语料整理逻辑（AI 整理/编辑/重整/保存跳转），
+ *           按 lg 断点分发移动/桌面两套视图。逻辑单实例，两视图仅接收状态与回调做展示。
  * @author   LingoBridge
  * @created  2026-05-28
  */
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Quote, Sparkles, Pencil, Check, RefreshCw } from 'lucide-react'
-import TopBar from '@/components/TopBar'
-import TabBar from '@/components/TabBar'
-import { StepBar } from '@/components/StepBar'
-import Orb from '@/components/Orb'
-import Chip from '@/components/Chip'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
-import { MOCK_RAW_STORY, MOCK_AI_RESULT } from '@/data/restructure'
+import { MOCK_RAW_STORY } from '@/data/restructure'
+import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
+import { updateCorpusCleaned } from '@/lib/db/corpus'
+import { upsertMatch } from '@/lib/db/matches'
+import { getSupabase } from '@/lib/supabase'
+import { apiFetch } from '@/lib/api-client'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
+import RestructureMobile from './RestructureMobile'
+import RestructureDesktop from './RestructureDesktop'
+import ConfirmDialog from '@/components/ConfirmDialog'
+import type { RestructureViewProps } from './types'
 
-// 渐变参数：AI 结果卡 border 用半透明 rgba（与 globals.css 保持一致）
-const GRAD_BORDER = 'linear-gradient(135deg, rgba(240,188,160,0.85), rgba(168,210,196,0.80))'
-
-// ── AI 整理结果卡片（读 / 编辑同一组件切换）
-function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
-  text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
-}) {
-  return (
-    <div style={{ background: GRAD_BORDER, padding: 1, borderRadius: 21 }}>
-      <div className="bg-white rounded-[20px] px-5 pt-4 pb-5">
-        {isEditing ? (
-          <textarea
-            value={text}
-            onChange={e => onChange(e.target.value)}
-            className="w-full min-h-[110px] text-[14px] text-gray-900 leading-relaxed bg-gray-50 rounded-[12px] px-3 py-2.5 outline-none resize-none focus:ring-1 focus:ring-brand-primary/30"
-            autoFocus
-          />
-        ) : (
-          <p className="text-[14px] text-gray-900 leading-relaxed">{text}</p>
-        )}
-        <div className="flex justify-end mt-2">
-          <Chip onClick={onToggleEdit} variant="default">
-            {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
-          </Chip>
-        </div>
-      </div>
-    </div>
-  )
+/** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText } */
+interface StructuredHandoff { rawText: string; cleanedText: string }
+function isStructuredHandoff(v: unknown): v is StructuredHandoff {
+  return typeof v === 'object' && v !== null
+    && typeof (v as Record<string, unknown>).rawText === 'string'
+    && typeof (v as Record<string, unknown>).cleanedText === 'string'
 }
 
-// ── 页面主体（Suspense 包裹原因：useSearchParams 需要）
 function RestructureContent() {
-  const router    = useRouter()
-  const rawStory  = useSearchParams().get('story') ?? MOCK_RAW_STORY
-  const [isLoading, setIsLoading] = useState(true)
-  const [aiText,    setAiText]    = useState(MOCK_AI_RESULT)
+  const router   = useRouter()
+  const params   = useSearchParams()
+  const qid      = params.get('qid')
+  // 故事正文（及可选的预检整理结果）从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
+  // 新版结构化 handoff 携 { rawText, cleanedText }：直接进已整理态、跳过首次整理调用；
+  // 旧版纯字符串 handoff（网络/非 402 错误兜底）仍原样读出，走自行整理。都无则回退 rawText / MOCK。
+  const [handoff] = useState<{ rawStory: string; cleanedText: string | null }>(() => {
+    const h = params.get('h')
+    if (h) {
+      const j = takeHandoffJson(h, isStructuredHandoff)
+      if (j) return { rawStory: j.rawText, cleanedText: j.cleanedText }
+      const s = takeHandoff(h)   // 未通过校验时未消费，此处原样读出旧版纯文本
+      if (s !== null) return { rawStory: s, cleanedText: null }
+    }
+    return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null }
+  })
+  const rawStory = handoff.rawStory
+  const [isLoading, setIsLoading] = useState(handoff.cleanedText === null)
+  const [aiText,     setAiText]     = useState(handoff.cleanedText ?? '')
+  // AI 产出的原始整理文本基准；aiText 与它不一致 = 用户编辑过（未保存）
+  const [aiBaseline, setAiBaseline] = useState(handoff.cleanedText ?? '')
   const [isEditing, setIsEditing] = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
+  const [usable,    setUsable]    = useState<boolean | null>(handoff.cleanedText !== null ? true : null)
+  const [isSaving,  setIsSaving]  = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层
+  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
+  // 匿名试用用户：额度提示走 trial 变体（引导注册），注册用户走 story 变体（月额度 10/10）
+  const [isAnon, setIsAnon] = useState(false)
+  useEffect(() => {
+    void getSupabase().auth.getSession().then(({ data: { session } }) => {
+      setIsAnon(session?.user?.is_anonymous ?? false)
+    })
+  }, [])
 
-  const startLoading = () => {
+  const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
     setIsEditing(false)
-    setTimeout(() => setIsLoading(false), 1500)
+    setError(null)
+    setUsable(null)
+    try {
+      const res = await apiFetch('/api/restructure', {
+        method: 'POST',
+        json: { rawText: rawStory },
+        signal,
+      })
+      // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」
+      if (res.status === 402) { if (!signal?.aborted) setStoryQuotaReached(true); return }
+      if (!res.ok) throw new Error('整理失败')
+      const data = (await res.json()) as { cleanedText: string; usable: boolean }
+      if (signal?.aborted) return
+      setAiText(data.cleanedText)
+      setAiBaseline(data.cleanedText)
+      setUsable(data.usable ?? true)
+    } catch (e) {
+      if (signal?.aborted) return          // 中断不算错误，忽略
+      setError(e instanceof Error ? e.message : '整理失败，请重试')
+    } finally {
+      if (!signal?.aborted) setIsLoading(false)
+    }
+  }, [rawStory])
+
+  useEffect(() => {
+    if (handoff.cleanedText !== null) return   // 预检已带整理结果，跳过首次 API 调用
+    const ac = new AbortController()
+    void runRestructure(ac.signal)
+    return () => ac.abort()
+  }, [runRestructure, handoff.cleanedText])
+  // A13 防重入：「重新整理」「重试」两个按钮共用一个 ref 守卫，连点只发一次 AI 整理
+  const [reRestructure] = useAsyncAction(runRestructure)
+
+  const handleMatchClick = useCallback(async (): Promise<void> => {
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      // 创建这一步服务端化（配额 + 落库防绕过）；后续整理/匹配/跳转仍走客户端 RLS
+      const res = await apiFetch('/api/corpus', {
+        method: 'POST',
+        json: { source: 'voice', rawText: rawStory },
+      })
+      if (res.status === 402) { setStoryQuotaReached(true); setIsSaving(false); return }
+      if (!res.ok) throw new Error('语料保存失败，请重试')
+      const { corpus } = (await res.json()) as { corpus: { id: string } }
+      await updateCorpusCleaned(corpus.id, aiText)
+      if (qid) {
+        // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转
+        await upsertMatch(corpus.id, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
+        router.push(`/analysis?questionId=${qid}&storyId=${corpus.id}`)   // 雅思流：跳过匹配，直达分析
+      } else {
+        router.push(`/matching?corpusId=${corpus.id}`)                    // 故事流：照旧去匹配
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
+      setIsSaving(false)
+    }
+  }, [rawStory, aiText, qid, router])
+
+  // 未保存 = 用户编辑过整理后文本；退出 / 重新整理前若有未保存内容先确认（仅桌面接线，移动端行为不变）。
+  const hasUnsaved = aiText !== aiBaseline
+  const [confirm, setConfirm] = useState<null | 'exit' | 'rerestructure'>(null)
+  const doExit = () => router.push('/')
+  const requestExit = () => { if (hasUnsaved) setConfirm('exit'); else doExit() }
+  const requestReRestructure = () => { if (hasUnsaved) setConfirm('rerestructure'); else void reRestructure() }
+
+  const viewProps: RestructureViewProps = {
+    rawStory,
+    aiText,
+    isEditing,
+    isLoading,
+    error,
+    usable,
+    isSaving,
+    saveError,
+    qid,
+    onAiChange: setAiText,
+    onToggleEdit: () => setIsEditing(v => !v),
+    onReRestructure: () => void reRestructure(),
+    onMatch: () => void handleMatchClick(),
+    onExit: doExit,
   }
 
-  useEffect(startLoading, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <TopBar title="整理确认" />
-      <StepBar currentStep="restructure" />
-
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-6 relative z-10 flex flex-col gap-4">
-
-        {/* 原始语料卡片 */}
-        <div className="bg-white rounded-[16px] border border-black/[0.05] px-5 pt-4 pb-5">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <Quote size={13} className="text-gray-400" />
-            <span className="text-[11px] font-medium text-gray-400">素材录入</span>
-          </div>
-          <p className="text-[14px] text-gray-500 leading-relaxed">{rawStory}</p>
-        </div>
-
-        {/* 过渡区 */}
-        <div className="flex items-center gap-2 px-1">
-          <div className="flex-1 h-px bg-gray-200" />
-          <Sparkles size={12} className="text-gray-300" />
-          <span className="text-[11px] text-gray-400">语料梳理</span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
-
-        {/* AI 整理结果 / 加载态 */}
-        {isLoading ? (
-          <div className="flex flex-col items-center py-6 gap-3">
-            <Orb size={120} />
-            <p className="text-[13px] text-v2-text-muted">AI 整理中…</p>
-          </div>
-        ) : (
-          <AiResultCard
-            text={aiText}
-            isEditing={isEditing}
-            onToggleEdit={() => setIsEditing(v => !v)}
-            onChange={setAiText}
-          />
-        )}
+    <>
+      <div className="lg:hidden"><RestructureMobile {...viewProps} /></div>
+      {/* 桌面端：FlowShellDesktop 沉浸外壳（整理步激活）+ 两栏舞台。
+          ✕ / Esc③ / 重新整理 都走 request*：编辑过未保存时先弹确认。 */}
+      <div className="hidden lg:block">
+        <FlowShellDesktop activeStep="restructure" onExit={requestExit}>
+          <RestructureDesktop {...viewProps} onExit={requestExit} onReRestructure={requestReRestructure} />
+        </FlowShellDesktop>
+        <ConfirmDialog
+          open={confirm !== null}
+          title="还没保存哦"
+          description={confirm === 'rerestructure'
+            ? '重新整理会用新的整理结果覆盖你刚改过的内容，确定吗？'
+            : '你改过的内容还没保存，离开就没啦。确定要离开吗？'}
+          confirmText={confirm === 'rerestructure' ? '重新整理' : '离开'}
+          cancelText="留下继续"
+          onConfirm={() => { const c = confirm; setConfirm(null); if (c === 'exit') doExit(); else void reRestructure() }}
+          onCancel={() => setConfirm(null)}
+        />
       </div>
-
-      {/* 底部操作区 */}
-      {!isLoading && (
-        <div
-          className="flex-shrink-0 px-5 relative z-10"
-          style={{ paddingBottom: 'max(88px, calc(env(safe-area-inset-bottom) + 56px))', paddingTop: 12 }}
-        >
-          {/* 主按钮 */}
-          <button
-            className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium text-[#444] mb-3 active:scale-[0.97] transition-transform duration-150"
-            style={GRADIENT_BORDER_STYLE}
-            onClick={() => router.push(`/matching?story=${encodeURIComponent(aiText)}`)}
-          >
-            开始匹配题目 →
-          </button>
-          {/* 次要按钮 */}
-          <button
-            className="w-full flex items-center justify-center gap-1.5 text-[13px] text-gray-400 active:opacity-70 transition-opacity"
-            onClick={() => { setAiText(MOCK_AI_RESULT); startLoading() }}
-          >
-            <RefreshCw size={13} />重新整理
-          </button>
-        </div>
-      )}
-      <div className="flex-shrink-0"><TabBar /></div>
-    </div>
+      {/* 额度超限覆盖层：匿名走 trial（引导注册）、注册走 story（月额度）；关闭即回首页 */}
+      {storyQuotaReached && <QuotaReached variant={isAnon ? 'trial' : 'story'} asOverlay onClose={() => router.push('/')} />}
+    </>
   )
 }
 
