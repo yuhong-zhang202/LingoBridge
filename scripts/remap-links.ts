@@ -64,7 +64,7 @@ interface KeepAction { questionId: string; label: string; code: string; isPrimar
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const REMAP_PATH = join(__dirname, 'data', 'question-observation-remap.v1.json')
+const REMAP_PATH = join(__dirname, 'data', 'question-observation-remap.v2.json')
 const BACKUP_DIR = join(__dirname, 'data', 'backup')
 const LINKS_TABLE = 'question_observation_links'
 

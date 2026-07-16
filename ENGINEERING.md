@@ -167,7 +167,7 @@ refactor: extract API client to lib/api.ts
 **第一段 萃取**（`src/services/extraction.ts`）
 - 模型：`MODEL_EXTRACTION`（qwen-plus）
 - 输入：整理后的中文故事；输出：`{ primary, secondary }` 各带 `pointCode`（如 `EMO_04`）和 `reason`
-- 观察点 taxonomy（48 个，6 维度）与判断规则完全写死在该文件的 `SYSTEM_PROMPT` 里；改 prompt 须用老故事回归验证
+- 观察点 taxonomy（49 个，6 维度）与判断规则完全写死在该文件的 `SYSTEM_PROMPT` 里，**它是观察点体系的唯一真源**（产品不变式 5）；DB / 邻接表 / 文档都是下游。改 prompt 须用老故事回归验证
 
 **第二段 召回——三层漏斗**（`src/services/matching.ts` → `src/lib/db/questions.ts`）
 - 关联表：`question_observation_links(observation_point_id, question_id, is_primary)`

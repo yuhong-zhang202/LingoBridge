@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
+import { questionFace } from '@/lib/question-face'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
 
 // ── 类型 ──────────────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ interface StoryResult {
   primaryPoint: { code: string; name: string } | null
   secondaryPoint: { code: string; name: string } | null
   matchedViaSecondary: boolean
+  matchedViaNeighbor: boolean
   noMatch: boolean
   isOutOfScope: boolean
   candidates: CandidateExport[]
@@ -63,6 +65,7 @@ type StoryOutcome =
 interface CliOptions {
   only: Set<string> | null
   limit: number | null
+  blind: boolean
 }
 
 // ── 常量 ──────────────────────────────────────────────────────────────────────
@@ -82,6 +85,7 @@ const RESULTS_DIR = join(__dirname, 'results')
 function parseArgs(argv: string[]): CliOptions {
   let only: Set<string> | null = null
   let limit: number | null = null
+  let blind = false
   for (const arg of argv) {
     if (arg.startsWith('--only=')) {
       const ids = arg.slice('--only='.length).split(',').map((s) => s.trim()).filter((s) => s !== '')
@@ -90,11 +94,13 @@ function parseArgs(argv: string[]): CliOptions {
       const n = Number.parseInt(arg.slice('--limit='.length), 10)
       if (!Number.isFinite(n) || n < 1) throw new Error(`--limit 需为 ≥1 的整数，收到：${arg}`)
       limit = n
+    } else if (arg === '--blind') {
+      blind = true
     } else {
-      throw new Error(`未知参数：${arg}（支持 --only=S001,S050 / --limit=N）`)
+      throw new Error(`未知参数：${arg}（支持 --only=S001,S050 / --limit=N / --blind）`)
     }
   }
-  return { only, limit }
+  return { only, limit, blind }
 }
 
 /** 文件名安全的时间戳（ISO，冒号/点换成短横） */
@@ -196,16 +202,20 @@ async function main(): Promise<void> {
       return { status: 'error', storyId: item.id, story: item.story, isOutOfScope, message: res.message }
     }
     const r = res.result
-    const candidates: CandidateExport[] = r.questions.map((q) => ({
+    const candidates: CandidateExport[] = r.questions.map((q) => {
+      // 题面与线上重排一致：Part2 cue card 带完整题面（含约束 bullet），盲标表据此呈现给标注人
+      const face = questionFace(q)
+      return {
       questionId: q.id,
       part: q.part,
-      questionEn: q.cue_card_title ?? q.question_text,
-      questionZh: q.cue_card_title_zh ?? q.question_text_zh ?? '',
+      questionEn: face.en,
+      questionZh: face.zh,
       pointName: q.pointName,
       isPrimaryMatch: q.isPrimaryMatch,
       relevanceScore: q.relevanceScore ?? null,
       relevanceReason: q.relevanceReason ?? null,
-    }))
+      }
+    })
     return {
       status: 'ok',
       data: {
@@ -214,6 +224,7 @@ async function main(): Promise<void> {
         primaryPoint: r.primary ? { code: r.primary.pointCode, name: r.primary.pointName } : null,
         secondaryPoint: r.secondary ? { code: r.secondary.pointCode, name: r.secondary.pointName } : null,
         matchedViaSecondary: r.matchedViaSecondary,
+        matchedViaNeighbor: r.matchedViaNeighbor,
         noMatch: r.noMatch,
         isOutOfScope,
         candidates,
@@ -229,14 +240,28 @@ async function main(): Promise<void> {
   mkdirSync(RESULTS_DIR, { recursive: true })
   const stamp = fileStamp()
   const jsonPath = join(RESULTS_DIR, `ranking-${stamp}.json`)
-  const mdPath = join(RESULTS_DIR, `ranking-${stamp}-标注表.md`)
+  // JSON 始终导出（供 run-ranking-score.ts 算分，与是否盲标无关）
   writeFileSync(jsonPath, JSON.stringify(report.json, null, 2), 'utf-8')
-  writeFileSync(mdPath, report.md, 'utf-8')
+  // md 表：--blind 出「盲标表」（隐藏 AI 分/理由、中性排序、留金标档空列，供建金标）+ scaffold（携带 zone）；
+  // 否则出「QA 标注表」（展示 AI 分/理由，供快速人工体检）。
+  let mdPath: string
+  let scaffoldPath: string | null = null
+  if (opts.blind) {
+    const blind = buildBlind(gold, outcomes, opts, elapsedMs)
+    mdPath = join(RESULTS_DIR, `ranking-${stamp}-盲标表.md`)
+    scaffoldPath = join(RESULTS_DIR, `ranking-${stamp}-gold-scaffold.json`)
+    writeFileSync(mdPath, blind.md, 'utf-8')
+    writeFileSync(scaffoldPath, JSON.stringify(blind.scaffold, null, 2), 'utf-8')
+  } else {
+    mdPath = join(RESULTS_DIR, `ranking-${stamp}-标注表.md`)
+    writeFileSync(mdPath, report.md, 'utf-8')
+  }
 
   console.log('\n' + report.consoleSummary)
   if (report.suspectedEmptyBank) console.log('\n' + report.emptyBankNotice)
-  console.log(`\nJSON:    ${jsonPath}`)
-  console.log(`标注表:  ${mdPath}`)
+  console.log(`\nJSON:      ${jsonPath}`)
+  console.log(`${opts.blind ? '盲标表:    ' : '标注表:    '}${mdPath}`)
+  if (scaffoldPath) console.log(`scaffold:  ${scaffoldPath}（含 zone，标注后填 goldBucket 即成 golden/ranking.v1.json）`)
 }
 
 // ── 报告构建 ──────────────────────────────────────────────────────────────────
@@ -434,6 +459,164 @@ function buildReport(gold: GoldSet, outcomes: StoryOutcome[], opts: CliOptions, 
   }
 
   return { json, md: md.join('\n') + '\n', consoleSummary, suspectedEmptyBank, emptyBankNotice }
+}
+
+// ── 盲标表（建金标专用）──────────────────────────────────────────────────────────
+
+/**
+ * 隐藏区抽样：每 HIDDEN_SAMPLE_STEP 条取 1 条（=1/5=20%）。稳定规则、非随机，保证可复现。
+ * 抽样顺序：`d.candidates` 由 matchByStory **按 relevanceScore 降序** 排列，隐藏区候选因此也按分数降序；
+ * 每 5 取 1 即「按分数降序的系统抽样」——具分层性质，覆盖隐藏区各分数带（30 多分的"接近可见"与深分区都被采到），
+ * 这是算分脚本 IPW 加权还原（×S）成立的前提；若改为按 id 抽样则退化为近似随机抽样，还原仍成立但失去分层覆盖。
+ */
+const HIDDEN_SAMPLE_STEP = 5
+/** 隐藏区抽样率，写入盲标 scaffold 顶层，供算分脚本交叉校验 */
+const HIDDEN_SAMPLE_RATE = 1 / HIDDEN_SAMPLE_STEP
+
+/** 一行待标候选（供 MD 表 + scaffold 共用，zone 记录归属区） */
+interface LabelRow {
+  questionId: string
+  part: 1 | 2 | 3
+  questionEn: string
+  questionZh: string
+  pointName: string
+  zone: 'visible' | 'hidden_sampled'
+}
+
+/**
+ * 选出一条故事要盲标的候选并中性排序（Part→观察点→id，抹掉 AI 降序痕迹）。
+ * 可见区（score≥SCORE_LOW 或 unscored）全取，zone=visible；隐藏区（<SCORE_LOW）系统抽样 1/5，zone=hidden_sampled。
+ */
+function selectForLabeling(candidates: CandidateExport[]): LabelRow[] {
+  const visible = candidates.filter((c) => c.relevanceScore === null || c.relevanceScore >= SCORE_LOW)
+  const hidden = candidates.filter((c) => c.relevanceScore !== null && c.relevanceScore < SCORE_LOW)
+  const hiddenSampled = hidden.filter((_, i) => i % HIDDEN_SAMPLE_STEP === 0)
+  const rows: LabelRow[] = [
+    ...visible.map((c) => toRow(c, 'visible')),
+    ...hiddenSampled.map((c) => toRow(c, 'hidden_sampled')),
+  ]
+  return rows.sort((a, b) =>
+    a.part - b.part ||
+    a.pointName.localeCompare(b.pointName, 'zh') ||
+    a.questionId.localeCompare(b.questionId),
+  )
+}
+
+function toRow(c: CandidateExport, zone: 'visible' | 'hidden_sampled'): LabelRow {
+  return { questionId: c.questionId, part: c.part, questionEn: c.questionEn, questionZh: c.questionZh, pointName: c.pointName, zone }
+}
+
+/** 盲标固定说明：四档判据（与 prompt 判定主线同源）+ 只填档位、勿看他条 */
+const BLIND_GUIDE = [
+  '> **盲标表 · 用于建重排金标。** 你只做一件事：给下方每一行候选题填一个**档位**——不看 AI 结果、不打数字分、不排序。',
+  '> 判据（改不改故事）：',
+  '> · **高** = 故事的重心/主语/场景/时间/活动/聚光灯**全不用改**，原样就能直接充分回答，且正答它问的点。',
+  '> · **中** = 沾边，但要换角度 / 挪聚光灯 / 换场景 / 只覆盖一部分 / 把「习惯」硬套成「某一次」才能答。',
+  '> · **低** = 必须换一个完全不同的经历才能答，当前故事帮不上。',
+  '> · **隐藏** = 完全答非所问，拿这故事答会很尴尬。',
+  '> 在每行『金标档』列填 高/中/低/隐藏 之一；拿不准可在『备注』写一句。**逐题独立判，别参考同故事其他题的判法。**',
+  '> 说明：本表已隐去 AI 的分数、理由与排序（中性排序＝Part→观察点→id）。可见区候选全列；隐藏区（AI 判 <40）按 1/5 抽样列出，仅用于估埋没率下沿，无需追问为何是这些。',
+].join('\n')
+
+/** scaffold：机器可读的金标骨架，携带每行 zone（人不可见，避免锚定），标注后填 goldBucket 即成金标 */
+interface GoldScaffold {
+  version: string
+  hiddenSampleRate: number
+  generatedAt: string
+  annotator: null
+  annotatedAt: null
+  bucketRubric: string
+  items: {
+    storyId: string
+    countInAccuracy: boolean
+    labels: { questionId: string; zone: 'visible' | 'hidden_sampled'; part: 1 | 2 | 3; goldBucket: null }[]
+  }[]
+}
+
+/**
+ * 生成盲标产物：人用 MD 盲标表（隐 AI 分/理由/排序、留金标档空列）+ 机器 scaffold（携带 zone）。
+ * 二者对同一批候选（selectForLabeling）：可见区全列 + 隐藏区系统抽样 1/5；zone 只进 scaffold、不进 MD，防锚定。
+ */
+function buildBlind(gold: GoldSet, outcomes: StoryOutcome[], opts: CliOptions, elapsedMs: number): { md: string; scaffold: GoldScaffold } {
+  const oks = outcomes.filter((o): o is Extract<StoryOutcome, { status: 'ok' }> => o.status === 'ok')
+  const errs = outcomes.filter((o): o is Extract<StoryOutcome, { status: 'error' }> => o.status === 'error')
+
+  const md: string[] = []
+  md.push('# 重排金标 · 盲标表')
+  md.push('')
+  md.push(`- 金标集：${gold.version}`)
+  md.push(`- 故事数：${outcomes.length}（成功 ${oks.length}｜error ${errs.length}）`)
+  md.push(`- 选项：${opts.only ? `--only=${[...opts.only].join(',')} ` : ''}--blind${opts.limit !== null ? ` --limit=${opts.limit}` : ''}`.trim())
+  md.push(`- 用时：${(elapsedMs / 1000).toFixed(1)}s`)
+  md.push('')
+  md.push('## 标注说明')
+  md.push('')
+  md.push(BLIND_GUIDE)
+  md.push('')
+  md.push('---')
+  md.push('')
+
+  const scaffoldItems: GoldScaffold['items'] = []
+
+  for (const o of outcomes) {
+    if (o.status === 'error') {
+      md.push(`## ${o.storyId}${o.isOutOfScope ? '（域外条）' : ''}　⚠ error（本轮未召回，跳过标注）`)
+      md.push('')
+      md.push(`- 故事全文：${o.story}`)
+      md.push(`- 运行失败：${o.message}`)
+      md.push('')
+      md.push('---')
+      md.push('')
+      continue
+    }
+    const d = o.data
+    const rows = selectForLabeling(d.candidates)
+    const visN = rows.filter((r) => r.zone === 'visible').length
+    const hidN = rows.length - visN
+
+    // scaffold：每故事一项，携带 zone（人不可见）
+    scaffoldItems.push({
+      storyId: d.storyId,
+      countInAccuracy: !d.isOutOfScope,
+      labels: rows.map((r) => ({ questionId: r.questionId, zone: r.zone, part: r.part, goldBucket: null })),
+    })
+
+    md.push(`## ${d.storyId}${d.isOutOfScope ? '（域外条·出诊断不入闸门）' : ''}`)
+    md.push('')
+    md.push(`- 故事全文：${d.story}`)
+    md.push(`- 待标候选：${rows.length} 题`)
+    md.push('')
+
+    if (d.noMatch || rows.length === 0) {
+      md.push('**无候选题（走 noMatch 收尾）** —— 请人工确认「零候选」是否合理，勾一项：')
+      md.push('')
+      md.push('- 零候选是否合理：______ （合理 / 不合理——本该有题）')
+      md.push('')
+    } else {
+      md.push('| Part | 题目(英文) | 题目(中文) | 所属观察点 | 金标档(高/中/低/隐藏) | 备注 |')
+      md.push('|---|---|---|---|---|---|')
+      for (const r of rows) {
+        md.push(`| ${r.part} | ${cell(r.questionEn)} | ${cell(r.questionZh)} | ${cell(r.pointName)} |  |  |`)
+      }
+      md.push('')
+    }
+    md.push('---')
+    md.push('')
+
+    void hidN; void visN  // 计数不外露（隐藏占比会泄露 AI 判定，破坏盲标），仅保留结构
+  }
+
+  const scaffold: GoldScaffold = {
+    version: gold.version,
+    hiddenSampleRate: HIDDEN_SAMPLE_RATE,
+    generatedAt: new Date().toISOString(),
+    annotator: null,
+    annotatedAt: null,
+    bucketRubric: '高=原样能答;中=挪重心/换场景/习惯套单次;低=得换故事;隐藏=答非所问（详见提案 3.4 与标注手册）',
+    items: scaffoldItems,
+  }
+
+  return { md: md.join('\n') + '\n', scaffold }
 }
 
 main().catch((e: unknown) => {

@@ -13,12 +13,19 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from '@/lib/constants'
 
-/** 相关性分数 → 匹配档位（与 matching 页分组判定一致，无 score 视为高匹配；< SCORE_LOW 不展示亦不入库） */
+/**
+ * 相关性分数 → 匹配档位（< SCORE_LOW 不展示亦不入库）。
+ *
+ * 无 score（重排降级或模型漏题）一律返回 null = 不落库。历史上这里是 `score ?? 100`，
+ * 等于把「我们不知道它贴不贴合」永久写成 `match_level='high'`，且下游任何读这张表的
+ * 功能都会继承这个谎。展示层可以选择乐观降级（那是产品决策），但落库层不行：
+ * 写进库的必须是我们真的知道的事。
+ */
 function levelForScore(score: number | undefined): 'high' | 'mid' | 'low' | null {
-  const s = score ?? 100
-  if (s >= SCORE_HIGH) return 'high'
-  if (s >= SCORE_MID) return 'mid'
-  if (s >= SCORE_LOW) return 'low'
+  if (score === undefined) return null
+  if (score >= SCORE_HIGH) return 'high'
+  if (score >= SCORE_MID) return 'mid'
+  if (score >= SCORE_LOW) return 'low'
   return null
 }
 

@@ -27,4 +27,9 @@ export const env = {
 
   // 管理员邮箱白名单（英文逗号分隔）—— 仅服务端读取，用于成本看板等敏感接口鉴权，切勿加 NEXT_PUBLIC_
   adminEmails: process.env.ADMIN_EMAILS ?? '',
+
+  // LLM 原始输出留存目录（相对/绝对路径）。留空=不留存（生产默认）。
+  // 非空时 lib/llm.ts 会把每次调用的完整 prompt + 原始输出落盘成 JSONL，供离线复盘「模型是否把
+  // score/reason 贴错 id」。含用户故事原文，务必只指向 .gitignore 内的本地目录，切勿在生产开启。
+  llmRawLogDir: process.env.LLM_RAW_LOG_DIR ?? '',
 }

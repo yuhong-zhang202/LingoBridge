@@ -1,0 +1,1212 @@
+{
+  "version": "v2",
+  "bucketRubric": "高=原样能答;中=挪重心/换场景/习惯套单次;低=得换故事;隐藏=答非所问（详见提案 3.4 与标注手册）",
+  "hiddenSampleRate": 0.2,
+  "annotator": "sianchenn",
+  "annotatedAt": "2026-07-16",
+  "items": [
+    {
+      "storyId": "S016",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "9a367b08-519d-4613-b854-64f404b51b21",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S017",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "9a367b08-519d-4613-b854-64f404b51b21",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S019",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "bf2acef4-1143-48f2-82dc-92b3d1658e28",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "5c64dcd6-205a-4bb5-8386-a10aafc7bc7a",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S020",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2fa44100-bc2c-4412-9890-42e780c00ab7",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "82810dd5-04d6-4c06-b31a-e31d653700b2",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S024",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2ad86a68-cbfd-4d41-ad87-b0e741bc8ae5",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S025",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2ad86a68-cbfd-4d41-ad87-b0e741bc8ae5",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S037",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "363178cc-22c7-4f72-8764-ed6debd48f01",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "a4bfe217-73f2-4b8f-815f-9315dabc80d4",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "c1cca6f9-cd7b-4870-9496-ef97b050a15a",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S040",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "1999f6d4-fefa-4c71-8bd0-16ede601e3dc",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "d88ec1a7-1ba5-4e72-8b87-a1785180f797",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S041",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "1999f6d4-fefa-4c71-8bd0-16ede601e3dc",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "d88ec1a7-1ba5-4e72-8b87-a1785180f797",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S044",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "172cfe24-0030-4736-9b48-0b063685da4e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "56ebab05-30e1-404f-b561-9fb037930a9d",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "c1cca6f9-cd7b-4870-9496-ef97b050a15a",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "f540a416-1801-44ca-a8c8-8558257360e3",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "400bf3ce-7d73-44b8-8022-506debc84c88",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "ee65f746-eeaa-4b25-9f86-1e8e20b01760",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S045",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "be43f248-d481-435c-820c-41b512513a00",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "c1cca6f9-cd7b-4870-9496-ef97b050a15a",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "c1f3d39c-1975-4688-ae93-961416e917d3",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S046",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "daf65917-2415-45d2-b716-2a2f7ca9f159",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "中"
+        }
+      ]
+    },
+    {
+      "storyId": "S047",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        }
+      ]
+    },
+    {
+      "storyId": "S051",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "11fc6210-a6b9-4dc3-9c03-62528b2880f2",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "52426e9c-d286-4f0f-8723-af921bf1ee22",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "6157a9a6-a9c1-4488-b8e7-f63dcf666f90",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "6a65c126-30cf-4832-a81e-aacba4e4ad8f",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "94e623b8-c8bb-4a80-b2c9-0db12d643648",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "e04c0d32-2848-4959-b906-2d707b6b072e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2ab5a987-39f8-47ee-8e3c-99f76a627710",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "c2dc0833-5d3c-4b35-bd85-25f17d535668",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S056",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "4711c3ca-5833-4986-a83e-4f31c508087e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "fdd1837d-7daf-474c-8122-269b670ed46a",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S057",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "4711c3ca-5833-4986-a83e-4f31c508087e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "fdd1837d-7daf-474c-8122-269b670ed46a",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "76217956-3864-4690-ba66-073447b1a8d3",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "7e872ea7-b936-4ef3-b90f-aca8c544bf08",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S060",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "4711c3ca-5833-4986-a83e-4f31c508087e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "81f0772f-1dcf-4a3d-9704-cafc6db9475b",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S061",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "4711c3ca-5833-4986-a83e-4f31c508087e",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "fdd1837d-7daf-474c-8122-269b670ed46a",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "81f0772f-1dcf-4a3d-9704-cafc6db9475b",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "高"
+        }
+      ]
+    },
+    {
+      "storyId": "S062",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2fa96298-f9ac-49d4-b195-e4c6bd587009",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "31fc04c4-d9e4-46e3-8dcf-826774c33eda",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "656fe686-4bc3-434d-9e0f-87803b65cece",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "a90a2cad-acb4-4513-aa05-fa2004b5b80c",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "adf22c5d-24ce-445b-b792-486dd1b4db58",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "de120bed-dc80-4be8-a3ac-c05c1b4a6b23",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S063",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "039cf313-4242-4e76-9fe7-34c0e193f1a1",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2fa96298-f9ac-49d4-b195-e4c6bd587009",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "31fc04c4-d9e4-46e3-8dcf-826774c33eda",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "656fe686-4bc3-434d-9e0f-87803b65cece",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "a385234a-93b3-48cb-a8e5-3cfe05b283bf",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "a90a2cad-acb4-4513-aa05-fa2004b5b80c",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "adf22c5d-24ce-445b-b792-486dd1b4db58",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "de120bed-dc80-4be8-a3ac-c05c1b4a6b23",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "高",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ff32fa58-4897-407a-8962-9106e50b6ae6",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    },
+    {
+      "storyId": "S064",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S065",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S066",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "e4d54c27-68c5-4356-8302-434261696cca",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S067",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "3c972670-5a2c-40ad-b410-e381e321f7bb",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "5a78c6ad-2f3f-40b6-bdf1-086b01908d44",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "f09c2e63-3ab3-4302-b751-932a7d2cb37d",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S072",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "29950005-fcc8-4eaf-be64-bfaf8d1bb860",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "高"
+        },
+        {
+          "questionId": "aa51b44f-9e97-4f06-b3a5-37c3cbdec3bc",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "bd6f2383-432f-4dc3-aea7-0f274555d336",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "cda04d1e-db76-4244-83bc-b7bb114878ea",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "高"
+        },
+        {
+          "questionId": "ef3ac1af-49f0-46f3-8133-f80ce0062c7a",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "高"
+        }
+      ]
+    },
+    {
+      "storyId": "S074",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0186bba0-ee28-4f24-b59b-fd3e150966ab",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "04339049-895b-4e7e-a5da-374e19ce770d",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "44296097-0713-4219-af6e-47e534d9bcc3",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ecb70d27-9f78-4398-9d35-72629a48e7fa",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "f9119694-2aba-4c05-ad17-88cf7a858048",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "95df6563-b761-4545-a2c2-84e4ebfbad87",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "abcd4891-e3ef-4c58-b012-1bc58c5f1dc8",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "高"
+        }
+      ]
+    },
+    {
+      "storyId": "S075",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "ecb70d27-9f78-4398-9d35-72629a48e7fa",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "f9119694-2aba-4c05-ad17-88cf7a858048",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "95df6563-b761-4545-a2c2-84e4ebfbad87",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "abcd4891-e3ef-4c58-b012-1bc58c5f1dc8",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S079",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "806b2bfd-d6fb-4b44-860a-045c8d6d9eb7",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "e86bcb99-94bd-4b02-aa4a-28f1a7572ab9",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S080",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "806b2bfd-d6fb-4b44-860a-045c8d6d9eb7",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "e86bcb99-94bd-4b02-aa4a-28f1a7572ab9",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S083",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S084",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "5bb36713-713e-4aca-87dc-2f7f34f35737",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S085",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "f09c2e63-3ab3-4302-b751-932a7d2cb37d",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S086",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0eb43921-7d75-4925-a5d2-52425a9ecc3a",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "f09c2e63-3ab3-4302-b751-932a7d2cb37d",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "隐藏"
+        }
+      ]
+    },
+    {
+      "storyId": "S090",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        }
+      ]
+    },
+    {
+      "storyId": "S091",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        }
+      ]
+    },
+    {
+      "storyId": "S092",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "8448025c-1960-4a61-b9c5-e6a145cce4f8",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "daf65917-2415-45d2-b716-2a2f7ca9f159",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "2a6fbb40-fc4d-431b-af71-dd81f198d56e",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S093",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "daf65917-2415-45d2-b716-2a2f7ca9f159",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "2a6fbb40-fc4d-431b-af71-dd81f198d56e",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S094",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "98461c19-9a89-4385-a49f-023a68e24299",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏"
+        },
+        {
+          "questionId": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+          "zone": "hidden_sampled",
+          "part": 2,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "2a6fbb40-fc4d-431b-af71-dd81f198d56e",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S095",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "26a51e85-2f36-4697-a9dd-5ebbcc0f7204",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "ea68b569-d7ee-4433-8f63-dbbc9d0f3a39",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "低"
+        },
+        {
+          "questionId": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "中"
+        },
+        {
+          "questionId": "2a6fbb40-fc4d-431b-af71-dd81f198d56e",
+          "zone": "visible",
+          "part": 2,
+          "goldBucket": "低"
+        }
+      ]
+    },
+    {
+      "storyId": "S096",
+      "countInAccuracy": true,
+      "labels": [
+        {
+          "questionId": "0900b76c-2125-49b9-a9f2-f96dee679de5",
+          "zone": "hidden_sampled",
+          "part": 1,
+          "goldBucket": "隐藏",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        },
+        {
+          "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
+          "zone": "visible",
+          "part": 1,
+          "goldBucket": "中",
+          "note": "继承自 ranking.v1（题面未变，勿改）"
+        }
+      ]
+    }
+  ]
+}
