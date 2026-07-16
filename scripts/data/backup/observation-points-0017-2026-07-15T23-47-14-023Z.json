@@ -1,0 +1,12 @@
+[
+  {
+    "id": "dba84242-c678-409f-a3b0-e04a93bdde93",
+    "code": "REL_06",
+    "dimension_id": "relationship",
+    "name": "印象深刻的弱关系",
+    "layer": "fluctuation",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 6
+  }
+]
