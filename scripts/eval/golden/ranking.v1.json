@@ -4,6 +4,8 @@
   "hiddenSampleRate": 0.2,
   "annotator": "sianchenn",
   "annotatedAt": "2026-07-16",
+  "revisedAt": "2026-07-16",
+  "revisionNote": "S074×Something Interesting on Social Media：高→中。判例：长期习惯（潜水五年）回答 describe a time 需现场重塑为单次，按 rubric「习惯vs某一次」属中。产品方裁决。",
   "items": [
     {
       "storyId": "S016",
@@ -875,7 +877,8 @@
           "questionId": "abcd4891-e3ef-4c58-b012-1bc58c5f1dc8",
           "zone": "visible",
           "part": 2,
-          "goldBucket": "高"
+          "goldBucket": "中",
+          "note": "判例：长期习惯（潜水五年）回答 describe a time 需现场重塑为单次，按 rubric「习惯vs某一次」属中。2026-07-16 产品方裁决"
         }
       ]
     },
