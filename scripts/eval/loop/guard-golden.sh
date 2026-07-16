@@ -22,6 +22,7 @@ PROTECTED=(
   "scripts/eval/run-extraction.ts"
   "scripts/eval/run-ranking.ts"
   "scripts/eval/run-ranking-score.ts"   # 算分脚本=四闸门的口径定义,和金标同级。2026-07-16 补:此前漏保护
+  "scripts/eval/hidden-sample-weight.ts" # 隐藏区抽样冻结权重表=指标定义,与算分脚本同级。2026-07-17 新增
   "scripts/data/question-observation-remap"
   "scripts/eval/loop/specs/"
   "scripts/eval/loop/BASELINE.json"

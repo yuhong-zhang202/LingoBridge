@@ -24,6 +24,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
+import { sampleWeight, FRAME_HIDDEN_TOTAL, FRAME_HIDDEN_SAMPLED } from './hidden-sample-weight'
 
 // ── 类型 ──────────────────────────────────────────────────────────────────────
 
@@ -133,13 +134,16 @@ function pct(numer: number, denom: number): string {
 }
 
 /** 埋没率展示：还原点估计 + Wilson 95% CI；标注不足则给提示 */
-function burialStr(b: { point: number | null; lo: number | null; hi: number | null; rawSampledBuried: number; hiddenLabeled: number; scale: number | null; unestimable: boolean }): string {
-  if (b.unestimable) return '⚠ 无法估计（有隐藏候选却无隐藏区标注，需补标）'
-  if (b.point === null) return '—'
-  const p = (x: number) => `${(x * 100).toFixed(1)}%`
-  const ci = b.lo !== null && b.hi !== null ? `，95%CI [${p(b.lo)}, ${p(b.hi)}]` : ''
-  const restore = b.scale && b.scale !== 1 ? `，隐藏区×${b.scale.toFixed(1)}还原(样本埋没 ${b.rawSampledBuried}/${b.hiddenLabeled})` : ''
-  return `${p(b.point)}${ci}${restore}`
+function burialStr(b: Burial): string {
+  if (b.unestimable) return '无法估计（隐藏区有候选但无标注，需补标）'
+  if (b.point === null) return '—（无金标高）'
+  // 烟雾报警口径：只回答「有没有埋没」。抽样框取自管道错位修复前的导出（估计无偏、方差受损），
+  // 不承诺量级——给出数字仅供对照，不作为达标判据。
+  const verdict = b.rawSampledBuried === 0 ? '✅ 未检出埋没' : `🚨 检出埋没（隐藏样本 ${b.rawSampledBuried}/${b.hiddenLabeled} 条金标高）`
+  const est = `点估计 ${(b.point * 100).toFixed(1)}%（HT 加权埋没数 B̂=${b.weightedBuried.toFixed(1)}）`
+  const ref = b.lo !== null && b.hi !== null ? `，参考区间 [${(b.lo * 100).toFixed(1)}%, ${(b.hi * 100).toFixed(1)}%]（未加权 Wilson 映射，口径与点估计不同）` : ''
+  const drift = b.hiddenTotal !== b.frameTotal ? `；⚠️ 本轮导出隐藏区 ${b.hiddenTotal} 条 vs 冻结框 ${b.frameTotal} 条（可见线已挪，权重不随之变——这正是本次修复的目的）` : ''
+  return `${verdict} · 烟雾报警口径，不承诺量级 · ${est}${ref}${drift}`
 }
 
 /** Markdown 单元格安全化 */
@@ -227,24 +231,39 @@ function align(gold: GoldSet, exp: RankingExport): AlignResult {
   return { pairs, goldNotRecalled, goldGapVisible, storiesGoldMissing }
 }
 
+
+
 // ── 闸门 + 参考指标 ─────────────────────────────────────────────────────────────
 
 /**
- * 埋没率（抽样加权还原）。隐藏区仅 1/S 标注，直接计数会把埋没系统性低估约 S 倍，故按抽样率还原。
- * 还原口径：把「隐藏区已标」样本外推到「隐藏区全体」。用数据实测 S = 隐藏候选总数 / 隐藏已标数，
- * 不写死 ×5，稳健于实际标注量偏差。埋没率 = N_hidden·p̂ /（V_goldHigh + N_hidden·p̂），
- * p̂ = 隐藏样本中埋没(金标高)占比。CI 由 Wilson 区间 [pL,pU] 单调映射得来。
+ * 埋没率（Horvitz-Thompson 逐条加权）。
+ *
+ * 估计量：埋没数 B̂ = Σ_{隐藏样本里金标高} w_i，w_i = 1/π_i 查 HIDDEN_SAMPLED_WEIGHT 冻结表。
+ * 埋没率 = B̂ / (V_goldHigh + B̂)，V = 可见区金标高数（全标，权重 1）。
+ *
+ * 与旧实现的区别（台账 036）：旧的是 `scale = hiddenTotal / n` 每轮实测重算的**全局**倍数，
+ * 两处错：(1) 权重应是历史入选概率的倒数（常数），不是本轮实测——可见线一挪到 60，
+ * hiddenTotal 就吞进 40-59 段，而那一段在金标里是 zone=visible 的**全量标注区**（π=1），
+ * 却被全局倍数一并放大；(2) π 逐故事不同（1.0~0.2），全局常数把确定性观测当成 3.46 条用。
+ *
+ * CI 口径（本次刻意降级，不硬造公式）：Wilson 区间是**未加权**二项比例的 CI，
+ * 与 HT 加权点估计不是同一个抽样分布——强行套用会给出一个看着精确、实则没有理论支撑的区间。
+ * 故：**点估计用 HT 加权；CI 用未加权样本的 Wilson 并显式注明口径不同**。
+ * 又因抽样框取自管道错位修复前的导出（估计无偏、方差受损，见 HIDDEN_SAMPLED_WEIGHT 注释），
+ * 本闸门整体降级为**烟雾报警**：只回答「有没有埋没」，不承诺量级。
  */
 interface Burial {
-  point: number | null      // 还原后埋没率点估计
-  lo: number | null         // 95% CI 下界
-  hi: number | null         // 95% CI 上界
-  rawSampledBuried: number  // 隐藏样本里实测埋没数 k
+  point: number | null      // HT 加权埋没率点估计
+  lo: number | null         // 参考区间下界（未加权 Wilson 映射，口径与点估计不同）
+  hi: number | null         // 参考区间上界（同上）
+  rawSampledBuried: number  // 隐藏样本里实测埋没数 k（未加权计数）
+  weightedBuried: number    // HT 加权埋没数 B̂ = Σ w_i
   hiddenLabeled: number     // 隐藏区已标总数 n（Wilson 的分母）
-  hiddenTotal: number       // 隐藏区候选总数 N_hidden（来自导出，全量已知）
+  hiddenTotal: number       // 隐藏区候选总数 N_hidden（本轮导出，仅供交叉校验，不参与加权）
   visibleGoldHigh: number   // 可见区金标高数 V（权重1，全标）
-  scale: number | null      // 实测还原倍数 S = N_hidden / n
+  frameTotal: number        // 冻结框的隐藏区总量（204），与 hiddenTotal 比对可看出可见线漂移
   unestimable: boolean      // 有隐藏候选却无隐藏标注 → 无法估计埋没，需补标
+  smokeOnly: true           // 本闸门只报「有/无」，不承诺量级（框方差受损）
 }
 
 interface Gates {
@@ -265,11 +284,14 @@ function wilson(k: number, n: number, z = 1.96): [number, number] {
   return [Math.max(0, center - half), Math.min(1, center + half)]
 }
 
-/** 埋没率映射：给定「隐藏区埋没占比 p」，还原为埋没率 = N·p /（V + N·p），对 p 单调增 */
-function burialRate(p: number, nHidden: number, vGoldHigh: number): number {
-  const est = nHidden * p
-  const denom = vGoldHigh + est
-  return denom === 0 ? 0 : est / denom
+/**
+ * 埋没率 = B̂ /（V + B̂）。B̂ = HT 加权埋没数，V = 可见区金标高（全标，权重1）。
+ * 对 B̂ 单调增，故可把 Wilson 的 [pL,pU] 先乘同一个平均权重再映射，得到一个**参考**区间——
+ * 注意它与 HT 点估计不是同一个抽样分布，只作数量级参考，见 Burial 的 CI 口径说明。
+ */
+function burialRate(bHat: number, vGoldHigh: number): number {
+  const denom = vGoldHigh + bHat
+  return denom === 0 ? 0 : bHat / denom
 }
 
 /**
@@ -285,34 +307,40 @@ function computeGates(pairs: Pair[], hiddenTotal: number): Gates {
   const aiHigh = scored.filter((p) => p.ai === '高')
   const aiVisible = scored.filter((p) => p.ai === '高' || p.ai === '中' || p.ai === '低')
 
-  // 埋没率：只受隐藏区抽样影响，须加权还原。
+  // 埋没率：只受隐藏区抽样影响，按冻结的历史入选概率逐条加权（HT）。
   const hiddenLabeled = scored.filter((p) => p.zone === 'hidden_sampled')
   const sampledBuried = hiddenLabeled.filter((p) => p.gold === '高')   // 隐藏样本里的埋没（金标高）
   const visibleGoldHigh = scored.filter((p) => p.zone === 'visible' && p.gold === '高').length
   const n = hiddenLabeled.length
   const k = sampledBuried.length
-  const scale = n > 0 ? hiddenTotal / n : null
+  // B̂ = Σ 1/π_i，逐条查冻结表；权重是历史事实，与本轮导出无关
+  const weightedBuried = sampledBuried.reduce((acc, p) => acc + sampleWeight(p.zone, p.storyId), 0)
   const unestimable = hiddenTotal > 0 && n === 0
 
   let burial: Burial
   if (hiddenTotal === 0) {
     // 无隐藏候选：埋没率必为 0（金标高全在可见区），精确无需还原
-    burial = { point: visibleGoldHigh === 0 ? null : 0, lo: 0, hi: 0, rawSampledBuried: 0, hiddenLabeled: 0, hiddenTotal: 0, visibleGoldHigh, scale: 1, unestimable: false }
+    burial = { point: visibleGoldHigh === 0 ? null : 0, lo: 0, hi: 0, rawSampledBuried: 0, weightedBuried: 0, hiddenLabeled: 0, hiddenTotal: 0, visibleGoldHigh, frameTotal: FRAME_HIDDEN_TOTAL, unestimable: false, smokeOnly: true }
   } else if (unestimable) {
-    burial = { point: null, lo: null, hi: null, rawSampledBuried: 0, hiddenLabeled: 0, hiddenTotal, visibleGoldHigh, scale: null, unestimable: true }
+    burial = { point: null, lo: null, hi: null, rawSampledBuried: 0, weightedBuried: 0, hiddenLabeled: 0, hiddenTotal, visibleGoldHigh, frameTotal: FRAME_HIDDEN_TOTAL, unestimable: true, smokeOnly: true }
   } else {
-    const pHat = k / n
+    // 点估计：HT 逐条加权，权重来自冻结表（历史入选概率的倒数）
+    // 参考区间：Wilson 是未加权二项比例的 CI，这里按样本平均权重线性映射到埋没数量级。
+    // 口径与点估计不同，只作数量级参考——不硬造一个「加权 Wilson」公式假装严格。
     const [pL, pU] = wilson(k, n)
+    const avgW = k > 0 ? weightedBuried / k : FRAME_HIDDEN_TOTAL / FRAME_HIDDEN_SAMPLED
     burial = {
-      point: burialRate(pHat, hiddenTotal, visibleGoldHigh),
-      lo: burialRate(pL, hiddenTotal, visibleGoldHigh),
-      hi: burialRate(pU, hiddenTotal, visibleGoldHigh),
+      point: burialRate(weightedBuried, visibleGoldHigh),
+      lo: burialRate(pL * n * avgW, visibleGoldHigh),
+      hi: burialRate(pU * n * avgW, visibleGoldHigh),
       rawSampledBuried: k,
+      weightedBuried,
       hiddenLabeled: n,
       hiddenTotal,
       visibleGoldHigh,
-      scale,
+      frameTotal: FRAME_HIDDEN_TOTAL,
       unestimable: false,
+      smokeOnly: true,
     }
   }
 
@@ -339,16 +367,15 @@ function computeGates(pairs: Pair[], hiddenTotal: number): Gates {
  * 高/中/低 三行全落可见区（权重1，整数）；隐藏行整行来自隐藏区抽样，按 S 还原（结果为估计值，非整数）。
  * @param scale 隐藏行还原倍数 S；null（无隐藏标注）则隐藏行按原始计数、并在报告注明不可靠。
  */
-function confusionMatrix(pairs: Pair[], scale: number | null): Record<Tier, Record<Tier, number>> {
+function confusionMatrix(pairs: Pair[]): Record<Tier, Record<Tier, number>> {
   const m = {} as Record<Tier, Record<Tier, number>>
   for (const r of TIERS) { m[r] = {} as Record<Tier, number>; for (const c of TIERS) m[r][c] = 0 }
   for (const p of pairs) {
     if (p.isOutOfScope || p.ai === 'unscored') continue
-    const w = p.zone === 'hidden_sampled' ? (scale ?? 1) : 1
-    m[p.ai as Tier][p.gold] += w
+    m[p.ai as Tier][p.gold] += sampleWeight(p.zone, p.storyId)
   }
-  // 隐藏行还原后取整展示（估计值）
-  for (const c of TIERS) m['隐藏'][c] = Math.round(m['隐藏'][c])
+  // 加权后按行取整展示（隐藏区条目是估计值，非整数计数）
+  for (const r of TIERS) for (const c of TIERS) m[r][c] = Math.round(m[r][c] * 10) / 10
   return m
 }
 
@@ -444,7 +471,7 @@ function main(): void {
   }
 
   const gates = computeGates(aligned.pairs, hiddenTotal)
-  const matrix = confusionMatrix(aligned.pairs, gates.burial.scale)
+  const matrix = confusionMatrix(aligned.pairs)
   const ndcg = ndcgAtK(aligned.pairs, opts.k)
   const tau = kendallTau(aligned.pairs)
   const stab = stability(gold, exps)
