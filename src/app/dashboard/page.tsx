@@ -12,9 +12,10 @@ import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
 import { apiFetch } from '@/lib/api-client'
+import { formatCny } from '@/lib/format-cost'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
-type PhaseTotal   = { phase: string; name: string; cost: number; calls: number }
+type PhaseTotal   = { phase: string; name: string; cost: number; calls: number; errors: number; errorRate: number; errorCost: number }
 type RecentLog = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
@@ -24,13 +25,14 @@ type DashboardData = {
   allTimeCost: number; allTimeCalls: number
   monthCost: number;  monthCalls: number; monthChange: number | null
   todayCost:  number; todayCalls: number
-  avgDailyCalls: number; avgLatency: number; errorRate: number; avgDailyCost: number
-  estimateRatio: number; dailyBudget: number
+  avgDailyCalls: number; avgLatency: number; p95Latency: number; errorRate: number; avgDailyCost: number
+  failedCost: number; estimateRatio: number; dailyBudget: number
   serviceTotals: ServiceTotal[]
   phaseTotals: PhaseTotal[]
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   hourlyData: Array<{ hour: string; calls: number }>
   recentLogs: RecentLog[]
+  costlyLogs: RecentLog[]
 }
 
 const RANGES = ['7d', '14d', '30d'] as const
@@ -40,20 +42,29 @@ const RANGE_LABEL: Record<Range, string> = { '7d': '7天', '14d': '14天', '30d'
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
   { label: '平均延迟', value: `${d.avgLatency}ms` },
+  { label: 'P95 延迟', value: `${d.p95Latency}ms` },
   { label: '错误率',   value: `${d.errorRate}%` },
-  { label: '日均费用', value: `¥${d.avgDailyCost}` },
+  { label: '日均费用', value: formatCny(d.avgDailyCost) },
   { label: '估算占比', value: `${d.estimateRatio}%` },
 ]
 
 /**
- * 「按环节成本」视图 — 哪个环节最贵。横向条按最高成本归一化。
- * @param phases  已按成本降序的环节聚合数组
+ * 「按环节成本 / 失败率」视图 — 哪个环节最贵、哪个环节在失败。横向条按最高成本归一化。
+ * 有失败的环节额外标出「失败率 + 白烧成本」：如 matching 中 extraction 成功记账后 ranking 失败，
+ * 该环节的钱花了却没拿到结果，从这里能一眼定位是哪个环节在漏钱。
+ * @param phases     已按成本降序的环节聚合数组
+ * @param failedCost 本期全部失败调用的成本合计（白烧总额）
  */
-function PhaseBreakdown({ phases }: { phases: PhaseTotal[] }) {
+function PhaseBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; failedCost: number }) {
   const max = phases.reduce((m, p) => Math.max(m, p.cost), 0)
   return (
-    <div className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
-      <div className="text-[13px] font-semibold text-v2-text-primary mb-3">按环节成本</div>
+    <section aria-label="按环节成本与失败率" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
+      <div className="flex items-baseline justify-between mb-3 gap-2">
+        <h2 className="text-[13px] font-semibold text-v2-text-primary">按环节成本 / 失败率</h2>
+        {failedCost > 0 && (
+          <span className="text-[11px] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
+        )}
+      </div>
       {phases.length === 0 ? (
         <div className="text-v2-text-muted text-[12px] py-4 text-center">本期暂无环节数据</div>
       ) : (
@@ -62,16 +73,22 @@ function PhaseBreakdown({ phases }: { phases: PhaseTotal[] }) {
             <div key={p.phase} className="flex items-center gap-3">
               <span className="text-[11px] text-v2-text-secondary w-24 flex-shrink-0 truncate">{p.name}</span>
               <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-brand-accent/70"
+                <div className={`h-full rounded-full ${p.errors > 0 ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
                   style={{ width: `${max > 0 ? (p.cost / max) * 100 : 0}%` }} />
               </div>
-              <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0">¥{p.cost.toFixed(4)}</span>
+              {/* 失败标记：仅有失败的环节显示，暖色警示 + 失败率，无失败则留空不干扰 */}
+              <span className="text-[10px] w-20 text-right flex-shrink-0">
+                {p.errors > 0
+                  ? <span className="text-warning-text font-medium">失败 {p.errorRate}%</span>
+                  : <span className="text-v2-text-muted">—</span>}
+              </span>
+              <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
               <span className="text-[10px] text-v2-text-muted w-14 text-right flex-shrink-0">{p.calls} 次</span>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
@@ -115,11 +132,11 @@ export default function DashboardPage() {
   const hasTodayData = !!data && data.hourlyData.some(h => h.calls > 0)
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-10 pt-8 pb-12">
+    <main className="max-w-[1400px] mx-auto px-4 md:px-10 pt-8 pb-12">
       {/* 顶部标题 */}
       <div className="mb-6">
         <div className="text-[11px] text-v2-text-muted tracking-[1.5px] uppercase mb-1">LINGOBRIDGE</div>
-        <div className="text-[22px] font-bold text-v2-text-primary">API 用量看板</div>
+        <h1 className="text-[22px] font-bold text-v2-text-primary">API 用量看板</h1>
       </div>
 
       {denied && (
@@ -140,25 +157,39 @@ export default function DashboardPage() {
 
       {data && !loading && !denied && !error && (<>
         {/* 三张费用卡 */}
-        <CostCards data={data} />
+        <section aria-label="费用总览">
+          <h2 className="sr-only">费用总览</h2>
+          <CostCards data={data} />
+          {/* USD 副行汇率脚注：写死估算，非实时 */}
+          <div className="text-[10px] text-v2-text-muted mt-1.5">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
+        </section>
 
         {/* 迷你统计条 */}
-        <div className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mt-4 mb-5 overflow-hidden">
+        <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mt-4 mb-5 overflow-hidden">
           {MINI_STATS(data).map(s => (
             <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
               <div className="text-[11px] text-v2-text-muted mb-0.5">{s.label}</div>
               <div className="text-[14px] font-semibold text-v2-text-primary">{s.value}</div>
             </div>
           ))}
-        </div>
+        </section>
 
-        {/* 时间选择器 */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[14px] font-semibold text-v2-text-primary">详细趋势</span>
-          <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5">
+        {/* 时间选择器 + 筛选出口 */}
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-[14px] font-semibold text-v2-text-primary flex-shrink-0">详细趋势</h2>
+            {/* 筛选可发现性：点占比联动后给一个显式「全部」出口，否则用户不知如何清除 dim 状态 */}
+            {selectedService && (
+              <button onClick={() => setSelected(null)}
+                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[11px] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
+                <span aria-hidden="true">×</span>清除筛选 · 全部
+              </button>
+            )}
+          </div>
+          <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5 flex-shrink-0" role="group" aria-label="时间范围">
             {RANGES.map(r => (
-              <button key={r} onClick={() => setRange(r)}
-                className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${range === r ? 'bg-v2-text-primary text-white' : 'text-v2-text-muted'}`}>
+              <button key={r} onClick={() => setRange(r)} aria-pressed={range === r}
+                className={`min-h-[44px] px-3.5 rounded-full text-[11px] font-medium transition-colors ${range === r ? 'bg-v2-text-primary text-white' : 'text-v2-text-muted'}`}>
                 {RANGE_LABEL[r]}
               </button>
             ))}
@@ -167,22 +198,22 @@ export default function DashboardPage() {
 
         {/* 趋势图 + 饼图 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <div className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
+          <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
             {hasRangeData
               ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
               : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
-          </div>
-          <div className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
+          </section>
+          <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
             <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} />
-          </div>
+          </section>
         </div>
 
-        {/* 按环节成本 */}
-        <PhaseBreakdown phases={data.phaseTotals} />
+        {/* 按环节成本 / 失败率 */}
+        <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
 
         {/* 今日调用分布 */}
-        <div className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
-          <div className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</div>
+        <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
+          <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
           {hasTodayData ? (
             <ResponsiveContainer width="100%" height={100}>
               <BarChart data={data.hourlyData} barSize={6} margin={{ top: 0, right: 0, bottom: 0, left: -16 }}>
@@ -197,10 +228,10 @@ export default function DashboardPage() {
           ) : (
             <div className="text-v2-text-muted text-[12px] h-[100px] flex items-center justify-center">今日暂无调用</div>
           )}
-        </div>
+        </section>
 
-        {/* 最近调用表格 */}
-        <RecentCallsTable logs={data.recentLogs} />
+        {/* 调用明细表格（最近 / 最贵可切换） */}
+        <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} />
 
         {/* 底部单价参考 */}
         <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
@@ -212,6 +243,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </>)}
-    </div>
+    </main>
   )
 }

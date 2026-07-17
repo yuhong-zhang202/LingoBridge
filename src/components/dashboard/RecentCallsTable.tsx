@@ -1,9 +1,14 @@
+'use client'
 /**
  * @module   dashboard/RecentCallsTable
- * @desc     最近 API 调用明细表格，超过 20 条显示剩余提示
+ * @desc     API 调用明细表格，可在「最近」（时间序）与「最贵」（成本降序 Top-N）间切换，
+ *           后者用于抓某次异常昂贵的调用——时间序前 20 条抓不到。
  * @author   LingoBridge
  * @created  2026-06-04
  */
+import { useState } from 'react'
+import { formatCny } from '@/lib/format-cost'
+
 type Log = { id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
   metadata?: { phase?: string; cost_source?: string } | null }
@@ -31,16 +36,30 @@ function SourceTag({ src }: { src?: string }) {
   )
 }
 const COLS = ['时间', '服务', '接口', '用量', '费用', '延迟', '状态']; const SHOW = 20
+type Mode = 'recent' | 'costly'
 /**
- * 最近调用明细表格
- * @param logs  recentLogs 数组（最多 30 条，表格展示前 20）
+ * 调用明细表格，可在「最近」/「最贵」两视图切换
+ * @param recentLogs  时间序最新调用（最多 30 条，表格展示前 20）
+ * @param costlyLogs  按成本降序的 Top-N 调用
  */
-export default function RecentCallsTable({ logs }: { logs: Log[] }) {
-  const visible = logs.slice(0, SHOW); const extra = logs.length - SHOW
+export default function RecentCallsTable({ recentLogs, costlyLogs }: { recentLogs: Log[]; costlyLogs: Log[] }) {
+  const [mode, setMode] = useState<Mode>('recent')
+  const source  = mode === 'recent' ? recentLogs : costlyLogs
+  const visible = mode === 'recent' ? source.slice(0, SHOW) : source
+  const extra   = mode === 'recent' ? recentLogs.length - SHOW : 0
   return (
     <div className="bg-white rounded-[16px] border border-black/[0.05] overflow-hidden">
-      <div className="px-4 py-3 border-b border-black/[0.04]">
-        <span className="text-[13px] font-semibold text-v2-text-primary">最近调用</span>
+      <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-v2-text-primary">调用明细</span>
+        {/* 视图切换：最近（时间序）↔ 最贵（成本降序 Top-N）。命中区 min-h-[44px] 达触控标准 */}
+        <div className="flex bg-black/[0.03] rounded-full p-0.5 gap-0.5" role="group" aria-label="调用明细排序">
+          {(['recent', 'costly'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m}
+              className={`min-h-[36px] px-3 rounded-full text-[11px] font-medium transition-colors ${mode === m ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
+              {m === 'recent' ? '最近' : '最贵'}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-[11px]">
@@ -58,9 +77,11 @@ export default function RecentCallsTable({ logs }: { logs: Log[] }) {
             {visible.map(log => {
               const d = new Date(log.created_at)
               const hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+              // 最贵视图的记录可能跨天，仅显示时:分会歧义，补月/日
+              const when = mode === 'costly' ? `${d.getMonth() + 1}/${d.getDate()} ${hm}` : hm
               return (
                 <tr key={log.id} className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
-                  <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap">{hm}</td>
+                  <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap">{when}</td>
                   <td className="px-3 py-2 whitespace-nowrap"><Badge s={log.service} /></td>
                   <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap"
                     style={{ fontFamily: 'monospace', fontSize: 10 }}>
@@ -69,7 +90,7 @@ export default function RecentCallsTable({ logs }: { logs: Log[] }) {
                   <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{log.usage_amount.toFixed(1)} {log.usage_unit}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="font-semibold text-v2-text-primary">¥{log.estimated_cost_cny.toFixed(4)}</span>
+                      <span className="font-semibold text-v2-text-primary tabular-nums">{formatCny(log.estimated_cost_cny)}</span>
                       <SourceTag src={log.metadata?.cost_source} />
                     </span>
                   </td>

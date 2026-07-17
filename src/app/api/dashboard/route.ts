@@ -42,6 +42,27 @@ function r2(n: number): number {
 }
 
 /**
+ * 计算一组数值的第 p 百分位（线性插值，nearest-rank 的连续版）。
+ * 用于成功调用延迟 p95：均值会被长尾拉平，p95 才暴露"偶发慢请求"。
+ * @param values  数值数组（无需预排序）
+ * @param p       百分位（0–100）
+ * @returns       该百分位值；空数组返回 0，四舍五入到整数毫秒
+ */
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  if (sorted.length === 1) return Math.round(sorted[0])
+  const rank = (p / 100) * (sorted.length - 1)
+  const lo = Math.floor(rank)
+  const hi = Math.ceil(rank)
+  const frac = rank - lo
+  return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * frac)
+}
+
+/** 最贵调用视图取前 N 条 */
+const TOP_COST_N = 20
+
+/**
  * 解析 range 查询参数为天数
  * @param raw  URL 参数原始值
  * @returns    7 | 14 | 30
@@ -98,8 +119,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const lastMonthStart = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth() - 1, 1)
     const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
 
-    // ── 6 条并行查询 ──
-    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes] = await Promise.all([
+    // ── 7 条并行查询 ──
+    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes] = await Promise.all([
       supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny'),
@@ -125,10 +146,16 @@ export async function GET(req: Request): Promise<NextResponse> {
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
         .order('created_at', { ascending: false })
         .limit(30),
+      // 最贵 Top-N（全时段按成本降序）：时间序的"最近调用"抓不到某次异常昂贵，需独立按成本排。
+      supabase
+        .from('api_usage_logs')
+        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .order('estimated_cost_cny', { ascending: false })
+        .limit(TOP_COST_N),
     ])
 
     const firstErr = allTimeRes.error ?? monthRes.error ?? lastMonthRes.error
-      ?? todayRes.error ?? rangeRes.error ?? recentRes.error
+      ?? todayRes.error ?? rangeRes.error ?? recentRes.error ?? costlyRes.error
     if (firstErr) {
       return NextResponse.json({ error: firstErr.message }, { status: 500 })
     }
@@ -139,6 +166,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const tdRows  = todayRes.data    ?? []
     const rngRows = (rangeRes.data  ?? []) as RangeRow[]
     const recent  = (recentRes.data ?? []) as RecentRow[]
+    const costly  = (costlyRes.data ?? []) as RecentRow[]
 
     // ── 三张费用卡 ──
     const allTimeCost   = r2(allRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
@@ -158,11 +186,16 @@ export async function GET(req: Request): Promise<NextResponse> {
     const avgLatency    = successRows.length > 0
       ? Math.round(successRows.reduce((s, r) => s + r.latency_ms, 0) / successRows.length)
       : 0
+    // p95 延迟：均值藏长尾，p95 才暴露偶发慢请求。只算成功调用（失败常瞬时返回，混入会拉低）。
+    const p95Latency    = percentile(successRows.map(r => r.latency_ms), 95)
     const errorRate     = rngRows.length > 0
       ? r2(rngRows.filter(r => r.status === 'error').length / rngRows.length * 100)
       : 0
     const rangeCost     = rngRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
     const avgDailyCost  = r2(rangeCost / rangeDays)
+    // 失败成本（白烧）：状态为 error 的调用仍可能已消耗 token（如 ranking 失败前已产出部分输出）。
+    // 汇总一个总额，配合按环节失败率定位"钱花了但没拿到结果"的环节。
+    const failedCost    = r2(rngRows.filter(r => r.status === 'error').reduce((s, r) => s + r.estimated_cost_cny, 0))
 
     // ── 估算占比（本期成本 X% 为估算）：cost_source='estimate' 的成本 ÷ 本期总成本 ──
     // 缺 cost_source 的行（如 transcribe，按真实时长计）不计入估算，避免高估估算占比。
@@ -183,17 +216,31 @@ export async function GET(req: Request): Promise<NextResponse> {
       }
     })
 
-    // ── 按环节成本（哪个环节最贵）：按 metadata.phase 聚合，降序 ──
-    const phaseMap = new Map<string, { cost: number; calls: number }>()
+    // ── 按环节成本 + 按环节失败率（哪个环节最贵 / 哪个环节在失败）：按 metadata.phase 聚合，降序 ──
+    // errors/errorCost 让"部分失败白烧"在 phase 级可见：如 matching 中 extraction 成功记账后 ranking 失败，
+    // extraction 有成本、error 行落在对应 phase（无 phase 的失败归 other），错误率一眼可辨是哪环节在漏。
+    const phaseMap = new Map<string, { cost: number; calls: number; errors: number; errorCost: number }>()
     for (const row of rngRows) {
       const key = row.metadata?.phase ?? 'other'
-      const cur = phaseMap.get(key) ?? { cost: 0, calls: 0 }
+      const cur = phaseMap.get(key) ?? { cost: 0, calls: 0, errors: 0, errorCost: 0 }
       cur.cost += row.estimated_cost_cny
       cur.calls += 1
+      if (row.status === 'error') {
+        cur.errors += 1
+        cur.errorCost += row.estimated_cost_cny
+      }
       phaseMap.set(key, cur)
     }
     const phaseTotals = Array.from(phaseMap.entries())
-      .map(([phase, v]) => ({ phase, name: PHASE_META[phase] ?? phase, cost: r2(v.cost), calls: v.calls }))
+      .map(([phase, v]) => ({
+        phase,
+        name:      PHASE_META[phase] ?? phase,
+        cost:      r2(v.cost),
+        calls:     v.calls,
+        errors:    v.errors,
+        errorCost: r2(v.errorCost),
+        errorRate: v.calls > 0 ? r2(v.errors / v.calls * 100) : 0,
+      }))
       .sort((a, b) => b.cost - a.cost)
 
     // ── 每日趋势（rangeDays 天，升序，按东八区分桶） ──
@@ -242,8 +289,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       todayCalls,
       avgDailyCalls,
       avgLatency,
+      p95Latency,
       errorRate,
       avgDailyCost,
+      failedCost,
       estimateRatio,
       dailyBudget: DAILY_BUDGET_CNY,
       serviceTotals,
@@ -251,6 +300,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       dailyData,
       hourlyData,
       recentLogs: recent,
+      costlyLogs: costly,
     })
   } catch (e) {
     const authRes = authErrorResponse(e)
