@@ -31,8 +31,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (error) throw error
     }
 
-    // practice_sessions 显式删（防御性）：schema drift 期间线上真实 FK 是否 on delete cascade 不确定，显式删一行最稳（与 corpus/phrase_cards/feedback 同理）
-    for (const table of ['corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
+    // practice_sessions 显式删（防御性）：schema drift 期间线上真实 FK 是否 on delete cascade 不确定，显式删一行最稳（与 corpus/phrase_cards/feedback 同理）。
+    // corpus_match_snapshots（0019）对 corpus 有 on delete cascade，但按本端点「不信 FK cascade、显式删每张表」纪律，须排在 corpus 之前先删；
+    // flow_events（0018）埋点，无原文但 GDPR 完整性须删，无跨表依赖、位置随意。
+    for (const table of ['corpus_match_snapshots', 'flow_events', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
       const { error } = await admin.from(table).delete().eq('user_id', userId)
       if (error) throw error
     }
