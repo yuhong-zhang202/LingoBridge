@@ -11,7 +11,7 @@ jest.mock('@/lib/env-server', () => ({
   env: {
     dashscopeApiKey: 'test-key',
     dashscopeBaseUrl: 'https://example.invalid/v1',
-    llmRawLogDir: '',
+    rawLogEnabled: false,
   },
 }))
 jest.mock('@/lib/llm')

@@ -9,6 +9,7 @@ import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
@@ -45,12 +46,18 @@ export async function POST(req: Request): Promise<NextResponse> {
         : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
 
+    // 留证归属：corpusId 取 storyId（有则带、无则 null）。buildScaffold / coachReply 均在此上下文内跑，
+    // 令其深处的 appendRawLog 填对 user_id / corpus_id（service 层签名不动）。
+    const rawLogCtx = { userId, corpusId: body.storyId ?? null }
+
     // 首轮没有 scaffold：用 questionId 构建一次
     let scaffold = body.scaffold
     if (!scaffold) {
       if (!body.questionId) {
         return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
       }
+      // 提前捕获为局部 const：闭包内 TS 不保留 body.questionId 的收窄，取局部值避免非空断言。
+      const questionId = body.questionId
       // 复练月额度服务端强制：仅在开始一次新复练（review + 首轮）时校验，避免拦断进行中的对话。
       // 超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹 QuotaReached（ielts）。
       // 匿名用户走的是 corpus 单条试用额度，不叠加复练月额度，故 !isAnonymous 才校验。
@@ -62,10 +69,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       // 越权防护：storyId 属他人语料则 403（storyId 缺省时不带故事，无需校验）
       if (body.storyId) await assertCorpusOwner(userId, body.storyId)
-      scaffold = await buildScaffold(body.questionId, body.storyId, body.level)
+      scaffold = await runWithRawLogContext(rawLogCtx, () =>
+        buildScaffold(questionId, body.storyId, body.level),
+      )
     }
 
-    const reply = await coachReply(scaffold, messages)
+    const reply = await runWithRawLogContext(rawLogCtx, () => coachReply(scaffold, messages))
     // coachReply 内未向上暴露 usage，按题目 + 对话历史长度估算（+ 系统提示约 600 token）
     const promptTokens = Math.round(scaffold.questionForAI.length * 0.3 + messages.length * 50 + 600)
     const completionTokens = 60

@@ -11,6 +11,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import type { AnalysisResponse, DimensionLabel } from '@/lib/types'
 
@@ -57,7 +58,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const enForDisplay = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
     const zhForDisplay = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
 
-    const analysis = await generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story })
+    // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
+    const analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
+      generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }),
+    )
     // generateAnalysis 内未向上暴露 usage，按题目长度估算（英文约 0.3 token/字 + 系统提示约 800）
     const promptTokens = Math.round(enForAI.length * 0.3 + 800)
     const completionTokens = 400

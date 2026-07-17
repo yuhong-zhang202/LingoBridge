@@ -11,6 +11,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 
 export async function GET(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
@@ -40,7 +41,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '题目不存在' }, { status: 404 })
     }
     const enForAI = q.question_text
-    const phrases = await generatePhrases({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level })
+    // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
+    const phrases = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
+      generatePhrases({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level }),
+    )
     const promptTokens = Math.round(enForAI.length * 0.3 + 500)
     const completionTokens = 300
     logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { level } }).catch(() => {})

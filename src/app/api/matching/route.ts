@@ -15,6 +15,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
 import { SCORE_HIGH, SCORE_MID, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { env } from '@/lib/env-server'
@@ -102,7 +103,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       result = cached
     } else {
       // 未命中/失效：重算 → 落快照 → 保持对 corpus_question_matches 的既有写（反查表不动其职责）。
-      result = await matchByStory(cleanedText)
+      // 带 userId + corpusId 归属留证（重排链路的 LLM 调用在 matchByStory 内深处触发 appendRawLog）。
+      result = await runWithRawLogContext({ userId, corpusId }, () => matchByStory(cleanedText))
       // 持久化匹配结果供反查；写库失败不阻断匹配返回
       await persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e))
       // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。

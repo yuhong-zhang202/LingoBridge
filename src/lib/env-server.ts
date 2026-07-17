@@ -28,11 +28,11 @@ export const env = {
   // 管理员邮箱白名单（英文逗号分隔）—— 仅服务端读取，用于成本看板等敏感接口鉴权，切勿加 NEXT_PUBLIC_
   adminEmails: process.env.ADMIN_EMAILS ?? '',
 
-  // LLM 原始输出留存目录（相对/绝对路径）。留空=不留存（生产默认）。
-  // 非空时 lib/llm.ts 会把每次调用的完整 prompt + 原始输出落盘成 JSONL，供离线复盘「模型是否把
-  // score/reason 贴错 id」。含用户故事原文，务必只指向 .gitignore 内的本地目录，切勿在生产开启。
-  // 落盘时目录 0o700 / 文件 0o600（见 llm.ts:appendRawLog）。
-  llmRawLogDir: process.env.LLM_RAW_LOG_DIR ?? '',
+  // 原始输出留证总开关（=1 开、其它/未设=关，默认关）。开启时 lib/raw-log.ts 把每次 LLM 调用的
+  // 完整 prompt + 原始输出、每次 ASR 的转写原文入库（llm_raw_logs / asr_raw_logs，见 migration 0020），
+  // 供离线复盘「模型是否把 score/reason 贴错 id」。含用户原文，靠表 RLS（service_role 唯一入口）+
+  // pg_cron 30 天过期兜底；生产内测由产品方在 Vercel 显式置 1。
+  rawLogEnabled: process.env.RAW_LOG_ENABLED === '1',
 
   /**
    * 调试开关：为 true 时 lib/llm.ts 在【失败路径】上把模型原始输出打进 console。
@@ -45,7 +45,7 @@ export const env = {
    *  2. 这个项目今晚刚吃过「靠自觉的护栏不算护栏」的亏：guard-golden.sh 号称「物理拒绝」，
    *     实测 Bash 完全敞口，因为它依赖的是没人去试（台账 066）。
    *
-   * 生产要复盘 → 用 llmRawLogDir（它有 0o600 保护），不要用这个。
+   * 生产要复盘 → 开 rawLogEnabled（RAW_LOG_ENABLED=1，入库 + RLS + 30 天过期），不要用这个。
    */
   llmDebug: process.env.LLM_DEBUG === '1' && process.env.NODE_ENV !== 'production',
 

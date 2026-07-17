@@ -105,9 +105,9 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     const text = data.result?.text?.trim() ?? ''
     const guard = checkTranscriptUsable(text)
 
-    // 全链路留证第一环：把 ASR 转写原文接进统一留证（lib/raw-log），与 LLM 留证同目录、同 0o700/0o600。
-    // ⚠️ 这会让【原始语音转成的文字】落盘——它就是最敏感的用户原文；之所以能安全落盘，
-    //    全靠权限那一半已就位。只存转写文本、不存音频字节（产品方 2026-07-17 拍定）。
+    // 全链路留证第一环：把 ASR 转写原文接进统一留证（lib/raw-log），与 LLM 留证同一入库路径（asr_raw_logs）。
+    // ⚠️ 这会让【原始语音转成的文字】入库——它就是最敏感的用户原文；之所以能安全留证，
+    //    全靠 RAW_LOG_ENABLED 默认关 + 表 RLS + 30 天过期已就位。只存转写文本、不存音频字节（产品方 2026-07-17 拍定）。
     //    guard 判掉的内容也如实留证（存被判掉的文本本身），留证失败绝不影响主链路。
     await appendRawLog({
       kind:       'asr',

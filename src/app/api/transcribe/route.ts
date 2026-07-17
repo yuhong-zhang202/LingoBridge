@@ -10,6 +10,7 @@ import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
 import type { AppError } from '@/types/errors'
@@ -66,7 +67,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 构造 WAV Blob 传给 transcription 层，令其 resolveFormat 得到 "wav"
     const wavBlob  = new Blob([new Uint8Array(wavBuf)], { type: 'audio/wav' })
 
-    const text = await transcribeAudio(wavBlob)
+    // transcribe 处于建语料之前，无 corpusId；带 userId 归属 ASR 转写留证。
+    const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
+      transcribeAudio(wavBlob),
+    )
     // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
     const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
     logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})

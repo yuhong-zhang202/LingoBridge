@@ -8,7 +8,7 @@
  */
 jest.mock('server-only', () => ({}))
 jest.mock('@/lib/env-server', () => ({
-  env: { dashscopeApiKey: 'k', dashscopeBaseUrl: 'https://example.invalid/v1', llmRawLogDir: '' },
+  env: { dashscopeApiKey: 'k', dashscopeBaseUrl: 'https://example.invalid/v1', rawLogEnabled: false },
 }))
 
 import { callLLMJson, type LLMCall } from '@/lib/llm'

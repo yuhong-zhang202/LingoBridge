@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, authErrorResponse } from '@/lib/api-auth'
+import { deleteUserRawLogs } from '@/lib/raw-log'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
@@ -54,6 +55,15 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
     } catch (e) {
       logErr('[account/delete] 头像清理失败（不中断删号）', e)
+    }
+
+    // 原始留证彻底清理（best-effort）：llm_raw_logs / asr_raw_logs 含用户原文（prompt / 转写），
+    // 被遗忘权须一并删。故意【不带 retained 过滤】= 连金标保留批也删（产品方 2026-07-17 拍定）。
+    // 单独 try/catch、只 logErr 不中断——留证清理是补充，不能因它失败导致删不掉号（仿头像清理）。
+    try {
+      await deleteUserRawLogs(userId)
+    } catch (e) {
+      logErr('[account/delete] 原始留证清理失败（不中断删号）', e)
     }
 
     // 3) 删账号本体

@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_POLISH_LIMIT, REG_POLISH_DAILY_LIMIT } from '@/lib/constants'
 
@@ -32,7 +33,10 @@ export async function POST(req: Request): Promise<NextResponse> {
         ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
         : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
-    const result = await polishSentence(sentence, aiQuestion, level)
+    // polish 是练习中的单句润色，不绑定具体语料，无 corpusId；带 userId 归属留证。
+    const result = await runWithRawLogContext({ userId, corpusId: null }, () =>
+      polishSentence(sentence, aiQuestion, level),
+    )
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)

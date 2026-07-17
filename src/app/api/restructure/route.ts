@@ -9,6 +9,7 @@ import { logErr } from '@/lib/log'
 import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpAnonRestructureTodayServer } from '@/lib/db/corpus-server'
 import { ANON_RESTRUCTURE_LIMIT } from '@/lib/constants'
 
@@ -35,7 +36,10 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ error: '试用整理次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
       }
     }
-    const { cleanedText, usable } = await restructureText(rawText)
+    // restructure 处于建语料之前，无 corpusId；带 userId 归属留证。
+    const { cleanedText, usable } = await runWithRawLogContext({ userId, corpusId: null }, () =>
+      restructureText(rawText),
+    )
     // service 层未返回 usage，按输入字数 × 1.5 估算 token 数
     const usage_amount = Math.round(rawText.length * 1.5)
     logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})

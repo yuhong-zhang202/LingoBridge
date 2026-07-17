@@ -4,8 +4,8 @@
  *           文本提取、JSON 花括号切片、解析+校验，以及一次"把坏 JSON 退回让模型自己修"
  *           的重试。供 extraction / analysis / practice(polish) / restructure 复用。
  *           coachReply 多轮纯文本不走这里。
- *           「原始输出留证」已抽到 lib/raw-log.ts（LLM_RAW_LOG_DIR 开关，默认关闭，与 ASR 留证共用同一
- *           目录与同一套 0o700/0o600 权限），供离线复盘模型输出。
+ *           「原始输出留证」已抽到 lib/raw-log.ts（RAW_LOG_ENABLED 开关，默认关闭，与 ASR 留证共用同一
+ *           入库路径，落进 llm_raw_logs / asr_raw_logs），供离线复盘模型输出。
  * @author   LingoBridge
  * @created  2026-06-04
  */
@@ -109,7 +109,7 @@ export interface CallLLMJsonOptions<T> {
  * @param opts  provider 配置、类型守卫校验、可选 fallback / 超时 / 轮数 / 日志前缀
  * @returns     校验通过的 T
  * @sideEffect  发起网络请求；失败/重试/超时时打印 warn/error 日志；
- *              LLM_RAW_LOG_DIR 非空时把每轮 prompt 与原始输出落盘
+ *              RAW_LOG_ENABLED=1 时把每轮 prompt 与原始输出入库（llm_raw_logs）
  */
 export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
   const { call, validate, fallback } = opts
@@ -170,7 +170,7 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
         )
       }
     } catch (e) {
-      // 失败事实必须永远留证，与 LLM_RAW_LOG_DIR（调试用、opt-in）无关：
+      // 失败事实必须永远留证，与 RAW_LOG_ENABLED（留证入库、opt-in）无关：
       // 原先这里只有 finally，异常直接抛穿，下游 record() 根本没机会执行，
       // 超时因此在日志里完全隐形——这正是 6 个大候选故事全挂却无人察觉的直接原因。
       // 记录后原样重抛：不吞、不改变既有控制流。字段结构化，为以后接监控留口子。

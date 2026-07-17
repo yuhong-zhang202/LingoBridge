@@ -1,22 +1,28 @@
 /**
  * @module   raw-log
- * @desc     统一「原始输出留证」落盘层 —— LLM 调用与 ASR 转写共用【同一目录、同一套文件权限】
- *           （目录 0o700 / 文件 0o600，只属主可读）。由 LLM_RAW_LOG_DIR 单一开关控制，
- *           留空=不留证（生产/开发默认关闭）。
+ * @desc     统一「原始输出留证」入库层 —— LLM 调用与 ASR 转写共用【同一写入口、同一开关】，
+ *           按 kind 分表落进 Supabase：LLM → llm_raw_logs，ASR → asr_raw_logs（见 migration 0020）。
+ *           由 RAW_LOG_ENABLED 单一开关控制（env.rawLogEnabled，布尔，默认关）——关闭时直接 return。
  *
- *   ⚠️ 这里落盘的是【用户故事原文 / 语音转写原文】——LLM 记录的 messages 是完整 prompt，
- *      ASR 记录的 transcript 是原始语音转成的文字。内测起它们就是真实用户数据。
- *      故务必只把 LLM_RAW_LOG_DIR 指向 .gitignore 内的本地目录，切勿在生产开启。
+ *   2026-07-17 从本地 JSONL 文件搬到数据库表：本地文件在 Vercel serverless 生产上活不过一次冷启动，
+ *   留证等于打水漂；入库后才谈得上持久化、删除权、30 天过期（GC 见 0020 的 pg_cron）。
+ *   两条铁律一字未变：① 开关关 → 直接 return；② 写失败只 console.warn、绝不影响主链路。
  *
- *   本模块从 llm.ts 抽出（2026-07-17），把 ASR 留证也纳入同一条落盘路径与同一套权限——
- *   ASR 之前直连豆包、零留证，接进来是「留证」与「权限收紧」这件事的另一半。
- *   权限逻辑与文件名一字未改：LLM 仍写 llm-raw-<date>.jsonl，ASR 走并行的 asr-raw-<date>.jsonl。
+ *   ⚠️ 这里落库的是【用户故事原文 / 语音转写原文】——LLM 记录的 messages 是完整 prompt，
+ *      ASR 记录的 transcript 是原始语音转成的文字。就是最敏感的真实用户数据。
+ *      安全性靠三道闸：RAW_LOG_ENABLED 默认关（生产由产品方显式置 1）、表 RLS「无策略即默认拒绝」
+ *      收归 service_role 唯一入口、pg_cron 30 天过期兜底。
+ *
+ *   user_id / corpus_id 从请求级 AsyncLocalStorage 上下文（raw-log-context）取——由此在【不改
+ *   service 层任何签名】的前提下，让深埋的 appendRawLog 也能填对归属；取不到则写 null。
  *
  * @author   LingoBridge
  * @created  2026-07-17
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
+import { getSupabaseServer } from '@/lib/supabase-server'
+import { getRawLogContext } from '@/lib/raw-log-context'
 
 /** LLM 会话消息（与 llm.ts 的 Msg 同构） */
 type Msg = { role: 'system' | 'user' | 'assistant'; content: string }
@@ -41,7 +47,7 @@ export interface LLMRawRecord {
 
 /**
  * ASR 转写留证：只存【转写文本】（原文），不存音频字节。产品方 2026-07-17 拍定——
- * 音频 base64 对复盘无价值（要的是「转成了什么文字」）且体积撑爆磁盘（此前 LLM 留证两天已堆 49MB）。
+ * 音频 base64 对复盘无价值（要的是「转成了什么文字」）且体积撑爆（此前 LLM 留证两天已堆 49MB）。
  */
 export interface AsrRawRecord {
   kind: 'asr'
@@ -63,28 +69,73 @@ export interface AsrRawRecord {
 export type RawRecord = LLMRawRecord | AsrRawRecord
 
 /**
- * 把一条原始留证追加到 JSONL 文件。LLM_RAW_LOG_DIR 为空时直接返回（生产默认关闭）。
+ * 把一条原始留证入库（按 kind 分表）。env.rawLogEnabled 为 false 时直接返回（生产默认关闭，靠 RAW_LOG_ENABLED=1 开）。
  *
- * mode 只在【创建时】生效：目录/文件已存在时不会被改回来。故部署新环境时它是对的，
- * 而既有环境需人工 chmod 一次（本机 .llm-raw 已于 2026-07-17 执行）。
+ * user_id / corpus_id 从 raw-log-context 的 ALS 上下文取（取不到写 null）；created_at 用 record.ts。
+ * retained 不显式写，走 DB 默认 false（本轮只预留该列）。
  *
  * @param record  单次调用的完整上下文与原始输出（LLM 或 ASR）
- * @sideEffect    写本地文件（按 kind + 日期分文件，目录 0o700 / 文件 0o600）；写失败只 warn，绝不影响主链路
+ * @sideEffect    用 service_role 向 llm_raw_logs / asr_raw_logs insert 一行（绕 RLS）；写失败只 warn，绝不影响主链路
  */
 export async function appendRawLog(record: RawRecord): Promise<void> {
-  const dir = env.llmRawLogDir
-  if (!dir) return
+  if (!env.rawLogEnabled) return
+  const ctx = getRawLogContext()
+  const userId = ctx?.userId ?? null
+  const corpusId = ctx?.corpusId ?? null
   try {
-    // 动态 import：避免把 node:fs 静态绑进可能跑在 edge runtime 的模块图
-    const { mkdir, appendFile } = await import('node:fs/promises')
-    await mkdir(dir, { recursive: true, mode: 0o700 })
-    // LLM 与 ASR 分文件：schema 不同，混一个文件会给离线读取添乱；但同目录、同权限。
-    const prefix = record.kind === 'asr' ? 'asr-raw' : 'llm-raw'
-    const file = `${dir}/${prefix}-${record.ts.slice(0, 10)}.jsonl`
-    await appendFile(file, JSON.stringify(record) + '\n', { encoding: 'utf-8', mode: 0o600 })
+    const supabase = getSupabaseServer()
+    if (record.kind === 'asr') {
+      const { error } = await supabase.from('asr_raw_logs').insert({
+        user_id: userId,
+        corpus_id: corpusId,
+        request_id: record.requestId,
+        log_id: record.logId,
+        format: record.format,
+        status_code: record.statusCode,
+        transcript: record.transcript,
+        guard: record.guard,
+        created_at: record.ts,
+      })
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('llm_raw_logs').insert({
+        user_id: userId,
+        corpus_id: corpusId,
+        label: record.label,
+        provider: record.provider,
+        model: record.model,
+        attempt: record.attempt,
+        system: record.system,
+        messages: record.messages,
+        raw: record.raw,
+        json_text: record.jsonText,
+        parsed: record.parsed,
+        created_at: record.ts,
+      })
+      if (error) throw error
+    }
   } catch (e) {
-    console.warn('[RawLog] 原始输出留证失败（不影响主链路）', {
+    console.warn('[RawLog] 原始输出留证入库失败（不影响主链路）', {
+      kind: record.kind,
       message: e instanceof Error ? e.message : String(e),
     })
+  }
+}
+
+/**
+ * 彻底删除某用户的全部原始留证（两表），供账号删除（被遗忘权）调用。
+ *
+ * ⚠️ 故意【不带 retained 过滤】——删号即彻底删，连金标保留批（retained=true）也一并删（产品方 2026-07-17 拍定）。
+ * 不受 env.rawLogEnabled 约束：无论当前是否在留证，历史留证都得能删干净。
+ * 本函数会向上抛错，由调用方（account/delete）以 best-effort try/catch 兜住、不中断删号。
+ *
+ * @param userId  被删除账号的 user id
+ * @sideEffect    用 service_role 删 llm_raw_logs / asr_raw_logs 中该 user 的所有行（绕 RLS）
+ */
+export async function deleteUserRawLogs(userId: string): Promise<void> {
+  const supabase = getSupabaseServer()
+  for (const table of ['llm_raw_logs', 'asr_raw_logs'] as const) {
+    const { error } = await supabase.from(table).delete().eq('user_id', userId)
+    if (error) throw error
   }
 }
