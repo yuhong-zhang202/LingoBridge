@@ -169,7 +169,7 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
                       <>
                         <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
                         <button
-                          onClick={() => router.push(`/matching?storyId=${story.id}`)}
+                          onClick={() => router.push(`/matching?corpusId=${story.id}`)}
                           className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
                         >
                           查看<ChevronRight size={13} />
