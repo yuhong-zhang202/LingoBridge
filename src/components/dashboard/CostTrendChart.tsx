@@ -5,7 +5,7 @@
  * @author   LingoBridge
  * @created  2026-06-04
  */
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 
 const SERVICES = [
   { key: 'doubao_asr',    name: '豆包 ASR',      color: '#D4875A' },
@@ -36,12 +36,24 @@ function CustomTip({ active, payload, label }: TipProps) {
   )
 }
 
+/** 超预算红点：仅当该日总成本 > 预算线时在堆叠顶部（=当日总额）画一个红点，其余日返回空 */
+type DotProps = { cx?: number; cy?: number; payload?: DayData }
+function OverBudgetDot(budget: number) {
+  return function Dot({ cx, cy, payload }: DotProps) {
+    if (cx == null || cy == null || !payload || payload.total <= budget) {
+      return <g />   // 未超预算：不画点（recharts dot 渲染器须返回 SVG 元素，返回空 g）
+    }
+    return <circle cx={cx} cy={cy} r={3} fill="#AB5344" stroke="#fff" strokeWidth={1} />
+  }
+}
+
 /**
  * 堆叠面积费用趋势图
  * @param data             每日聚合数据数组
  * @param selectedService  当前筛选的服务 key（null = 全选）
+ * @param dailyBudget      日预算目标线金额（画一条参照线，超线的日子在顶部染红点）
  */
-export default function CostTrendChart({ data, selectedService }: { data: DayData[]; selectedService: string | null }) {
+export default function CostTrendChart({ data, selectedService, dailyBudget }: { data: DayData[]; selectedService: string | null; dailyBudget: number }) {
   return (
     <ResponsiveContainer width="100%" height={180}>
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
@@ -63,6 +75,11 @@ export default function CostTrendChart({ data, selectedService }: { data: DayDat
             opacity={!selectedService || selectedService === s.key ? 1 : 0.2}
           />
         ))}
+        {/* 日预算目标线（红色虚线）+ 超线日在总额顶部染红点。非堆叠透明面积仅用于承载红点。 */}
+        <ReferenceLine y={dailyBudget} stroke="#AB5344" strokeDasharray="4 3" strokeOpacity={0.6}
+          label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: 9, fill: '#AB5344' }} />
+        <Area type="monotone" dataKey="total" stroke="none" fill="none" activeDot={false}
+          dot={OverBudgetDot(dailyBudget)} isAnimationActive={false} legendType="none" />
       </AreaChart>
     </ResponsiveContainer>
   )

@@ -47,7 +47,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // qwen-flash 单价扁平按总 token 计，故估算兜底把全部字数塞进 promptTokens、completionTokens 记 0，合计即估算 token。
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(rawText.length * 1.5), completionTokens: 0 }
     const usage_amount = usage.promptTokens + usage.completionTokens
-    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success', metadata: { cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'restructure', cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json({ cleanedText, usable })
   } catch (e) {
     const authRes = authErrorResponse(e)

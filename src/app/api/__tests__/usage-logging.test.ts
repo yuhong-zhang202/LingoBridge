@@ -106,12 +106,15 @@ beforeEach(() => {
 })
 
 describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径都必须调用 logApiUsage', () => {
-  test('analysis GET → 记 qwen_plus 一条', async () => {
+  test('analysis GET → 记 qwen_plus 一条（带 user_id 归属 + phase=analysis）', async () => {
     const req = new Request('http://localhost/api/analysis?questionId=q1', { headers: { authorization: 'Bearer t' } })
     const res = await analysisGet(req)
     expect(res.status).toBe(200)
     expect(mockLogApiUsage).toHaveBeenCalledTimes(1)
-    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({ service: 'qwen_plus', status: 'success' }))
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      service: 'qwen_plus', status: 'success', user_id: 'u1',
+      metadata: expect.objectContaining({ phase: 'analysis' }),
+    }))
   })
 
   test('analysis/phrases GET → 记 qwen_plus 一条', async () => {
@@ -146,7 +149,7 @@ describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径�
     expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({ metadata: expect.objectContaining({ phase: 'coach' }) }))
   })
 
-  test('restructure POST → 记 qwen_flash 一条', async () => {
+  test('restructure POST → 记 qwen_flash 一条（带 user_id + is_anonymous 归属）', async () => {
     const req = new Request('http://localhost/api/restructure', {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
       body: JSON.stringify({ rawText: '呃我周末就是去公园走了走' }),
@@ -154,7 +157,27 @@ describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径�
     const res = await restructurePost(req)
     expect(res.status).toBe(200)
     expect(mockLogApiUsage).toHaveBeenCalledTimes(1)
-    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({ service: 'qwen_flash', status: 'success' }))
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      service: 'qwen_flash', status: 'success', user_id: 'u1', is_anonymous: false,
+      metadata: expect.objectContaining({ phase: 'restructure' }),
+    }))
+  })
+
+  test('practice POST 首轮带 storyId → 两条账均带 corpus_id 归属', async () => {
+    const req = new Request('http://localhost/api/practice', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1', storyId: 's-42' }),
+    })
+    const res = await practicePost(req)
+    expect(res.status).toBe(200)
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'u1', corpus_id: 's-42', is_anonymous: false,
+      metadata: expect.objectContaining({ phase: 'analysis' }),
+    }))
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'u1', corpus_id: 's-42', is_anonymous: false,
+      metadata: expect.objectContaining({ phase: 'coach' }),
+    }))
   })
 
   test('transcribe POST → 记 doubao_asr 一条', async () => {

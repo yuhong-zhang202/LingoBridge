@@ -73,7 +73,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     )
     // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
     const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
-    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' })
+    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous })
     return NextResponse.json({ text })
   } catch (e) {
     const authRes = authErrorResponse(e)

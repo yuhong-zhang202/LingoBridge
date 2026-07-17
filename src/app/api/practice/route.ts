@@ -78,7 +78,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         buildScaffold(questionId, body.storyId, body.level, (u) => { analysisUsage = u }),
       )
       const aUsage: LLMUsage = analysisUsage ?? { promptTokens: Math.round(scaffold.questionForAI.length * 0.3 + 800), completionTokens: 400 }
-      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: aUsage.promptTokens + aUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(aUsage.promptTokens, aUsage.completionTokens), latency_ms: Date.now() - scaffoldT0, status: 'success', metadata: { phase: 'analysis', prompt_tokens: aUsage.promptTokens, completion_tokens: aUsage.completionTokens, cost_source: analysisUsage ? 'actual' : 'estimate' } })
+      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: aUsage.promptTokens + aUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(aUsage.promptTokens, aUsage.completionTokens), latency_ms: Date.now() - scaffoldT0, status: 'success', user_id: userId, corpus_id: body.storyId || undefined, is_anonymous: isAnonymous, metadata: { phase: 'analysis', prompt_tokens: aUsage.promptTokens, completion_tokens: aUsage.completionTokens, cost_source: analysisUsage ? 'actual' : 'estimate' } })
     }
 
     // 教练回复：优先记模型真实 usage，模型没吐 usage 才按题目 + 对话历史长度估算（+ 系统提示约 600 token）。
@@ -86,7 +86,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     let coachUsage: LLMUsage | null = null
     const reply = await runWithRawLogContext(rawLogCtx, () => coachReply(scaffold, messages, (u) => { coachUsage = u }))
     const cUsage: LLMUsage = coachUsage ?? { promptTokens: Math.round(scaffold.questionForAI.length * 0.3 + messages.length * 50 + 600), completionTokens: 60 }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: cUsage.promptTokens + cUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(cUsage.promptTokens, cUsage.completionTokens), latency_ms: Date.now() - replyT0, status: 'success', metadata: { phase: 'coach', prompt_tokens: cUsage.promptTokens, completion_tokens: cUsage.completionTokens, cost_source: coachUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: cUsage.promptTokens + cUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(cUsage.promptTokens, cUsage.completionTokens), latency_ms: Date.now() - replyT0, status: 'success', user_id: userId, corpus_id: body.storyId || undefined, is_anonymous: isAnonymous, metadata: { phase: 'coach', prompt_tokens: cUsage.promptTokens, completion_tokens: cUsage.completionTokens, cost_source: coachUsage ? 'actual' : 'estimate' } })
     return NextResponse.json({ scaffold, reply })
   } catch (e) {
     const authRes = authErrorResponse(e)

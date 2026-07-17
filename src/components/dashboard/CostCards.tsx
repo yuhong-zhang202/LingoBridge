@@ -58,8 +58,10 @@ export default function CostCards({ data }: { data: CostCardData }) {
               <div className="text-[11px] text-v2-text-muted mt-0.5">
                 ${(cost / 7.2).toFixed(4)}
               </div>
-              <div className="text-[11px] mt-1.5" style={{ color: card.accent }}>
-                {card.getSub(data)}
+              {/* 副行改用 v2-text-secondary 承载（达 AA 正文对比度）；accent 只留作顶部彩条点缀，不再压白当文字色 */}
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: card.accent }} />
+                <span className="text-[11px] text-v2-text-secondary">{card.getSub(data)}</span>
               </div>
             </div>
           </div>

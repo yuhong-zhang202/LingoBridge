@@ -378,5 +378,10 @@ export type ApiUsageLog = {
   estimated_cost_cny: number
   latency_ms: number
   status: 'success' | 'error'
+  // 归属字段（0021 补列）：各 route 手里已有的值，记费用时一并带上，供成本按用户/语料/匿名归因。
+  // 均可选：无语料的调用（restructure/pronounce/polish/transcribe）corpus_id 省略；requireUser 路由无 is_anonymous。
+  user_id?: string
+  corpus_id?: string
+  is_anonymous?: boolean
   metadata?: Record<string, unknown>
 }

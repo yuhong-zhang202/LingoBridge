@@ -15,6 +15,27 @@ const SERVICE_META: Record<string, { name: string; color: string }> = {
   qwen_plus:     { name: '千问 Plus',     color: '#6FA8C8' },
 }
 
+// 环节（phase）中文名：各 route 在 metadata.phase 打的标签。无 phase 的行（如 transcribe）归入 other。
+const PHASE_META: Record<string, string> = {
+  extraction:  '观察点萃取',
+  ranking:     '题目重排',
+  analysis:    '侧重点分析',
+  coach:       '教练对话',
+  phrases:     '词组生成',
+  pronounce:   '发音提示',
+  restructure: '语料整理',
+  polish:      '单句润色',
+  other:       '其他（含语音转写）',
+}
+
+// 部署形态：Vercel + 香港节点。DB 存 UTC，"今日"/日界/小时桶一律按东八区（UTC+8，无夏令时）折算，
+// 否则香港用户看到的"今日"和"小时分布"会错位 8 小时。
+const HK_OFFSET_MS = 8 * 60 * 60 * 1000
+
+// 预算目标线（内测占位常量，非告警阈值）：趋势图画一条日预算线、超了染红。
+// 告警推送是上线前的事，本轮不做。内测阶段先按此值做视觉参照。
+const DAILY_BUDGET_CNY = 20
+
 /** 保留两位小数 */
 function r2(n: number): number {
   return Math.round(n * 100) / 100
@@ -31,10 +52,33 @@ function parseRange(raw: string | null): number {
   return 7
 }
 
+/** api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的两键） */
+type LogMeta = { phase?: string; cost_source?: string } | null
+type RangeRow = {
+  service: string; estimated_cost_cny: number; latency_ms: number
+  status: string; created_at: string; metadata: LogMeta
+}
+type RecentRow = {
+  id: string; created_at: string; service: string; endpoint: string
+  usage_amount: number; usage_unit: string; estimated_cost_cny: number
+  latency_ms: number; status: string; metadata: LogMeta
+}
+
+/** 把某一 UTC 时刻按东八区折算，返回该日 0 点对应的 UTC 时刻（供日界/月界计算） */
+function hkDayStartUtc(y: number, m: number, d: number): Date {
+  return new Date(Date.UTC(y, m, d) - HK_OFFSET_MS)
+}
+
+/** 取某 ISO 时刻在东八区的「年-月-日」桶键（月为 0-based，只用于分桶不展示） */
+function hkDayKey(iso: string): string {
+  const hk = new Date(new Date(iso).getTime() + HK_OFFSET_MS)
+  return `${hk.getUTCFullYear()}-${hk.getUTCMonth()}-${hk.getUTCDate()}`
+}
+
 /**
  * 聚合 api_usage_logs，返回看板所需全部统计数据
  * @param req  GET 请求，支持 ?range=7d|14d|30d
- * @returns    三张费用卡、迷你统计、服务分组、每日趋势、小时分布、最近调用
+ * @returns    三张费用卡、迷你统计、服务分组、按环节成本、每日趋势、小时分布、最近调用
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -47,12 +91,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 成本数据仅 service_role 可读（绕 RLS）；接口本身由 requireAdmin 挡非 admin 访问。
     const supabase = getSupabaseServer()
 
-    // ── 时间边界（全部 UTC，避免服务端时区歧义） ──
-    const todayStart    = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-    const monthStart    = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-    const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-    const rangeStartDate = new Date(todayStart)
-    rangeStartDate.setUTCDate(rangeStartDate.getUTCDate() - (rangeDays - 1))
+    // ── 时间边界（按东八区折算日界/月界，落到 UTC 时刻供 DB 过滤） ──
+    const nowHk = new Date(now.getTime() + HK_OFFSET_MS)   // UTC 字段 = 香港墙上时钟
+    const todayStart     = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth(), nowHk.getUTCDate())
+    const monthStart     = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth(), 1)
+    const lastMonthStart = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth() - 1, 1)
+    const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
 
     // ── 6 条并行查询 ──
     const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes] = await Promise.all([
@@ -74,11 +118,11 @@ export async function GET(req: Request): Promise<NextResponse> {
         .gte('created_at', todayStart.toISOString()),
       supabase
         .from('api_usage_logs')
-        .select('service, estimated_cost_cny, latency_ms, status, created_at')
+        .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata')
         .gte('created_at', rangeStartDate.toISOString()),
       supabase
         .from('api_usage_logs')
-        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status')
+        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
         .order('created_at', { ascending: false })
         .limit(30),
     ])
@@ -93,8 +137,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const mRows   = monthRes.data    ?? []
     const lmRows  = lastMonthRes.data ?? []
     const tdRows  = todayRes.data    ?? []
-    const rngRows = rangeRes.data    ?? []
-    const recent  = recentRes.data   ?? []
+    const rngRows = (rangeRes.data  ?? []) as RangeRow[]
+    const recent  = (recentRes.data ?? []) as RecentRow[]
 
     // ── 三张费用卡 ──
     const allTimeCost   = r2(allRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
@@ -117,7 +161,15 @@ export async function GET(req: Request): Promise<NextResponse> {
     const errorRate     = rngRows.length > 0
       ? r2(rngRows.filter(r => r.status === 'error').length / rngRows.length * 100)
       : 0
-    const avgDailyCost  = r2(rngRows.reduce((s, r) => s + r.estimated_cost_cny, 0) / rangeDays)
+    const rangeCost     = rngRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
+    const avgDailyCost  = r2(rangeCost / rangeDays)
+
+    // ── 估算占比（本期成本 X% 为估算）：cost_source='estimate' 的成本 ÷ 本期总成本 ──
+    // 缺 cost_source 的行（如 transcribe，按真实时长计）不计入估算，避免高估估算占比。
+    const estimateCost = rngRows
+      .filter(r => r.metadata?.cost_source === 'estimate')
+      .reduce((s, r) => s + r.estimated_cost_cny, 0)
+    const estimateRatio = rangeCost > 0 ? r2(estimateCost / rangeCost * 100) : 0
 
     // ── 按服务分组 ──
     const serviceTotals = Object.keys(SERVICE_META).map(svc => {
@@ -131,23 +183,35 @@ export async function GET(req: Request): Promise<NextResponse> {
       }
     })
 
-    // ── 每日趋势（rangeDays 天，升序） ──
+    // ── 按环节成本（哪个环节最贵）：按 metadata.phase 聚合，降序 ──
+    const phaseMap = new Map<string, { cost: number; calls: number }>()
+    for (const row of rngRows) {
+      const key = row.metadata?.phase ?? 'other'
+      const cur = phaseMap.get(key) ?? { cost: 0, calls: 0 }
+      cur.cost += row.estimated_cost_cny
+      cur.calls += 1
+      phaseMap.set(key, cur)
+    }
+    const phaseTotals = Array.from(phaseMap.entries())
+      .map(([phase, v]) => ({ phase, name: PHASE_META[phase] ?? phase, cost: r2(v.cost), calls: v.calls }))
+      .sort((a, b) => b.cost - a.cost)
+
+    // ── 每日趋势（rangeDays 天，升序，按东八区分桶） ──
     const dailyMap = new Map<string, Record<string, number>>()
     for (const row of rngRows) {
-      const d   = new Date(row.created_at)
-      const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
+      const key = hkDayKey(row.created_at)
       if (!dailyMap.has(key)) dailyMap.set(key, {})
       const entry = dailyMap.get(key)!
       entry[row.service] = (entry[row.service] ?? 0) + row.estimated_cost_cny
       entry['total']     = (entry['total']     ?? 0) + row.estimated_cost_cny
     }
     const dailyData = Array.from({ length: rangeDays }, (_, i) => {
-      const d = new Date(rangeStartDate)
-      d.setUTCDate(d.getUTCDate() + i)
-      const key   = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
+      const dayStart = new Date(rangeStartDate.getTime() + i * 24 * 60 * 60 * 1000)
+      const hk  = new Date(dayStart.getTime() + HK_OFFSET_MS)
+      const key = `${hk.getUTCFullYear()}-${hk.getUTCMonth()}-${hk.getUTCDate()}`
       const entry = dailyMap.get(key) ?? {}
       return {
-        date:          `${d.getUTCMonth() + 1}/${d.getUTCDate()}`,
+        date:          `${hk.getUTCMonth() + 1}/${hk.getUTCDate()}`,
         doubao_asr:    r2(entry['doubao_asr']    ?? 0),
         qwen_flash:    r2(entry['qwen_flash']    ?? 0),
         qwen_plus:     r2(entry['qwen_plus']     ?? 0),
@@ -155,12 +219,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       }
     })
 
-    // ── 今日小时分布（从 rngRows 中筛 today，无需额外查询） ──
+    // ── 今日小时分布（从 rngRows 中筛 today，按东八区取小时桶） ──
     const todayTs  = todayStart.getTime()
     const hourlyMap = new Map<number, number>()
     for (const row of rngRows) {
       if (new Date(row.created_at).getTime() < todayTs) continue
-      const h = new Date(row.created_at).getUTCHours()
+      const h = new Date(new Date(row.created_at).getTime() + HK_OFFSET_MS).getUTCHours()
       hourlyMap.set(h, (hourlyMap.get(h) ?? 0) + 1)
     }
     const hourlyData = Array.from({ length: 24 }, (_, h) => ({
@@ -180,7 +244,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       avgLatency,
       errorRate,
       avgDailyCost,
+      estimateRatio,
+      dailyBudget: DAILY_BUDGET_CNY,
       serviceTotals,
+      phaseTotals,
       dailyData,
       hourlyData,
       recentLogs: recent,

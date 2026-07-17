@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       generatePronunciationTip(intended, heard, context, (u) => { realUsage = u }),
     )
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round((intended.length + heard.length + (context?.length ?? 0)) * 0.3 + 300), completionTokens: 150 }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'pronounce', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)

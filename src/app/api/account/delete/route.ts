@@ -66,6 +66,21 @@ export async function POST(req: Request): Promise<NextResponse> {
       logErr('[account/delete] 原始留证清理失败（不中断删号）', e)
     }
 
+    // 费用日志去标识化（best-effort，非硬删）：api_usage_logs（0021 起带 user_id/corpus_id）是聚合用量/成本、
+    // 不含用户原文——被遗忘权靠断掉个人链接即满足，而非删行。硬删会让离职用户的成本从总额蒸发、账目失真。
+    // 故只把 user_id / corpus_id 置 null，保留 is_anonymous / cost / 其余字段供成本统计。
+    // 这与上面 raw_logs 的「彻底删」口径不同是有意的：原文该彻底删，聚合成本该去标识化保留。
+    // 单独 try/catch、只 logErr 不中断——同头像/留证清理的补充性纪律。
+    try {
+      const { error: anonErr } = await admin
+        .from('api_usage_logs')
+        .update({ user_id: null, corpus_id: null })
+        .eq('user_id', userId)
+      if (anonErr) throw anonErr
+    } catch (e) {
+      logErr('[account/delete] 费用日志去标识化失败（不中断删号）', e)
+    }
+
     // 3) 删账号本体
     const { error: delErr } = await admin.auth.admin.deleteUser(userId)
     if (delErr) throw delErr

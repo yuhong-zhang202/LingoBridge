@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       polishSentence(sentence, aiQuestion, level, (u) => { realUsage = u }),
     )
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round((sentence.length + (aiQuestion?.length ?? 0)) * 0.3 + 400), completionTokens: 150 }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'polish', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)

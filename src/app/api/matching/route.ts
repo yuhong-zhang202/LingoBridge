@@ -125,7 +125,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       // ── 调用 1：萃取（extractCorpus）。萃取必发，恒记一条。
       // 估算兜底：语料字数 × 0.8 token/字 + 系统提示约 1200；输出约 100。
       const exUsage: LLMUsage = extractionUsage ?? { promptTokens: Math.round(cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } })
+      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } })
 
       // ── 调用 2：重排（rankQuestions）。仅在有候选题时才会被调用（noMatch/零候选不发），故按候选数判是否记账。
       // 估算兜底：故事全文 × 0.8 + 全部候选题干字数 × 0.5 + 系统提示约 2000；输出按候选数 × 40。
@@ -135,7 +135,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           promptTokens: Math.round(cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
           completionTokens: result.questions.length * 40,
         }
-        await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } })
+        await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } })
       }
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
