@@ -9,12 +9,21 @@ import { env } from '@/lib/env-server'
 import { getQuestionById, getQuestionsByParent } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_PRACTICE } from '@/lib/constants'
 import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/types'
 
-/** 构建对话脚手架（一次性：取题 + 用户语料 + 侧重点 + 真实 Part 3） */
-export async function buildScaffold(questionId: string, storyId?: string, level = '6.0'): Promise<PracticeScaffold> {
+/**
+ * 构建对话脚手架（一次性：取题 + 用户语料 + 侧重点 + 真实 Part 3）。
+ * ⚠️ 内部会额外发一次 generateAnalysis 的 AI 调用——这条调用此前在 practice route 完全漏记账。
+ * @param onAnalysisUsage  内部 generateAnalysis 的真实 token 用量回调（供 route 单独记这条调用的账）
+ */
+export async function buildScaffold(
+  questionId: string,
+  storyId?: string,
+  level = '6.0',
+  onAnalysisUsage?: (usage: LLMUsage) => void,
+): Promise<PracticeScaffold> {
   const q = await getQuestionById(questionId)
   if (!q) throw new Error('题目不存在')
 
@@ -27,7 +36,7 @@ export async function buildScaffold(questionId: string, storyId?: string, level 
     en: q.question_text,
     zh: q.question_text_zh,
     story: story || undefined,
-  })
+  }, onAnalysisUsage)
 
   return {
     part: q.part,
@@ -107,10 +116,14 @@ If the user is just starting, open with one warm, casual line that invites them 
 - Keep every reply to 1 or 2 short sentences. Never longer.`
 }
 
-/** 生成教练的下一句回复 */
+/**
+ * 生成教练的下一句回复
+ * @param onUsage  拿到模型真实 token 用量的回调（coachReply 走裸 fetch，此前解析出 usage 却没上抛）
+ */
 export async function coachReply(
   scaffold: PracticeScaffold,
   messages: PracticeMessage[],
+  onUsage?: (usage: LLMUsage) => void,
 ): Promise<string> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
@@ -153,6 +166,11 @@ export async function coachReply(
     }
     const rawReply = data.choices[0]?.message?.content?.trim() ?? ''
     if (!rawReply) throw new Error('千问对话返回为空')
+    // 真实用量上抛（此前解析出来却丢弃了，route 只能靠写死常量估算）
+    const u = data.usage
+    if (u && typeof u.prompt_tokens === 'number' && typeof u.completion_tokens === 'number') {
+      onUsage?.({ promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens })
+    }
     // qwen 顽固爱用破折号，prompt 压不住；统一替换成逗号，前后空格一并收拢避免双空格
     const reply = rawReply.replace(/\s*[—–]\s*/g, ', ')
     return reply
@@ -195,15 +213,23 @@ const POLISH_SYSTEM = `你是英语口语表达优化助手。用户在练习雅
  * 对用户刚说的一句英文做地道度优化
  * @param sentence    用户原句（可能来自语音转写）
  * @param aiQuestion  上下文：教练刚问的问题（可选）
+ * @param level       目标雅思水平（默认 6.0）
+ * @param onUsage     拿到模型真实 token 用量的回调（供上层真实记账）
  * @returns           优化后的句子 + 一句中文改进说明
  */
-export async function polishSentence(sentence: string, aiQuestion?: string, level = '6.0'): Promise<PolishResult> {
+export async function polishSentence(
+  sentence: string,
+  aiQuestion?: string,
+  level = '6.0',
+  onUsage?: (usage: LLMUsage) => void,
+): Promise<PolishResult> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   const userMsg = `(目标雅思水平:) ${level}\n${aiQuestion ? `(教练问的:) ${aiQuestion}\n` : ''}(我说的:) ${sentence}`
   return callLLMJson<PolishResult>({
     label: '[Polish]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,

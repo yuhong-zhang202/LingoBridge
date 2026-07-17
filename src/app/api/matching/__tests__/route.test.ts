@@ -25,6 +25,7 @@ jest.mock('@/lib/api-auth', () => ({
 jest.mock('@/lib/events', () => ({ logEvent: jest.fn() }))
 jest.mock('@/lib/api-logger', () => ({
   logApiUsage: jest.fn(),
+  qwenPlusCostCny: jest.fn(() => 0.001),
   API_PRICING: { qwen_plus_input_per_1m: 0.8, qwen_plus_output_per_1m: 2.0 },
 }))
 jest.mock('@/lib/supabase-server', () => ({ getSupabaseServer: jest.fn() }))
@@ -129,14 +130,15 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     )
   })
 
-  test('2. hash 失效：存档在但 storyHash 不一致 → 重算、写新档、servedFrom=fresh', async () => {
+  test('2. hash 失效：存档在但 storyHash 不一致 → 重算、写新档、servedFrom=fresh，且记两条账（萃取 + 重排）', async () => {
     const cached = makeResult('stale')
     mockGetSnapshot.mockResolvedValue({ result: cached, storyHash: 'DIFFERENT_HASH', algoVersion: RANKING_ALGO_VERSION })
 
     const res = await POST(makeReq())
     const body = (await res.json()) as FunnelMatchResult & { servedFrom: string }
 
-    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED)
+    // matchByStory 现在带 usage sink（第二个参数），断言仍以 cleanedText 起手
+    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED, expect.any(Object))
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
     )
@@ -144,6 +146,56 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
     expect(mockLogEvent).toHaveBeenCalledWith(
       expect.objectContaining({ props: expect.objectContaining({ served_from: 'fresh' }) }),
+    )
+    // 核心回归：matchByStory 内部是萃取 + 重排两次 qwen 调用，必须各记一条（此前漏了最大的重排）。
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(mockLogApiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ service: 'qwen_plus', metadata: expect.objectContaining({ phase: 'extraction' }) }),
+    )
+    expect(mockLogApiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ service: 'qwen_plus', metadata: expect.objectContaining({ phase: 'ranking' }) }),
+    )
+  })
+
+  test('5. fresh 且模型吐了真实 usage：两条账均按真实 token 记（cost_source=actual）', async () => {
+    // 让 matchByStory 触发 usage sink 两个回调，模拟 callLLMJson 上抛的真实用量
+    mockMatchByStory.mockImplementation(async (_text, usage) => {
+      usage?.onExtraction?.({ promptTokens: 111, completionTokens: 22 })
+      usage?.onRanking?.({ promptTokens: 555, completionTokens: 88 })
+      return makeResult('fresh')
+    })
+
+    await POST(makeReq())
+
+    expect(mockLogApiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        service: 'qwen_plus',
+        usage_amount: 111 + 22,
+        metadata: expect.objectContaining({ phase: 'extraction', prompt_tokens: 111, completion_tokens: 22, cost_source: 'actual' }),
+      }),
+    )
+    expect(mockLogApiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        service: 'qwen_plus',
+        usage_amount: 555 + 88,
+        metadata: expect.objectContaining({ phase: 'ranking', prompt_tokens: 555, completion_tokens: 88, cost_source: 'actual' }),
+      }),
+    )
+  })
+
+  test('6. fresh 但零候选（noMatch）：不调重排 → 只记萃取一条账', async () => {
+    const empty = makeResult('fresh')
+    empty.questions = []
+    empty.count = 0
+    empty.noMatch = true
+    mockMatchByStory.mockResolvedValue(empty)
+
+    await POST(makeReq())
+
+    // 重排仅在有候选题时才会被 matchByStory 调用，零候选时不该记重排那条
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(1)
+    expect(mockLogApiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: expect.objectContaining({ phase: 'extraction' }) }),
     )
   })
 
@@ -154,7 +206,7 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     const res = await POST(makeReq())
     const body = (await res.json()) as FunnelMatchResult & { servedFrom: string }
 
-    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED)
+    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED, expect.any(Object))
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
     )
@@ -170,7 +222,7 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     const body = (await res.json()) as FunnelMatchResult & { servedFrom: string }
 
     expect(mockGetSnapshot).not.toHaveBeenCalled()
-    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED)
+    expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED, expect.any(Object))
     expect(body.servedFrom).toBe('fresh')
     expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
   })

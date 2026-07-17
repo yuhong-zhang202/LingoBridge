@@ -6,7 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_PRONOUNCE } from '@/lib/constants'
 import type { PronunciationTip } from '@/lib/types'
 
@@ -26,11 +26,15 @@ const PRONOUNCE_SYSTEM = `你是英语发音教练，面向中国雅思考生。
 格式：
 { "ipaIntended": "/.../", "ipaHeard": "/.../", "tip": "一段中文发音提示" }`
 
-/** 给一对「想说/被听成」的词生成音标 + 怎么念提示 */
+/**
+ * 给一对「想说/被听成」的词生成音标 + 怎么念提示
+ * @param onUsage  拿到模型真实 token 用量的回调（供上层真实记账）
+ */
 export async function generatePronunciationTip(
   intended: string,
   heard: string,
   context?: string,
+  onUsage?: (usage: LLMUsage) => void,
 ): Promise<PronunciationTip> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
@@ -38,6 +42,7 @@ export async function generatePronunciationTip(
   const userMsg = `(想说的词:) ${intended}\n(被听成的词:) ${heard}\n${context ? `(出处句:) ${context}\n` : ''}`
   return callLLMJson<PronunciationTip>({
     label: '[Pronounce]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,

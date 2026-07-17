@@ -9,7 +9,8 @@ import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
-import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import type { LLMUsage } from '@/lib/llm'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL } from '@/lib/constants'
@@ -59,13 +60,14 @@ export async function GET(req: Request): Promise<NextResponse> {
     const zhForDisplay = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
 
     // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
+    // 优先记模型真实 usage；模型没吐 usage 才回退到按题目长度的估算（英文约 0.3 token/字 + 系统提示约 800）。
+    // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
+    let realUsage: LLMUsage | null = null
     const analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
-      generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }),
+      generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
     )
-    // generateAnalysis 内未向上暴露 usage，按题目长度估算（英文约 0.3 token/字 + 系统提示约 800）
-    const promptTokens = Math.round(enForAI.length * 0.3 + 800)
-    const completionTokens = 400
-    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
+    const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 800), completionTokens: 400 }
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
 
     const body: AnalysisResponse = {
       question: {
@@ -82,7 +84,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
     logErr('[analysis API]', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }

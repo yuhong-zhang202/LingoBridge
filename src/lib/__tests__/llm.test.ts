@@ -215,3 +215,63 @@ describe('callLLMJson · 整批重问最多 N 轮', () => {
     expect(console.warn).not.toHaveBeenCalled()
   })
 })
+
+/** 造一个带真实 usage 的 DashScope 成功响应 */
+function replyWithUsage(content: string, promptTokens: number, completionTokens: number): { ok: true; json: () => Promise<unknown> } {
+  return { ok: true, json: async () => ({ choices: [{ message: { content } }], usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }) }
+}
+
+describe('callLLMJson · 真实用量上抛（onUsage）', () => {
+  test('12. 首发即通过：onUsage 收到该次真实 usage', async () => {
+    fetchMock.mockResolvedValueOnce(replyWithUsage('{"ok":"yes"}', 123, 45))
+    const onUsage = jest.fn()
+
+    await callLLMJson<Shape>({ call: CALL, validate: isShape, onUsage })
+    expect(onUsage).toHaveBeenCalledTimes(1)
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 123, completionTokens: 45 })
+  })
+
+  test('13. 内部重问多轮：onUsage 累加各轮用量（不是只报最后一轮）', async () => {
+    // 第 1 轮坏 JSON（烧了 100/10）→ 整批重问 → 第 2 轮通过（烧了 200/20）。合计应为 300/30。
+    fetchMock
+      .mockResolvedValueOnce(replyWithUsage('{"bad":1}', 100, 10))
+      .mockResolvedValueOnce(replyWithUsage('{"ok":"yes"}', 200, 20))
+    const onUsage = jest.fn()
+
+    await callLLMJson<Shape>({ call: CALL, validate: isShape, maxAttempts: 3, onUsage })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onUsage).toHaveBeenCalledTimes(1)
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 300, completionTokens: 30 })
+  })
+
+  test('14. 轮次用尽走 fallback：onUsage 仍报累加用量（fallback 也是花了钱的）', async () => {
+    fetchMock
+      .mockResolvedValueOnce(replyWithUsage('{"bad":1}', 50, 5))
+      .mockResolvedValueOnce(replyWithUsage('{"bad":2}', 60, 6))
+    const onUsage = jest.fn()
+
+    await callLLMJson<Shape>({
+      call: CALL, validate: isShape, maxAttempts: 2, onUsage,
+      fallback: (raw) => ({ ok: raw }),
+    })
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 110, completionTokens: 11 })
+  })
+
+  test('15. 模型没吐 usage：onUsage 不触发（调用方据此回退到估算）', async () => {
+    fetchMock.mockResolvedValueOnce(reply('{"ok":"yes"}'))  // reply 不带 usage 字段
+    const onUsage = jest.fn()
+
+    await callLLMJson<Shape>({ call: CALL, validate: isShape, onUsage })
+    expect(onUsage).not.toHaveBeenCalled()
+  })
+
+  test('16. 全程失败抛错：onUsage 不触发（没有可信的成功用量）', async () => {
+    fetchMock.mockRejectedValue(abortError())
+    const onUsage = jest.fn()
+
+    await expect(
+      callLLMJson<Shape>({ call: CALL, validate: isShape, maxAttempts: 2, timeoutMs: 100, onUsage }),
+    ).rejects.toBeDefined()
+    expect(onUsage).not.toHaveBeenCalled()
+  })
+})

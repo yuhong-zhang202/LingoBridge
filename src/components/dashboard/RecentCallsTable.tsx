@@ -10,8 +10,6 @@ const SVC: Record<string, [string, string]> = {
   doubao_asr:    ['豆包 ASR',      '#D4875A'],
   qwen_flash:    ['千问 Qwen',     '#7BA699'],
   qwen_plus:     ['千问 Plus',     '#6FA8C8'],
-  claude_sonnet: ['Claude Sonnet', '#9A7DB8'],
-  claude_haiku:  ['Claude Haiku',  '#E8B87A'],
 }
 function Badge({ s }: { s: string }) {
   const [n, c] = SVC[s] ?? [s, '#A89990']

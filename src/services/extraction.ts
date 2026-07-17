@@ -6,7 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_EXTRACTION } from '@/lib/constants'
 
 const SYSTEM_PROMPT = `你是 LingoBridge 的语料分类器。用户会给你一段「整理后的中文叙述」（来自雅思口语备考者讲述的真实生活片段）。
@@ -249,15 +249,20 @@ const EXTRACTION_FIX_INSTRUCTION =
  * 模型返回的 pointCode 强制过 taxonomy 白名单：不合法先带整改要求退回重试一次，
  * 重试仍不合法则抛错（extraction 无 fallback）——绝不把自创 code 放行到下游去捏造维度。
  * @param cleanedText  整理后的中文故事
+ * @param onUsage      拿到模型真实 token 用量的回调（供上层真实记账；不传则不回调）
  * @returns            ExtractionResult（primary 必为合法 code）
  * @sideEffect         调用 DashScope；code 非法时打 error 日志
  */
-export async function extractCorpus(cleanedText: string): Promise<ExtractionResult> {
+export async function extractCorpus(
+  cleanedText: string,
+  onUsage?: (usage: LLMUsage) => void,
+): Promise<ExtractionResult> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   const extraction = await callLLMJson<ExtractionResult>({
     label: '[Extraction]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,

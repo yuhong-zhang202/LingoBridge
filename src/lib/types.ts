@@ -371,7 +371,7 @@ export type RelevanceScore = {
 
 // ── API 用量日志 ──
 export type ApiUsageLog = {
-  service: 'doubao_asr' | 'qwen_flash' | 'qwen_plus' | 'claude_sonnet' | 'claude_haiku'
+  service: 'doubao_asr' | 'qwen_flash' | 'qwen_plus'
   endpoint: string
   usage_amount: number
   usage_unit: 'tokens' | 'seconds'

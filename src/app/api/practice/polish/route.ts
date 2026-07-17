@@ -7,12 +7,15 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
+import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_POLISH_LIMIT, REG_POLISH_DAILY_LIMIT } from '@/lib/constants'
 
 export async function POST(req: Request): Promise<NextResponse> {
+  const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
@@ -34,13 +37,19 @@ export async function POST(req: Request): Promise<NextResponse> {
         : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
     // polish 是练习中的单句润色，不绑定具体语料，无 corpusId；带 userId 归属留证。
+    // 此前该路由完全漏记账（qwen-plus 一次调用）。优先记真实 usage，模型没吐 usage 才回退到估算。
+    // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
+    let realUsage: LLMUsage | null = null
     const result = await runWithRawLogContext({ userId, corpusId: null }, () =>
-      polishSentence(sentence, aiQuestion, level),
+      polishSentence(sentence, aiQuestion, level, (u) => { realUsage = u }),
     )
+    const usage: LLMUsage = realUsage ?? { promptTokens: Math.round((sentence.length + (aiQuestion?.length ?? 0)) * 0.3 + 400), completionTokens: 150 }
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
     logErr('[polish API]', e)
     return NextResponse.json({ error: '优化失败' }, { status: 500 })
   }

@@ -73,12 +73,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     )
     // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
     const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
-    logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' }).catch(() => {})
+    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success' })
     return NextResponse.json({ text })
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
+    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
     logErr('[transcribe API]', e)
     // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）
     if (isAppError(e)) {

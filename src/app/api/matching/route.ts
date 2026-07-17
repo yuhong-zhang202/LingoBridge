@@ -10,7 +10,8 @@ import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
-import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import type { LLMUsage } from '@/lib/llm'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getSupabaseServer } from '@/lib/supabase-server'
@@ -104,16 +105,38 @@ export async function POST(req: Request): Promise<NextResponse> {
     } else {
       // 未命中/失效：重算 → 落快照 → 保持对 corpus_question_matches 的既有写（反查表不动其职责）。
       // 带 userId + corpusId 归属留证（重排链路的 LLM 调用在 matchByStory 内深处触发 appendRawLog）。
-      result = await runWithRawLogContext({ userId, corpusId }, () => matchByStory(cleanedText))
+      // matchByStory 内部是【两次】qwen-plus 调用（萃取 + 重排），此前只记了萃取的一条估算、漏了最大的重排。
+      // 用两个回调把两次调用的真实 usage 各自接出来，各记一条账；模型没吐 usage 才回退到估算。
+      // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后两个变量已落值。
+      let extractionUsage: LLMUsage | null = null
+      let rankingUsage: LLMUsage | null = null
+      result = await runWithRawLogContext({ userId, corpusId }, () =>
+        matchByStory(cleanedText, {
+          onExtraction: (u) => { extractionUsage = u },
+          onRanking: (u) => { rankingUsage = u },
+        }),
+      )
       // 持久化匹配结果供反查；写库失败不阻断匹配返回
       await persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e))
       // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
       await upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
         .catch((e) => logErr('[matching snapshot upsert]', e))
-      // extractCorpus 内未向上暴露 usage，按语料字数估算输入 token（中文约 0.8 token/字 + 系统提示约 1200）
-      const promptTokens = Math.round(cleanedText.length * 0.8 + 1200)
-      const completionTokens = 100
-      logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: promptTokens + completionTokens, usage_unit: 'tokens', estimated_cost_cny: (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m + (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m, latency_ms: Date.now() - t0, status: 'success', metadata: { prompt_tokens: promptTokens, completion_tokens: completionTokens } }).catch(() => {})
+
+      // ── 调用 1：萃取（extractCorpus）。萃取必发，恒记一条。
+      // 估算兜底：语料字数 × 0.8 token/字 + 系统提示约 1200；输出约 100。
+      const exUsage: LLMUsage = extractionUsage ?? { promptTokens: Math.round(cleanedText.length * 0.8 + 1200), completionTokens: 100 }
+      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } })
+
+      // ── 调用 2：重排（rankQuestions）。仅在有候选题时才会被调用（noMatch/零候选不发），故按候选数判是否记账。
+      // 估算兜底：故事全文 × 0.8 + 全部候选题干字数 × 0.5 + 系统提示约 2000；输出按候选数 × 40。
+      if (result.questions.length > 0) {
+        const candidateChars = result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
+        const rkUsage: LLMUsage = rankingUsage ?? {
+          promptTokens: Math.round(cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
+          completionTokens: result.questions.length * 40,
+        }
+        await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } })
+      }
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
@@ -142,7 +165,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' }).catch(() => {})
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }

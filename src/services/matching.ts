@@ -7,6 +7,7 @@
 import 'server-only'
 import { extractCorpus, type ExtractionPick } from '@/services/extraction'
 import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
+import type { LLMUsage } from '@/lib/llm'
 import { questionFace } from '@/lib/question-face'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
@@ -50,13 +51,28 @@ export interface FunnelMatchResult {
 }
 
 /**
+ * matchByStory 内两次 AI 调用（萃取 + 重排）各自的真实用量回调。
+ * 分开两个回调而非一个：route 要把这两次调用【各记一条账】（此前只记了萃取的估算，漏了最大的重排）。
+ */
+export interface MatchUsageSink {
+  /** extractCorpus 一次调用的真实 token 用量 */
+  onExtraction?: (usage: LLMUsage) => void
+  /** rankQuestions 一次调用（累加内部重试轮次）的真实 token 用量；无候选题时不触发（不会调重排） */
+  onRanking?: (usage: LLMUsage) => void
+}
+
+/**
  * 根据故事文本做三层漏斗真实反向匹配，并对候选题做相关性排名
  * @param cleanedText  整理后的中文故事
+ * @param usage        两次 AI 调用的真实用量回调（供 route 各记一条账；不传则不回调）
  * @returns            主/副观察点 + 漏斗匹配结果（含 matchedViaSecondary / noMatch / 排名后 questions）
  */
-export async function matchByStory(cleanedText: string): Promise<FunnelMatchResult> {
+export async function matchByStory(
+  cleanedText: string,
+  usage?: MatchUsageSink,
+): Promise<FunnelMatchResult> {
   // 1. 萃取观察点（主 + 副）
-  const extraction = await extractCorpus(cleanedText)
+  const extraction = await extractCorpus(cleanedText, usage?.onExtraction)
 
   // 2. 观察点元信息（code → name + dimensionId）
   const points = await listObservationPoints()
@@ -177,7 +193,7 @@ export async function matchByStory(cleanedText: string): Promise<FunnelMatchResu
       const face = questionFace(q)
       return { id: q.id, en: face.en, zh: face.zh, obs: q.pointName }
     })
-    const scores = await rankQuestions(cleanedText, candidates)
+    const scores = await rankQuestions(cleanedText, candidates, usage?.onRanking)
 
     if (scores.length > 0) {
       // 回填前先核对「返回的 id 集合」与「候选 id 集合」。ranking.ts 已在模型边界做过严格对齐，

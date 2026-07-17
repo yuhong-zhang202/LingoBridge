@@ -20,7 +20,7 @@ type DashboardData = {
   todayCost:  number; todayCalls: number
   avgDailyCalls: number; avgLatency: number; errorRate: number; avgDailyCost: number
   serviceTotals: ServiceTotal[]
-  dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; claude_sonnet: number; claude_haiku: number; total: number }>
+  dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   hourlyData: Array<{ hour: string; calls: number }>
   recentLogs: Array<{ id: string; created_at: string; service: string; endpoint: string; usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string }>
 }
@@ -139,10 +139,10 @@ export default function DashboardPage() {
         {/* 底部单价参考 */}
         <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
           <div className="text-[11px] text-v2-text-muted leading-relaxed">
-            单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;Claude Sonnet ≈ $3/$15 per M token&nbsp;|&nbsp;Claude Haiku ≈ $0.25/$1.25 per M token
+            单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
           </div>
           <div className="text-[10px] text-v2-text-muted mt-1.5">
-            * 所有费用为基于单价的估算值，实际账单以各平台控制台为准。汇率按 1 USD = 7.2 CNY 换算。
+            * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
           </div>
         </div>
       </>)}

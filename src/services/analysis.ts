@@ -6,7 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_ANALYSIS } from '@/lib/constants'
 import type { QuestionAnalysis, AnalysisPhraseGroup } from '@/lib/types'
 
@@ -95,7 +95,7 @@ export async function generateAnalysis(input: {
   en: string
   zh: string | null
   story?: string
-}): Promise<QuestionAnalysis> {
+}, onUsage?: (usage: LLMUsage) => void): Promise<QuestionAnalysis> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
@@ -103,6 +103,7 @@ export async function generateAnalysis(input: {
   const userMsg = `Part ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
   return callLLMJson<QuestionAnalysis>({
     label: '[Analysis]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
@@ -162,7 +163,7 @@ export async function generatePhrases(input: {
   zh: string | null
   story?: string
   level: string
-}): Promise<AnalysisPhraseGroup[]> {
+}, onUsage?: (usage: LLMUsage) => void): Promise<AnalysisPhraseGroup[]> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
@@ -170,6 +171,7 @@ export async function generatePhrases(input: {
   const userMsg = `目标雅思水平：${input.level}\nPart ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
   const result = await callLLMJson<{ phrases: AnalysisPhraseGroup[] }>({
     label: '[Phrases]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,

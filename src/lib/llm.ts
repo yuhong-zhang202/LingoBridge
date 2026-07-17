@@ -24,6 +24,15 @@ const RETRY_FIX_INSTRUCTION =
 
 type Msg = { role: 'system' | 'user' | 'assistant'; content: string }
 
+/**
+ * 模型返回的真实 token 用量（provider 无关的归一化形状）。
+ * dashscope 的 prompt_tokens/completion_tokens、anthropic 的 input_tokens/output_tokens 统一映射到这里。
+ */
+export interface LLMUsage {
+  promptTokens: number
+  completionTokens: number
+}
+
 /** HTTP 非 2xx。带状态码，供失败事实分类用（裸 Error 分不出是 429 还是 500） */
 class LLMHttpError extends Error {
   constructor(label: string, readonly status: number) {
@@ -98,6 +107,13 @@ export interface CallLLMJsonOptions<T> {
    * 否则模型会被误导去修引号，白白浪费一次重试。
    */
   retryInstruction?: string
+  /**
+   * 拿到模型真实 token 用量后的回调（供 route 记真实账，替代写死常量估算）。
+   * · 仅在拿到【真实】usage 时触发一次；模型没吐 usage 就不触发（调用方据此回退到估算）。
+   * · 内部重试多轮时【累加各轮】用量再回调一次（不是只报最后一轮）——每轮生成都真实烧了 token。
+   * · 不关心用量的调用点不传即可，零改动、零开销。
+   */
+  onUsage?: (usage: LLMUsage) => void
 }
 
 /**
@@ -122,8 +138,29 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
     return body + (call.provider === 'anthropic' ? call.system.length : 0)
   }
 
-  // 单次原始调用（按 provider 取文本），各自带独立超时
-  async function rawCall(messages: Msg[], attempt: number): Promise<string> {
+  /**
+   * 从原始响应体里取真实 token 用量（按 provider 取不同字段名）。字段缺失/类型不对一律返回 null，
+   * 让调用方回退到估算——绝不把 undefined 当 0 记账污染成本看板。
+   * @param data  已 json() 的原始响应
+   * @returns     归一化用量或 null
+   */
+  function extractUsage(data: unknown): LLMUsage | null {
+    if (call.provider === 'anthropic') {
+      const u = (data as { usage?: { input_tokens?: unknown; output_tokens?: unknown } }).usage
+      if (u && typeof u.input_tokens === 'number' && typeof u.output_tokens === 'number') {
+        return { promptTokens: u.input_tokens, completionTokens: u.output_tokens }
+      }
+      return null
+    }
+    const u = (data as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } }).usage
+    if (u && typeof u.prompt_tokens === 'number' && typeof u.completion_tokens === 'number') {
+      return { promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens }
+    }
+    return null
+  }
+
+  // 单次原始调用（按 provider 取文本 + 真实用量），各自带独立超时
+  async function rawCall(messages: Msg[], attempt: number): Promise<{ text: string; usage: LLMUsage | null }> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     const startedAt = Date.now()
@@ -148,7 +185,8 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
         const data: unknown = await res.json()
         const blocks =
           (data as { content?: Array<{ type?: string; text?: string }> }).content ?? []
-        return blocks.find((b) => b.type === 'text')?.text?.trim() ?? ''
+        const text = blocks.find((b) => b.type === 'text')?.text?.trim() ?? ''
+        return { text, usage: extractUsage(data) }
       } else {
         const dsBody: Record<string, unknown> = { model: call.model, messages }
         if (call.temperature !== undefined) dsBody.temperature = call.temperature
@@ -164,10 +202,10 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
         })
         if (!res.ok) throw new LLMHttpError(label, res.status)
         const data: unknown = await res.json()
-        return (
+        const text =
           (data as { choices?: Array<{ message?: { content?: string } }> }).choices?.[0]
             ?.message?.content?.trim() ?? ''
-        )
+        return { text, usage: extractUsage(data) }
       }
     } catch (e) {
       // 失败事实必须永远留证，与 RAW_LOG_ENABLED（留证入库、opt-in）无关：
@@ -242,10 +280,24 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
   let lastRaw = ''
   let lastJson = ''
 
+  // 真实用量累加器：跨全部尝试轮次累加（每轮生成都烧了 token），末尾成功/fallback 时一次性回调。
+  const usageTotal: LLMUsage = { promptTokens: 0, completionTokens: 0 }
+  let hasUsage = false
+  /** 把累加到的真实用量回调给调用方（仅在确有真实用量时触发，让调用方对无 usage 场景走估算） */
+  function emitUsage(): void {
+    if (hasUsage) opts.onUsage?.({ ...usageTotal })
+  }
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let raw: string
     try {
-      raw = await rawCall(messages, attempt)
+      const rr = await rawCall(messages, attempt)
+      raw = rr.text
+      if (rr.usage) {
+        usageTotal.promptTokens += rr.usage.promptTokens
+        usageTotal.completionTokens += rr.usage.completionTokens
+        hasUsage = true
+      }
     } catch (e) {
       // 瞬时抖动（超时 / 网络 / 5xx）：原样重发同样大小的请求，不做指数退避——
       // 退避治不了超时（重发的请求还是那么大、还是要那么久），它治的是抖动，而抖动重发即可。
@@ -260,7 +312,10 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
     const json = extractJson(raw)
     const r = parseValidate(json)
     await record(attempt, messages, raw, json, r.ok)
-    if (r.ok) return r.value
+    if (r.ok) {
+      emitUsage()
+      return r.value
+    }
 
     lastRaw = raw
     lastJson = json
@@ -282,6 +337,7 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
   // 拿首轮去抢救等于把中间几轮的修正成果全扔了。
   if (fallback) {
     console.warn(`${label} 已用尽 ${maxAttempts} 轮仍未通过，使用 fallback`, logPayload(lastJson, lastRaw))
+    emitUsage()
     return fallback(lastRaw, lastJson)
   }
   console.error(`${label} JSON 解析失败（已用尽 ${maxAttempts} 轮）`, logPayload(lastJson, lastRaw))

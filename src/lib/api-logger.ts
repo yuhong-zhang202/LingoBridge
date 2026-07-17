@@ -17,11 +17,21 @@ export const API_PRICING = {
   qwen_flash_per_1k_tokens: 0.0008,      // ¥0.0008/千token
   qwen_plus_input_per_1m:   0.8,          // ¥0.0008/千 × 1000 = ¥0.8/百万token（输入）
   qwen_plus_output_per_1m:  2.0,          // ¥0.002/千  × 1000 = ¥2.0/百万token（输出）
-  claude_sonnet_input_per_1m: 21.6,      // $3 × 7.2 汇率 = ¥21.6/百万token
-  claude_sonnet_output_per_1m: 108,      // $15 × 7.2
-  claude_haiku_input_per_1m: 1.8,        // $0.25 × 7.2
-  claude_haiku_output_per_1m: 9,         // $1.25 × 7.2
 } as const
+
+/**
+ * qwen-plus 一次调用的费用（人民币）：输入/输出 token 分开计价。
+ * 抽成单一入口，杜绝各 route 各写一份公式导致口径漂移（成本看板系统性偏差的病根之一）。
+ * @param promptTokens      输入 token 数（真实或估算）
+ * @param completionTokens  输出 token 数（真实或估算）
+ * @returns                 估算费用（人民币）
+ */
+export function qwenPlusCostCny(promptTokens: number, completionTokens: number): number {
+  return (
+    (promptTokens / 1_000_000) * API_PRICING.qwen_plus_input_per_1m +
+    (completionTokens / 1_000_000) * API_PRICING.qwen_plus_output_per_1m
+  )
+}
 
 /**
  * 将一条 API 用量记录写入 api_usage_logs 表

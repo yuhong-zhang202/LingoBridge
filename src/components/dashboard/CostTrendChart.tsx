@@ -11,13 +11,10 @@ const SERVICES = [
   { key: 'doubao_asr',    name: '豆包 ASR',      color: '#D4875A' },
   { key: 'qwen_flash',    name: '千问 Qwen',     color: '#7BA699' },
   { key: 'qwen_plus',     name: '千问 Plus',     color: '#6FA8C8' },
-  { key: 'claude_sonnet', name: 'Claude Sonnet', color: '#9A7DB8' },
-  { key: 'claude_haiku',  name: 'Claude Haiku',  color: '#E8B87A' },
 ]
 
 type DayData = {
-  date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number
-  claude_sonnet: number; claude_haiku: number; total: number
+  date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number
 }
 type TooltipEntry = { name: string; value: number; color: string }
 type TipProps = { active?: boolean; payload?: TooltipEntry[]; label?: string }

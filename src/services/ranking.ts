@@ -16,7 +16,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import {
   MODEL_RANKING,
   RANKING_W1,
@@ -538,12 +538,14 @@ function keepAligned<T extends AlignableItem>(items: T[], seqMap: Map<string, Se
  * 打分路径由 env.rankingDimensional 切换：默认走【单一总分】（现网行为不变）；开启走【分维度 + 代码合成】。
  * @param storyText   用户整理后的中文故事
  * @param candidates  候选题（id 为真实 UUID）
+ * @param onUsage     拿到模型真实 token 用量的回调（累加了内部各重试轮次；不传则不回调）
  * @returns           RelevanceScore[]（id 为真实 UUID）；全员错位或异常时返回 []
  * @sideEffect        调用 DashScope；对齐失败时打 error 日志
  */
 export async function rankQuestions(
   storyText: string,
   candidates: CandidateQuestion[],
+  onUsage?: (usage: LLMUsage) => void,
 ): Promise<RelevanceScore[]> {
   if (candidates.length === 0) return []
   if (!env.dashscopeApiKey) return []
@@ -656,6 +658,7 @@ export async function rankQuestions(
         retryInstruction: REALIGN_INSTRUCTION,
         fallback: makeFallback(recoverPartialDimScores),
         label: '[Ranking]',
+        onUsage,
       })
       return mapToRelevance(result.scores, synthesizeScore).sort((a, b) => b.score - a.score)
     }
@@ -680,6 +683,7 @@ export async function rankQuestions(
       retryInstruction: REALIGN_INSTRUCTION,
       fallback: makeFallback(recoverPartialScores),
       label: '[Ranking]',
+      onUsage,
     })
     return mapToRelevance(result.scores, (it) => it.score)
   } catch {

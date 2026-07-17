@@ -6,7 +6,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson } from '@/lib/llm'
+import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_RESTRUCTURE } from '@/lib/constants'
 
 const SYSTEM_PROMPT = `你是一个中文文本整理助手。用户会给你一段口语化的、可能来自语音转写的中文叙述。
@@ -28,12 +28,16 @@ const SYSTEM_PROMPT = `你是一个中文文本整理助手。用户会给你一
   错误示例："tip":"别只说"I was scared""   ← 裸双引号会破坏 JSON
   正确示例："tip":"别只说「I was scared」"`
 
-export async function restructureText(rawText: string): Promise<{ cleanedText: string; usable: boolean }> {
+export async function restructureText(
+  rawText: string,
+  onUsage?: (usage: LLMUsage) => void,
+): Promise<{ cleanedText: string; usable: boolean }> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   return callLLMJson<{ cleanedText: string; usable: boolean }>({
     label: '[Restructure]',
+    onUsage,
     call: {
       provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
