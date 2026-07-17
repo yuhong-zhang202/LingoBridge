@@ -16,6 +16,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
+import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
 
 interface UseStorySubmitArgs {
@@ -54,6 +55,8 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
         setToastMsg(GARBAGE_TOAST_MSG)
         return
       }
+      // 文字路径的流程起点：开启一次新 flow_id，串起 整理→建语料（经 X-Flow-Id 头透传，不进 URL）
+      newFlowId()
       setSubmitting(true)
       const qidParam = qid ? `&qid=${qid}` : ''
       try {

@@ -11,6 +11,7 @@ import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { logEvent } from '@/lib/events'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 
 /**
@@ -75,6 +76,26 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await matchByStory(cleanedText)
     // 持久化匹配结果供反查；写库失败不阻断匹配返回
     await persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e))
+    // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
+    // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
+    // 假空率 = (noMatch=false 但 visibleCount=0) 的故事 ÷ 故事总数（分母走 flow.corpus_bound 计数，
+    // 不用 candidateCount——那是模型能自己控的量，违反分母铁律）。logEvent 内部已吞异常，不阻断返回。
+    await logEvent({
+      event: 'match.result',
+      flowId: req.headers.get('x-flow-id'),
+      storyId: corpusId,
+      userId,
+      props: {
+        primaryCode: result.primary?.pointCode ?? null,
+        secondaryCode: result.secondary?.pointCode ?? null,
+        matchedViaSecondary: result.matchedViaSecondary,
+        matchedViaNeighbor: result.matchedViaNeighbor,
+        noMatch: result.noMatch,
+        candidateCount: result.questions.length,
+        visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
+        unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
+      },
+    })
     // extractCorpus 内未向上暴露 usage，按语料字数估算输入 token（中文约 0.8 token/字 + 系统提示约 1200）
     const promptTokens = Math.round(cleanedText.length * 0.8 + 1200)
     const completionTokens = 100

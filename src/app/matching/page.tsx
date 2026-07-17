@@ -75,6 +75,33 @@ function MatchingContent() {
     return tabs
   }, [result])
 
+  // 埋点 match.view_rendered（第一周只出裸计数、不设阈值）：上报「用户在故事级真看到了什么」——
+  // 跨 Tab（非当前 Tab 过滤）的高/中/可见/未打分计数 + 是否落到全局空态，供与服务端 match.result 对照
+  // （服务端给了什么 vs 用户看到什么）。fire-and-forget：上报失败绝不影响渲染。
+  useEffect(() => {
+    if (!result) return
+    const highCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH).length
+    const midCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH).length
+    const unscoredCount = result.questions.filter((q) => q.relevanceScore == null).length
+    const visibleCount = highCount + midCount
+    void apiFetch('/api/events', {
+      method: 'POST',
+      json: {
+        event: 'match.view_rendered',
+        storyId: corpusId,
+        props: {
+          candidateCount: result.questions.length,
+          highCount,
+          midCount,
+          visibleCount,
+          unscoredCount,
+          noMatch: result.noMatch,
+          globalNoneVisible: !result.noMatch && visibleCount === 0,
+        },
+      },
+    }).catch(() => {})
+  }, [result, corpusId])
+
   // 未打分候选（重排 3 轮补缺全失败后的兜底残留）属极罕见边缘态：它们一律不展示，
   // 但绝不能静默——静默就等于这条路径永远不会被发现。每次取到新结果时报一次。
   useEffect(() => {

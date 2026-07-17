@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
+import { newFlowId } from '@/lib/flow-id'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { apiFetch } from '@/lib/api-client'
 import RecordingMobile from './RecordingMobile'
@@ -51,6 +52,8 @@ function RecordingContent(): JSX.Element {
       setError('还想再说点什么吗？目前语料可能有点短哦')
       return
     }
+    // 语音路径的流程起点：开启一次新 flow_id，串起 ASR→整理→建语料（经 X-Flow-Id 头透传，不进 URL）
+    newFlowId()
     setTranscribing(true)
     const ac = new AbortController()
     abortRef.current = ac

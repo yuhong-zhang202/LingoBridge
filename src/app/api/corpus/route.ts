@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { logEvent } from '@/lib/events'
 import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { ANON_CORPUS_LIMIT } from '@/lib/constants'
@@ -39,6 +40,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     const corpus = await createCorpusServer(userId, { source, rawText })
+    // 埋点 flow.corpus_bound：这一刻 story_id（corpus.id）诞生 = 一个真实故事诞生，是「真实故事数」这个
+    // 分母的定义点；同时把此前只有 flow_id 的 ASR/整理环节与 story_id 接上（全链路 join 的桥）。
+    // logEvent 内部已吞异常，不阻断创建返回。
+    await logEvent({
+      event: 'flow.corpus_bound',
+      flowId: req.headers.get('x-flow-id'),
+      storyId: corpus.id,
+      userId,
+      props: { source },
+    })
     return NextResponse.json({ corpus })
   } catch (e) {
     const authRes = authErrorResponse(e)

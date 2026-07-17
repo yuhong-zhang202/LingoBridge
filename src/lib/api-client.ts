@@ -7,6 +7,7 @@
  * @created  2026-07-12
  */
 import { getSupabase } from '@/lib/supabase'
+import { currentFlowId } from '@/lib/flow-id'
 
 /**
  * 取当前 Supabase session 的 Bearer 鉴权头，供受保护 API 的 fetch 使用。
@@ -42,9 +43,13 @@ export interface ApiFetchInit extends Omit<RequestInit, 'body' | 'headers'> {
  */
 export async function apiFetch(input: string, init: ApiFetchInit = {}): Promise<Response> {
   const { json, body, headers, ...rest } = init
+  // 全链路 flow_id 走 X-Flow-Id 头透传（非 URL / 非 body）：一处注入，transcribe / restructure /
+  // corpus / matching / events 全覆盖；无 flow_id（如浏览页请求）时不带，服务端读到 null 即可。
+  const flowId = currentFlowId()
   const merged: Record<string, string> = {
     ...(await authHeaders()),
     ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    ...(flowId ? { 'X-Flow-Id': flowId } : {}),
     ...headers,
   }
   return fetch(input, {
