@@ -71,6 +71,18 @@ export const RANKING_TIE_UNIT = 1
 /** tie-break 递减上限（分），见 RANKING_TIE_UNIT 注释 */
 export const RANKING_TIE_MAX  = 8
 
+// ── 匹配存档口径版本 ─────────────────────────────
+/**
+ * 萃取/排序/阈值口径的版本号，纳入匹配存档（corpus_match_snapshots）的命中判定：
+ * 存档命中 = 存在 且 story_hash 一致 且 algo_version === 此值。升级此值 = 作废全部旧档，
+ * 用户下次重访按「未命中」静默重算一次落新档、之后冻结。
+ *
+ * 任何会改变「同一故事给出的高/中/低集合」的调整都必须 bump 此值，否则用户会一直看到旧口径的
+ * 冻结存档，包括但不限于：萃取 prompt、排序算法/prompt、SCORE_HIGH/SCORE_MID 切分线、邻居兜底逻辑、
+ * 以及切换 RANKING_DIMENSIONAL 开关（两条打分路径结果不同，产品方切开时须同步 bump）。
+ */
+export const RANKING_ALGO_VERSION = 'v1-2026-07-17'
+
 // ── 匿名试用额度（未注册用户免费体验一遍；控 AI 成本 + 促注册转化）
 /** 匿名用户可建语料条数（体验一条完整链路即到上限，引导注册） */
 export const ANON_CORPUS_LIMIT = 1

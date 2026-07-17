@@ -56,4 +56,12 @@ export const env = {
    * 再由产品方切开。两条路径的 prompt 与解析在 ranking.ts 内分开维护，互不污染。
    */
   rankingDimensional: process.env.RANKING_DIMENSIONAL === '1',
+
+  /**
+   * 匹配存档开关：默认启用「匹配一次→冻结存档→重访读档、不再跑模型」。
+   * 设为 '0' 时命中判定被短路成「永远未命中」→ 立即回退到每次重访都重跑模型的旧行为
+   * （快照表留着无害，不必回退迁移）。用于该功能上线出问题时的一键回滚。
+   * 默认启用：仅显式设 '0' 才关闭（未设/其它值一律视为启用）。
+   */
+  matchSnapshotEnabled: process.env.MATCH_SNAPSHOT_ENABLED !== '0',
 }
