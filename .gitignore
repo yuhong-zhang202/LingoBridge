@@ -55,3 +55,6 @@ ds-bundle/
 
 # Claude Code 个人本地覆盖（团队共用的在 .claude/settings.json）
 .claude/settings.local.json
+
+# 金标迁移备份，不入库
+*.bak
