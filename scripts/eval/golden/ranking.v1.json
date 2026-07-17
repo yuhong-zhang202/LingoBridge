@@ -1,7 +1,6 @@
 {
-  "version": "v2",
+  "version": "v2.2",
   "bucketRubric": "高=原样能答;中=挪重心/换场景/习惯套单次;低=得换故事;隐藏=答非所问（详见提案 3.4 与标注手册）",
-  "hiddenSampleRate": null,
   "annotator": "sianchenn",
   "annotatedAt": "2026-07-16",
   "revisedAt": "2026-07-17",
