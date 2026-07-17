@@ -18,6 +18,10 @@
   > | 主会话 | **总览 + 交人拍板** | — |
   > | `@baseline-engineer` | **实施** | 红线/算分脚本/回归守卫;**金标与不变式物理碰不到**(`guard-golden.sh human-only` 档) |
   > | `@red-team` | **证伪** | 只读 |
+  >
+  > **2026-07-17 补充：提案≠实施 适用于【产品功能】，不只红线/评测。** 派任何构建类任务前，分别点名 proposer 和 implementer，**同一个 agent 就停**——**`@fix-engineer` 不许给自己要实施的方案出稿**。
+  > 产品功能域目前缺专职 designer：技术设计临时用通用 **`Plan` 架构官**（只读、无 Write/Edit）出方案 → `@fix-engineer` 实施 → `@pm-reviewer` 审用户可见影响 → verify 验证。产品功能若反复出现，照 `@redline-designer`↔`@baseline-engineer` 立 feature-designer↔fix-engineer 一对。
+  > 起因：当日"冻结匹配结果"任务上主会话让 fix-engineer 既设计又实施，被产品方当场纠正（"实现者不该给自己出方案"）；根因是套用了同样瑕疵的先例、没从原则重推。**优先级/顺序由主会话定并驱动，不外推给产品方；只升级真正属产品方权限的决策。**
 - **3 个脚本**(`scripts/eval/loop/` 下):两个"门禁"(guard-golden 拦住修复工程师碰考卷;only-ledger 让记录员只能写台账)+ 一个"回归守卫"(跑完全部评估、和红线比数字,退步就报 FAIL——这个用脚本不用 AI,因为比数字这种事,脚本绝不含糊,AI 会"觉得差不多")。
 - **1 本台账**(`DISCUSSION_LOG.md`,记录员管):所有 AI 拿不准、有争议、"AI 稳定不同意金标"的事,全记这里。loop 跑完你我一起过一遍,决定哪些要推翻重议——这就是你要的记录员机制。
 - **1 个红线文件**(`BASELINE.json`):回归的及格线。改它=改考卷,只有你能改。
