@@ -4,13 +4,32 @@
  *           与模型之间的 join key 用短序号 q1/q2/…（不用 36 位 UUID：语义相近的题簇上模型会抄错
  *           UUID，把 {score, reason} 整体贴到另一道题上）；并强制模型回显题干前缀 q 做对齐校验，
  *           校验不过就退回重试、再不过就整次降级，绝不静默接受错位。UUID↔序号的映射只在本模块内维护。
+ *
+ *           两条打分路径，由 env.rankingDimensional 开关切换（默认走【单一总分】路径，现网行为不变）：
+ *           1) 单一总分（现状）：AI 直接吐每题 0-100 总分。
+ *           2) 分维度（第一阶段新增，默认关）：AI 逐题只判维度（D0 门控 + D1/D2/D3 改动量），
+ *              最终分数由【代码】按权重合成（synthesizeScore），杜绝「话题字面相关→模型累加冲高」。
+ *           两条路径的 prompt 与 JSON 解析各自独立；join key / 对齐校验 / reason 自足 / 截断抢救
+ *           这几处重资产由两条路径共用（对齐只看 id·q·reason，与是否有 score 无关）。
  * @author   LingoBridge
  * @created  2026-06-06
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
-import { MODEL_RANKING } from '@/lib/constants'
+import {
+  MODEL_RANKING,
+  RANKING_W1,
+  RANKING_W2,
+  RANKING_W3,
+  RANKING_DELTA_MID_MAX,
+  RANKING_TIER_HIGH,
+  RANKING_TIER_MID,
+  RANKING_TIER_LOW,
+  RANKING_TIER_HIDDEN,
+  RANKING_TIE_UNIT,
+  RANKING_TIE_MAX,
+} from '@/lib/constants'
 import type { RelevanceScore } from '@/lib/types'
 
 export interface CandidateQuestion {
@@ -49,17 +68,47 @@ interface SeqCandidate {
   obs: string
 }
 
-/** 模型返回的单条打分：id=短序号，q=英文题干前缀回显（用于抓 score/reason 贴错题） */
-interface RankingScoreItem {
+/** 两条路径共用的「可对齐条目」最小形状：对齐只看 id·q·reason，与是否有 score / 维度无关 */
+interface AlignableItem {
   id: string
   q: string
-  score: number
   reason: string
+}
+
+// ── 路径一（现状·单一总分）的返回条目类型 ──
+/** 模型返回的单条打分：id=短序号，q=英文题干前缀回显（用于抓 score/reason 贴错题） */
+interface RankingScoreItem extends AlignableItem {
+  score: number
 }
 
 type RankingResponse = { scores: RankingScoreItem[] }
 
-const SYSTEM_PROMPT = `你是雅思口语备考教练。给你一段用户讲的真实故事，和一组候选雅思题，你要判断：用户能不能用这段故事，自然、充分地回答每一道题。
+// ── 路径二（分维度）的返回条目类型 ──
+/**
+ * D0 场景存在性（门控三值）：
+ *  present          = 故事里确实有题目要的那个场景/对象/经历；
+ *  need_other_story = 话题沾边，但得换一个不同的经历/故事才答得上；
+ *  absent           = 题目要的核心场景/对象在故事里压根没出现。
+ */
+type ScenePresence = 'present' | 'need_other_story' | 'absent'
+const SCENE_PRESENCE_VALUES: readonly ScenePresence[] = ['present', 'need_other_story', 'absent']
+
+/**
+ * 分维度路径下模型返回的单条判定：id=短序号，q=题干回显（对齐校验用），
+ * d0 门控 + d1/d2/d3 改动量（各 0/1），reason 一句话中文理由。分数由代码合成，模型【不出 score】。
+ * 字段顺序 id→q→d0→d1→d2→d3→reason：先回显题干、再逐维判断、最后落理由，把「先判断后落分」钉死。
+ */
+interface DimScoreItem extends AlignableItem {
+  d0: ScenePresence
+  d1: 0 | 1
+  d2: 0 | 1
+  d3: 0 | 1
+}
+
+type DimResponse = { scores: DimScoreItem[] }
+
+// ── 路径一（现状·单一总分）的 system prompt。逐字保留原文，勿动 ──
+const SYSTEM_PROMPT_SINGLE = `你是雅思口语备考教练。给你一段用户讲的真实故事，和一组候选雅思题，你要判断：用户能不能用这段故事，自然、充分地回答每一道题。
 
 【第一步：先逐题拆解「这道题到底在问什么」，再判断】
 对每一道候选题，先想清楚它真正要的是什么：是问「多久一次」（频率）？「某一次具体经历」（单次事件，常见 describe a time…）？某个「特定场景」（如放假、户外、某个具体地点或对象）？「日常习惯或偏好」？还是「看法、观点」（Part 3）？
@@ -130,12 +179,78 @@ const SYSTEM_PROMPT = `你是雅思口语备考教练。给你一段用户讲的
 每条 reason 必须自己讲得通，禁止出现 q1、q2 这类编号，禁止写「同上」「同 q5」「同前」这类指代；
 哪怕两道题的判词几乎一样，也各自完整写一遍。`
 
+// ── 路径二（分维度）的 system prompt。让 AI 只判维度，分数由代码合成 ──
+const SYSTEM_PROMPT_DIM = `你是雅思口语备考教练。给你一段用户讲的真实故事，和一组候选雅思题，你要判断：用户能不能用这段故事，自然、充分地回答每一道题。
+你【不打分数】，只逐题给出下面四个维度的判定，系统会据此合成分数。
+
+【第一步：先逐题拆解「这道题到底在问什么」，再判断】
+对每一道候选题，先想清楚它真正要的是什么：是问「多久一次」（频率）？「某一次具体经历」（单次事件，常见 describe a time…）？某个「特定场景」（如放假、户外、某个具体地点或对象）？「日常习惯或偏好」？还是「看法、观点」（Part 3）？
+拆清楚之后，再判断用户这段故事能不能原样回答「这个具体的问法」。不要只看话题像不像。
+
+【维度 D0 · 场景存在性（门控，三选一，写在 d0 字段）】
+· "present"：故事里确实有题目要的那个场景/对象/经历，用当前这段故事就能答（哪怕还要微调重心或场景，那些交给 d1/d2/d3 表达）。
+· "need_other_story"：话题沾边，但当前故事帮不上，必须换一个不同的经历/故事才答得上（例：题目问「借东西给朋友」，故事里那样东西是被别人擅自拿走的，不是你主动借出）。
+· "absent"：题目要求的核心场景/活动/对象在故事里压根没出现，完全答非所问（例：故事全程讲咖啡与放松，题目问打字还是手写）。
+
+【维度 D1/D2/D3 · 改动量（各 0 或 1，据故事与题目对照，无论 d0 取何值都照实填）】
+· d1「重心/聚光灯要挪」：故事确实沾这题，但它的高潮、重心落在别处，要把聚光灯挪到另一个角度、换个侧重才答得上，则 d1=1，否则 0（例：故事高潮是「对方向你道歉」，拿去答「你说真话的一次」就得把重心改成「我开口讲真话」→ d1=1）。
+· d2「场景/时间对不上」：题目问的是某个特定场景/时间（如「放假时 days off」），故事讲的是另一个场景/时间（如「每天下班后」），必须换个场景才能答，则 d2=1，否则 0。不要因为都跟「休息、放松」沾边就填 0。
+· d3「习惯 vs 单次」：故事讲「一直如此的习惯、常态」，题目问「某个具体的一次、上一次」，要把常态硬套成单次事件，则 d3=1，否则 0。
+
+【判定顺序】先想清题目在问什么 → 定 d0 门控 → 逐一判 d1/d2/d3 → 写一句 reason 概述。分数由系统据这四维合成，你不要写分数、也不要在 reason 里报分。
+
+【跨语言】故事是中文，题目是英文（附中文）。按语义判断，别因语言不同误判。
+
+【输入】我会给你：
+1) 用户整理后的故事（中文）；
+2) 一组候选题，每条带 id（形如 q1、q2 的短编号）、英文题干 en、中文 zh、所属观察点 obs。
+
+【输出】只返回一个合法 JSON 对象，格式如下，不要任何额外文字，不要 markdown 代码块围栏，字符串值内部禁止使用英文双引号：
+{"scores":[{"id":"q1","q":"英文题干前 ${ECHO_PREFIX_LEN} 个字符","d0":"present 或 need_other_story 或 absent","d1":0或1,"d2":0或1,"d3":0或1,"reason":"一句话中文理由"},...]}
+覆盖所有候选题，一个都不漏，id 不重复。
+
+【⚠️ 字段顺序不许调换：id → q → d0 → d1 → d2 → d3 → reason】
+这不是格式洁癖，是判断顺序：先回显题干（q）看清这道题在问什么，再定四个维度，最后写 reason。
+reason 必须与维度自洽：若 d0=absent 或某维=1，reason 就要说清缺什么、要改什么，不能自相矛盾。
+
+【⚠️ 关于 q 字段：这是防错位校验，必须照做】
+每条里的 q，必须是【你正在判定的那道题】en 的开头原文（照抄前 ${ECHO_PREFIX_LEN} 个字符即可，不足则抄全）。
+系统会逐条核对 q 与 id 是否指向同一道题，对不上就整次作废。
+所以每写一条前，请回头确认：这几个维度和 reason，说的确实是 id 指向的那道题吗？
+候选里出现话题相近、句式相似的题时（例如同时有「你喜欢拍照吗」和「你见过最美的景色是什么」），最容易把两条写反——务必逐题核对再落笔。
+
+【示例 A · 场景压根没有】
+故事：用户每天早上手冲一杯咖啡，享受慢下来、给自己充电的过程，是他放松的方式。
+候选题：{"id":"q1","en":"Do you prefer typing or handwriting?","zh":"你更喜欢打字还是手写？","obs":"学会的技能"}
+正确输出：{"scores":[{"id":"q1","q":"Do you prefer typing or handwriting?","d0":"absent","d1":0,"d2":0,"d3":0,"reason":"故事讲咖啡和放松，跟打字手写没交集，硬答会跑题。"}]}
+
+【示例 B · 什么都不用改】
+故事：用户在小组项目里成果被同事抢功，私下找对方摊牌争取公正，最后对方向他道歉。
+候选题：{"id":"q1","en":"Describe a time when someone apologized to you","zh":"描述一次别人向你道歉的经历","obs":"关系摩擦冲突"}
+正确输出：{"scores":[{"id":"q1","q":"Describe a time when someone apologized to","d0":"present","d1":0,"d2":0,"d3":0,"reason":"故事里正好有对方道歉这一段，能直接完整地答。"}]}
+
+【示例 C · 场景对不上（d2=1）】
+故事：用户每天下班一进门就泡茶、陷进沙发、放空，靠这个解一天的紧绷。
+候选题：{"id":"q1","en":"What do you usually do when you have days off?","zh":"你放假时通常做什么？","obs":"让你感到放松的事"}
+正确输出：{"scores":[{"id":"q1","q":"What do you usually do when you have days","d0":"present","d1":0,"d2":1,"d3":0,"reason":"讲的是下班后，放假是另一个场景，要换场景才能答。"}]}
+
+【示例 D · 重心要挪（d1=1）+ 得换故事（need_other_story）+ 近似题簇逐条核对】
+故事：室友没问就用了用户的健身房卡，用户纠结后当面说清楚，室友道了歉，之后关系更坦诚。
+候选题：[{"id":"q1","en":"Describe a time you told someone the truth","zh":"描述一次你跟别人说实话的经历","obs":"诚实与信任"},{"id":"q2","en":"Describe a time you lent something to a friend","zh":"描述一次你把东西借给朋友的经历","obs":"诚实与信任"}]
+正确输出：{"scores":[{"id":"q1","q":"Describe a time you told someone the trut","d0":"present","d1":1,"d2":0,"d3":0,"reason":"故事高潮是对方道歉，答说实话要换个重心。"},{"id":"q2","q":"Describe a time you lent something to a f","d0":"need_other_story","d1":0,"d2":0,"d3":0,"reason":"故事里卡是被擅自拿走的，不是主动借出，要换故事。"}]}
+注意示例 D 两题句式相似，q 各自回显自己那道题的开头，维度与 reason 也各归各题，没有写反。
+
+【字数约束】reason 控制在 25 字以内，只说能不能用这故事答、缺什么。
+【reason 硬约束】reason 会原样展示给用户，用户看不到候选编号，也看不到别的题。所以：
+每条 reason 必须自己讲得通，禁止出现 q1、q2 这类编号，禁止写「同上」「同 q5」「同前」这类指代；
+哪怕两道题的判词几乎一样，也各自完整写一遍。`
+
 /** 校验失败时退回给模型的整改要求：必须说清是「对齐错了」，否则模型会按默认指令去修引号 */
 const REALIGN_INSTRUCTION =
-  '你上次的输出没有通过校验，可能的原因：q 字段与 id 指向的题目对不上（把某题的 score/reason 写到了另一题的 id 上）、' +
+  '你上次的输出没有通过校验，可能的原因：q 字段与 id 指向的题目对不上（把某题的判定写到了另一题的 id 上）、' +
   'id 有重复、有编造、漏了候选题、或某条 reason 用了「同上」「同 q5」这类指代。请重新逐题核对后输出：' +
-  '对每一道候选题各出且仅出一条打分；id 只能取自候选里给出的短编号；' +
-  'q 必须原样抄该 id 对应那道题的英文题干开头；score 与 reason 必须说的是同一道题；' +
+  '对每一道候选题各出且仅出一条；id 只能取自候选里给出的短编号；' +
+  'q 必须原样抄该 id 对应那道题的英文题干开头；同一条里的判定与 reason 必须说的是同一道题；' +
   '每条 reason 都要独立写完整，不出现任何编号或跨条指代。' +
   '只输出 JSON 本身，不要任何说明文字，也不要 markdown 代码块。'
 
@@ -173,13 +288,13 @@ function isReasonSelfContained(reason: string): boolean {
 type AlignResult = { ok: true } | { ok: false; problems: string[] }
 
 /**
- * 严格对齐校验：模型返回的 scores 必须与候选题一一对应。
+ * 严格对齐校验：模型返回的条目必须与候选题一一对应。两条路径共用（只看 id·q·reason）。
  * 逐项查四类错位：编造 id、重复 id、q 回显与 id 对不上（真正的「贴错题」）、漏题。
- * @param items   模型返回的打分数组
+ * @param items   模型返回的条目数组（单一总分或分维度均可）
  * @param seqMap  短序号 → 候选题
  * @returns       ok 或问题清单
  */
-function checkAlignment(items: RankingScoreItem[], seqMap: Map<string, SeqCandidate>): AlignResult {
+function checkAlignment(items: readonly AlignableItem[], seqMap: Map<string, SeqCandidate>): AlignResult {
   const problems: string[] = []
   const covered = new Set<string>()
 
@@ -214,7 +329,7 @@ function checkAlignment(items: RankingScoreItem[], seqMap: Map<string, SeqCandid
   return problems.length === 0 ? { ok: true } : { ok: false, problems }
 }
 
-/** 结构层类型守卫：只查字段类型，语义对齐由 checkAlignment 负责 */
+/** 结构层类型守卫（路径一·单一总分）：只查字段类型，语义对齐由 checkAlignment 负责 */
 function isRankingResponse(v: unknown): v is RankingResponse {
   if (typeof v !== 'object' || v === null) return false
   const obj = v as Record<string, unknown>
@@ -231,20 +346,72 @@ function isRankingResponse(v: unknown): v is RankingResponse {
   })
 }
 
+/** 0/1 二值标志守卫（分维度 d1/d2/d3） */
+function isBinaryFlag(v: unknown): v is 0 | 1 {
+  return v === 0 || v === 1
+}
+
+/** 结构层类型守卫（路径二·分维度）：查 d0 门控三值 + d1/d2/d3 各 0/1 + id/q/reason 类型 */
+function isDimResponse(v: unknown): v is DimResponse {
+  if (typeof v !== 'object' || v === null) return false
+  const obj = v as Record<string, unknown>
+  if (!Array.isArray(obj.scores)) return false
+  return obj.scores.every((item) => {
+    if (typeof item !== 'object' || item === null) return false
+    const o = item as Record<string, unknown>
+    return (
+      typeof o.id === 'string' &&
+      typeof o.q === 'string' &&
+      typeof o.reason === 'string' &&
+      (SCENE_PRESENCE_VALUES as readonly unknown[]).includes(o.d0) &&
+      isBinaryFlag(o.d1) &&
+      isBinaryFlag(o.d2) &&
+      isBinaryFlag(o.d3)
+    )
+  })
+}
+
 /**
- * 截断容错：从被截断的原始输出中抢救已完成的 score 对象。
- * callLLMJson 在两次解析均失败后调用 fallback(raw, jsonText)；
- * 若截断发生在数组中段，已完成的对象仍可用。注意这里只做结构抢救，
- * 对齐校验（q 回显）由调用方在 fallback 里逐条再过一遍，抢救不等于放行。
+ * 分维度 → 0-100 代表分（门控骨架 + 权重血肉）。分数不再由模型直接给，改由此处按 D0 门控 +
+ * D1/D2/D3 加权改动量合成，杜绝「话题字面相关→累加冲高」。档位代表分见 constants 的 RANKING_TIER_*，
+ * 切分线仍 85/60，故对下游输出契约（RelevanceScore.score）零改动。
+ *
+ * 合成规则：
+ *  1) 硬地板（无视改动量）：d0=absent → 隐藏；d0=need_other_story → 低。
+ *  2) d0=present 时按加权改动量分档：0→高 /（0, DELTA_MID_MAX]→中 / >上限→低。
+ *  3) 档内按加权改动量做微小 tie-break（改得越多排得越靠后），保留排序连续性，且永不跨过切分线。
+ * @param it  单题维度判定（D0 门控三值 + D1/D2/D3 各 0/1）
+ * @returns   0-100 整数代表分
  */
-function recoverPartialScores(raw: string): RankingScoreItem[] {
+function synthesizeScore(it: DimScoreItem): number {
+  const weightedDelta = RANKING_W1 * it.d1 + RANKING_W2 * it.d2 + RANKING_W3 * it.d3
+  const tieBreak = Math.min(RANKING_TIE_MAX, weightedDelta * RANKING_TIE_UNIT)
+
+  // 硬地板：门控优先，无视改动量
+  if (it.d0 === 'absent') return RANKING_TIER_HIDDEN                       // 核心场景/对象故事里压根没有 → 隐藏
+  if (it.d0 === 'need_other_story') return Math.round(RANKING_TIER_LOW - tieBreak)  // 沾边但得换故事 → 低
+
+  // present：按加权改动量分档
+  let base: number
+  if (weightedDelta === 0) base = RANKING_TIER_HIGH                        // 什么都不用改 → 高
+  else if (weightedDelta <= RANKING_DELTA_MID_MAX) base = RANKING_TIER_MID // 小改动 → 中
+  else base = RANKING_TIER_LOW                                             // 大改动 → 低
+  return Math.round(base - tieBreak)
+}
+
+/**
+ * 从被截断的 "scores":[ … ] 里逐个抢救【结构完整】的对象（深度计数找配对的 }）。
+ * 只负责切出完整对象并 JSON.parse，字段校验交给各路径自己的 mapper —— 两条路径共用这段扫描。
+ * 若截断发生在数组中段，已完成的对象仍可用；遇到第一个不完整对象即停止。
+ */
+function scanCompleteObjects(raw: string): Record<string, unknown>[] {
   const arrayStart = raw.indexOf('"scores"')
   if (arrayStart === -1) return []
   const bracketPos = raw.indexOf('[', arrayStart)
   if (bracketPos === -1) return []
 
   const content = raw.slice(bracketPos + 1)
-  const results: RankingScoreItem[] = []
+  const objs: Record<string, unknown>[] = []
   let i = 0
 
   while (i < content.length) {
@@ -270,31 +437,72 @@ function recoverPartialScores(raw: string): RankingScoreItem[] {
     if (depth !== 0) break  // 对象不完整，截断发生在此处，停止
 
     try {
-      const obj = JSON.parse(content.slice(i, j)) as Record<string, unknown>
-      if (
-        typeof obj.id === 'string' &&
-        typeof obj.q === 'string' &&
-        typeof obj.score === 'number' &&
-        typeof obj.reason === 'string'
-      ) {
-        results.push({ id: obj.id, q: obj.q, score: obj.score, reason: obj.reason })
-      }
+      objs.push(JSON.parse(content.slice(i, j)) as Record<string, unknown>)
     } catch { /* 跳过格式错误的单个对象 */ }
     i = j
   }
 
+  return objs
+}
+
+/**
+ * 截断容错（路径一·单一总分）：从抢救出的完整对象里挑出字段齐全的打分。
+ * 注意这里只做结构抢救，对齐校验（q 回显）由调用方在 fallback 里逐条再过一遍，抢救不等于放行。
+ */
+function recoverPartialScores(raw: string): RankingScoreItem[] {
+  const results: RankingScoreItem[] = []
+  for (const obj of scanCompleteObjects(raw)) {
+    if (
+      typeof obj.id === 'string' &&
+      typeof obj.q === 'string' &&
+      typeof obj.score === 'number' &&
+      typeof obj.reason === 'string'
+    ) {
+      results.push({ id: obj.id, q: obj.q, score: obj.score, reason: obj.reason })
+    }
+  }
   return results
 }
 
 /**
- * 截断抢救专用的宽松对齐：逐条过 q 回显校验，只保留对得上的，其余丢弃并告警。
- * 与严格校验的区别：允许缺项（截断本就丢尾巴），但绝不允许错位条目蒙混过关。
- * @param items   抢救出的打分数组
- * @param seqMap  短序号 → 候选题
- * @returns       对齐通过的条目（仍为短序号）
+ * 截断容错（路径二·分维度）：从抢救出的完整对象里挑出维度齐全的判定。
+ * 与 recoverPartialScores 同理，只做结构抢救，对齐校验由调用方兜底。
  */
-function keepAligned(items: RankingScoreItem[], seqMap: Map<string, SeqCandidate>): RankingScoreItem[] {
-  const kept: RankingScoreItem[] = []
+function recoverPartialDimScores(raw: string): DimScoreItem[] {
+  const results: DimScoreItem[] = []
+  for (const obj of scanCompleteObjects(raw)) {
+    if (
+      typeof obj.id === 'string' &&
+      typeof obj.q === 'string' &&
+      typeof obj.reason === 'string' &&
+      (SCENE_PRESENCE_VALUES as readonly unknown[]).includes(obj.d0) &&
+      isBinaryFlag(obj.d1) &&
+      isBinaryFlag(obj.d2) &&
+      isBinaryFlag(obj.d3)
+    ) {
+      results.push({
+        id: obj.id,
+        q: obj.q,
+        d0: obj.d0 as ScenePresence,
+        d1: obj.d1,
+        d2: obj.d2,
+        d3: obj.d3,
+        reason: obj.reason,
+      })
+    }
+  }
+  return results
+}
+
+/**
+ * 截断抢救专用的宽松对齐（两条路径共用）：逐条过 q 回显校验，只保留对得上的，其余丢弃并告警。
+ * 与严格校验的区别：允许缺项（截断本就丢尾巴），但绝不允许错位条目蒙混过关。
+ * @param items   抢救出的条目数组
+ * @param seqMap  短序号 → 候选题
+ * @returns       对齐通过的条目（仍为短序号，泛型原样保留其维度/分数字段）
+ */
+function keepAligned<T extends AlignableItem>(items: T[], seqMap: Map<string, SeqCandidate>): T[] {
+  const kept: T[] = []
   const covered = new Set<string>()
   for (const it of items) {
     const cand = seqMap.get(it.id)
@@ -326,6 +534,8 @@ function keepAligned(items: RankingScoreItem[], seqMap: Map<string, SeqCandidate
  * 1) 首次输出未通过 → 整份作废，带 REALIGN_INSTRUCTION 退回模型重排一次；
  * 2) 重试仍未通过 → 走 fallback，只保留 q 回显对得上的条目，错位条目逐条 error 日志后丢弃
  *    （丢弃后该题 relevanceScore 为空，调用方按未打分处理）——宁可不给分，也不把判词贴到错的题上。
+ *
+ * 打分路径由 env.rankingDimensional 切换：默认走【单一总分】（现网行为不变）；开启走【分维度 + 代码合成】。
  * @param storyText   用户整理后的中文故事
  * @param candidates  候选题（id 为真实 UUID）
  * @returns           RelevanceScore[]（id 为真实 UUID）；全员错位或异常时返回 []
@@ -354,12 +564,14 @@ export async function rankQuestions(
     JSON.stringify(seqCandidates, null, 2)
 
   /**
-   * 序号打分 → 真实 UUID 打分，兼作出厂前最后一道网：
+   * 序号条目 → 真实 UUID 打分，兼作出厂前最后一道网（两条路径共用）：
    * 1) seqOf 必定命中（调用前已过对齐校验），不命中直接丢；
    * 2) 指代别的候选的 reason 一律清空——分数可信但这句话对用户是废话，宁可不显示理由
    *    （前端对空 reason 不渲染），也不能让「同q5」这种内部编号漏到用户眼前。
+   * @param items    对齐后的条目
+   * @param scoreOf  取该条目的 0-100 分：单一总分路径取 it.score，分维度路径走 synthesizeScore
    */
-  function toRelevance(items: RankingScoreItem[]): RelevanceScore[] {
+  function mapToRelevance<T extends AlignableItem>(items: T[], scoreOf: (it: T) => number): RelevanceScore[] {
     const out: RelevanceScore[] = []
     for (const it of items) {
       const realId = seqOf.get(it.id)
@@ -369,12 +581,86 @@ export async function rankQuestions(
         console.warn('[Ranking] reason 指代了别的候选题，已清空该条理由', { id: it.id, reason })
         reason = ''
       }
-      out.push({ id: realId, score: it.score, reason })
+      out.push({ id: realId, score: scoreOf(it), reason })
     }
     return out
   }
 
+  /**
+   * 结构守卫 + 对齐校验合流：任一不过都返回 false，交由 callLLMJson 带 REALIGN_INSTRUCTION 重试。
+   * @param guard  路径各自的结构守卫（isRankingResponse / isDimResponse）
+   */
+  function makeValidate<T extends { scores: AlignableItem[] }>(
+    guard: (v: unknown) => v is T,
+  ): (v: unknown) => v is T {
+    return (v): v is T => {
+      if (!guard(v)) return false
+      const aligned = checkAlignment(v.scores, seqMap)
+      if (!aligned.ok) {
+        console.error('[Ranking] 打分与候选题对齐校验未通过', { problems: aligned.problems })
+        return false
+      }
+      return true
+    }
+  }
+
+  /**
+   * 轮次用尽后的 fallback（两条路径共用）：保留能对上的，缺的那几道保持无分（前端不展示分数）——
+   * 但绝不静默，缺题必留 error 证据。
+   * @param recover  路径各自的截断抢救器（recoverPartialScores / recoverPartialDimScores）
+   */
+  function makeFallback<T extends AlignableItem>(
+    recover: (raw: string) => T[],
+  ): (raw: string) => { scores: T[] } {
+    return (raw) => {
+      const partial = keepAligned(recover(raw), seqMap)
+      const missing = [...seqMap.keys()].filter((seq) => !partial.some((p) => p.id === seq))
+      if (missing.length > 0) {
+        console.error(`[Ranking] 已用尽 ${MAX_ATTEMPTS} 轮整批重问，仍有候选题拿不到可信打分，这些题将不展示分数`, {
+          attempts: MAX_ATTEMPTS,
+          totalCandidates: seqCandidates.length,
+          missingCount: missing.length,
+          missingQuestions: missing.map((seq) => ({ seq, en: seqMap.get(seq)?.en.slice(0, ECHO_PREFIX_LEN) })),
+        })
+      }
+      if (partial.length > 0) {
+        console.warn('[Ranking] 按对齐条目恢复', { recovered: partial.length, of: seqCandidates.length })
+        return { scores: partial }
+      }
+      return { scores: [] }
+    }
+  }
+
+  const timeoutMs = TIMEOUT_BASE_MS + TIMEOUT_PER_CANDIDATE_MS * candidates.length
+
   try {
+    if (env.rankingDimensional) {
+      // 路径二·分维度：AI 只判维度，分数由 synthesizeScore 代码合成。
+      // 模型不产出可排序的总分，故合成后由代码按代表分降序，保持「对下游返回已排序」的契约。
+      const result = await callLLMJson<DimResponse>({
+        call: {
+          provider: 'dashscope',
+          endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+          apiKey: env.dashscopeApiKey,
+          model: MODEL_RANKING,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT_DIM },
+            { role: 'user', content: userMessage },
+          ],
+          temperature: 0,
+          maxTokens: 4096,
+        },
+        timeoutMs,
+        maxAttempts: MAX_ATTEMPTS,
+        validate: makeValidate(isDimResponse),
+        retryInstruction: REALIGN_INSTRUCTION,
+        fallback: makeFallback(recoverPartialDimScores),
+        label: '[Ranking]',
+      })
+      return mapToRelevance(result.scores, synthesizeScore).sort((a, b) => b.score - a.score)
+    }
+
+    // 路径一·单一总分（现状默认）：AI 直接吐每题 0-100 总分并已按分降序。
     const result = await callLLMJson<RankingResponse>({
       call: {
         provider: 'dashscope',
@@ -382,47 +668,20 @@ export async function rankQuestions(
         apiKey: env.dashscopeApiKey,
         model: MODEL_RANKING,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT_SINGLE },
           { role: 'user', content: userMessage },
         ],
         temperature: 0,
         maxTokens: 4096,
       },
-      timeoutMs: TIMEOUT_BASE_MS + TIMEOUT_PER_CANDIDATE_MS * candidates.length,
+      timeoutMs,
       maxAttempts: MAX_ATTEMPTS,
-      // 结构守卫 + 对齐校验合流：任一不过都返回 false，交由 callLLMJson 带 REALIGN_INSTRUCTION 重试
-      validate: (v): v is RankingResponse => {
-        if (!isRankingResponse(v)) return false
-        const aligned = checkAlignment(v.scores, seqMap)
-        if (!aligned.ok) {
-          console.error('[Ranking] 打分与候选题对齐校验未通过', { problems: aligned.problems })
-          return false
-        }
-        return true
-      },
+      validate: makeValidate(isRankingResponse),
       retryInstruction: REALIGN_INSTRUCTION,
-      fallback: (raw) => {
-        // 走到这里 = MAX_ATTEMPTS 轮整批重问都没让模型交出完整且对齐的结果。
-        // 保留能对上的，缺的那几道保持无分（前端不展示分数）——但绝不静默，必须留证。
-        const partial = keepAligned(recoverPartialScores(raw), seqMap)
-        const missing = [...seqMap.keys()].filter((seq) => !partial.some((p) => p.id === seq))
-        if (missing.length > 0) {
-          console.error(`[Ranking] 已用尽 ${MAX_ATTEMPTS} 轮整批重问，仍有候选题拿不到可信打分，这些题将不展示分数`, {
-            attempts: MAX_ATTEMPTS,
-            totalCandidates: seqCandidates.length,
-            missingCount: missing.length,
-            missingQuestions: missing.map((seq) => ({ seq, en: seqMap.get(seq)?.en.slice(0, ECHO_PREFIX_LEN) })),
-          })
-        }
-        if (partial.length > 0) {
-          console.warn('[Ranking] 按对齐条目恢复', { recovered: partial.length, of: seqCandidates.length })
-          return { scores: partial }
-        }
-        return { scores: [] }
-      },
+      fallback: makeFallback(recoverPartialScores),
       label: '[Ranking]',
     })
-    return toRelevance(result.scores)
+    return mapToRelevance(result.scores, (it) => it.score)
   } catch {
     return []
   }

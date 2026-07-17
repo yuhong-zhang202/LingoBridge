@@ -35,6 +35,42 @@ export const SCORE_HIGH = 85
 /** score ≥ 此值且 < SCORE_HIGH：中匹配，折叠进"查看更多"。低于此值：不展示、不入库 */
 export const SCORE_MID  = 60
 
+// ── 重排三维合成（第一阶段：AI 分维度 + 代码按权重合成，藏在 RANKING_DIMENSIONAL 开关后）
+//
+// 现状路径让 AI 直接吐 0-100 总分，病根是「话题字面相关→模型累加冲高」。维度路径改为让 AI 逐题
+// 只判维度（D0 门控 + D1/D2/D3 改动量），最终分数由【代码】按权重合成——把「先判断后落分」钉死
+// 在代码里，而非指望模型自觉。以下权重 / 阈值 / 代表分全部做成具名常量，第二阶段 LOSO 拟合只改这里。
+//
+// 改动量 = W1·D1 + W2·D2 + W3·D3；D0=present 时按改动量分档：0→高 /（0, DELTA_MID_MAX]→中 / >上限→低。
+/** D1「重心/聚光灯要挪」的权重（第一阶段等权占位；TODO 第二阶段 LOSO 拟合） */
+export const RANKING_W1 = 1
+/** D2「场景/时间对不上」的权重（第一阶段等权占位；TODO 第二阶段 LOSO 拟合） */
+export const RANKING_W2 = 1
+/** D3「习惯 vs 单次」的权重（第一阶段等权占位；TODO 第二阶段 LOSO 拟合） */
+export const RANKING_W3 = 1
+/** 加权改动量 > 0 且 ≤ 此上限 → 中匹配；> 此上限 → 低匹配（TODO 第二阶段随权重一起拟合） */
+export const RANKING_DELTA_MID_MAX = 1
+
+// 档位 → 0-100 代表分（对下游输出契约零改动，切分线仍 SCORE_HIGH/SCORE_MID = 85/60）：
+//   高 90（≥85 首屏） / 中 70（∈[60,85) 折叠） / 低 45（<60 不展示） / 隐藏 20（<60 不展示）
+/** 代表分·高匹配：D0=present 且改动量为 0（重心/场景/习惯都不用改） */
+export const RANKING_TIER_HIGH   = 90
+/** 代表分·中匹配：D0=present 且改动量 ≤ DELTA_MID_MAX（小改动即可答） */
+export const RANKING_TIER_MID    = 70
+/** 代表分·低匹配：D0=present 且改动量 > DELTA_MID_MAX，或 D0=need_other_story（得换个经历） */
+export const RANKING_TIER_LOW    = 45
+/** 代表分·隐藏：D0=absent（题目要的核心场景/对象故事里压根没出现） */
+export const RANKING_TIER_HIDDEN = 20
+
+/**
+ * 档内 tie-break：同档内按加权改动量给一个微小递减（改得越多、排得越靠后），保留排序连续性。
+ * RANKING_TIE_MAX 卡在「远小于最近档距（20）的一半」，确保 tie-break 永不把某题挤过 85/60 切分线，
+ * 也不会跨档反超。第一阶段等权下改动量 ≤3、微调 ≤3，本就够小，上限只是给第二阶段大权重上保险。
+ */
+export const RANKING_TIE_UNIT = 1
+/** tie-break 递减上限（分），见 RANKING_TIE_UNIT 注释 */
+export const RANKING_TIE_MAX  = 8
+
 // ── 匿名试用额度（未注册用户免费体验一遍；控 AI 成本 + 促注册转化）
 /** 匿名用户可建语料条数（体验一条完整链路即到上限，引导注册） */
 export const ANON_CORPUS_LIMIT = 1

@@ -48,4 +48,12 @@ export const env = {
    * 生产要复盘 → 用 llmRawLogDir（它有 0o600 保护），不要用这个。
    */
   llmDebug: process.env.LLM_DEBUG === '1' && process.env.NODE_ENV !== 'production',
+
+  /**
+   * 重排打分路径开关：=1 走「AI 分维度 + 代码按权重合成」的新路径；默认（含未设/非 1）走现状单一总分。
+   *
+   * 第一阶段默认必须关，保证现网行为逐字不变；第二阶段 LOSO 拟合权重、红线验证通过后，
+   * 再由产品方切开。两条路径的 prompt 与解析在 ranking.ts 内分开维护，互不污染。
+   */
+  rankingDimensional: process.env.RANKING_DIMENSIONAL === '1',
 }
