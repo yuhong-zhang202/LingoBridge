@@ -97,9 +97,14 @@ export default function SettingsPage() {
         {/* 隐私 */}
         <section className="mb-6">
           <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">隐私</h2>
-          <Link href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
-            《隐私政策》
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+              《隐私政策》
+            </Link>
+            <Link href="/privacy/beta" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+              内测数据处理说明
+            </Link>
+          </div>
         </section>
 
         {/* 危险区 */}
