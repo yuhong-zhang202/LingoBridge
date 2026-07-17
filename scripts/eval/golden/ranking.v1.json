@@ -1,11 +1,11 @@
 {
   "version": "v2",
   "bucketRubric": "高=原样能答;中=挪重心/换场景/习惯套单次;低=得换故事;隐藏=答非所问（详见提案 3.4 与标注手册）",
-  "hiddenSampleRate": 0.2,
+  "hiddenSampleRate": null,
   "annotator": "sianchenn",
   "annotatedAt": "2026-07-16",
-  "revisedAt": "2026-07-16",
-  "revisionNote": "S074×Something Interesting on Social Media：高→中。判例：长期习惯（潜水五年）回答 describe a time 需现场重塑为单次，按 rubric「习惯vs某一次」属中。产品方裁决。",
+  "revisedAt": "2026-07-17",
+  "revisionNote": "S074×Something Interesting on Social Media：高→中。判例：长期习惯（潜水五年）回答 describe a time 需现场重塑为单次，按 rubric「习惯vs某一次」属中。产品方裁决。｜【2026-07-17 分诊裁决（裁决人：sianchenn）】依据 /mnt/user-data/uploads/金标分诊裁决表-2026-07-17.xlsx：改动 10 条（降档 8 / 升档 2）；金标高总数 10→11。逐条判例见对应 label 的 note。",
   "items": [
     {
       "storyId": "S016",
@@ -54,8 +54,8 @@
           "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：语料主要内容是赶项目截止时间，没有任何信息说明项目是否完成得好，所以由中级改为低级"
         },
         {
           "questionId": "9a367b08-519d-4613-b854-64f404b51b21",
@@ -333,8 +333,8 @@
           "questionId": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：语料是骑车上班，并不是休息时间做的时间，所以由中转低，不能代替用户判断这个时间是不是休息时间，不要猜测。"
         },
         {
           "questionId": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
@@ -375,8 +375,8 @@
           "questionId": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：语料是骑车上班，并不是休息时间做的时间，所以由中转低，不能代替用户判断这个时间是不是休息时间，不要猜测。同时语料没有回答频率"
         },
         {
           "questionId": "e04c0d32-2848-4959-b906-2d707b6b072e",
@@ -623,8 +623,8 @@
           "questionId": "656fe686-4bc3-434d-9e0f-87803b65cece",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "隐藏",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】隐藏→低：语料的时间节点在疫情那年，而题目是小时候，时间差异大，但由于都涉及关键词种植，所以由隐藏改为低"
         },
         {
           "questionId": "a90a2cad-acb4-4513-aa05-fa2004b5b80c",
@@ -664,8 +664,8 @@
           "questionId": "2fa96298-f9ac-49d4-b195-e4c6bd587009",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：语料并没有提及中国人是否会送植物的任何信息，只能说有种植植物的相关经验，所以判为低或隐藏，又因为关键词都是植物/种植，所以判定为低"
         },
         {
           "questionId": "31fc04c4-d9e4-46e3-8dcf-826774c33eda",
@@ -678,8 +678,8 @@
           "questionId": "656fe686-4bc3-434d-9e0f-87803b65cece",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：无法根据语料判断小时候是否有种植植物的经验，所以判断为低"
         },
         {
           "questionId": "a385234a-93b3-48cb-a8e5-3cfe05b283bf",
@@ -904,7 +904,8 @@
           "questionId": "95df6563-b761-4545-a2c2-84e4ebfbad87",
           "zone": "visible",
           "part": 2,
-          "goldBucket": "中"
+          "goldBucket": "高",
+          "note": "【2026-07-17 裁决】中→高：语料描述了软件，叫notion，描述了如何使用，是用来写日记的，能直接回答题目，由中转高"
         },
         {
           "questionId": "abcd4891-e3ef-4c58-b012-1bc58c5f1dc8",
@@ -1052,7 +1053,8 @@
           "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
           "zone": "visible",
           "part": 2,
-          "goldBucket": "中"
+          "goldBucket": "低",
+          "note": "【2026-07-17 裁决】中→低：语料并没有提及道歉相关，所以改成低级"
         }
       ]
     },
@@ -1078,7 +1080,8 @@
           "questionId": "2fc1a2fd-f82f-4614-bb68-180e54fd9e5d",
           "zone": "visible",
           "part": 2,
-          "goldBucket": "中"
+          "goldBucket": "低",
+          "note": "【2026-07-17 裁决】中→低：语料并没有提及道歉相关，所以改成低级"
         }
       ]
     },
@@ -1206,10 +1209,11 @@
           "questionId": "30aa1ea5-8882-4dfc-9130-cbcfcbe4e6d0",
           "zone": "visible",
           "part": 1,
-          "goldBucket": "中",
-          "note": "继承自 ranking.v1（题面未变，勿改）"
+          "goldBucket": "低",
+          "note": "继承自 ranking.v1（题面未变，勿改）｜【2026-07-17 裁决】中→低：语料更像是压力大的经历，而不是出做得很出色的经历，不能凭空根据语料猜测经历结果，所以由中转低"
         }
       ]
     }
-  ]
+  ],
+  "hiddenSampleRule": "逐故事系统抽样 i%5==0（每故事各自从 0 开始数，实际取 ceil(n_i/5) 条）；历史框 204→59，真实平均入选率 28.9%。原 hiddenSampleRate=0.2 是意图值，与实现不符，已废止。"
 }
