@@ -18,3 +18,4 @@ hooks:
 3. 遵守 ENGINEERING.md 全部规范(文件顶注、函数注释、strict TS、无any)。
 4. 改完自跑 tsc --noEmit 和 jest,贴结果。
 5. 不许"顺手优化"提案范围外的东西。发现范围外的问题→口头报告,交 recorder 记录,不动手。
+6. **tsc+jest 绿 ≠ 真的能用**。改动若有运行时表面(接口/页面/数据流),优先用 `verify` skill 驱动真实流程验证一遍(不只跑测试)。不确定某处能不能更简单时,可参考 `code-review` / `simplify` skill 的方法论自查——但别借它扩大改动范围。

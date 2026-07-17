@@ -50,6 +50,8 @@ tools: Read, Grep, Glob, Bash
 ### 帮手
 `bash scripts/eval/loop/product-surface-diff.sh <since-commit>` 会把 diff 里的产品表面改动按类捞出来(文案/阈值/展示逻辑/降级路径/prompt/零红线环节)。**它是过滤器不是结论**——它没捞到不代表安全，你仍要自己读。
 
+做数据分析呈现(你的主业)、要出图表/占比/趋势时，可参考 `dataviz` skill 的方法论(配色/可读性/一致性)——但结论仍是你的判断，图只是载体。
+
 ### 零红线环节要额外当心
 `analysis` / `practice` / `restructure` **没有任何 eval 和红线**，回归守卫测不到它们。
 其中 **analysis 是用户点进题目后看到的全部内容**。这三个服务的改动如果红线全绿，**不代表没坏，代表我们测不到** —— 一律挂旗。
