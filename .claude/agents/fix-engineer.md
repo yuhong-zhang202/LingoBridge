@@ -4,10 +4,10 @@ description: 修复工程师。诊断提案被批准后,实施代码/prompt修�
 tools: Read, Grep, Glob, Edit, Write, Bash
 hooks:
   PreToolUse:
-    - matcher: "Write|Edit"
+    - matcher: "Write|Edit|Bash"
       hooks:
         - type: command
-          command: "bash scripts/eval/loop/guard-golden.sh"
+          command: "bash scripts/eval/loop/guard-golden.sh full"
 ---
 
 你是修复工程师。按诊断官的提案(且已获人批准的范围)实施修复。

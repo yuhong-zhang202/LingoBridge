@@ -81,8 +81,21 @@ interface CliOptions {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_GOLD = join(__dirname, 'golden', 'ranking.v1.json')
 const RESULTS_DIR = join(__dirname, 'results')
-/** 金标缺口率超此值即预警（可见候选中无金标标注的占比过高 → 覆盖衰减，该补标了） */
-const GAP_WARN_RATIO = 0.10
+/**
+ * 金标缺口告警：**非零即报**（BASELINE v3 · 2026-07-17）。
+ *
+ * ⛔ 旧制 `GAP_WARN_RATIO = 0.10` 已废除，两个理由：
+ *  1. **它比的那个比率分母是错的**：`visiblePaired` 曾把 `低` 也算进「可见」，而尺子 v3 定 `<60 不展示`，
+ *     低档根本不可见 → 分母被稀释约 5 倍。实测轮 2：真实缺口率 3/33 = **9.1%**，官方算出 3/151 = **2.0%**。
+ *     故 0.10 这条线**事实上永远打不响**（需 15+ 条未标题冒进才够）。红队报的「9.1% 恰好躲过 10% 告警」
+ *     用的是修正后的分母；在当时的真实代码里它是 2.0%，差 5 倍，不是「恰好」。
+ *  2. 口径修正后，0.10 仍是拍脑袋的——**没有任何实测支撑那个数**（红线设计原则 4：
+ *     参数与现实对不上时解释差额，禁止用「自适应」绕过；不发明未实测的阈值）。
+ *
+ * 现制：缺口 > 0 即告警（= 该补标）；**规模**由红线 `ranking_gold_gap_max` 卡（计数，上限 3）。
+ * 告警与红线分工：告警回答「要不要补标」，红线回答「是不是灌水」。
+ */
+const GAP_WARN_COUNT = 0
 
 // ── 工具函数 ──────────────────────────────────────────────────────────────────
 
@@ -477,11 +490,16 @@ function main(): void {
   const stab = stability(gold, exps)
 
   // 金标缺口率：可见候选中无金标标注的占比
-  const visiblePaired = aligned.pairs.filter((p) => !p.isOutOfScope && (p.ai === '高' || p.ai === '中' || p.ai === '低')).length
+  // ⚠️ 口径修正（BASELINE v3 · 2026-07-17）：「可见」= 仅 高/中。
+  //    旧实现把 `低` 也算进 visiblePaired，而尺子 v3 定 <60 不展示——低档不可见，不该进「可见」分母。
+  //    后果：分母稀释约 5 倍，实测轮 2 真实 3/33 = 9.1% 被算成 3/151 = 2.0%，10% 告警线永远打不响。
+  //    这是「声明让位给实测」的同一形状（原则 4）：变量名叫 visible，装的却是全部已打分候选。
+  const visiblePaired = aligned.pairs.filter((p) => !p.isOutOfScope && (p.ai === '高' || p.ai === '中')).length
   const gapVisibleInGate = aligned.goldGapVisible.length
   const gapDenom = visiblePaired + gapVisibleInGate
   const gapRatio = gapDenom > 0 ? gapVisibleInGate / gapDenom : 0
-  const gapWarn = gapRatio > GAP_WARN_RATIO
+  // 非零即报（取代旧的 10% 阈值）。规模由红线 ranking_gold_gap_max 卡，见 BASELINE.json。
+  const gapWarn = gapVisibleInGate > GAP_WARN_COUNT
 
   const report = buildReport(gold, opts, aligned, gates, matrix, ndcg, tau, stab, { gapRatio, gapWarn, gapDenom })
 
@@ -534,7 +552,7 @@ function buildReport(
   con.push('')
   con.push('### 金标覆盖（A 端到端固有：上游变动会衰减）')
   con.push(`- 金标未召回项：${aligned.goldNotRecalled.length}｜金标缺口项(可见未标)：${aligned.goldGapVisible.length}｜缺口率：${(gap.gapRatio * 100).toFixed(1)}%`)
-  if (gap.gapWarn) con.push(`  ⚠ 缺口率 > ${(GAP_WARN_RATIO * 100).toFixed(0)}%：金标覆盖衰减，请按本轮导出补标缺口项后重算。`)
+  if (gap.gapWarn) con.push(`  ⚠ 金标缺口 ${aligned.goldGapVisible.length} 条（非零即报）：本轮可见区有金标没标过的题，请按本轮导出补标后重算。规模上限由红线 ranking_gold_gap_max 卡。`)
   if (aligned.storiesGoldMissing.length > 0) con.push(`- ⚠ 金标有、导出缺的故事（error/未跑）：${aligned.storiesGoldMissing.join(', ')}`)
 
   // ── Markdown 报告 ──
@@ -628,7 +646,7 @@ function buildReport(
 
   md.push('## 四、金标覆盖（A 端到端固有风险：上游变动 → 覆盖衰减）')
   md.push('')
-  md.push(`- **金标缺口率**：${(gap.gapRatio * 100).toFixed(1)}%（可见未标 ${aligned.goldGapVisible.length} / 可见共 ${gap.gapDenom}）${gap.gapWarn ? ` ⚠ 超 ${(GAP_WARN_RATIO * 100).toFixed(0)}%，该补标` : ''}`)
+  md.push(`- **金标缺口**：${aligned.goldGapVisible.length} 条（可见未标 ${aligned.goldGapVisible.length} / 可见共 ${gap.gapDenom} = ${(gap.gapRatio * 100).toFixed(1)}%；**可见 = 仅高/中**，口径已于 v3 修正）${gap.gapWarn ? ' ⚠ 非零 → 该补标' : ''}`)
   md.push(`- **金标未召回项**（金标有、本轮没召回，移交召回评估）：${aligned.goldNotRecalled.length}`)
   if (aligned.goldNotRecalled.length > 0) {
     md.push('')
