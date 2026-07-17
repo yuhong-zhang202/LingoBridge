@@ -19,7 +19,7 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import GradientButton from '@/components/GradientButton'
 import NoMatchView from '@/components/matching/NoMatchView'
-import { SCORE_HIGH, SCORE_MID, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
+import { SCORE_HIGH, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 import type { MatchingViewProps, FunnelQuestion } from './types'
 
 /** 舞台最小高度：满屏减去外壳 72px 顶栏 */

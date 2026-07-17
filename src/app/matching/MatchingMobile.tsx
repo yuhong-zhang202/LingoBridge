@@ -40,7 +40,7 @@ function GroupHeader({ label, count, variant }: {
 
 export default function MatchingMobile({
   result, loading, error, totalVisible, availableTabs, activeTab,
-  highGroup, midGroup, foldedCount, hasMore, autoExpand, noneVisible, globalNoneVisible,
+  highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
   selectedId, expanded,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
