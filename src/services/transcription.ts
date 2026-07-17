@@ -7,6 +7,7 @@
 import 'server-only'
 import { env } from '@/lib/env-server'
 import { checkTranscriptUsable } from '@/lib/transcript-guard'
+import { appendRawLog } from '@/lib/raw-log'
 import type { AppError } from '@/types/errors'
 
 const DOUBAO_ASR_ENDPOINT = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash'
@@ -103,6 +104,22 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     const data = (await res.json()) as DoubaoAsrResponse
     const text = data.result?.text?.trim() ?? ''
     const guard = checkTranscriptUsable(text)
+
+    // 全链路留证第一环：把 ASR 转写原文接进统一留证（lib/raw-log），与 LLM 留证同目录、同 0o700/0o600。
+    // ⚠️ 这会让【原始语音转成的文字】落盘——它就是最敏感的用户原文；之所以能安全落盘，
+    //    全靠权限那一半已就位。只存转写文本、不存音频字节（产品方 2026-07-17 拍定）。
+    //    guard 判掉的内容也如实留证（存被判掉的文本本身），留证失败绝不影响主链路。
+    await appendRawLog({
+      kind:       'asr',
+      ts:         new Date().toISOString(),
+      requestId,
+      logId,
+      format,
+      statusCode,
+      transcript: text,
+      guard:      guard.usable ? 'ok' : 'reject',
+    })
+
     if (!guard.usable) {
       const err: AppError = {
         code:    'EMPTY_TRANSCRIPT',

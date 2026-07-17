@@ -4,12 +4,14 @@
  *           文本提取、JSON 花括号切片、解析+校验，以及一次"把坏 JSON 退回让模型自己修"
  *           的重试。供 extraction / analysis / practice(polish) / restructure 复用。
  *           coachReply 多轮纯文本不走这里。
- *           另含「原始输出留存」（LLM_RAW_LOG_DIR 开关，默认关闭），供离线复盘模型输出。
+ *           「原始输出留证」已抽到 lib/raw-log.ts（LLM_RAW_LOG_DIR 开关，默认关闭，与 ASR 留证共用同一
+ *           目录与同一套 0o700/0o600 权限），供离线复盘模型输出。
  * @author   LingoBridge
  * @created  2026-06-04
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
+import { appendRawLog } from '@/lib/raw-log'
 
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages'
 // ⚠️ 必须与 extraction.ts/analysis.ts 现用的 anthropic-version 一致
@@ -96,52 +98,6 @@ export interface CallLLMJsonOptions<T> {
    * 否则模型会被误导去修引号，白白浪费一次重试。
    */
   retryInstruction?: string
-}
-
-/** 原始输出留存的一条记录（JSONL 一行）；含完整 prompt 与故事原文，仅限本地复盘 */
-interface LLMRawRecord {
-  ts: string
-  label: string
-  provider: LLMCall['provider']
-  model: string
-  /** 第几轮尝试：1=首发，≥2=失败后的整批重问 */
-  attempt: number
-  /** anthropic 的顶层 system；dashscope 为 null（system 已在 messages 里） */
-  system: string | null
-  messages: Msg[]
-  raw: string
-  jsonText: string
-  /** 该次输出是否通过了 parse + validate */
-  parsed: 'ok' | 'fail'
-}
-
-/**
- * 把一次 LLM 调用的原始输出追加到 JSONL 文件。LLM_RAW_LOG_DIR 为空时直接返回（生产默认关闭）。
- *
- * ⚠️ 这个文件里有【用户故事原文】——`record.messages` 是完整 prompt。内测起它就是真实用户数据。
- *    故目录 0o700、文件 0o600：只有属主可读。依据：内测评估方案 前置清单第 4 项
- *    「留证目录访问权限收紧到最小」。2026-07-17 实测：此前是 0o755（drwxr-xr-x），
- *    **同机任何用户可读全部故事原文**，两天已堆 49MB。
- *
- * @param record  单次调用的完整上下文与原始输出
- * @sideEffect    写本地文件（按日期分文件，0o600）；写失败只 warn，绝不影响主链路
- */
-async function appendRawLog(record: LLMRawRecord): Promise<void> {
-  const dir = env.llmRawLogDir
-  if (!dir) return
-  try {
-    // 动态 import：避免把 node:fs 静态绑进可能跑在 edge runtime 的模块图
-    const { mkdir, appendFile } = await import('node:fs/promises')
-    // mode 只在【创建时】生效：目录/文件已存在时不会被改回来。故部署新环境时它是对的，
-    // 而既有环境需人工 chmod 一次（2026-07-17 已对本机 .llm-raw 执行）。
-    await mkdir(dir, { recursive: true, mode: 0o700 })
-    const file = `${dir}/llm-raw-${record.ts.slice(0, 10)}.jsonl`
-    await appendFile(file, JSON.stringify(record) + '\n', { encoding: 'utf-8', mode: 0o600 })
-  } catch (e) {
-    console.warn('[LLM] 原始输出留存失败（不影响主链路）', {
-      message: e instanceof Error ? e.message : String(e),
-    })
-  }
 }
 
 /**
@@ -265,6 +221,7 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
   // 每次尝试都留存原始输出（成功也留），否则「模型把 reason 贴错 id」这类语义错位事后无从复盘
   async function record(attempt: number, messages: Msg[], raw: string, jsonText: string, ok: boolean): Promise<void> {
     await appendRawLog({
+      kind: 'llm',
       ts: new Date().toISOString(),
       label,
       provider: call.provider,
