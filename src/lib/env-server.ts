@@ -31,5 +31,21 @@ export const env = {
   // LLM 原始输出留存目录（相对/绝对路径）。留空=不留存（生产默认）。
   // 非空时 lib/llm.ts 会把每次调用的完整 prompt + 原始输出落盘成 JSONL，供离线复盘「模型是否把
   // score/reason 贴错 id」。含用户故事原文，务必只指向 .gitignore 内的本地目录，切勿在生产开启。
+  // 落盘时目录 0o700 / 文件 0o600（见 llm.ts:appendRawLog）。
   llmRawLogDir: process.env.LLM_RAW_LOG_DIR ?? '',
+
+  /**
+   * 调试开关：为 true 时 lib/llm.ts 在【失败路径】上把模型原始输出打进 console。
+   *
+   * ⚠️ 模型输出含用户故事碎片——重排的 reason 会复述故事细节、萃取的证据字段会引用原文。
+   *
+   * **生产环境物理关闭，不靠任何人记得。** 2026-07-17 加固，两条理由：
+   *  1. 此前它在 llm.ts 里【直读 process.env】，绕过本文件——env 校验层看不见它，
+   *     `.env.example` 也没提，等于一个没人知道存在的暗雷。
+   *  2. 这个项目今晚刚吃过「靠自觉的护栏不算护栏」的亏：guard-golden.sh 号称「物理拒绝」，
+   *     实测 Bash 完全敞口，因为它依赖的是没人去试（台账 066）。
+   *
+   * 生产要复盘 → 用 llmRawLogDir（它有 0o600 保护），不要用这个。
+   */
+  llmDebug: process.env.LLM_DEBUG === '1' && process.env.NODE_ENV !== 'production',
 }

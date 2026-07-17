@@ -117,8 +117,14 @@ interface LLMRawRecord {
 
 /**
  * 把一次 LLM 调用的原始输出追加到 JSONL 文件。LLM_RAW_LOG_DIR 为空时直接返回（生产默认关闭）。
+ *
+ * ⚠️ 这个文件里有【用户故事原文】——`record.messages` 是完整 prompt。内测起它就是真实用户数据。
+ *    故目录 0o700、文件 0o600：只有属主可读。依据：内测评估方案 前置清单第 4 项
+ *    「留证目录访问权限收紧到最小」。2026-07-17 实测：此前是 0o755（drwxr-xr-x），
+ *    **同机任何用户可读全部故事原文**，两天已堆 49MB。
+ *
  * @param record  单次调用的完整上下文与原始输出
- * @sideEffect    写本地文件（按日期分文件）；写失败只 warn，绝不影响主链路
+ * @sideEffect    写本地文件（按日期分文件，0o600）；写失败只 warn，绝不影响主链路
  */
 async function appendRawLog(record: LLMRawRecord): Promise<void> {
   const dir = env.llmRawLogDir
@@ -126,9 +132,11 @@ async function appendRawLog(record: LLMRawRecord): Promise<void> {
   try {
     // 动态 import：避免把 node:fs 静态绑进可能跑在 edge runtime 的模块图
     const { mkdir, appendFile } = await import('node:fs/promises')
-    await mkdir(dir, { recursive: true })
+    // mode 只在【创建时】生效：目录/文件已存在时不会被改回来。故部署新环境时它是对的，
+    // 而既有环境需人工 chmod 一次（2026-07-17 已对本机 .llm-raw 执行）。
+    await mkdir(dir, { recursive: true, mode: 0o700 })
     const file = `${dir}/llm-raw-${record.ts.slice(0, 10)}.jsonl`
-    await appendFile(file, JSON.stringify(record) + '\n', 'utf-8')
+    await appendFile(file, JSON.stringify(record) + '\n', { encoding: 'utf-8', mode: 0o600 })
   } catch (e) {
     console.warn('[LLM] 原始输出留存失败（不影响主链路）', {
       message: e instanceof Error ? e.message : String(e),
@@ -246,10 +254,12 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
     return { ok: false }
   }
 
-  // 默认只打长度，避免模型输出（可能含故事片段）泄漏到日志；LLM_DEBUG=1 时再带完整内容
+  // 默认只打长度，避免模型输出（可能含故事片段）泄漏到日志；env.llmDebug 为 true 时再带完整内容。
+  // ⚠️ env.llmDebug 在生产环境【恒为 false】（见 env-server.ts），不靠任何人记得关。
+  //    此前这里直读 process.env.LLM_DEBUG，绕过 env 校验层。2026-07-17 加固。
   function logPayload(jsonText: string, raw: string): Record<string, unknown> {
     const base = { jsonTextLen: jsonText.length, rawLen: raw.length }
-    return process.env.LLM_DEBUG === '1' ? { ...base, jsonText, raw } : base
+    return env.llmDebug ? { ...base, jsonText, raw } : base
   }
 
   // 每次尝试都留存原始输出（成功也留），否则「模型把 reason 贴错 id」这类语义错位事后无从复盘
