@@ -16,6 +16,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
 import { SCORE_HIGH, SCORE_MID, RANKING_ALGO_VERSION } from '@/lib/constants'
@@ -75,6 +76,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId } = await requireUser(req)
+    // 同意闸硬前置：匹配会把整理后故事全文发往千问（萃取 + 重排）。未捕获当前版本同意 → 403，绝不外发。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const body = (await req.json()) as { corpusId?: unknown }
     const corpusId = typeof body.corpusId === 'string' ? body.corpusId.trim() : ''
     if (!corpusId) {

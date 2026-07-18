@@ -10,6 +10,7 @@
  * @created  2026-07-18
  */
 import 'server-only'
+import { NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { BETA_PRIVACY_VERSION } from '@/lib/privacy-copy'
 
@@ -30,4 +31,22 @@ export async function hasRecordedConsent(userId: string): Promise<boolean> {
     .limit(1)
   if (error) throw error
   return (data?.length ?? 0) > 0
+}
+
+/**
+ * 同意闸「共用前置」——所有把用户数据（原文/录音/故事）发往第三方 AI 的下游出口路由，
+ * 在 AI 调用前调用本工具做硬校验：未签当前版本同意 → 返回标准 403 供路由直接 return，
+ * 绝不把数据外发。抽出此工具令 6+ 处出口复用同一句校验与同一 403 形状（code=CONSENT_REQUIRED），
+ * 不必各写一遍、也杜绝措辞漂移。
+ * @param userId  requireUser* 反查出的当前调用者 id
+ * @returns       已签 → null（放行，路由继续）；未签 → NextResponse(403, {code:'CONSENT_REQUIRED'})
+ * @throws        查库出错时向上抛（由路由落入 500 分支）——不静默当作「未同意」，避免误导性提示
+ * @sideEffect    透过 hasRecordedConsent 查一次 consent_records
+ */
+export async function requireConsent(userId: string): Promise<NextResponse | null> {
+  if (await hasRecordedConsent(userId)) return null
+  return NextResponse.json(
+    { error: '请先在首页阅读并同意隐私说明', code: 'CONSENT_REQUIRED' },
+    { status: 403 },
+  )
 }

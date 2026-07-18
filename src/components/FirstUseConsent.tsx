@@ -18,7 +18,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import GradientButton from '@/components/GradientButton'
 import { CONSENT_POPUP_TITLE, CONSENT_POPUP_DISCLOSURE } from '@/lib/privacy-copy'
-import { hasRecordedConsent, recordConsent } from '@/lib/consent'
+import { hasRecordedConsent, recordConsent, clearConsentCache } from '@/lib/consent'
 import { getSupabase } from '@/lib/supabase'
 
 export default function FirstUseConsent() {
@@ -78,6 +78,8 @@ export default function FirstUseConsent() {
     } catch {
       /* 忽略：即便登出失败也要给用户离开路径，仍导航至登录页 */
     }
+    // 登出即清同意缓存：key 不含 uid，残留会致同机换号弹窗死循环（见 clearConsentCache）。
+    clearConsentCache()
     router.push('/login')
   }
 
@@ -140,10 +142,10 @@ export default function FirstUseConsent() {
               </p>
             ))}
             <div className="flex justify-center gap-4 mt-3">
-              <Link href="/privacy/beta" className="text-[12px] text-brand-accent-dark underline py-2">
+              <Link href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
                 内测数据处理说明
               </Link>
-              <Link href="/privacy" className="text-[12px] text-brand-accent-dark underline py-2">
+              <Link href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
                 完整隐私政策
               </Link>
             </div>

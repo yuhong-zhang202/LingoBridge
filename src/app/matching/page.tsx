@@ -47,6 +47,8 @@ function MatchingContent() {
           json: { corpusId },
           signal: ac.signal,
         })
+        // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「匹配失败」。
+        if (res.status === 403) { if (!cancelled) router.push('/'); return }
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as FunnelResult
         if (!cancelled) { setResult(data); setSelectedId(data.questions[0]?.id ?? null) }
@@ -63,7 +65,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true; ac.abort() }
-  }, [corpusId, retryKey])
+  }, [corpusId, retryKey, router])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {

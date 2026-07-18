@@ -9,6 +9,7 @@
  */
 import type { AppError } from '@/types/errors'
 import { getSupabase, ensureSession } from '@/lib/supabase'
+import { clearConsentCache } from '@/lib/consent'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_MIN = 6
@@ -189,7 +190,8 @@ export async function saveDisplayName(name: string): Promise<void> {
   }
 }
 
-/** 退出登录。 */
+/** 退出登录。清同意缓存（key 不含 uid，残留会致同机换号弹窗死循环，见 clearConsentCache）。 */
 export async function logout(): Promise<void> {
   await getSupabase().auth.signOut()
+  clearConsentCache()
 }

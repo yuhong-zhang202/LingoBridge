@@ -104,6 +104,8 @@ function PracticeContent(): JSX.Element {
         })
         // 服务端复练额度拦截（402）：弹 QuotaReached 覆盖层而非普通错误态
         if (res.status === 402) { if (!cancelled) setReviewQuotaShown(true); return }
+        // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不停在初始化失败态。
+        if (res.status === 403) { if (!cancelled) router.push('/'); return }
         if (!res.ok) throw new Error('对话初始化失败')
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
         if (!cancelled) {
@@ -130,6 +132,8 @@ function PracticeContent(): JSX.Element {
       form.append('audio', blob, 'turn.webm')
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
+      // 服务端同意闸拒绝（403）：回首页触发同意弹窗，别落入 !ok 分支报误导性的「转写失败」。
+      if (tr.status === 403) { router.push('/'); return }
       if (!tr.ok) throw new Error('转写失败')
       const { text } = (await tr.json()) as { text: string }
 
@@ -141,6 +145,8 @@ function PracticeContent(): JSX.Element {
         method: 'POST',
         json: { scaffold, messages: next },
       })
+      // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在对话失败态。
+      if (res.status === 403) { router.push('/'); return }
       if (!res.ok) throw new Error('对话失败')
       const data = (await res.json()) as { reply: string }
       setMessages([...next, { role: 'assistant', content: data.reply }])
@@ -149,7 +155,7 @@ function PracticeContent(): JSX.Element {
       setError(e instanceof Error ? e.message : '出错了，请重试')
       setPhase('idle')
     }
-  }, [stop, messages, scaffold])
+  }, [stop, messages, scaffold, router])
 
   const handlePolish = useCallback(async (sentence: string, aiQuestion?: string) => {
     setShowPolish(true)
@@ -160,6 +166,8 @@ function PracticeContent(): JSX.Element {
         method: 'POST',
         json: { sentence, aiQuestion, level },
       })
+      // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在优化失败态。
+      if (res.status === 403) { router.push('/'); return }
       if (!res.ok) throw new Error('优化失败')
       const data = (await res.json()) as PolishResult
       setPolishResult(data)
@@ -178,7 +186,7 @@ function PracticeContent(): JSX.Element {
       setPolishLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 优化按当前 level 取值即可；level 变更由独立分支处理，列入依赖会无谓重建回调
-  }, [scaffold])
+  }, [scaffold, router])
   // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
   const [runPolish] = useAsyncAction(handlePolish)
 

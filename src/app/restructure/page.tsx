@@ -115,6 +115,8 @@ function RestructureContent() {
         json: { source: 'voice', rawText: rawStory },
       })
       if (res.status === 402) { setStoryQuotaReached(true); setIsSaving(false); return }
+      // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不停在「语料保存失败」错误态。
+      if (res.status === 403) { router.push('/'); return }
       if (!res.ok) throw new Error('语料保存失败，请重试')
       const { corpus } = (await res.json()) as { corpus: { id: string } }
       await updateCorpusCleaned(corpus.id, aiText)

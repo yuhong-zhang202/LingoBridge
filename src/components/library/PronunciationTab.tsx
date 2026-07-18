@@ -7,6 +7,7 @@
  */
 'use client'
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Volume2, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
@@ -55,6 +56,7 @@ function WordRow({ label, word, ipa }: { label: string; word: string; ipa?: stri
 
 /** 单张发音卡：首次展示时若没缓存音标/提示，请求 AI 并写回 storage */
 function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element {
+  const router = useRouter()
   const cached: PronunciationTip | null = item.tip
     ? { ipaIntended: item.ipaIntended ?? '', ipaHeard: item.ipaHeard ?? '', tip: item.tip }
     : null
@@ -73,6 +75,8 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
           json: { intended: item.intended, heard: item.heard, context: item.context },
           signal: ac.signal,
         })
+        // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不静默停在「稍后再试」。
+        if (res.status === 403) { if (!cancelled) router.push('/'); return }
         if (!res.ok) throw new Error('请求失败')
         const tip = (await res.json()) as PronunciationTip
         if (cancelled) return
@@ -91,7 +95,7 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
       }
     })()
     return () => { cancelled = true; ac.abort() }
-  }, [data, item])
+  }, [data, item, router])
 
   return (
     <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="rounded-[16px] px-[14px] py-[13px]">

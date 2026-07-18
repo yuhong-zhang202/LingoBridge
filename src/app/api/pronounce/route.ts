@@ -10,6 +10,7 @@ import { generatePronunciationTip } from '@/services/pronounce'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_PRONOUNCE_LIMIT, REG_PRONOUNCE_DAILY_LIMIT } from '@/lib/constants'
@@ -18,6 +19,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    // 同意闸硬前置：发音提示会把用户词/出处句发往千问。未捕获当前版本同意 → 403，绝不外发。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const body = (await req.json()) as { intended?: unknown; heard?: unknown; context?: unknown }
     const intended = typeof body.intended === 'string' ? body.intended.trim() : ''
     const heard = typeof body.heard === 'string' ? body.heard.trim() : ''

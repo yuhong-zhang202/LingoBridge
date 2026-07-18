@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { logEvent } from '@/lib/events'
 import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
@@ -18,6 +19,10 @@ import type { CorpusSource } from '@/lib/types'
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    // 同意闸硬前置：故事落库是「原文进系统、后续各 AI 出口取用」的咽喉。未捕获当前版本同意 → 403，
+    // 从纵深封死「脚本绕过前端弹窗直灌语料、再走下游 AI 外发」的路径。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const body = (await req.json()) as { source?: unknown; rawText?: unknown }
     const source: CorpusSource = body.source === 'text' ? 'text' : 'voice'
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''

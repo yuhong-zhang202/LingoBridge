@@ -10,6 +10,7 @@ import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
@@ -21,6 +22,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    // 同意闸硬前置：练习会把用户故事/对话发往千问（脚手架 + 教练）。未捕获当前版本同意 → 403，绝不外发。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const body = (await req.json()) as {
       questionId?: string
       storyId?: string

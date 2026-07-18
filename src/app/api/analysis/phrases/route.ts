@@ -12,12 +12,16 @@ import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 
 export async function GET(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId } = await requireUser(req)
+    // 同意闸硬前置：换词组会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const { searchParams } = new URL(req.url)
     const questionId = searchParams.get('questionId') ?? ''
     const storyId    = searchParams.get('storyId') ?? ''

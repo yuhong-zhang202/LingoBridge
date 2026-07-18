@@ -22,6 +22,9 @@ jest.mock('@/lib/api-auth', () => ({
   assertCorpusOwner: jest.fn(),
   authErrorResponse: jest.fn(() => null),
 }))
+// 同意闸硬前置：matching 在 AI 调用前先过 requireConsent。本套测的是缓存/记账逻辑，
+// 默认放行（返回 null）以测到下游真实逻辑——与已 mock 的 requireUser 同理，提供前置通过的前提。
+jest.mock('@/lib/consent-server', () => ({ requireConsent: jest.fn(() => Promise.resolve(null)) }))
 jest.mock('@/lib/events', () => ({ logEvent: jest.fn() }))
 jest.mock('@/lib/api-logger', () => ({
   logApiUsage: jest.fn(),

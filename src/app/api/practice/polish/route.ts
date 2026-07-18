@@ -10,6 +10,7 @@ import { polishSentence } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_POLISH_LIMIT, REG_POLISH_DAILY_LIMIT } from '@/lib/constants'
@@ -18,6 +19,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    // 同意闸硬前置：润色会把用户句子发往千问。未捕获当前版本同意 → 403，绝不外发。
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
     const body = (await req.json()) as { sentence?: unknown; aiQuestion?: unknown; level?: unknown }
     const sentence = typeof body.sentence === 'string' ? body.sentence.trim() : ''
     const aiQuestion = typeof body.aiQuestion === 'string' ? body.aiQuestion : undefined

@@ -47,6 +47,9 @@ function AnalysisContent() {
       setLoading(true); setError(null)
       try {
         const res = await apiFetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
+        // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「生成分析失败」。
+        // 分析是零红线环节（点进题目看到的全部内容），务必兜好而非停在错误态。
+        if (res.status === 403) { if (!cancelled) router.push('/'); return }
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
@@ -69,6 +72,8 @@ function AnalysisContent() {
     ;(async () => {
       try {
         const res = await apiFetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
+        // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
+        if (res.status === 403) { router.push('/'); return }
         if (!res.ok) throw new Error('换词失败')
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)
