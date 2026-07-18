@@ -1,0 +1,42 @@
+/**
+ * @module   api/consent
+ * @desc     【仅服务端】「真捕获同意」落库唯一入口 —— 首次使用同意闸点击「同意并开始」时调本端点，
+ *           由 service_role 往 consent_records 插一条不可变同意记录。客户端持 anon key 无法直连
+ *           （RLS 只给 SELECT-own、无 insert 策略），写入必须经此端点，防伪造/篡改同意记录。
+ *           放行匿名与注册用户（决策2 允许匿名同意，uid 注册后不变、同意延续），只挡无效 token。
+ *           数据最小化：不记 ip / user_agent（决策3）。consent_version / scope_snapshot / consent_type
+ *           全由服务端从 privacy-copy 构造，不接受客户端传入（防注入伪造）。
+ * @author   LingoBridge
+ * @created  2026-07-18
+ */
+import 'server-only'
+import { NextResponse } from 'next/server'
+import { logErr } from '@/lib/log'
+import { getSupabaseServer } from '@/lib/supabase-server'
+import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { BETA_PRIVACY_VERSION, CONSENT_SCOPE_SNAPSHOT } from '@/lib/privacy-copy'
+
+export async function POST(req: Request): Promise<NextResponse> {
+  try {
+    // 鉴权：放行匿名与注册用户，拿 uid + isAnonymous（缺/无效 token 抛 ApiAuthError(401)）
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
+
+    // 本轮只落「内测总体同意」（beta_general）。benchmark 型二次同意仅靠表列预留，本端点不处理。
+    // consent_version / scope_snapshot 均取服务端权威值，客户端 body 一律忽略（防伪造）。
+    const { error } = await getSupabaseServer().from('consent_records').insert({
+      user_id: userId,
+      consent_version: BETA_PRIVACY_VERSION,
+      consent_type: 'beta_general',
+      scope_snapshot: CONSENT_SCOPE_SNAPSHOT,
+      is_anonymous: isAnonymous,
+    })
+    if (error) throw error
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
+    logErr('[consent API]', e)
+    return NextResponse.json({ error: '同意记录保存失败，请重试' }, { status: 500 })
+  }
+}
