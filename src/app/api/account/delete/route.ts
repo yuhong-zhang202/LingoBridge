@@ -60,14 +60,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       logErr('[account/delete] 头像清理失败（不中断删号）', e)
     }
 
-    // 原始留证彻底清理（best-effort）：llm_raw_logs / asr_raw_logs 含用户原文（prompt / 转写），
-    // 被遗忘权须一并删。故意【不带 retained 过滤】= 连金标保留批也删（产品方 2026-07-17 拍定）。
-    // 单独 try/catch、只 logErr 不中断——留证清理是补充，不能因它失败导致删不掉号（仿头像清理）。
-    try {
-      await deleteUserRawLogs(userId)
-    } catch (e) {
-      logErr('[account/delete] 原始留证清理失败（不中断删号）', e)
-    }
+    // 原始留证彻底清理（【硬前置，失败必须中止删号】）：llm_raw_logs / asr_raw_logs 含用户原文
+    // （prompt / 转写），被遗忘权须一并删。故意【不带 retained 过滤】= 连金标保留批也删（产品方 2026-07-17 拍定）。
+    // 与头像/费用日志的 best-effort 纪律【刻意不同】：原文删不掉却把账号删了 = 留下无主的原文孤儿
+    //（无重试、无审计、再也关联不到用户），是被遗忘权的实质失守。故这里【不吞异常】——抛出即由外层 catch
+    // 映射为 500，用户可重试；且本步排在下面 admin.deleteUser 之前，失败即阻断后续，绝不留原文孤儿。
+    await deleteUserRawLogs(userId)
 
     // 费用日志去标识化（best-effort，非硬删）：api_usage_logs（0021 起带 user_id/corpus_id）是聚合用量/成本、
     // 不含用户原文——被遗忘权靠断掉个人链接即满足，而非删行。硬删会让离职用户的成本从总额蒸发、账目失真。
