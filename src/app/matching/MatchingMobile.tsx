@@ -26,7 +26,8 @@ function GroupHeader({ label, count, variant }: {
   variant: 'high' | 'mid'
 }) {
   const textClass =
-    variant === 'high' ? 'text-brand-accent font-semibold'
+    // 高匹配分组标题改 -dark 变体：brand-accent 对白底仅 2.7:1（不达 WCAG AA），brand-accent-dark 达标
+    variant === 'high' ? 'text-brand-accent-dark font-semibold'
     : variant === 'mid' ? 'text-v2-text-secondary font-medium'
     : 'text-v2-text-muted font-medium'
 
@@ -201,7 +202,7 @@ export default function MatchingMobile({
               <div className="text-center mb-6">
                 <button
                   onClick={onToggleExpanded}
-                  className="text-[13px] font-medium text-brand-primary active:opacity-60"
+                  className="min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-brand-primary-dark active:opacity-60"
                 >
                   {expanded ? '收起 ↑' : `查看更多 ${foldedCount} 道 →`}
                 </button>

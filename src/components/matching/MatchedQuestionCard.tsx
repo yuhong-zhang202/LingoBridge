@@ -35,8 +35,18 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
   const zhText = question.part === 2 ? (question.cue_card_title_zh ?? '') : (question.question_text_zh ?? '')
 
   return (
+    // 整卡可点：语义化为 role=button + 键盘可达（回车/空格切换选中）。内层「题目分析」是真 <button>，
+    // 故整卡用 role=button 而非 <button>（按钮不可嵌套按钮）。onKeyDown 仅处理源于卡片自身的按键
+    // （e.target === e.currentTarget）——从内层按钮冒泡上来的回车/空格不在此重复触发选中。
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
       onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() }
+      }}
       className={`bg-white rounded-[14px] overflow-hidden flex cursor-pointer border border-black/[0.05] transition-shadow duration-200 ${
         selected ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]' : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)]'
       }`}
@@ -72,7 +82,7 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
           <Chip
             variant="gradient"
             onClick={(e) => { e.stopPropagation(); onPractice() }}
-            className="px-3 py-1.5 flex-shrink-0"
+            className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
           >
             题目分析
             <ArrowRight size={12} />

@@ -35,15 +35,18 @@ export default function RecordingMobile({
 
       {/* 顶部栏（桌面端居中约束，沉浸流程无侧栏） */}
       <div className="flex-shrink-0 flex items-center justify-between h-[52px] px-5 relative z-10 lg:h-16 lg:max-w-3xl lg:w-full lg:mx-auto">
+        {/* 44px 命中区（外层按钮透明撑满），内层 span 保持原 30px 白圆视觉不变；右侧占位同步 44px 保标题居中 */}
         <button
           onClick={onBack}
           aria-label="返回"
-          className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center"
+          className="w-11 h-11 flex items-center justify-center"
         >
-          <X size={14} className="text-v2-text-primary" />
+          <span className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
+            <X size={14} className="text-v2-text-primary" />
+          </span>
         </button>
         <span className="text-[15px] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
-        <div className="w-[30px]" />
+        <div className="w-11" />
       </div>
 
       <RequireAccountGate>
@@ -81,7 +84,8 @@ export default function RecordingMobile({
         className="flex-shrink-0 px-8 relative z-10 lg:max-w-[440px] lg:w-full lg:mx-auto"
         style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))', paddingTop: 20 }}
       >
-        {error && <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>}
+        {/* role=alert：视觉保持灰色温柔基调不变色，仅让读屏即时播报错误（对齐 Desktop 可访问性） */}
+        {error && <p role="alert" className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>}
         <button
           onClick={onFinish}
           disabled={transcribing}
