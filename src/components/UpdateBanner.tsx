@@ -8,7 +8,7 @@
  * @created  2026-07-10
  */
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { type JSX, useCallback, useEffect, useState } from 'react'
 import { X, RefreshCw } from 'lucide-react'
 import { LATEST_VERSION, isNewerVersion } from '@/lib/changelog'
 

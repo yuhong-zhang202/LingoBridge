@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 'use client'
+import { type JSX } from 'react'
 import { useRouter } from 'next/navigation'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { cn } from '@/lib/utils'

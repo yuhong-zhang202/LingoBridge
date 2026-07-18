@@ -55,14 +55,14 @@ function GradCard({ children }: { children: ReactNode }) {
 
 export default function AnalysisMobile({
   data, loading, error, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
-  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice,
+  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onBack,
 }: AnalysisViewProps) {
   return (
     <div
       className="relative flex flex-col bg-bg-page overflow-hidden"
       style={{ height: '100dvh', paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
     >
-      <TopBar title="题目分析" />
+      <TopBar title="题目分析" onBack={onBack} />
       <StepBar currentStep="analysis" />
 
       {/* 加载态用 Fragment 无容器可挂，故 aria-busy 挂在常驻滚动区、随 loading 切换 */}

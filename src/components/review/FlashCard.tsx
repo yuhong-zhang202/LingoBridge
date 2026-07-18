@@ -5,7 +5,7 @@
  * @created  2026-06-12
  */
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { type JSX, useState, useRef, useEffect } from 'react'
 import { RotateCw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react'
 import Tag from '@/components/Tag'
 import type { PhraseCard } from '@/lib/types'

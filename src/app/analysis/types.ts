@@ -33,6 +33,8 @@ export interface AnalysisViewProps {
   onToggleSave: (item: AnalysisPhrase, group: string) => void
   /** 进入练习 */
   onStartPractice: () => void
+  /** 返回上一步（故事流→匹配页；雅思流→整理页；缺 from→首页）；替掉移动端 TopBar 默认 router.back() 现网破损 */
+  onBack: () => void
   /** 退出回首页（桌面 Esc 用；与外壳顶栏 ✕ 一致） */
   onExit: () => void
 }

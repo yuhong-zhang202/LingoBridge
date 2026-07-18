@@ -43,11 +43,11 @@ export default function MatchingMobile({
   result, loading, error, totalVisible, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
   selectedId, expanded,
-  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry,
+  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry, onBack,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
   return (
     <div className="relative min-h-screen bg-bg-page flex flex-col">
-      <TopBar title="题目匹配" />
+      <TopBar title="题目匹配" onBack={onBack} />
       <StepBar currentStep="matching" />
 
       <div className="flex-1 overflow-y-auto px-5 pb-[72px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full lg:px-10 lg:pb-10">

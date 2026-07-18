@@ -5,7 +5,7 @@
  * @created  2026-06-18
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { type JSX, useEffect, useState } from 'react'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
 import { nextMonthFirstLabel } from '@/lib/date'

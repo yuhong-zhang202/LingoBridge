@@ -185,8 +185,10 @@ function MatchingContent() {
     onToggleSelect: (id) => setSelectedId(prev => prev === id ? null : id),
     onSelect: (id) => setSelectedId(id),
     onToggleExpanded: () => setExpanded(v => !v),
-    onPractice: (id) => router.push(`/analysis?questionId=${id}&storyId=${corpusId}`),
+    // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
+    onPractice: (id) => router.push(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`),
     onRetry: () => void retry(),
+    onBack: () => router.push(`/restructure?corpusId=${corpusId}`),
     onExit: () => router.push('/'),
   }
 
@@ -195,7 +197,7 @@ function MatchingContent() {
       <div className="lg:hidden"><MatchingMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（匹配步激活）+ master-detail 舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit}>
+        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel="返回整理">
           <MatchingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

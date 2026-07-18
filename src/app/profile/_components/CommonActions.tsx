@@ -6,7 +6,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useState, type ReactNode } from 'react'
+import { type JSX, useState, type ReactNode } from 'react'
 import { MessageSquare } from 'lucide-react'
 import Card from '@/components/Card'
 import FeedbackPopup from '@/components/FeedbackPopup'

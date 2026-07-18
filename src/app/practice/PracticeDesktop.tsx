@@ -9,7 +9,7 @@
  * @created  2026-07-09
  */
 'use client'
-import { useEffect, useRef, useState, Fragment } from 'react'
+import { type JSX, useEffect, useRef, useState, Fragment } from 'react'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ConfirmDialog'

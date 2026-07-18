@@ -6,7 +6,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { Fragment } from 'react'
+import { type JSX, Fragment } from 'react'
 import { Mic, Clock, X, Send } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'

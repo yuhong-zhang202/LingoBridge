@@ -8,6 +8,7 @@
  * @created  2026-07-09
  */
 'use client'
+import { type JSX } from 'react'
 import { Mic2, ArrowRight, Loader2 } from 'lucide-react'
 import SegmentDots from '@/app/question-bank/SegmentDots'
 import { computeRichness } from '@/lib/story-richness'
@@ -47,7 +48,7 @@ export default function StoryTextPanel({
 
   return (
     <div className={fadeUp ? 'w-full animate-fade-up' : 'w-full'}>
-      <div className="w-full bg-bg-surface border border-black/[0.06] rounded-[18px] pt-[18px] px-4 pb-[13px]">
+      <div className="w-full bg-bg-surface border border-black/[0.06] rounded-[18px] pt-[18px] px-4 pb-[13px] transition-colors focus-within:border-brand-primary">
         <textarea
           value={value}
           onChange={e => onChange(e.target.value)}

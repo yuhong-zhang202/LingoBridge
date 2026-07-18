@@ -7,7 +7,7 @@
  * @created  2026-05-20
  */
 'use client'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { type JSX, useEffect, useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Layers, ChevronRight, Trash2 } from 'lucide-react'

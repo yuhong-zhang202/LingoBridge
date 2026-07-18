@@ -6,6 +6,8 @@
  */
 'use client'
 
+
+import { type JSX } from 'react'
 interface OrbAvatarProps {
   size?: number
   className?: string

@@ -42,10 +42,10 @@ export interface PracticeViewProps {
   /** 满 8 轮温柔收尾 */
   isCapped: boolean
   // —— 4 个 DOM ref（外壳持有 effect，单挂载下只绑一次） ——
-  popupRef: RefObject<HTMLDivElement>
-  orbRef: RefObject<HTMLButtonElement>
-  bottomRef: RefObject<HTMLDivElement>
-  pronounceRef: RefObject<HTMLDivElement>
+  popupRef: RefObject<HTMLDivElement | null>
+  orbRef: RefObject<HTMLButtonElement | null>
+  bottomRef: RefObject<HTMLDivElement | null>
+  pronounceRef: RefObject<HTMLDivElement | null>
   // —— 回调（全部走外壳，绝不新建录音器/业务逻辑） ——
   onStartRecord: () => void
   onCancelRecord: () => void

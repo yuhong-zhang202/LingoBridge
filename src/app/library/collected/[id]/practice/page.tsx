@@ -5,7 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { type JSX, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { X, RotateCw, ArrowRight } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'

@@ -6,6 +6,8 @@
  */
 'use client'
 
+
+import { type JSX } from 'react'
 interface OrbWarmProps {
   size?: number
   className?: string

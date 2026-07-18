@@ -6,7 +6,7 @@
  * @created  2026-06-17
  */
 'use client'
-import { useEffect, useState, type ReactNode } from 'react'
+import { type JSX, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAccount } from '@/lib/auth'
 import { isTrialDone } from '@/lib/storage'

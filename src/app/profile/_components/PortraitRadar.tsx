@@ -7,6 +7,8 @@
  */
 'use client'
 
+import { type JSX } from 'react'
+
 const CX = 120
 const CY = 95
 const R  = 73

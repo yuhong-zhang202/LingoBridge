@@ -6,7 +6,7 @@
  * @created  2026-07-04
  */
 'use client'
-import { useEffect } from 'react'
+import { type JSX, useEffect } from 'react'
 import { X, Heart, Sparkles } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'

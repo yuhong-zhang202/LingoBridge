@@ -8,7 +8,7 @@
  * @created  2026-07-09
  */
 'use client'
-import { useEffect, useRef } from 'react'
+import { type JSX, useEffect, useRef } from 'react'
 import { Mic2 } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
 import { WRITE_PLACEHOLDER, type WriteViewProps } from './types'
@@ -67,14 +67,14 @@ export default function WriteDesktop({
         )}
 
         {/* 写作 surface：舒适大 textarea + 右下实时字数 */}
-        <div className="bg-bg-surface border border-black/[0.06] rounded-[18px] pt-5 px-5 pb-3.5">
+        <div className="bg-bg-surface border border-black/[0.06] rounded-[18px] pt-5 px-5 pb-3.5 transition-colors focus-within:border-brand-primary">
           <textarea
             value={textStory}
             onChange={e => onChangeText(e.target.value)}
             placeholder={WRITE_PLACEHOLDER}
             aria-label="写下你的故事"
             autoFocus
-            className="w-full min-h-[260px] resize-none bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-[12px] text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
+            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
           />
           <div className="flex items-center justify-end pt-3 border-t border-black/[0.05]">
             <span className="text-[12px] text-v2-text-muted tabular-nums">{textStory.trim().length} 字</span>

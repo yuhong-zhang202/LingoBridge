@@ -4,6 +4,7 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
+import { type JSX } from 'react'
 import OrbSoft from './OrbSoft'
 
 export default function AiBubble({ text }: { text: string }): JSX.Element {

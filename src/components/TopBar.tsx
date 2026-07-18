@@ -10,6 +10,8 @@ interface TopBarProps {
   showBack?: boolean
   right?: ReactNode
   showFeedback?: boolean
+  /** 显式返回回调；提供时替掉默认 router.back()。matching/analysis 用它避免落回假故事 + 重复建库的现网破损。 */
+  onBack?: () => void
 }
 
 export default function TopBar({
@@ -17,6 +19,7 @@ export default function TopBar({
   showBack = true,
   right,
   showFeedback = true,
+  onBack,
 }: TopBarProps) {
   const router = useRouter()
   const isOnline = useOnlineStatus()
@@ -38,7 +41,7 @@ export default function TopBar({
         <div className="flex items-center">
           {showBack && (
             <button
-              onClick={() => router.back()}
+              onClick={onBack ?? (() => router.back())}
               aria-label="返回"
               className="w-[30px] h-[30px] rounded-full bg-white flex items-center justify-center shadow-sm lg:hidden"
             >

@@ -6,7 +6,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { Flame, MessageCircle, Target } from 'lucide-react'
 import Card from '@/components/Card'
 import Avatar from '@/components/Avatar'

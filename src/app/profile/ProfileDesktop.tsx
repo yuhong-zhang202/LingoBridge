@@ -6,6 +6,7 @@
  * @created  2026-05-31
  */
 'use client'
+import { type JSX } from 'react'
 import Link from 'next/link'
 import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'

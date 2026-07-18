@@ -6,7 +6,7 @@
  * @created  2026-07-10
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import GradientButton from '@/components/GradientButton'
 import ProfileModal from './ProfileModal'
 import { saveExamGoal } from '@/lib/auth'

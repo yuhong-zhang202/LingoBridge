@@ -5,6 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
+import { type JSX } from 'react'
 import { CalendarClock } from 'lucide-react'
 import ProfileModal from './ProfileModal'
 import { nextMonthFirstLabel } from '@/lib/date'

@@ -9,7 +9,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { type JSX, useEffect, useRef, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Mic2, RotateCw, Pencil, Sparkles, Target, MessageCircle, Layers, Volume2, type LucideIcon } from 'lucide-react'

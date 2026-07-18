@@ -7,16 +7,17 @@
  * @created  2026-05-28
  */
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { mutate } from 'swr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import AnalysisMobile from './AnalysisMobile'
 import AnalysisDesktop from './AnalysisDesktop'
 import type { AnalysisViewProps } from './types'
-import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase } from '@/lib/types'
-import { addSavedWord, removeSavedWord } from '@/lib/db/saved-words'
-import { useSavedWords, refreshSavedWords } from '@/hooks/library-data'
+import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, SavedWord } from '@/lib/types'
+import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
+import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
 
 function AnalysisContent() {
@@ -25,6 +26,14 @@ function AnalysisContent() {
   const questionId = params.get('questionId') ?? ''
   const storyId    = params.get('storyId') ?? ''
   const review     = params.get('review') === '1'
+  // 流向判别：from=matching（故事流）→ 回匹配页；from=restructure（雅思流）→ 回整理页（带 qid）；
+  // 深链缺 from → 安全默认回首页，绝不静默走错分支。
+  const from       = params.get('from')
+  const backTarget = from === 'matching'
+    ? { href: `/matching?corpusId=${storyId}`, label: '返回题目' }
+    : from === 'restructure'
+      ? { href: `/restructure?corpusId=${storyId}&qid=${questionId}`, label: '返回整理' }
+      : { href: '/', label: '返回首页' }
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -32,9 +41,10 @@ function AnalysisContent() {
   const [level, setLevel] = useState('6.0')
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
-  const [savedSet, setSavedSet] = useState<Set<string>>(new Set())
-  // 已收藏词组高亮：以云端 useSavedWords 为真源，切换时先乐观更新、失败再回滚
+  // 已收藏词组高亮：以云端 useSavedWords 为唯一真源，直接派生集合（不镜像成本地 state，
+  // 否则「用 effect 同步 state」会因 savedWords 每 render 新引用而无限重渲染 / Maximum update depth）。
   const { words: savedWords } = useSavedWords()
+  const savedSet = useMemo(() => new Set(savedWords.map(w => w.text)), [savedWords])
   const [retryKey, setRetryKey] = useState(0)
   // A15 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新分析
   const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
@@ -85,43 +95,29 @@ function AnalysisContent() {
     })()
   }
 
-  // 云端词组列表就绪 / 变化时同步高亮集合（真源）
-  useEffect(() => {
-    setSavedSet(new Set(savedWords.map(w => w.text)))
-  }, [savedWords])
-
   function toggleSave(item: AnalysisPhrase, group: string) {
     const key = item.text
     const isSaved = savedSet.has(key)
-    // 乐观更新：点按即时切高亮，不等网络往返
-    setSavedSet(prev => {
-      const n = new Set(prev)
-      if (isSaved) n.delete(key); else n.add(key)
-      return n
-    })
-    const persist = isSaved
-      ? removeSavedWord(key)
-      : addSavedWord({
-          id: key,
-          text: key,
-          meaning: item.meaning,
-          scene: item.scene,
-          group,
-          level,
-          questionEn: data?.question.en ?? '',
-          createdAt: new Date().toISOString(),
-        }).then(() => undefined)
-    void persist
-      .then(() => refreshSavedWords())
-      .catch((e) => {
-        console.error('[analysis] 词组收藏失败', e)
-        // 回滚高亮
-        setSavedSet(prev => {
-          const n = new Set(prev)
-          if (isSaved) n.add(key); else n.delete(key)
-          return n
-        })
-      })
+    const newWord: SavedWord = {
+      id: key,
+      text: key,
+      meaning: item.meaning,
+      scene: item.scene,
+      group,
+      level,
+      questionEn: data?.question.en ?? '',
+      createdAt: new Date().toISOString(),
+    }
+    // 乐观更新走 SWR 缓存（唯一真源）：点按即时切高亮，出错自动回滚，落库后以服务端结果为准。
+    const optimisticWords = isSaved
+      ? savedWords.filter(w => w.text !== key)
+      : [newWord, ...savedWords]
+    const persist = isSaved ? removeSavedWord(key) : addSavedWord(newWord).then(() => undefined)
+    void mutate(
+      SAVED_WORDS_KEY,
+      persist.then(() => listSavedWords()),
+      { optimisticData: optimisticWords, rollbackOnError: true, revalidate: false },
+    ).catch((e) => console.error('[analysis] 词组收藏失败', e))
   }
 
   const viewProps: AnalysisViewProps = {
@@ -139,6 +135,7 @@ function AnalysisContent() {
     onTogglePhrase: (key) => setOpenPhrase(key),
     onToggleSave: toggleSave,
     onStartPractice: () => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
+    onBack: () => router.push(backTarget.href),
     onExit: () => router.push('/'),
   }
 
@@ -147,7 +144,7 @@ function AnalysisContent() {
       <div className="lg:hidden"><AnalysisMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（分析步激活）+ split 两栏舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="analysis" onExit={viewProps.onExit}>
+        <FlowShellDesktop activeStep="analysis" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel={backTarget.label}>
           <AnalysisDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

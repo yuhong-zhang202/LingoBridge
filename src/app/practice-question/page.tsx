@@ -6,7 +6,7 @@
  * @created  2026-06-21
  */
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { type JSX, Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Plus, RefreshCw } from 'lucide-react'
 import TopBar from '@/components/TopBar'

@@ -10,7 +10,7 @@
  * @created  2026-07-05
  */
 'use client'
-import { useEffect, useRef } from 'react'
+import { type JSX, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Shuffle, Volume2, Check } from 'lucide-react'
 import Chip from '@/components/Chip'

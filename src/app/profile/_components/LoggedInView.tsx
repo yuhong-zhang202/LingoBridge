@@ -7,7 +7,7 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { type JSX, useState, useEffect } from 'react'
 import { Flame, MessageCircle, Target, Lock } from 'lucide-react'
 import Tag from '@/components/Tag'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'

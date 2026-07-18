@@ -7,7 +7,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { type JSX, useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import Card from '@/components/Card'
 import { cn } from '@/lib/utils'

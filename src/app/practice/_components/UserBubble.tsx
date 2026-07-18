@@ -4,6 +4,7 @@
  * @author   LingoBridge
  * @created  2026-05-15
  */
+import { type JSX } from 'react'
 import { Sparkles } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import OrbWarm from './OrbWarm'

@@ -5,7 +5,7 @@
  * @created  2026-06-12
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { RefreshCw, MessageSquare } from 'lucide-react'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'

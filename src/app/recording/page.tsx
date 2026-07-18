@@ -6,7 +6,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { type JSX, useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'

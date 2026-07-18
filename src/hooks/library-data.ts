@@ -22,6 +22,13 @@ export const SAVED_PRONUNCIATIONS_KEY = 'library:saved-pronunciations'
 /** 收藏数据不需要每次切回窗口就重拉；其余用 SWR 默认（去重、错误重试等） */
 const CONFIG = { revalidateOnFocus: false } as const
 
+// 加载中 / 出错时的稳定空数组：`data ?? []` 每 render 会新建数组引用，会让「用 effect / useMemo
+// 同步派生态」的调用方无限重渲染（Maximum update depth）。用模块级常量固定引用，一劳永逸。
+// 调用方只读（map/filter/spread），不得就地 mutate 这些常量。
+const EMPTY_PHRASES: SavedPhrase[] = []
+const EMPTY_WORDS: SavedWord[] = []
+const EMPTY_PRONUNCIATIONS: SavedPronunciation[] = []
+
 /**
  * 语料卡收藏列表（fetcher 先跑一次幂等迁移，再读云端）
  * @returns  phrases（created_at desc）/ isLoading / error
@@ -32,7 +39,7 @@ export function useSavedPhrases(): { phrases: SavedPhrase[]; isLoading: boolean;
     async () => { await migrateLegacySavedPhrases(); return listSavedPhrases() },
     CONFIG,
   )
-  return { phrases: data ?? [], isLoading, error }
+  return { phrases: data ?? EMPTY_PHRASES, isLoading, error }
 }
 
 /** 收藏 / 删除后调用：失效并重拉语料卡收藏列表 */
@@ -50,7 +57,7 @@ export function useSavedWords(): { words: SavedWord[]; isLoading: boolean; error
     async () => { await migrateLegacySavedWords(); return listSavedWords() },
     CONFIG,
   )
-  return { words: data ?? [], isLoading, error }
+  return { words: data ?? EMPTY_WORDS, isLoading, error }
 }
 
 /** 收藏 / 删除后调用：失效并重拉词组收藏列表 */
@@ -68,7 +75,7 @@ export function useSavedPronunciations(): { pronunciations: SavedPronunciation[]
     async () => { await migrateLegacySavedPronunciations(); return listSavedPronunciations() },
     CONFIG,
   )
-  return { pronunciations: data ?? [], isLoading, error }
+  return { pronunciations: data ?? EMPTY_PRONUNCIATIONS, isLoading, error }
 }
 
 /** 收藏 / 删除 / 更新音标后调用：失效并重拉发音收藏列表 */

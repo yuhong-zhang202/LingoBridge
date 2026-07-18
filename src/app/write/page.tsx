@@ -8,7 +8,7 @@
  * @created  2026-07-09
  */
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { type JSX, useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getQuestionById } from '@/lib/db/questions'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'

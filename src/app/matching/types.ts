@@ -70,6 +70,8 @@ export interface MatchingViewProps {
   onPractice: (id: string) => void
   /** error 态重试（含防重入守卫） */
   onRetry: () => void
+  /** 返回上一步（→ /restructure?corpusId=…）；替掉移动端 TopBar 默认 router.back() 落假故事的现网破损 */
+  onBack: () => void
   /** 退出回首页（桌面 Esc / 外壳 ✕ 一致） */
   onExit: () => void
 }

@@ -13,7 +13,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
+import { type JSX, useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'

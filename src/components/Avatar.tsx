@@ -8,7 +8,7 @@
  */
 'use client'
 import Image from 'next/image'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { type JSX, useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AvatarProps {

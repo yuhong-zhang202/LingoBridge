@@ -6,7 +6,7 @@
  * @created  2026-07-10
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { CalendarDays, Target, Pencil } from 'lucide-react'
 import Card from '@/components/Card'
 import { useAccount } from '@/hooks/useAccount'

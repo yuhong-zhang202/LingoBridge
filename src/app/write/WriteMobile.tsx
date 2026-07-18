@@ -6,6 +6,7 @@
  * @created  2026-07-09
  */
 'use client'
+import { type JSX } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import StoryTextPanel from '@/components/StoryTextPanel'
 import type { WriteViewProps } from './types'

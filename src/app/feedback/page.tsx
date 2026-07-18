@@ -8,7 +8,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { type JSX, useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, clearSessionPolishes, markTrialDone } from '@/lib/storage'

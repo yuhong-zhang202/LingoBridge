@@ -6,7 +6,7 @@
  * @created  2026-07-05
  */
 'use client'
-import { useEffect, useRef } from 'react'
+import { type JSX, useEffect, useRef } from 'react'
 
 interface UndoToastProps {
   /** 提示文案，如「已删除 3 张卡片」 */

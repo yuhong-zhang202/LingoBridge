@@ -7,7 +7,7 @@
  * @created  2026-07-10
  */
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { type JSX, useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { CHANGELOG, LATEST_VERSION, isNewerVersion } from '@/lib/changelog'
 

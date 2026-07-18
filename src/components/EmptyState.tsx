@@ -5,6 +5,7 @@
  * @created  2026-06-04
  */
 'use client'
+import { type JSX } from 'react'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
 import { cn } from '@/lib/utils'

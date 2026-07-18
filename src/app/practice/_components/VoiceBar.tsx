@@ -5,7 +5,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { type JSX, useEffect, useRef, useState } from 'react'
 
 const BAR_COUNT = 18
 // audioLevel 原始值偏小，乘个增益放大观感；真机偏静/偏躁可在此微调

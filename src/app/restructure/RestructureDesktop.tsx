@@ -101,7 +101,7 @@ export default function RestructureDesktop({
                   value={aiText}
                   onChange={e => onAiChange(e.target.value)}
                   aria-label="编辑整理后的故事"
-                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-bg-muted px-4 py-3 text-[16px] text-v2-text-primary leading-[1.9] outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-transparent px-4 py-3 text-[16px] text-v2-text-primary leading-[1.9] outline-none"
                   autoFocus
                 />
               ) : (

@@ -4,7 +4,7 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
-import { type RefObject } from 'react'
+import { type JSX, type RefObject } from 'react'
 import { X, Check } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import type { PolishResult } from '@/lib/types'
@@ -13,7 +13,7 @@ interface RephrasePopupProps {
   loading: boolean
   result: PolishResult | null
   onClose: () => void
-  popupRef: RefObject<HTMLDivElement>
+  popupRef: RefObject<HTMLDivElement | null>
 }
 
 export default function RephrasePopup({ loading, result, onClose, popupRef }: RephrasePopupProps): JSX.Element {

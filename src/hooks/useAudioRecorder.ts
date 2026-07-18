@@ -27,8 +27,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
-  const animRef = useRef<number>()
+  const animRef = useRef<number | undefined>(undefined)
   const ctxRef = useRef<AudioContext | null>(null)
+  // getUserMedia 未决期的再入守卫：streamRef 要 await 后才置位，仅靠它挡不住
+  // StrictMode 双挂载 / 快速重入并发进入 start——会叠出多个 tick 循环（animRef 被覆写而无法 cancel，
+  // 泄漏的循环在已卸载组件上持续 setAudioLevel，触发 Maximum update depth）。
+  const startingRef = useRef(false)
+  const mountedRef = useRef(true)
 
   const cleanup = useCallback(() => {
     if (animRef.current) cancelAnimationFrame(animRef.current)
@@ -42,9 +47,12 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   }, [])
 
   const start = useCallback(async (): Promise<void> => {
-    if (streamRef.current) return // 已在录音，避免重复（含 StrictMode 双调用）
+    if (streamRef.current || startingRef.current) return // 已在录音 / 正在起录，避免重复（含 StrictMode 双调用与 getUserMedia 未决期）
+    startingRef.current = true
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // 起录期间组件已卸载：丢弃拿到的流，不在已卸载组件上启动 tick / setState
+      if (!mountedRef.current) { stream.getTracks().forEach((t) => t.stop()); return }
       streamRef.current = stream
 
       // 电平分析（驱动 Orb）
@@ -76,6 +84,8 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     } catch {
       // 无麦克风权限 / 不支持 —— 静默清理
       cleanup()
+    } finally {
+      startingRef.current = false
     }
   }, [cleanup])
 
@@ -95,8 +105,11 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     })
   }, [cleanup])
 
-  // 卸载时清理
-  useEffect(() => cleanup, [cleanup])
+  // 卸载时清理，并翻转 mountedRef —— 供 start 在 await 后判断组件是否还在，避免卸载后启动泄漏循环
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false; cleanup() }
+  }, [cleanup])
 
   return { audioLevel, isRecording, start, stop }
 }

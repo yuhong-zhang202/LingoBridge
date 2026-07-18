@@ -5,7 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { Check } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
 import ProfileModal from './ProfileModal'

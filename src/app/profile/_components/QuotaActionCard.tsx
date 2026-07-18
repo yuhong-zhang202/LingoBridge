@@ -5,6 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
+import { type JSX } from 'react'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'

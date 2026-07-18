@@ -5,6 +5,7 @@
  * @author   LingoBridge
  * @created  2026-07-10
  */
+import { type JSX } from 'react'
 import type { Metadata } from 'next'
 import TopNav from '@/components/TopNav'
 import TopBar from '@/components/TopBar'

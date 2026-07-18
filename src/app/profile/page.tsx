@@ -6,7 +6,7 @@
  * @created  2026-05-31
  */
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { type JSX, useState, useEffect, useCallback } from 'react'
 import { getAccount, logout } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
 import ProfileMobile from './ProfileMobile'

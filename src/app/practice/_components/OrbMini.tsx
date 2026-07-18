@@ -6,6 +6,8 @@
  */
 'use client'
 
+
+import { type JSX } from 'react'
 interface OrbMiniProps {
   size?: number
   className?: string

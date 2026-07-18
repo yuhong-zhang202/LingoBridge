@@ -8,7 +8,7 @@
  * @created  2026-07-04
  */
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { type JSX, useEffect, useRef, useState } from 'react'
 import { X, Heart, Sparkles } from 'lucide-react'
 import FeedbackCard from '@/components/FeedbackCard'
 import GradientButton from '@/components/GradientButton'

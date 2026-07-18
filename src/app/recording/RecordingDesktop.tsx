@@ -7,7 +7,7 @@
  * @created  2026-07-04
  */
 'use client'
-import { useEffect, useRef } from 'react'
+import { type JSX, useEffect, useRef } from 'react'
 import { RotateCcw, Pencil } from 'lucide-react'
 import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'

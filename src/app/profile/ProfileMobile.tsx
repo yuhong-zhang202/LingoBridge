@@ -6,7 +6,7 @@
  * @created  2026-05-31
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, Pencil } from 'lucide-react'
 import TopBar from '@/components/TopBar'

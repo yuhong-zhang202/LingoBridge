@@ -6,7 +6,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import { Bookmark, X } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 

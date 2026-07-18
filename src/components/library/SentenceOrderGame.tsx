@@ -5,7 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type JSX, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Chip from '@/components/Chip'
 import { chunkSentence, shuffleChunks } from '@/lib/phrase-chunk'
 

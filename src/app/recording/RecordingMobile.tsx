@@ -6,6 +6,7 @@
  * @created  2026-07-04
  */
 'use client'
+import { type JSX } from 'react'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'

@@ -7,7 +7,7 @@
  */
 'use client'
 
-import { useState } from 'react'
+import { type JSX, useState } from 'react'
 import Link from 'next/link'
 import { MessageCircleQuestionMark, Info, ChevronRight } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'

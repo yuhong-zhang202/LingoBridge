@@ -6,7 +6,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { type JSX, useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { Volume2, Trash2 } from 'lucide-react'

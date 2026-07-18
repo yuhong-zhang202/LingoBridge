@@ -6,7 +6,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useState, type ChangeEvent } from 'react'
+import { type JSX, useState, type ChangeEvent } from 'react'
 import Image from 'next/image'
 import { UploadCloud } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'

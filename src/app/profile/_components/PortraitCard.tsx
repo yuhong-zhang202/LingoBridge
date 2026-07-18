@@ -5,7 +5,7 @@
  * @created  2026-07-01
  */
 'use client'
-import { useMemo } from 'react'
+import { type JSX, useMemo } from 'react'
 import { Lock } from 'lucide-react'
 import Card from '@/components/Card'
 import PortraitRadar from './PortraitRadar'
