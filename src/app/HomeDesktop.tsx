@@ -185,13 +185,14 @@ export default function HomeDesktop({
           <>
             {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
             <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-12">
-              {/* 极淡氛围光（装饰，置于 Orb 背后） */}
+              {/* 极淡氛围光（装饰，置于 Orb 背后）。收敛透明落点，使柔光在 section 右侧
+                  overflow-hidden 裁切线之前已自然羽化到全透明，避免右缘出现硬竖线。 */}
               <div
                 aria-hidden
                 className="pointer-events-none absolute"
                 style={{
-                  top: '-120px', right: '-60px', width: '640px', height: '640px',
-                  background: 'radial-gradient(circle, rgba(240,188,160,0.18) 0%, rgba(168,210,196,0.12) 38%, rgba(188,210,168,0.07) 56%, transparent 72%)',
+                  top: '-120px', right: '-20px', width: '640px', height: '640px',
+                  background: 'radial-gradient(circle, rgba(240,188,160,0.18) 0%, rgba(168,210,196,0.12) 24%, rgba(188,210,168,0.07) 35%, transparent 46%)',
                   filter: 'blur(60px)', zIndex: 0,
                 }}
               />

@@ -119,7 +119,7 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div className="w-full">
+        <div className="w-full max-w-[400px] mx-auto">
           <input
             type="email"
             value={email}

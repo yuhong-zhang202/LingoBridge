@@ -193,7 +193,7 @@ function Orb({ size = 200, audioLevel = 0, className }: OrbProps) {
   return (
     <div
       ref={rootRef}
-      className={cn('relative flex-shrink-0', className)}
+      className={cn('relative flex-shrink-0 pointer-events-none', className)}
       style={{ width: size, height: size }}
     >
       {/* 核心光晕层 — 包裹以实现整体脉冲缩放 */}
