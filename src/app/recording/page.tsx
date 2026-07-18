@@ -65,6 +65,12 @@ function RecordingContent(): JSX.Element {
       form.append('audio', blob, 'recording.webm')
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const res = await apiFetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
+      // 服务端同意闸拒绝（未捕获同意）：这两个 AI 路由的 403 只可能是缺同意。回首页触发同意弹窗，
+      // 别卡在「转写失败」裸报错死胡同。
+      if (res.status === 403) {
+        if (!ac.signal.aborted) router.push('/')
+        return
+      }
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
         throw new Error(

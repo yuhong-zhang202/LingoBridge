@@ -10,6 +10,7 @@ import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
+import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpAnonRestructureTodayServer } from '@/lib/db/corpus-server'
 import { ANON_RESTRUCTURE_LIMIT } from '@/lib/constants'
@@ -21,6 +22,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    // 服务端同意闸：文字流首个第三方 AI 入口（阿里云千问）。未捕获同意 → 拒绝，绝不把文字外发。
+    // 客户端同意弹窗只挂首页、深链可绕过，故这里必须再硬校验一次（放在计次/AI 调用之前）。
+    if (!(await hasRecordedConsent(userId))) {
+      return NextResponse.json({ error: '请先在首页阅读并同意隐私说明', code: 'CONSENT_REQUIRED' }, { status: 403 })
+    }
     const body = (await req.json()) as { rawText?: unknown }
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {

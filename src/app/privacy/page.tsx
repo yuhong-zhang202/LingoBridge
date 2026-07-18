@@ -5,7 +5,7 @@
  * @created  2026-06-17
  */
 import TopBar from '@/components/TopBar'
-import { PRIVACY_VENDOR } from '@/lib/privacy-copy'
+import { PRIVACY_VENDOR, PRIVACY_HUMAN_READ_DISCLOSURE } from '@/lib/privacy-copy'
 
 export default function PrivacyPage() {
   return (
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
         <section className="mb-5">
           <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">存储</h2>
           <p className="text-[13px] text-v2-text-secondary leading-relaxed">
-            数据存储于 Supabase。仅你本人（按账户隔离）可访问自己的故事与练习记录。
+            数据存储于 Supabase，按账户隔离，其他用户无法看到你的故事与练习记录。{PRIVACY_HUMAN_READ_DISCLOSURE}我们不会向任何第三方出售你的数据。
           </p>
         </section>
 
@@ -53,13 +53,9 @@ export default function PrivacyPage() {
         <section className="mb-5">
           <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">联系方式</h2>
           <p className="text-[13px] text-v2-text-secondary leading-relaxed">
-            如有问题或想行使你的权利，请联系：privacy@lingobridge.example（占位）。
+            如有隐私相关问题，或想行使删除等权利，可通过应用内右上角的「反馈」入口联系我们，我们会尽快回复。
           </p>
         </section>
-
-        <p className="text-[12px] text-v2-text-muted mt-6 leading-relaxed">
-          以上为占位文本，上线前由产品/法务团队替换为正式条款。
-        </p>
       </div>
     </div>
   )

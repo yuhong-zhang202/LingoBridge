@@ -35,6 +35,8 @@ jest.mock('@/lib/api-auth', () => ({
   assertCorpusOwner: jest.fn(),
   authErrorResponse: jest.fn(() => null),
 }))
+// 服务端同意闸：transcribe / restructure 现会先查同意，默认放行（本套只验记账成功路径）
+jest.mock('@/lib/consent-server', () => ({ hasRecordedConsent: jest.fn(() => Promise.resolve(true)) }))
 jest.mock('@/lib/db/questions', () => ({ getQuestionById: jest.fn() }))
 jest.mock('@/lib/db/corpus-server', () => ({
   getCorpusByIdServer: jest.fn(),

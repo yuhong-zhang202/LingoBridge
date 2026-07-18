@@ -80,6 +80,8 @@ function RestructureContent() {
       })
       // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」
       if (res.status === 402) { if (!signal?.aborted) setStoryQuotaReached(true); return }
+      // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不卡在「整理失败」。
+      if (res.status === 403) { if (!signal?.aborted) router.push('/'); return }
       if (!res.ok) throw new Error('整理失败')
       const data = (await res.json()) as { cleanedText: string; usable: boolean }
       if (signal?.aborted) return
@@ -92,7 +94,7 @@ function RestructureContent() {
     } finally {
       if (!signal?.aborted) setIsLoading(false)
     }
-  }, [rawStory])
+  }, [rawStory, router])
 
   useEffect(() => {
     if (handoff.cleanedText !== null) return   // 预检已带整理结果，跳过首次 API 调用

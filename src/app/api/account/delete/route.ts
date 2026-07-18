@@ -18,9 +18,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     const { userId } = await requireUser(req)
     const admin = getSupabaseServer()
 
-    // 2) 删业务数据（service_role 绕 RLS）。
+    // 2) 删业务数据（service_role 绕 RLS）。删除策略是「防御性显式删 + cascade 兜底」的混合，
+    //    并非对所有表都不信 cascade：枚举到的业务表逐张显式删（不单赌线上 FK 是否 on delete cascade），
+    //    而未枚举、仅挂 auth.users/profiles 外键的表则靠最后 admin.deleteUser 的 cascade 兜底清除。
     // 外键顺序：先删 corpus_point_links（按该用户的 corpus.id 反查，本表无 user_id 列），
-    //   再删各 user_id 表；最后 admin.deleteUser 触发 auth.users → profiles cascade。
+    //   再删各 user_id 表，再显式删 profiles；最后 admin.deleteUser 删 auth.users（并 cascade 兜底残余）。
     const { data: corpusRows, error: cListErr } = await admin
       .from('corpus')
       .select('id')
@@ -33,7 +35,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     // practice_sessions 显式删（防御性）：schema drift 期间线上真实 FK 是否 on delete cascade 不确定，显式删一行最稳（与 corpus/phrase_cards/feedback 同理）。
-    // corpus_match_snapshots（0019）对 corpus 有 on delete cascade，但按本端点「不信 FK cascade、显式删每张表」纪律，须排在 corpus 之前先删；
+    // corpus_match_snapshots（0019）对 corpus 有 on delete cascade，但这批表按「防御性显式删」处理（不单赌 cascade），须排在 corpus 之前先删；
     // flow_events（0018）埋点，无原文但 GDPR 完整性须删，无跨表依赖、位置随意。
     // consent_records（0022）同意记录：删号=撤回同意（决策5），本表硬删（决策4）；user_id 无外键、无跨表依赖，位置随意。
     for (const table of ['corpus_match_snapshots', 'flow_events', 'consent_records', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {

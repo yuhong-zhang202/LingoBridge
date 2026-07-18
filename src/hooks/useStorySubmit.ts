@@ -70,6 +70,11 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
           setQuotaReached(true)
           return
         }
+        // 服务端同意闸拒绝（未捕获同意）：回首页触发同意弹窗，别把用户带到 restructure 页再 403 一次。
+        if (res.status === 403) {
+          router.push('/')
+          return
+        }
         if (res.ok) {
           const data = (await res.json()) as { cleanedText: string; usable: boolean }
           if (!data.usable) {
