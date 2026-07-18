@@ -41,13 +41,12 @@ export default function FirstUseConsent() {
     }
   }, [])
 
-  // 打开或切换视图（同意↔暂不使用）时，把焦点移入弹窗首个可聚焦元素（读屏 / 键盘用户不落在页面背景）
+  // 打开或切换视图（同意↔暂不使用）时，把焦点移到弹窗容器本身（读屏 / 键盘用户不落在页面背景）。
+  // 聚焦容器（tabIndex=-1）而非「首个可聚焦元素」——否则一进来焦点就落在「内测数据处理说明」链接上、
+  // 带出全局 :focus-visible 橘色轮廓，视觉突兀；聚焦容器不点亮任何链接，读屏仍经 aria-labelledby 念标题。
   useEffect(() => {
     if (!open) return
-    const first = dialogRef.current?.querySelector<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    )
-    first?.focus()
+    dialogRef.current?.focus()
   }, [open, declined])
 
   if (!open) return null
@@ -108,8 +107,9 @@ export default function FirstUseConsent() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="consent-dialog-title"
+        tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter"
+        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter focus:outline-none focus-visible:outline-none"
       >
         {declined ? (
           // 次要出口的阻断视图：用户选择不同意 → 可「再想想」回到同意，或「退出登录并离开」真正离开
