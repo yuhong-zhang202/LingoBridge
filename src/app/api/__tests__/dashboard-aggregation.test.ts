@@ -6,7 +6,8 @@
  *           ③ 日界/小时桶按东八区（UTC+8）折算——香港节点部署下"今日"不再错位 8 小时；
  *           ④ 延迟 p95（仅成功调用）；
  *           ⑤ 按环节失败率 + 失败成本（部分失败白烧）；
- *           ⑥ 最贵 Top-N 调用（按成本降序，独立于时间序"最近调用"）。
+ *           ⑥ 最贵 Top-N 调用（按成本降序，独立于时间序"最近调用"）；
+ *           ⑦ 按用户成本 Top-N（按 user_id 归因、成本降序、匿名标记）+ 匿名/登录成本占比，无归属行跳过分组。
  *           另验预算线常量与 recentLogs.metadata 透传。全部 mock，不碰真实 DB/鉴权。
  * @author   LingoBridge
  * @created  2026-07-18
@@ -124,6 +125,32 @@ describe('GET /api/dashboard · 聚合口径', () => {
     expect(body.recentLogs[0].metadata).toEqual({ phase: 'coach', cost_source: 'actual' })
   })
 
+  test('按用户成本 Top-N（成本降序、匿名标记）+ 匿名/登录成本占比 + 无归属行跳过分组', async () => {
+    // 全时段归属行（results[0] = allTime 查询）：
+    //   u1 两次登录调用累计 ¥15；anon1 一次匿名调用 ¥30（最贵，应排最前）；
+    //   一条 user_id=null 的老行 ¥2（补归属字段前）——无法归因到人，跳过分组，但也不算入匿名/登录占比（is_anonymous=null）。
+    const allTimeRows = [
+      { estimated_cost_cny: 10, user_id: 'u1',    is_anonymous: false },
+      { estimated_cost_cny: 5,  user_id: 'u1',    is_anonymous: false },
+      { estimated_cost_cny: 30, user_id: 'anon1', is_anonymous: true },
+      { estimated_cost_cny: 2,  user_id: null,    is_anonymous: null },
+    ]
+    wireSupabase([{ data: allTimeRows, error: null }, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY])
+    const req = new Request('http://localhost/api/dashboard?range=7d')
+    const res = await GET(req)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    // 成本降序：anon1(30) 在 u1(15) 之前；匿名标记随行；null 用户不出现在榜单
+    expect(body.userTotals).toEqual([
+      { userId: 'anon1', isAnonymous: true,  cost: 30, calls: 1 },
+      { userId: 'u1',    isAnonymous: false, cost: 15, calls: 2 },
+    ])
+    // 匿名/登录成本占比：匿名 30 / 登录 15；null 那条（is_anonymous=null）两边都不计入
+    expect(body.anonymousCost).toBe(30)
+    expect(body.loggedInCost).toBe(15)
+  })
+
   test('空数据：本期无调用 → estimateRatio=0、phaseTotals 为空、无小时桶、p95=0、失败成本=0', async () => {
     wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY])
     const req = new Request('http://localhost/api/dashboard?range=7d')
@@ -136,6 +163,9 @@ describe('GET /api/dashboard · 聚合口径', () => {
     expect(body.p95Latency).toBe(0)
     expect(body.failedCost).toBe(0)
     expect(body.costlyLogs).toEqual([])
+    expect(body.userTotals).toEqual([])
+    expect(body.anonymousCost).toBe(0)
+    expect(body.loggedInCost).toBe(0)
   })
 
   test('p95 只算成功调用 + 按环节失败率/失败成本（部分失败白烧）', async () => {

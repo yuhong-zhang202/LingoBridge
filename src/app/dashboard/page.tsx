@@ -16,6 +16,7 @@ import { formatCny } from '@/lib/format-cost'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
 type PhaseTotal   = { phase: string; name: string; cost: number; calls: number; errors: number; errorRate: number; errorCost: number }
+type UserTotal    = { userId: string; isAnonymous: boolean; cost: number; calls: number }
 type RecentLog = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
@@ -29,6 +30,9 @@ type DashboardData = {
   failedCost: number; estimateRatio: number; dailyBudget: number
   serviceTotals: ServiceTotal[]
   phaseTotals: PhaseTotal[]
+  userTotals: UserTotal[]
+  anonymousCost: number
+  loggedInCost: number
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   hourlyData: Array<{ hour: string; calls: number }>
   recentLogs: RecentLog[]
@@ -38,6 +42,10 @@ type DashboardData = {
 const RANGES = ['7d', '14d', '30d'] as const
 type Range = typeof RANGES[number]
 const RANGE_LABEL: Record<Range, string> = { '7d': '7天', '14d': '14天', '30d': '30天' }
+
+// 坐标轴刻度色：recharts 的 tick fill 只吃色值、吃不了 Tailwind class，故硬编码。
+// 取 v2-text-muted token 值（#7C6B5E，on surface 5.09:1 达 AA），替换原 #A89990（2.75:1 不达标）。
+const AXIS_TICK_FILL = '#7C6B5E'
 
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
@@ -84,6 +92,63 @@ function PhaseBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; failedCo
               </span>
               <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
               <span className="text-[10px] text-v2-text-muted w-14 text-right flex-shrink-0">{p.calls} 次</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/**
+ * 「按用户成本 Top-N」视图 — 内测 200 陌生人下一眼看出"谁烧最多、是不是匿名"。
+ * 仅按 user_id（UUID）归因、不含任何个人信息；匿名单独标出（匿名试用是纯成本高风险）。
+ * 顶部另给匿名 vs 登录的成本占比。横向条按最高成本归一化，降序（烧最多在最前）。
+ * @param users         已按成本降序的每用户聚合数组（Top-N）
+ * @param anonymousCost 全时段匿名调用成本合计
+ * @param loggedInCost  全时段登录调用成本合计
+ */
+function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: UserTotal[]; anonymousCost: number; loggedInCost: number }) {
+  const max = users.reduce((m, u) => Math.max(m, u.cost), 0)
+  const attributed = anonymousCost + loggedInCost
+  const anonPct = attributed > 0 ? Math.round(anonymousCost / attributed * 100) : 0
+  return (
+    <section aria-label="按用户成本 Top-N" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
+      <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-[13px] font-semibold text-v2-text-primary">按用户成本 Top-N</h2>
+          {/* 本区块口径独立于区间：按 user_id 全时段累计（抓"谁烧最多"要看历史总账，不随区间切换） */}
+          <span className="text-[10px] text-v2-text-muted">全时段累计</span>
+        </div>
+        {/* 匿名/登录成本占比：匿名占比高 = 陌生人试用在烧钱，内测阶段重点盯 */}
+        {attributed > 0 && (
+          <span className="text-[11px] text-v2-text-secondary">
+            匿名 <span className="font-medium text-warning-text">{formatCny(anonymousCost)} · {anonPct}%</span>
+            <span className="mx-1.5 text-v2-text-muted">/</span>
+            登录 <span className="font-medium text-v2-text-primary">{formatCny(loggedInCost)}</span>
+          </span>
+        )}
+      </div>
+      {users.length === 0 ? (
+        <div className="text-v2-text-muted text-[12px] py-4 text-center">暂无可归因到用户的调用</div>
+      ) : (
+        <div className="space-y-2">
+          {users.map(u => (
+            <div key={u.userId} className="flex items-center gap-3">
+              {/* user_id 是 UUID，截前 8 位展示即可辨识、又不占满宽；等宽字体对齐 */}
+              <span className="text-[11px] text-v2-text-secondary w-20 flex-shrink-0 truncate" style={{ fontFamily: 'monospace' }}>{u.userId.slice(0, 8)}</span>
+              {/* 匿名标记：匿名单独标出（纯成本高风险），登录不占位保持行整洁 */}
+              <span className="w-10 flex-shrink-0">
+                {u.isAnonymous && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-warning/15 text-warning-text">匿名</span>
+                )}
+              </span>
+              <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${u.isAnonymous ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
+                  style={{ width: `${max > 0 ? (u.cost / max) * 100 : 0}%` }} />
+              </div>
+              <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(u.cost)}</span>
+              <span className="text-[10px] text-v2-text-muted w-14 text-right flex-shrink-0">{u.calls} 次</span>
             </div>
           ))}
         </div>
@@ -149,7 +214,7 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center gap-3 py-16">
           <div className="text-v2-text-secondary text-sm">加载失败，请重试</div>
           <button onClick={() => setReloadKey(k => k + 1)}
-            className="px-4 py-1.5 rounded-full text-[12px] font-medium bg-v2-text-primary text-white">
+            className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full text-[12px] font-medium bg-v2-text-primary text-white">
             重试
           </button>
         </div>
@@ -173,6 +238,11 @@ export default function DashboardPage() {
             </div>
           ))}
         </section>
+
+        {/* 口径注脚：区分「日历口径」的费用卡与「所选区间口径」的迷你条 / 图表，避免误读 */}
+        <div className="text-[10px] text-v2-text-muted -mt-3 mb-5">
+          口径说明：上方三张费用卡为日历口径（今日 / 本月 / 累计，按东八区日历边界）；本条迷你统计及以下图表均为所选区间（{RANGE_LABEL[range]}）口径。
+        </div>
 
         {/* 时间选择器 + 筛选出口 */}
         <div className="flex items-center justify-between mb-3 gap-3">
@@ -208,8 +278,16 @@ export default function DashboardPage() {
           </section>
         </div>
 
+        {/* 预算线口径注脚：日预算线为内测占位参照，非真实告警阈值 */}
+        <div className="text-[10px] text-v2-text-muted -mt-2 mb-4">
+          注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在顶部染红点提示，不触发任何告警推送。
+        </div>
+
         {/* 按环节成本 / 失败率 */}
         <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+
+        {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
+        <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
 
         {/* 今日调用分布 */}
         <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
@@ -217,7 +295,7 @@ export default function DashboardPage() {
           {hasTodayData ? (
             <ResponsiveContainer width="100%" height={100}>
               <BarChart data={data.hourlyData} barSize={6} margin={{ top: 0, right: 0, bottom: 0, left: -16 }}>
-                <XAxis dataKey="hour" tick={{ fontSize: 9, fill: '#A89990' }} tickLine={false} axisLine={false} interval={3} />
+                <XAxis dataKey="hour" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} interval={3} />
                 <Bar dataKey="calls" radius={[2, 2, 0, 0]}>
                   {data.hourlyData.map((h, i) => (
                     <Cell key={i} fill="#7BA699" fillOpacity={h.calls > 0 ? 0.6 : 0.15} />

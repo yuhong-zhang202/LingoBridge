@@ -14,6 +14,10 @@ const SERVICES = [
   { key: 'qwen_plus',     name: '千问 Plus',     color: '#6FA8C8' },
 ]
 
+// 坐标轴刻度色：recharts 的 tick fill 只吃色值、吃不了 Tailwind class，故硬编码。
+// 取 v2-text-muted token 值（#7C6B5E，on surface 5.09:1 达 AA），替换原 #A89990（2.75:1 不达标）。
+const AXIS_TICK_FILL = '#7C6B5E'
+
 type DayData = {
   date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number
 }
@@ -76,7 +80,7 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
       </div>
       {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附下方 sr-only 数据表兜底 */}
       <div role="img"
-        aria-label={`按服务堆叠的每日费用趋势图，共 ${data.length} 天，合计 ¥${grandTotal.toFixed(2)}，峰值 ${peak.date} 约 ¥${peak.total.toFixed(2)}，日预算线 ¥${dailyBudget}。详细数据见下方数据表。`}>
+        aria-label={`按服务堆叠的每日费用趋势图，共 ${data.length} 天，合计 ${formatCny(grandTotal)}，峰值 ${peak.date} 约 ${formatCny(peak.total)}，日预算线 ¥${dailyBudget}。详细数据见下方数据表。`}>
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
             <defs>
@@ -87,8 +91,8 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
                 </linearGradient>
               ))}
             </defs>
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#A89990' }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: '#A89990' }} tickLine={false} axisLine={false}
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
               tickFormatter={v => `¥${v}`} width={40} />
             <Tooltip content={<CustomTip />} />
             {SERVICES.map(s => (

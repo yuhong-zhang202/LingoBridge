@@ -62,6 +62,9 @@ function percentile(values: number[], p: number): number {
 /** 最贵调用视图取前 N 条 */
 const TOP_COST_N = 20
 
+/** 按用户成本视图取前 N 名（谁烧最多在最前）：内测 200 陌生人下抓"某用户刷爆钱"的核心。 */
+const TOP_USER_N = 20
+
 /**
  * 解析 range 查询参数为天数
  * @param raw  URL 参数原始值
@@ -75,6 +78,9 @@ function parseRange(raw: string | null): number {
 
 /** api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的两键） */
 type LogMeta = { phase?: string; cost_source?: string } | null
+// 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
+// user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
+type AttribRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
 type RangeRow = {
   service: string; estimated_cost_cny: number; latency_ms: number
   status: string; created_at: string; metadata: LogMeta
@@ -99,7 +105,8 @@ function hkDayKey(iso: string): string {
 /**
  * 聚合 api_usage_logs，返回看板所需全部统计数据
  * @param req  GET 请求，支持 ?range=7d|14d|30d
- * @returns    三张费用卡、迷你统计、服务分组、按环节成本、每日趋势、小时分布、最近调用
+ * @returns    三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
+ *             每日趋势、小时分布、最近调用
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -121,9 +128,10 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     // ── 7 条并行查询 ──
     const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes] = await Promise.all([
+      // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
       supabase
         .from('api_usage_logs')
-        .select('estimated_cost_cny'),
+        .select('estimated_cost_cny, user_id, is_anonymous'),
       supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
@@ -160,7 +168,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: firstErr.message }, { status: 500 })
     }
 
-    const allRows = allTimeRes.data  ?? []
+    const allRows = (allTimeRes.data ?? []) as AttribRow[]
     const mRows   = monthRes.data    ?? []
     const lmRows  = lastMonthRes.data ?? []
     const tdRows  = todayRes.data    ?? []
@@ -243,6 +251,29 @@ export async function GET(req: Request): Promise<NextResponse> {
       }))
       .sort((a, b) => b.cost - a.cost)
 
+    // ── 按用户成本 Top-N（谁烧最多）+ 匿名/登录成本占比 ──
+    // 归因口径：按 user_id（UUID）分组累计全时段成本，降序取前 N（烧最多在最前）。
+    // user_id 为空的行（补归属字段前的老行 / 无归属调用）无法归因到人，跳过分组；
+    // 但匿名 vs 登录的成本占比按 is_anonymous 标记独立统计，不受 user_id 是否存在影响。
+    // 隐私：只按 user_id（UUID、非邮箱/姓名）归因，刻意不 join users 表拉个人信息进成本看板。
+    const userMap = new Map<string, { cost: number; calls: number; isAnonymous: boolean }>()
+    let anonymousCost = 0
+    let loggedInCost  = 0
+    for (const row of allRows) {
+      if (row.is_anonymous === true)       anonymousCost += row.estimated_cost_cny
+      else if (row.is_anonymous === false) loggedInCost  += row.estimated_cost_cny
+      if (row.user_id == null) continue
+      const cur = userMap.get(row.user_id) ?? { cost: 0, calls: 0, isAnonymous: row.is_anonymous === true }
+      cur.cost += row.estimated_cost_cny
+      cur.calls += 1
+      if (row.is_anonymous === true) cur.isAnonymous = true   // 同一 user_id 只要有一条匿名即标匿名
+      userMap.set(row.user_id, cur)
+    }
+    const userTotals = Array.from(userMap.entries())
+      .map(([userId, v]) => ({ userId, isAnonymous: v.isAnonymous, cost: r2(v.cost), calls: v.calls }))
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, TOP_USER_N)
+
     // ── 每日趋势（rangeDays 天，升序，按东八区分桶） ──
     const dailyMap = new Map<string, Record<string, number>>()
     for (const row of rngRows) {
@@ -297,6 +328,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       dailyBudget: DAILY_BUDGET_CNY,
       serviceTotals,
       phaseTotals,
+      userTotals,
+      anonymousCost: r2(anonymousCost),
+      loggedInCost:  r2(loggedInCost),
       dailyData,
       hourlyData,
       recentLogs: recent,
