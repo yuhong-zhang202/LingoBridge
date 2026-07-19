@@ -15,7 +15,10 @@ export default function WriteMobile({
   textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, onExit,
 }: WriteViewProps): JSX.Element {
   return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
+    <div
+      className="relative h-dvh bg-bg-page flex flex-col overflow-hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       {/* 极简 TopBar：返回 */}
       <div className="flex-shrink-0 flex items-center justify-between h-[52px] px-5 relative z-10">
         <button

@@ -39,7 +39,7 @@ export default function FeedbackMobile({
   useEffect(() => { if (done) onAllDone() }, [done, onAllDone])
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px] lg:pb-0">
+    <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col pb-[calc(56px_+_env(safe-area-inset-bottom))] lg:pb-0">
       <TopBar
         title="反馈卡片"
         right={loaded && total > 0 && !done
@@ -48,7 +48,7 @@ export default function FeedbackMobile({
       />
       <StepBar currentStep="practice" />
 
-      <div className="flex-1 flex flex-col overflow-y-auto px-10 pt-6 pb-10 relative z-10 lg:max-w-xl lg:mx-auto lg:w-full">
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto px-10 pt-6 pb-10 relative z-10 lg:max-w-xl lg:mx-auto lg:w-full">
 
         {/* 空态：这场没点过 ✨ 星标 */}
         {loaded && total === 0 && (

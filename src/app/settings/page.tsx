@@ -69,10 +69,10 @@ export default function SettingsPage() {
   }, [router])
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="设置" />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
         {/* 账号 */}
         <section className="mb-6">
           <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
@@ -125,7 +125,10 @@ export default function SettingsPage() {
       {/* 确认模态 */}
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 pb-7 animate-fade-up">
+          <div
+            className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 animate-fade-up"
+            style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
+          >
             <h3 className="text-[16px] font-semibold text-v2-text-primary text-center">确定删除全部数据？</h3>
             <p className="text-[13px] text-v2-text-secondary text-center mt-2 leading-relaxed">
               此操作不可恢复，将永久删除你的账号、所有故事和练习记录。

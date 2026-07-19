@@ -90,7 +90,7 @@ export default function LoginPage() {
   }, [resetEmail])
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative min-h-dvh bg-bg-page flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-7 pb-[8vh]">
 
         <Orb size={220} pulse={false} />
@@ -188,7 +188,11 @@ export default function LoginPage() {
       {/* 忘记密码模态 */}
       {forgotOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setForgotOpen(false)}>
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 pb-7 animate-fade-up">
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 animate-fade-up"
+            style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
+          >
             <h3 className="text-[16px] font-semibold text-v2-text-primary text-center mb-2">重置密码</h3>
             <p className="text-[12px] text-v2-text-muted text-center mb-3">填邮箱，发送重置链接到你的邮箱</p>
             <input

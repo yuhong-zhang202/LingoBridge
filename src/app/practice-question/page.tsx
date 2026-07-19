@@ -153,11 +153,11 @@ function PracticeQuestionContent(): JSX.Element {
     : ''
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="练习题目" />
 
       {/* 加载态用 Fragment 无容器可挂，故 aria-busy 挂在常驻滚动区、随 loading 切换 */}
-      <div aria-busy={loading} className="flex-1 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
+      <div aria-busy={loading} className="flex-1 min-h-0 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
         {loading && (
           <>
             {/* 题目卡骨架 */}
@@ -265,7 +265,10 @@ function PracticeQuestionContent(): JSX.Element {
       {/* 极简文字输入回退：提交后复用 putHandoff → /restructure?h=…&qid= 链路（带本题 qid） */}
       {textOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter">
+          <div
+            className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter"
+            style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
+          >
             <h3 className="text-[17px] font-semibold text-v2-text-primary">用文字写下你的故事</h3>
             <p className="text-[13px] text-v2-text-secondary mt-1">用中文聊聊一件具体的小事，越具体匹配越准。</p>
             <textarea

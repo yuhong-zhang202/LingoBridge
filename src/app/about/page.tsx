@@ -40,7 +40,7 @@ const STEPS: { lead: string; rest: string }[] = [
 
 export default function AboutPage(): JSX.Element {
   return (
-    <div className="min-h-screen bg-bg-page">
+    <div className="min-h-dvh bg-bg-page">
       {/* 桌面：全站顶部导航；移动：带返回的顶栏（与 settings 等子页一致，无 TabBar） */}
       <div className="hidden lg:block"><TopNav /></div>
       <div className="lg:hidden"><TopBar title="关于 LingoBridge" /></div>

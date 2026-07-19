@@ -49,7 +49,7 @@ export default function PracticeMobile({
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
         {phase === 'init' && (
           <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
         )}

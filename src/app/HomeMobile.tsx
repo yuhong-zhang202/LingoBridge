@@ -33,7 +33,10 @@ export default function HomeMobile({
   onSubmitStory,
 }: HomeViewProps) {
   return (
-    <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
+    <div
+      className="relative h-dvh bg-bg-page flex flex-col overflow-hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       {/* 顶部栏 */}
       {showTextInput ? (
         <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
@@ -55,11 +58,11 @@ export default function HomeMobile({
 
       {/* 主体 */}
       {storyQuotaReached ? (
-        <div className="flex-1 min-h-0 flex items-center justify-center relative z-10 overflow-y-auto pb-[72px]">
+        <div className="flex-1 min-h-0 flex items-center justify-center relative z-10 overflow-y-auto pb-[calc(72px_+_env(safe-area-inset-bottom))]">
           <QuotaReached variant="story" />
         </div>
       ) : (
-        <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[120px]' : 'items-center px-7 pt-6 pb-[72px]'}`}>
+        <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[calc(120px_+_env(safe-area-inset-bottom))]' : 'items-center px-7 pt-6 pb-[calc(72px_+_env(safe-area-inset-bottom))]'}`}>
           {!showTextInput && (
             <div className="flex justify-center mb-7">
               <div className="bg-bg-muted rounded-full p-1 inline-flex w-[228px]">

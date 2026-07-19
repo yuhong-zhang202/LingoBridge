@@ -185,7 +185,7 @@ function RestructureContent() {
   // 返回态水合失败：不 MOCK 兜底，明确告知语料取不回 + 回首页出口。
   if (loadError) {
     return (
-      <div className="min-h-screen bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
+      <div className="min-h-dvh bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
         <p className="text-[15px] text-v2-text-secondary leading-relaxed">没找到这条语料，可能已被删除或链接失效了。</p>
         <button
           onClick={() => router.push('/')}

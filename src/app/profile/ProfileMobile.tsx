@@ -46,10 +46,13 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
   )
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col pb-[56px]">
+    <div
+      className="relative h-dvh overflow-hidden bg-bg-page flex flex-col"
+      style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' }}
+    >
       <TopBar title="我的" showBack={false} right={settingsButton} showFeedback={false} />
 
-      <div className="flex-1 overflow-y-auto px-5 relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 relative z-10">
 
         {/* ── 1. 用户头像区 */}
         <div className="flex flex-col items-center pt-6 pb-5">

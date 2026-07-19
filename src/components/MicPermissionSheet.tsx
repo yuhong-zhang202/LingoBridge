@@ -50,7 +50,10 @@ export default function MicPermissionSheet({ open, reason, onUseText, onDismiss 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-      <div className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter flex flex-col items-center">
+      <div
+        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter flex flex-col items-center"
+        style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
+      >
         <div className="w-14 h-14 rounded-full bg-black/5 flex items-center justify-center">
           <MicOff size={24} className="text-v2-text-muted" />
         </div>

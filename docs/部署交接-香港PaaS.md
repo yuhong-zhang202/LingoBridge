@@ -61,7 +61,7 @@
 **ffmpeg**：VPS 跑完整 Node（`next start`），`ffmpeg-static` 在 `node_modules` 天然可用，无需额外配置。
 
 ## 6. 域名 & HTTPS
-Zeabur 给默认域名 + 自动 HTTPS，可直接用。要更稳的国内访问可选绑自定义域名（DNS 解析，香港节点免大陆备案）。
+Zeabur 给默认域名 + 自动 HTTPS，可直接用。**已上线域名：https://lingobridge.zeabur.app（2026-07-19 生成，已 PROVISIONED）。** 要更稳的国内访问可选绑自定义域名（DNS 解析，香港节点免大陆备案）。海外访问慢见 §10。
 
 ## 7. 部署后验证（产品方在生产域名上走）
 1. 打开生产域名 → **同意弹窗出现** → 同意 → 能进（验 0022 同意表 + 闸）。
@@ -80,3 +80,19 @@ Zeabur 给默认域名 + 自动 HTTPS，可直接用。要更稳的国内访问�
 ## 9. 收尾（产品方本机）
 - 删本机旧 `.llm-raw` 目录（含用户原文）。
 - 确认 `.env.local` 未被提交 git（已 gitignore）。
+
+## 10. 上线实况补记（2026-07-19，cowork 部署完成）
+- **生产域名**：https://lingobridge.zeabur.app （Zeabur 默认域名 + 自动 HTTPS，已 PROVISIONED）。
+- **部署目标**：`main`@`c2b2200` → 腾讯云香港 2C2GB（Zeabur 服务 `lingobridge`，运行中 1/1）。构建 nodejs/next.js，标准 `next start`。
+- **环境变量**：§5 全部已配（值取自本机 `.env.local`）；`RAW_LOG_ENABLED=1`；按产品方选择 **ANTHROPIC_API_KEY 留空未配**；`DASHSCOPE_BASE_URL` 已核对为北京站（`dashscope.aliyuncs.com/compatible-mode/v1`，与 key 同区）。**未配** `LLM_RAW_LOG_DIR`/`LLM_DEBUG`/`RANKING_DIMENSIONAL`/`MATCH_SNAPSHOT_ENABLED`。
+
+### ⚠️ 构建修复（交接文档原缺，务必记牢）
+Zeabur 构建机的 npm 出于安全**默认拦截依赖的安装脚本**（日志：`install scripts blocked ... not covered by allowScripts`），导致 `ffmpeg-static` 的二进制没被下载；而 `src/lib/audio/transcode.ts` 在**模块顶层**就检查该二进制，`/api/transcribe` 在 `next build` 收集页面数据时抛 `FFMPEG_BINARY_MISSING`，构建失败。
+- **修复（已生效；配置在 Zeabur、不在仓库）**：服务「环境变量」里加一条——
+  `ZBPACK_INSTALL_COMMAND = npm install && node node_modules/ffmpeg-static/install.js`
+  装完依赖后显式跑一次 ffmpeg-static 下载脚本，二进制进镜像，构建 + 运行时（语音转写）都可用。
+- **可选加固（cowork 已备好，未 push）**：把 `transcode.ts` 的 ffmpeg 检查改为惰性解析（`FFMPEG_PATH` > ffmpeg-static > 系统 ffmpeg），即便脚本再被拦也不会让构建失败。产品方可自行 push 到 `main`。
+
+### 海外访问（如柏林：慢 / 白屏）
+实测：服务器 CPU≈0%、内存≈471MB/2GB（都很闲，**非服务器瓶颈**）；慢在**腾讯云香港 ↔ 欧洲的国际线路**（首次访问还叠加了证书/路由初始化）。
+- 「国内与海外一样快」用单一香港 origin 做不到（物理距离）。要海外也快：**自定义域名 + 套 Cloudflare（免费）边缘缓存**静态资源（JS/CSS/字体/图片），香港 origin 保留给 SSR + AI 调用；动态/AI 那一下仍就近国内最优。对面向国内的内测，香港方案本身是对的。

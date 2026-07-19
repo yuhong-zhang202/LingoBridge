@@ -207,7 +207,7 @@ function MatchingContent() {
 
 export default function MatchingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-bg-page" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-bg-page" />}>
       <MatchingContent />
     </Suspense>
   )

@@ -14,10 +14,10 @@ import {
 
 export default function BetaPrivacyPage() {
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title={BETA_PRIVACY_TITLE} />
 
-      <div className="flex-1 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
         <p className="text-[12px] text-v2-text-muted mb-4">最后更新：{BETA_PRIVACY_UPDATED_AT}</p>
 
         {BETA_PRIVACY_SECTIONS.map((section) => (

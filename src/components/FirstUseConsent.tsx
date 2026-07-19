@@ -109,7 +109,8 @@ export default function FirstUseConsent() {
         aria-labelledby="consent-dialog-title"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 pb-7 sheet-enter focus:outline-none focus-visible:outline-none"
+        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter focus:outline-none focus-visible:outline-none"
+        style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
       >
         {declined ? (
           // 次要出口的阻断视图：用户选择不同意 → 可「再想想」回到同意，或「退出登录并离开」真正离开

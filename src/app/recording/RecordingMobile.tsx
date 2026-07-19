@@ -52,7 +52,7 @@ export default function RecordingMobile({
 
       <RequireAccountGate>
       {/* 中心内容（桌面端居中沉浸列，加大间距） */}
-      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center px-7 relative z-10 gap-4 py-4 lg:gap-6">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-7 relative z-10 gap-4 py-4 lg:gap-6">
 
         <Orb size={260} audioLevel={transcribing ? 0 : audioLevel} pulse={transcribing} />
 

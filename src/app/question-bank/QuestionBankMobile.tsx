@@ -27,7 +27,7 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
   const isEmpty = !qb.loading && !qb.error && qb.corpusCount === 0
 
   return (
-    <div className="relative min-h-screen bg-bg-page flex flex-col">
+    <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="当季题库" />
 
       <RequireAccountGate>
@@ -47,7 +47,10 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-[72px] relative z-10">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-6 pt-4 relative z-10"
+        style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+      >
         {qb.loading && (
           <div className="flex flex-col gap-4" aria-busy="true">
             {/* 进度卡骨架 */}
