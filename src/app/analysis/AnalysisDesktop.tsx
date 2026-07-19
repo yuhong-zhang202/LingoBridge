@@ -141,7 +141,7 @@ export default function AnalysisDesktop({
     return (
       <div className={`${STAGE} flex flex-col items-center justify-center px-8`}>
         <EmptyState
-          title="今天的分析次数用完了"
+          title="操作太频繁，今天先歇歇吧"
           subtitle="明天会自动恢复。收藏过的词卡随时可以回顾。"
           ctaLabel="回顾词卡"
           onCta={onReviewCards}

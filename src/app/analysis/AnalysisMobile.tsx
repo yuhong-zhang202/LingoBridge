@@ -117,7 +117,7 @@ export default function AnalysisMobile({
             文案只说「明天恢复」不写具体时刻：服务端计次日界是 UTC 还是本地未核实，不精确化。 */}
         {!loading && dailyLimitHit && (
           <EmptyState
-            title="今天的分析次数用完了"
+            title="操作太频繁，今天先歇歇吧"
             subtitle="明天会自动恢复。收藏过的词卡随时可以回顾。"
             ctaLabel="回顾词卡"
             onCta={onReviewCards}

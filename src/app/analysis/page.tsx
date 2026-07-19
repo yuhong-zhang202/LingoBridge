@@ -100,7 +100,7 @@ function AnalysisContent() {
         // 档位回退保留（状态不该与内容脱节），但必须配提示：否则用户点 7.0 → 档位自己跳回 6.0
         // → 内容一字未变 → 零反馈 → 以为按钮坏了反复点，每点一次烧一次 AI。
         if (res.status === 402) { setLevel(prevLevel); setQuotaShown('phrases'); return }
-        if (res.status === 429) { setLevel(prevLevel); setToast('今天的换词次数用完了，明天会自动恢复。'); return }
+        if (res.status === 429) { setLevel(prevLevel); setToast('操作太频繁，今天先歇歇吧。明天会自动恢复。'); return }
         if (!res.ok) throw new Error('换词失败')
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)

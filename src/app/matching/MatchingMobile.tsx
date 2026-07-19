@@ -90,7 +90,7 @@ export default function MatchingMobile({
             文案只说「明天恢复」不写具体时刻：服务端计次日界是 UTC 还是本地未核实，不精确化。 */}
         {!loading && dailyLimitHit && (
           <EmptyState
-            title="今天的匹配次数用完了"
+            title="操作太频繁，今天先歇歇吧"
             subtitle="明天会自动恢复。已经匹配过的题目仍然可以打开。"
             ctaLabel="回首页"
             onCta={onExit}

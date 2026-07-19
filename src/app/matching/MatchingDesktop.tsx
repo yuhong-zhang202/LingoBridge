@@ -240,7 +240,7 @@ export default function MatchingDesktop({
     return (
       <div className={`${STAGE} flex items-center justify-center px-8`}>
         <EmptyState
-          title="今天的匹配次数用完了"
+          title="操作太频繁，今天先歇歇吧"
           subtitle="明天会自动恢复。已经匹配过的题目仍然可以打开。"
           ctaLabel="回首页"
           onCta={onExit}
