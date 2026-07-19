@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
+import ViewportReflowFix from '@/components/ViewportReflowFix'
 
 // 自托管 Plus Jakarta Sans（woff2 取自 @fontsource/plus-jakarta-sans，见 fonts/README.md），
 // 改用 next/font/local 消除构建期访问 Google Fonts 的外网依赖；仍保留 subset(latin)/display:swap，
@@ -60,6 +61,7 @@ export default function RootLayout({
             {children}
           </div>
         </div>
+        <ViewportReflowFix />
         <SwUpdatePrompt />
         <UpdateBanner />
       </body>
