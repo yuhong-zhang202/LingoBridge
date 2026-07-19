@@ -23,6 +23,7 @@ import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/libr
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { recordPracticeSession } from '@/lib/db/practice-sessions'
 import { apiFetch } from '@/lib/api-client'
+import { getSupabase } from '@/lib/supabase'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -67,6 +68,14 @@ function PracticeContent(): JSX.Element {
   const [retryKey, setRetryKey]           = useState(0)
   // 服务端复练额度超限（/api/practice 返回 402）→ 弹 QuotaReached 覆盖层
   const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
+  // 匿名试用用户：402 来自「匿名每日轮次上限」，没有月额度 → 走 trial 变体（引导注册）；
+  // 注册用户才是月额度用完，走 ielts 变体。与 restructure 页同一判断范式。
+  const [isAnon, setIsAnon] = useState(false)
+  useEffect(() => {
+    void getSupabase().auth.getSession().then(({ data: { session } }) => {
+      setIsAnon(session?.user?.is_anonymous ?? false)
+    })
+  }, [])
 
   const popupRef  = useRef<HTMLDivElement>(null)
   const orbRef    = useRef<HTMLButtonElement>(null)
@@ -306,9 +315,10 @@ function PracticeContent(): JSX.Element {
     onExit: () => router.push('/'),
   }
 
-  // 复练额度超限覆盖层：练习无法开始，关闭即返回上一页
+  // 复练额度超限覆盖层：练习无法开始，关闭即返回上一页。
+  // 匿名用户没有月额度，撞的是试用轮次上限 → trial 变体（引导注册），不能显示「本月额度已用完 10/10」。
   const quotaOverlay = reviewQuotaShown
-    ? <QuotaReached variant="ielts" asOverlay onClose={() => router.back()} />
+    ? <QuotaReached variant={isAnon ? 'trial' : 'ielts'} asOverlay onClose={() => router.back()} />
     : null
 
   // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。

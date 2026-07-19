@@ -11,12 +11,10 @@ import { ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Chip from '@/components/Chip'
 import QuotaReached from '@/components/QuotaReached'
-import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
-import { listCorpusByQuestion } from '@/lib/db/matches'
-import { getAccount } from '@/lib/auth'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
+import { useGotoPractice } from './useGotoPractice'
 
 const SOFT    = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
@@ -48,30 +46,8 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
   const router = useRouter()
   const [open, setOpen] = useState<Dimension | null>(null)
   const [sel, setSel] = useState<Dimension>('情绪内核')   // 桌面端「按维度看题目」选中维度
-  const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
-
-  /**
-   * 复练入口：先拦月度额度（登录用户超额 → 弹 QuotaReached 雅思变体覆盖层），
-   * 再带上该题匹配度最高的一条本人语料跳分析页。
-   * storyId 必须是真实 corpus UUID —— 曾硬编码 "1"，服务端 assertCorpusOwner 一律 403，
-   * 分析页收到 403 会 router.push('/') 弹回首页，用户看到的是首页的额度提示，误以为雅思额度满了。
-   * 取不到语料（理论上 matched=true 必有，防御性兜底）就不带 storyId，走通用分析而非再撞 403。
-   */
-  async function gotoPractice(qid: string): Promise<void> {
-    let storyId: string | null = null
-    try {
-      const acct = await getAccount()
-      const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
-      if (loggedIn) {
-        const n = await countReviewPracticeThisMonth()
-        if (n >= IELTS_MONTHLY_LIMIT) { setReviewQuotaShown(true); return }
-      }
-      // listCorpusByQuestion 已按 high→mid→low 排序、同档新→旧，取首条即最贴合的语料
-      storyId = (await listCorpusByQuestion(qid))[0]?.id ?? null
-    } catch { /* 静默：取不到语料就走通用分析 */ }
-    const story = storyId ? `&storyId=${encodeURIComponent(storyId)}` : ''
-    router.push(`/analysis?questionId=${encodeURIComponent(qid)}${story}&review=1`)
-  }
+  // 复练入口（含月额度拦截）与桌面端共用同一份实现，见 useGotoPractice
+  const { reviewQuotaShown, dismissReviewQuota, gotoPractice } = useGotoPractice()
   const dimsCov = dimensionSummaries.filter((d) => (progressById[DIM_EN[d.dimension]]?.lit ?? 0) > 0).length
   const sorted = [...dimensionSummaries].sort((a, b) => (progressById[DIM_EN[b.dimension]]?.lit ?? 0) - (progressById[DIM_EN[a.dimension]]?.lit ?? 0))
 
@@ -290,7 +266,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
       </div>
 
       {reviewQuotaShown && (
-        <QuotaReached variant="ielts" asOverlay onClose={() => setReviewQuotaShown(false)} />
+        <QuotaReached variant="ielts" asOverlay onClose={dismissReviewQuota} />
       )}
     </div>
   )
