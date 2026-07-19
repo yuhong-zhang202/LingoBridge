@@ -1,6 +1,7 @@
 /**
  * @module   QuotaReached
- * @desc     月额度用完态 — 故事 / 雅思复练两个变体；CTA 按另一额度是否也用完动态显示。
+ * @desc     月额度用完态 — 故事 / 雅思复练两个变体；CTA 只保留「另一侧还有额度」的那一个
+ *           （故事用完→练习雅思题；雅思用完→讲个故事），两侧都满则不给 CTA、只留微信引导。
  *           视觉规格沿用 EmptyState（Orb size=120 + 标题/副文 v2 token + 渐变描边胶囊 CTA）。
  *           asOverlay 模式为真模态：role="dialog" + aria-modal + 焦点移入/陷阱 + Esc 关闭，
  *           保证键盘与读屏用户不会被遮罩困住（此前遮罩仅鼠标可达）。
@@ -96,13 +97,15 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>
 
+      {/* CTA 只给「还有额度的那一侧」：故事用完 → 练习雅思题；雅思用完 → 讲个故事。
+          两侧都用完则不给 CTA，只留下方微信引导（给不了的出口不摆出来）。 */}
       <div className="flex flex-col items-center gap-2.5 mt-5">
         {!reviewDone && (
           <GradientButton
             onClick={handlePracticeIelts}
             className="px-6 py-3 rounded-full text-[14px] font-medium"
           >
-            练雅思题
+            练习雅思题
           </GradientButton>
         )}
         {!storyDone && (
@@ -113,12 +116,6 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
             讲个故事
           </GradientButton>
         )}
-        <GradientButton
-          onClick={() => router.push('/review')}
-          className="px-6 py-3 rounded-full text-[14px] font-medium"
-        >
-          回顾词卡
-        </GradientButton>
       </div>
 
       <p className="text-[13px] text-v2-text-muted mt-6">

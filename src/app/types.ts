@@ -13,9 +13,6 @@ export interface HomeViewProps {
   ieltsMode: boolean
   /** 移动端：是否切到文字输入面板 */
   showTextInput: boolean
-  /** 登录用户当月语料达上限 → 主区切「额度用完」态 */
-  storyQuotaReached: boolean
-
   /** 雅思切换题（含加载/错误态） */
   question: SwitchQuestion | null
   loading: boolean
@@ -33,7 +30,7 @@ export interface HomeViewProps {
   /** 桌面「信息复用」Tab 舞台当前功能索引 */
   reuseTab: number
 
-  /** 移动端切换文字输入面板显隐 */
+  /** 移动端切换文字输入面板显隐（打开前外壳会先核本月故事额度，超额则改弹额度覆盖层） */
   onSetShowTextInput: (v: boolean) => void
   /** 选「我的故事」段 */
   onSelectMyStory: () => void

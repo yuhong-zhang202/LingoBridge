@@ -1,8 +1,8 @@
 /**
  * @module   HomeMobile
  * @desc     首页移动端视图 —— 现有竖排版式原样搬入、改接 props 的纯展示组件（视觉与逻辑一字不改）：
- *           顶栏 + 我的故事/雅思题分段 + Orb + 开始录音/文字输入 CTA + StoryTextPanel + 底部 TabBar，
- *           storyQuotaReached 时主区切 QuotaReached。数据与副作用由 page.tsx 外壳经 props 下发。
+ *           顶栏 + 我的故事/雅思题分段 + Orb + 开始录音/文字输入 CTA + StoryTextPanel + 底部 TabBar。
+ *           月额度用完不再切主区，改由外壳在点击故事入口时弹覆盖层。数据与副作用由 page.tsx 外壳经 props 下发。
  * @author   LingoBridge
  * @created  2026-05-15
  */
@@ -10,14 +10,12 @@
 import { Mic2, RotateCw, ChevronLeft } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
-import QuotaReached from '@/components/QuotaReached'
 import StoryTextPanel from '@/components/StoryTextPanel'
 import type { HomeViewProps } from './types'
 
 export default function HomeMobile({
   ieltsMode,
   showTextInput,
-  storyQuotaReached,
   question,
   loading,
   error,
@@ -56,13 +54,8 @@ export default function HomeMobile({
         </div>
       )}
 
-      {/* 主体 */}
-      {storyQuotaReached ? (
-        <div className="flex-1 min-h-0 flex items-center justify-center relative z-10 overflow-y-auto pb-[calc(72px_+_env(safe-area-inset-bottom))]">
-          <QuotaReached variant="story" />
-        </div>
-      ) : (
-        <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[calc(120px_+_env(safe-area-inset-bottom))]' : 'items-center px-7 pt-6 pb-[calc(72px_+_env(safe-area-inset-bottom))]'}`}>
+      {/* 主体 —— 首页永远正常渲染；月额度用完的提示由外壳在点击故事入口时以覆盖层弹出 */}
+      <div className={`flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto ${showTextInput ? 'px-6 pt-5 pb-[calc(120px_+_env(safe-area-inset-bottom))]' : 'items-center px-7 pt-6 pb-[calc(72px_+_env(safe-area-inset-bottom))]'}`}>
           {!showTextInput && (
             <div className="flex justify-center mb-7">
               <div className="bg-bg-muted rounded-full p-1 inline-flex w-[228px]">
@@ -144,8 +137,7 @@ export default function HomeMobile({
           </div>
 
           {!showTextInput && <div className="flex-1" />}
-        </div>
-      )}
+      </div>
 
       <div className="flex-shrink-0"><TabBar /></div>
     </div>

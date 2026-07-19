@@ -21,7 +21,6 @@ import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import PartTag from '@/components/PartTag'
 import Reveal from '@/components/Reveal'
-import QuotaReached from '@/components/QuotaReached'
 import AiBubble from '@/app/practice/_components/AiBubble'
 import UserBubble from '@/app/practice/_components/UserBubble'
 import OrbSoft from '@/app/practice/_components/OrbSoft'
@@ -158,7 +157,6 @@ const REUSE: { tab: string; collected: string; title: string; desc: string; glow
 
 export default function HomeDesktop({
   ieltsMode,
-  storyQuotaReached,
   question,
   loading,
   error,
@@ -176,13 +174,8 @@ export default function HomeDesktop({
     <div className="min-h-screen bg-bg-page">
       {/* 全站统一容器（顶栏与内容同宽对齐，两侧留白一致） */}
       <TopNav />
+      {/* 首页永远正常渲染；月额度用完的提示由外壳在点击故事入口时以覆盖层弹出 */}
       <main className={PAGE_CONTAINER}>
-        {storyQuotaReached ? (
-          <div className="py-20 flex justify-center">
-            <QuotaReached variant="story" />
-          </div>
-        ) : (
-          <>
             {/* ===== 模块一：Hero（导航紧跟顶部；标题打字机；右侧 Orb 放大）——整屏高、内容偏上，一屏一模块 ===== */}
             <section className="relative overflow-hidden min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-12">
               {/* 极淡氛围光（装饰，置于 Orb 背后）。收敛透明落点，使柔光在 section 右侧
@@ -435,8 +428,6 @@ export default function HomeDesktop({
               </Reveal>
 
             </section>
-          </>
-        )}
       </main>
     </div>
   )
