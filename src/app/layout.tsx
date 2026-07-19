@@ -4,6 +4,7 @@ import './globals.css'
 import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
 import VpDebugOverlay from '@/components/VpDebugOverlay'
+import StandaloneZoomFix from '@/components/StandaloneZoomFix'
 
 // 自托管 Plus Jakarta Sans（woff2 取自 @fontsource/plus-jakarta-sans，见 fonts/README.md），
 // 改用 next/font/local 消除构建期访问 Google Fonts 的外网依赖；仍保留 subset(latin)/display:swap，
@@ -63,6 +64,8 @@ export default function RootLayout({
         </div>
         <SwUpdatePrompt />
         <UpdateBanner />
+        {/* 修 iOS standalone 启动残留缩放（真机取证:启动 scale=1.066、布局无溢出） */}
+        <StandaloneZoomFix />
         {/* 【临时诊断·取证完即删】iOS standalone 误缩放取证浮层 */}
         <VpDebugOverlay />
       </body>
