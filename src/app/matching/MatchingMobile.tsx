@@ -96,6 +96,7 @@ export default function MatchingMobile({
             onCta={onExit}
             orbSize={100}
             alert
+            ctaVariant="text"
           />
         )}
 

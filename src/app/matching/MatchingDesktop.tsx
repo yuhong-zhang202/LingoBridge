@@ -246,6 +246,7 @@ export default function MatchingDesktop({
           onCta={onExit}
           orbSize={100}
           alert
+          ctaVariant="text"
         />
       </div>
     )

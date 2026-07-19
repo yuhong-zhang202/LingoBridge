@@ -147,6 +147,7 @@ export default function AnalysisDesktop({
           onCta={onReviewCards}
           orbSize={100}
           alert
+          ctaVariant="text"
         />
       </div>
     )

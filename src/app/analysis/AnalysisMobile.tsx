@@ -123,6 +123,7 @@ export default function AnalysisMobile({
             onCta={onReviewCards}
             orbSize={100}
             alert
+            ctaVariant="text"
           />
         )}
 
