@@ -106,7 +106,7 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
               value={date}
               min={todayLocalISO()}
               onChange={(e) => setDate(e.target.value)}
-              className="flex-1 h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
+              className="flex-1 h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
             />
             {date !== '' && (
               <button

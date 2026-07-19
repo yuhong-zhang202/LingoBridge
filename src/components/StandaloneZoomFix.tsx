@@ -7,6 +7,11 @@
  *           临时加 maximum-scale=1 把视觉缩放钳回 1.0，随即恢复原 content（不锁死用户后续
  *           手动缩放；iOS 出于无障碍本也忽略 maximum-scale 对用户手势的限制）。
  *           只钳启动窗口这一次，绝不在用户主动缩放时打扰；普通浏览器/桌面为 no-op。
+ *           另一处真机坐实的残留源：iOS 聚焦 font-size<16px 的输入框会自动放大 16/字号 倍，
+ *           普通浏览器输入完会缩回，standalone 不缩回（登录页 15px → scale=1.066 永久残留）。
+ *           治本是全站表单控件字号 ≥16px；本组件同时挂 document 级 focusout 兜底：失焦后
+ *           仅在 300/800ms 两个时点各检测一次（绝不常驻轮询），若焦点不在表单控件上且
+ *           scale>1.01 就复用 clampZoomOnce 钳回——兜住未来遗漏的小字号输入框。
  * @author   LingoBridge
  * @created  2026-07-19
  */
@@ -37,9 +42,16 @@ function clampZoomOnce(): boolean {
   return true
 }
 
+/** 当前焦点是否落在表单控件上（此时不钳：用户可能正连续切换输入框，放大态尚属正常） */
+function isFormControlFocused(): boolean {
+  const tag = document.activeElement?.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+}
+
 /**
  * 仅在 standalone 启动后的短窗口（≈1.2s）内做几次检测：发现启动残留缩放即钳回一次并停止。
  * 窗口外不再干预——避免误伤用户之后的主动缩放。bfcache 恢复（pageshow persisted）重开窗口。
+ * 另挂 focusout 兜底：输入框失焦后 300/800ms 各检测一次残留缩放（见文件顶注）。
  */
 export default function StandaloneZoomFix() {
   useEffect(() => {
@@ -69,10 +81,30 @@ export default function StandaloneZoomFix() {
     }
     window.addEventListener('pageshow', onPageShow)
 
+    // 兜底：输入框失焦后短窗口内检测 iOS 聚焦小字号输入框留下的放大态。
+    // 只在 focusout 触发的 300/800ms 两个时点各查一次，检测时焦点又落回表单控件则跳过本次
+    //（说明用户在连续输入，等最终失焦的那次 focusout 再兜）。绝不常驻轮询。
+    let blurTimerA: number | undefined
+    let blurTimerB: number | undefined
+    const clampAfterBlur = () => {
+      if (isFormControlFocused()) return
+      clampZoomOnce()
+    }
+    const onFocusOut = () => {
+      window.clearTimeout(blurTimerA)
+      window.clearTimeout(blurTimerB)
+      blurTimerA = window.setTimeout(clampAfterBlur, 300)
+      blurTimerB = window.setTimeout(clampAfterBlur, 800)
+    }
+    document.addEventListener('focusout', onFocusOut)
+
     return () => {
       cancelAnimationFrame(raf)
       timers.forEach(clearTimeout)
+      window.clearTimeout(blurTimerA)
+      window.clearTimeout(blurTimerB)
       window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('focusout', onFocusOut)
     }
   }, [])
 

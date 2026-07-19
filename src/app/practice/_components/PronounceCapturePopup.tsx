@@ -58,7 +58,7 @@ export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="输入正确的词"
-          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-cream-subtle px-2.5 py-1.5 text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
+          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-cream-subtle px-2.5 py-1.5 text-[16px] lg:text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
         />
         <button
           onClick={submit}

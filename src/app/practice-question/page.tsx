@@ -275,7 +275,7 @@ function PracticeQuestionContent(): JSX.Element {
               value={textVal}
               onChange={(e) => setTextVal(e.target.value)}
               placeholder={'和谁一起、做了什么、当时心里什么感觉，都可以写进来……'}
-              className="w-full min-h-[180px] resize-none mt-3 bg-bg-page border border-black/[0.06] rounded-[14px] p-3.5 outline-none text-[15px] leading-[1.8] text-v2-text-primary placeholder:text-v2-text-muted"
+              className="w-full min-h-[180px] resize-none mt-3 bg-bg-page border border-black/[0.06] rounded-[14px] p-3.5 outline-none text-[16px] leading-[1.8] text-v2-text-primary placeholder:text-v2-text-muted"
               autoFocus
             />
             <div className="mt-4">

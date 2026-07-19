@@ -209,7 +209,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
                   onChange={e => setText(e.target.value)}
                   placeholder={textPlaceholder}
                   rows={3}
-                  className="w-full bg-transparent text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none resize-none leading-relaxed"
+                  className="w-full bg-transparent text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none resize-none leading-relaxed"
                 />
               </div>
 
@@ -220,7 +220,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="你的注册邮箱"
                   autoComplete="email"
-                  className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3 text-[15px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mt-3"
+                  className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mt-3"
                 />
               )}
 

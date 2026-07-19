@@ -81,7 +81,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
             onChange={e => setText(e.target.value)}
             rows={3}
             placeholder="发生了什么？写一句给我们"
-            className="w-full rounded-[12px] border border-black/[0.08] bg-white px-3.5 py-3 text-[13px] text-v2-text-primary placeholder:text-v2-text-muted resize-none outline-none focus:border-black/[0.16]"
+            className="w-full rounded-[12px] border border-black/[0.08] bg-white px-3.5 py-3 text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted resize-none outline-none focus:border-black/[0.16]"
           />
           <GradientButton
             onClick={() => void send()}

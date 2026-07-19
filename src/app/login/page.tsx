@@ -126,7 +126,7 @@ export default function LoginPage() {
             onChange={e => setEmail(e.target.value)}
             placeholder="邮箱"
             autoComplete="email"
-            className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
+            className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
           />
 
           <div className="relative mb-1.5">
@@ -136,7 +136,7 @@ export default function LoginPage() {
               onChange={e => setPwd(e.target.value)}
               placeholder="密码（至少 6 位）"
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[15px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
+              className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
             />
             <button
               type="button"
@@ -201,7 +201,7 @@ export default function LoginPage() {
               onChange={e => setResetEmail(e.target.value)}
               placeholder="邮箱"
               autoComplete="email"
-              className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[15px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
+              className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
             />
             {resetMsg && <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-2 px-1">{resetMsg}</p>}
             <div className="flex justify-center mb-3">

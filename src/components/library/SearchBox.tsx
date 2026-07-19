@@ -45,7 +45,7 @@ export default function SearchBox({ value, onChange, onClose }: SearchBoxProps) 
         placeholder="搜索…"
         role="searchbox"
         aria-label="搜索当前分类"
-        className="flex-1 min-w-0 bg-transparent text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none"
+        className="flex-1 min-w-0 bg-transparent text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none"
       />
       {value && (
         <button

@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
                 onChange={e => setPwd(e.target.value)}
                 placeholder="新密码"
                 autoComplete="new-password"
-                className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[15px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
+                className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
               />
               <button
                 type="button"

@@ -13,7 +13,7 @@ import { loginWithPassword, updatePassword } from '@/lib/auth'
 
 const PASSWORD_MIN = 6
 const INPUT_CLASS =
-  'w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none focus:border-brand-primary transition-colors'
+  'w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none focus:border-brand-primary transition-colors'
 
 interface PasswordModalProps {
   /** 当前账号邮箱，用于校验当前密码；为 null 时跳过校验 */

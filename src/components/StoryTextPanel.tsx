@@ -53,7 +53,7 @@ export default function StoryTextPanel({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full ${minH} resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted`}
+          className={`w-full ${minH} resize-none bg-transparent outline-none text-[16px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted`}
           autoFocus
         />
         <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">

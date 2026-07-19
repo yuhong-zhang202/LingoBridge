@@ -63,7 +63,7 @@ export default function NameModal({ currentName, onClose }: NameModalProps): JSX
           maxLength={20}
           onChange={(e) => setName(e.target.value)}
           placeholder="起个名字吧"
-          className="w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
+          className="w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
         />
 
         {err && <p role="alert" className="text-[12px] text-error mt-3 px-1">{err}</p>}

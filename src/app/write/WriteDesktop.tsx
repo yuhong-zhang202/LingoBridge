@@ -74,7 +74,7 @@ export default function WriteDesktop({
             placeholder={WRITE_PLACEHOLDER}
             aria-label="写下你的故事"
             autoFocus
-            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
+            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[16px] lg:text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
           />
           <div className="flex items-center justify-end pt-3 border-t border-black/[0.05]">
             <span className="text-[12px] text-v2-text-muted tabular-nums">{textStory.trim().length} 字</span>
