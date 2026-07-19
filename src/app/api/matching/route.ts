@@ -12,14 +12,17 @@ import { logErr } from '@/lib/log'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
-import { getCorpusByIdServer } from '@/lib/db/corpus-server'
+import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getSupabaseServer } from '@/lib/supabase-server'
-import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
-import { SCORE_HIGH, SCORE_MID, RANKING_ALGO_VERSION } from '@/lib/constants'
+import {
+  SCORE_HIGH, SCORE_MID, RANKING_ALGO_VERSION,
+  ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
+} from '@/lib/constants'
 import { env } from '@/lib/env-server'
 
 /** 故事正文 → sha256 十六进制哈希，作为存档失效判定（正文一字未变则命中读档、不重算）。 */
@@ -75,7 +78,7 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    const { userId } = await requireUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     // 同意闸硬前置：匹配会把整理后故事全文发往千问（萃取 + 重排）。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -107,6 +110,16 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 读档命中：直接用存档结果，不跑模型、不刷 corpus_question_matches 反查表、不记 usage（无模型调用=无成本）。
       result = cached
     } else {
+      // 服务端硬防线：仅「真要跑模型」这一路计次，且在任何 AI 调用之前——超额时不产生任何 AI 费用。
+      // 刻意放在读档命中判定【之后】：命中存档不跑模型、零成本，用户重看已匹配结果不该被扣次数。
+      // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。与 practice 同范式。
+      const dailyCount = await bumpDailyUsageServer(userId, 'matching')
+      if (isAnonymous ? dailyCount > ANON_MATCHING_LIMIT : dailyCount > REG_MATCHING_DAILY_LIMIT) {
+        return isAnonymous
+          ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+          : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+      }
+
       // 未命中/失效：重算 → 落快照 → 保持对 corpus_question_matches 的既有写（反查表不动其职责）。
       // 带 userId + corpusId 归属留证（重排链路的 LLM 调用在 matchByStory 内深处触发 appendRawLog）。
       // matchByStory 内部是【两次】qwen-plus 调用（萃取 + 重排），此前只记了萃取的一条估算、漏了最大的重排。

@@ -7,14 +7,14 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
-import { getCorpusByIdServer } from '@/lib/db/corpus-server'
+import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
-import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
-import { DIMENSION_LABEL } from '@/lib/constants'
+import { DIMENSION_LABEL, ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT } from '@/lib/constants'
 import type { AnalysisResponse, DimensionLabel } from '@/lib/types'
 
 // 观察点 code 前缀 → 维度 id
@@ -30,7 +30,7 @@ function dimFromCode(code: string | undefined): DimensionLabel | null {
 export async function GET(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    const { userId } = await requireUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     // 同意闸硬前置：分析会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -43,6 +43,17 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     // 越权防护：storyId 属他人语料则 403（storyId 缺省时走通用分析，无需校验）
     if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 服务端硬防线：计次在任何 AI 调用之前——超额时不产生任何 AI 费用。
+    // GET 无副作用语义在此让位于成本安全：本路由可传任意 questionId 反复调，是最易被脚本刷的一跳。
+    // 位置选在入参校验后、读故事/取题之前：超额请求连 DB 都少打，且失败请求不会先扣次数再 400。
+    // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。与 practice 同范式。
+    const dailyCount = await bumpDailyUsageServer(userId, 'analysis')
+    if (isAnonymous ? dailyCount > ANON_ANALYSIS_LIMIT : dailyCount > REG_ANALYSIS_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+    }
 
     // DB 优先读故事；读不到或 storyId 缺失则退回 URL 里的 story；都无则走通用分析
     let story: string | undefined

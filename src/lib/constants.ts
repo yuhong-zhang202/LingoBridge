@@ -98,12 +98,24 @@ export const ANON_POLISH_LIMIT = 20
 export const ANON_PRONOUNCE_LIMIT = 10
 /** 匿名每日：transcribe 转写次数（练习每轮消耗一次转写，16 轮 + 故事录音与重录余量）*/
 export const ANON_TRANSCRIBE_LIMIT = 25
+/** 匿名每日：matching 真实匹配次数（匿名只能建 1 条语料，改稿重匹配给 5 次余量；读档命中不计次）*/
+export const ANON_MATCHING_LIMIT = 5
+/** 匿名每日：analysis 侧重点分析次数（一次匹配约出 10~20 题，逐题看完再有重看余量）*/
+export const ANON_ANALYSIS_LIMIT = 20
+/** 匿名每日：phrases 换词组次数（同一题可换不同水平档，按 analysis 同量给）*/
+export const ANON_PHRASES_LIMIT = 20
 
 // 注册用户熔断上限：正常使用永远碰不到，仅防脚本滥用（触发返回 429，不走配额弹层）
 export const REG_PRACTICE_DAILY_LIMIT = 200
 export const REG_POLISH_DAILY_LIMIT = 100
 export const REG_PRONOUNCE_DAILY_LIMIT = 100
 export const REG_TRANSCRIBE_DAILY_LIMIT = 200
+/** 注册每日：matching 真实匹配（单次 = 萃取 + 重排两次 qwen-plus，是全站最贵的一跳，故压到 50）*/
+export const REG_MATCHING_DAILY_LIMIT = 50
+/** 注册每日：analysis 侧重点分析（可传任意 questionId 反复调，与 practice 同档 200）*/
+export const REG_ANALYSIS_DAILY_LIMIT = 200
+/** 注册每日：phrases 换词组（重出按钮可连点，介于 polish 100 与 analysis 200 之间取 150）*/
+export const REG_PHRASES_DAILY_LIMIT = 150
 
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {

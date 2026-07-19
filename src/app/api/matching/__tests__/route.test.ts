@@ -16,9 +16,12 @@ jest.mock('@/lib/db/match-snapshots', () => ({
   getMatchSnapshotServer: jest.fn(),
   upsertMatchSnapshotServer: jest.fn(),
 }))
-jest.mock('@/lib/db/corpus-server', () => ({ getCorpusByIdServer: jest.fn() }))
+jest.mock('@/lib/db/corpus-server', () => ({
+  getCorpusByIdServer: jest.fn(),
+  bumpDailyUsageServer: jest.fn(),
+}))
 jest.mock('@/lib/api-auth', () => ({
-  requireUser: jest.fn(),
+  requireUserAllowAnon: jest.fn(),
   assertCorpusOwner: jest.fn(),
   authErrorResponse: jest.fn(() => null),
 }))
@@ -38,8 +41,8 @@ import { POST } from '@/app/api/matching/route'
 import { env } from '@/lib/env-server'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
-import { getCorpusByIdServer } from '@/lib/db/corpus-server'
-import { requireUser, assertCorpusOwner } from '@/lib/api-auth'
+import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
 import { logEvent } from '@/lib/events'
 import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
@@ -49,7 +52,8 @@ const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchBySto
 const mockGetSnapshot    = getMatchSnapshotServer as jest.MockedFunction<typeof getMatchSnapshotServer>
 const mockUpsertSnapshot = upsertMatchSnapshotServer as jest.MockedFunction<typeof upsertMatchSnapshotServer>
 const mockGetCorpus      = getCorpusByIdServer as jest.MockedFunction<typeof getCorpusByIdServer>
-const mockRequireUser    = requireUser as jest.MockedFunction<typeof requireUser>
+const mockRequireUser    = requireUserAllowAnon as jest.MockedFunction<typeof requireUserAllowAnon>
+const mockBumpDaily      = bumpDailyUsageServer as jest.MockedFunction<typeof bumpDailyUsageServer>
 const mockAssertOwner    = assertCorpusOwner as jest.MockedFunction<typeof assertCorpusOwner>
 const mockLogEvent       = logEvent as jest.MockedFunction<typeof logEvent>
 const mockLogApiUsage    = logApiUsage as jest.MockedFunction<typeof logApiUsage>
@@ -90,8 +94,9 @@ beforeEach(() => {
   jest.clearAllMocks()
   ;(env as { matchSnapshotEnabled: boolean }).matchSnapshotEnabled = true
 
-  mockRequireUser.mockResolvedValue({ userId: 'u1' })
+  mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
   mockAssertOwner.mockResolvedValue(undefined)
+  mockBumpDaily.mockResolvedValue(1)
   mockGetCorpus.mockResolvedValue(CLEANED)
   mockGetSnapshot.mockResolvedValue(null)
   mockUpsertSnapshot.mockResolvedValue(undefined)
@@ -124,6 +129,8 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     expect(mockUpsertSnapshot).not.toHaveBeenCalled()
     expect(cqmUpsert).not.toHaveBeenCalled()
     expect(mockLogApiUsage).not.toHaveBeenCalled()
+    // 读档命中零模型成本 → 不该扣每日配额（否则用户重看已匹配结果会被白扣次数）
+    expect(mockBumpDaily).not.toHaveBeenCalled()
     // 返回体 = 存档结果 + servedFrom='cache'
     expect(body.servedFrom).toBe('cache')
     expect(body.questions.map((q) => q.id)).toEqual(['q-cache'])

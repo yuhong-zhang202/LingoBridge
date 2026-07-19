@@ -7,18 +7,19 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
-import { getCorpusByIdServer } from '@/lib/db/corpus-server'
+import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
-import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
+import { ANON_PHRASES_LIMIT, REG_PHRASES_DAILY_LIMIT } from '@/lib/constants'
 
 export async function GET(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
-    const { userId } = await requireUser(req)
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
     // 同意闸硬前置：换词组会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -32,6 +33,16 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     // 越权防护：storyId 属他人语料则 403（storyId 缺省时走通用词组，无需校验）
     if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 服务端硬防线：计次在任何 AI 调用之前——超额时不产生任何 AI 费用。
+    // 与 /api/analysis 同理（GET 但可反复调），位置同样选在入参校验后、读故事/取题之前。
+    // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。与 practice 同范式。
+    const dailyCount = await bumpDailyUsageServer(userId, 'phrases')
+    if (isAnonymous ? dailyCount > ANON_PHRASES_LIMIT : dailyCount > REG_PHRASES_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+    }
 
     let story: string | undefined
     try {
