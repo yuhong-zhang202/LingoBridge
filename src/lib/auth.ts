@@ -42,6 +42,31 @@ export function defaultNickname(seed: string | null): string {
   return `用户${String(h % 1_000_000).padStart(6, '0')}`
 }
 
+// ── 内测邮箱白名单文案映射【临时措施·内测结束后连同 0023 migration 一起删除】────────
+/** DB 触发器 enforce_beta_allowlist_trg 抛错时携带的稳定关键词（见 0023_beta_allowlist.sql）。 */
+const ALLOWLIST_DENIED_KEY = 'beta_allowlist_denied'
+/** 被名单挡下时的用户可见文案（login/page.tsx 直接渲染 err.message）。 */
+const ALLOWLIST_DENIED_MSG = '该邮箱不在内测名单内，如需参加请联系我们'
+
+/**
+ * 判断 GoTrue 错误是否由内测白名单触发器抛出。
+ * GoTrue 常把 DB 异常包成 500「Database error updating user」，关键词可能落在 message 或嵌套字段里，
+ * 故对整个错误对象做序列化后再匹配关键词（关键词唯一且稳定，不会误命中）。
+ * @param error 任意 GoTrue / 网络错误对象
+ * @returns     true 表示应回「不在内测名单」文案
+ */
+function isAllowlistDenied(error: unknown): boolean {
+  if (error === null || error === undefined) return false
+  const msg = (error as { message?: unknown }).message
+  const parts = [typeof msg === 'string' ? msg : '']
+  try {
+    parts.push(JSON.stringify(error) ?? '')
+  } catch {
+    // 循环引用等，忽略：仅靠 message 匹配
+  }
+  return parts.join(' ').toLowerCase().includes(ALLOWLIST_DENIED_KEY)
+}
+
 function validateEmail(email: string): string {
   const e = email.trim()
   if (!EMAIL_RE.test(e)) throw appError('INVALID_EMAIL', '请输入正确的邮箱')
@@ -65,6 +90,12 @@ export async function registerWithPassword(email: string, password: string): Pro
   const { error } = await getSupabase().auth.updateUser({ email: e, password })
   if (!error) return
 
+  // 内测白名单拒绝优先判：触发器抛的是 DB 异常（多为 500），若落到下面兜底分支
+  // 用户只会看到「创建账号失败，请稍后再试」，完全不知道自己是被名单挡了。
+  if (isAllowlistDenied(error)) {
+    throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG, error)
+  }
+
   // 邮箱已注册启发式：status 422 / message 含 already/registered/exists
   const msg = error.message?.toLowerCase() ?? ''
   const status = (error as { status?: number }).status
@@ -86,6 +117,10 @@ export async function loginWithPassword(email: string, password: string): Promis
   }
   const { error } = await getSupabase().auth.signInWithPassword({ email: e, password })
   if (error) {
+    // 登录本身不触发白名单触发器（不写 email 列），此分支仅为万一被间接命中时不回误导性的「密码错误」。
+    if (isAllowlistDenied(error)) {
+      throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG, error)
+    }
     throw appError('LOGIN_FAILED', '邮箱或密码错误', error)
   }
 }

@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import type { AppError } from '@/types/errors'
 import { env } from '@/lib/env-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { logErr } from '@/lib/log'
 
 /** 带 HTTP 状态的鉴权错误：authErrorResponse 据此映射响应；其余异常仍交回各路由原有 500 分支。 */
 export type ApiAuthError = AppError & { status: 401 | 403 }
@@ -26,6 +27,58 @@ function isApiAuthError(e: unknown): e is ApiAuthError {
   return (status === 401 || status === 403) && 'code' in e && 'message' in e
 }
 
+// ── 内测邮箱白名单兜底闸【临时措施·内测结束后整段删除】────────────────────────
+// 主闸是 DB 触发器 enforce_beta_allowlist_trg（0023_beta_allowlist.sql），在 auth.users 写入源头硬挡；
+// 本层只是兜底（挡住触发器上线前已注册、或将来触发器被误删的漏网账号），故设计上一律从宽。
+
+/** 白名单快照缓存 TTL：60 秒。副作用——从名单【删人】最多 60 秒后生效（加人走触发器那条路、即时生效）。 */
+const ALLOWLIST_TTL_MS = 60_000
+
+/** 进程内白名单快照；enabled=false 表示「未启用」（表为空 / 含 '*' 哨兵 / 查表失败），此时全放行。 */
+let allowlistCache: { at: number; enabled: boolean; emails: Set<string> } | null = null
+
+/**
+ * 读白名单快照（带 60 秒进程内缓存）。
+ * @returns    { enabled, emails } enabled=false 时调用方应无条件放行
+ * @sideEffect 用 service_role 读 beta_allowlist（该表 RLS 无 policy，仅 service_role 可读）
+ */
+async function loadAllowlist(): Promise<{ enabled: boolean; emails: Set<string> }> {
+  const now = Date.now()
+  if (allowlistCache && now - allowlistCache.at < ALLOWLIST_TTL_MS) return allowlistCache
+  try {
+    const { data, error } = await getSupabaseServer().from('beta_allowlist').select('email')
+    if (error) throw error
+    const rows = (data as Array<{ email: string | null }> | null) ?? []
+    const emails = new Set(rows.map((r) => (r.email ?? '').trim().toLowerCase()).filter((s) => s !== ''))
+    // 表为空 → 防呆兜底视为未启用；含 '*' 哨兵 → 拆除开关，视为未启用。
+    const enabled = emails.size > 0 && !emails.has('*')
+    allowlistCache = { at: now, enabled, emails }
+    return allowlistCache
+  } catch (e) {
+    // ⚠️ fail-open（放行）是刻意选择，勿改成 fail-close：
+    // 本层只是兜底、主闸在 DB 触发器；白名单是内测便利而非合规硬要求，
+    // 兜底层故障不该让全站 403 不可用。（与 consent-server 的 fail-close 语义不同——那是合规闸。）
+    // 顺带效果：「先部署代码、后跑 migration」期间表不存在也不会炸站。
+    logErr('[allowlist] load failed, fail-open', e)
+    return { enabled: false, emails: new Set<string>() }
+  }
+}
+
+/**
+ * 兜底校验邮箱在内测白名单内（匿名 / 无邮箱 / 白名单未启用 / 查表失败 一律放行）。
+ * @param email        当前用户邮箱（可为 null）
+ * @param isAnonymous  是否匿名会话
+ * @throws             ApiAuthError(403) —— 白名单已启用且该邮箱不在名单内
+ */
+async function assertAllowlisted(email: string | null, isAnonymous: boolean): Promise<void> {
+  if (isAnonymous) return
+  const e = (email ?? '').trim().toLowerCase()
+  if (e === '') return
+  const { enabled, emails } = await loadAllowlist()
+  if (!enabled) return
+  if (!emails.has(e)) throw authError(403, 'NOT_ALLOWLISTED', '该邮箱不在内测名单')
+}
+
 /** 从 Authorization: Bearer 头取 token 并反查用户（token 缺失/无效抛 401）。内部复用，不导出。 */
 async function authUser(req: Request): Promise<{ id: string; email: string | null; isAnonymous: boolean }> {
   const auth = req.headers.get('authorization') ?? ''
@@ -33,7 +86,9 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
   if (!token) throw authError(401, 'UNAUTHORIZED', '未授权')
   const { data, error } = await getSupabaseServer().auth.getUser(token)
   if (error || !data.user) throw authError(401, 'UNAUTHORIZED', '未授权', error)
-  return { id: data.user.id, email: data.user.email ?? null, isAnonymous: data.user.is_anonymous ?? false }
+  const user = { id: data.user.id, email: data.user.email ?? null, isAnonymous: data.user.is_anonymous ?? false }
+  await assertAllowlisted(user.email, user.isAnonymous)
+  return user
 }
 
 /**
