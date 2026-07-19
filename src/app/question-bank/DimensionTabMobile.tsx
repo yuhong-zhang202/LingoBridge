@@ -254,7 +254,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
                   <CheckCircle2 size={16} className="text-brand-accent flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-v2-text-primary leading-snug">{q.displayText}</div>
+                    <div className="text-[14px] text-v2-text-primary leading-snug">{q.displayText}</div>
                     {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
                   </div>
                   <Chip variant="gradient" size="sm" onClick={() => void gotoPractice(q.id)} className="font-medium flex-shrink-0">练习</Chip>
@@ -264,7 +264,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
                   <Circle size={16} className="text-v2-text-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-v2-text-muted leading-snug">{q.displayText}</div>
+                    <div className="text-[14px] text-v2-text-muted leading-snug">{q.displayText}</div>
                     {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
                   </div>
                   <span className="text-[12px] text-v2-text-muted flex-shrink-0">还没讲到</span>

@@ -25,11 +25,11 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
         <textarea
           value={text}
           onChange={e => onChange(e.target.value)}
-          className="w-full min-h-[110px] text-[16px] text-v2-text-primary leading-relaxed bg-transparent rounded-[12px] px-3 py-2.5 outline-none resize-none"
+          className="w-full min-h-[110px] text-[16px] text-v2-text-primary leading-relaxed bg-transparent rounded-[12px] outline-none resize-none"
           autoFocus
         />
       ) : (
-        <p className="text-[14px] text-v2-text-primary leading-relaxed">{text}</p>
+        <p className="text-[16px] text-v2-text-primary leading-relaxed">{text}</p>
       )}
       <div className="flex justify-end mt-2">
         <Chip onClick={onToggleEdit} variant="default">

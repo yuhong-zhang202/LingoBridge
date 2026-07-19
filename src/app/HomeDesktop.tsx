@@ -133,17 +133,17 @@ function PreviewPron() {
     <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="relative w-[290px] -rotate-1 rounded-[16px] px-4 py-3.5 shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)]">
       <p className="text-[10px] text-v2-text-muted mb-[5px]">想说的词</p>
       <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">Gym</span><span className="ml-2 text-[11.5px] text-v2-text-secondary">/dʒɪm/</span></span>
+        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">Gym</span><span className="ml-2 text-[11px] text-v2-text-secondary">/dʒɪm/</span></span>
         <Volume2 size={13} className="text-v2-text-muted" />
       </div>
       <p className="text-[10px] text-v2-text-muted mb-[5px]">被听成</p>
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">drink</span><span className="ml-2 text-[11.5px] text-v2-text-secondary">/drɪŋk/</span></span>
+        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">drink</span><span className="ml-2 text-[11px] text-v2-text-secondary">/drɪŋk/</span></span>
         <Volume2 size={13} className="text-v2-text-muted" />
       </div>
       <div className="rounded-[10px] bg-bg-page px-3 py-2.5">
         <p className="text-[10px] text-v2-text-muted mb-0.5">怎么念</p>
-        <p className="text-[11.5px] text-v2-text-primary leading-[1.55]">起音是浊辅音 /dʒ/，别读成 /dr/；先咬住上齿龈再送气。</p>
+        <p className="text-[11px] text-v2-text-primary leading-[1.55]">起音是浊辅音 /dʒ/，别读成 /dr/；先咬住上齿龈再送气。</p>
       </div>
     </div>
   )

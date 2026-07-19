@@ -181,7 +181,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
             </div>
           ) : (
             <>
-              <h3 className="text-[15px] font-semibold text-v2-text-primary text-center">{spec.title}</h3>
+              <h3 className="text-[16px] font-semibold text-v2-text-primary text-center">{spec.title}</h3>
               {spec.subtitle && (
                 <p className="text-[12px] text-v2-text-muted text-center mt-1.5 leading-relaxed">{spec.subtitle}</p>
               )}
@@ -229,7 +229,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
               <GradientButton
                 onClick={() => void handleSubmit()}
                 disabled={!canSubmit}
-                className="w-full mt-4 py-2.5 rounded-full text-[13px] font-medium disabled:cursor-not-allowed"
+                className="w-full mt-4 py-2.5 rounded-full text-[14px] font-medium disabled:cursor-not-allowed"
               >
                 {submitting ? '提交中…' : '提交反馈'}
               </GradientButton>

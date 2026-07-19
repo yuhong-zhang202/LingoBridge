@@ -62,7 +62,7 @@ function CorpusMatchCard({ item, selected, onToggle, onPractice }: {
           </span>
         </div>
 
-        <p className="text-[13px] text-v2-text-secondary leading-relaxed line-clamp-2">{item.cleanedText ?? ''}</p>
+        <p className="text-[14px] text-v2-text-secondary leading-relaxed line-clamp-2">{item.cleanedText ?? ''}</p>
 
         {selected && (
           <div className="flex items-center justify-end mt-3">

@@ -24,7 +24,7 @@ export default function BetaPrivacyPage() {
           <section key={section.heading} className="mb-5">
             <h2 className="text-[15px] font-semibold text-v2-text-primary mb-1.5">{section.heading}</h2>
             {section.paragraphs.map((text, i) => (
-              <p key={i} className="text-[13px] text-v2-text-secondary leading-relaxed mb-1.5">
+              <p key={i} className="text-[15px] text-v2-text-secondary leading-relaxed mb-1.5">
                 {text}
               </p>
             ))}

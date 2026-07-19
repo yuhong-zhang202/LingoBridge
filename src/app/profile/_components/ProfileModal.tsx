@@ -97,7 +97,7 @@ export default function ProfileModal({ title, onClose, children, className }: Pr
       >
         <Card className="px-6 pt-5 pb-6 animate-fade-up">
           <div className="flex items-center justify-between mb-5">
-            <h2 id={titleId} className="text-[15px] font-semibold text-v2-text-primary">{title}</h2>
+            <h2 id={titleId} className="text-[16px] font-semibold text-v2-text-primary">{title}</h2>
             <button
               onClick={onClose}
               aria-label="关闭"

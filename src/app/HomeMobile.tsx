@@ -47,7 +47,7 @@ export default function HomeMobile({
           >
             <ChevronLeft size={15} className="text-v2-text-secondary" />
           </button>
-          <span className="text-[15px] font-semibold text-v2-text-primary">写下你的故事</span>
+          <span className="text-[16px] font-semibold text-v2-text-primary">写下你的故事</span>
           <div className="w-[30px]" />
         </div>
       ) : (

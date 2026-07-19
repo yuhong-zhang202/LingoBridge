@@ -75,7 +75,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             >
               <ChevronLeft size={15} className="text-v2-text-secondary" />
             </button>
-            <span className="text-[15px] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
+            <span className="text-[16px] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
             <div className="w-[30px]" />
           </div>
 

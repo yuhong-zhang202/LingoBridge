@@ -79,20 +79,20 @@ export default function ConfirmDialog({
         className="bg-white rounded-2xl px-6 py-5 max-w-[400px] w-full mx-4 shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-v2-text-primary mb-2">{title}</h2>
-        <p className="text-sm text-v2-text-secondary mb-5 leading-relaxed">{description}</p>
+        <h2 id="confirm-dialog-title" className="text-[16px] font-semibold text-v2-text-primary mb-2">{title}</h2>
+        <p className="text-[13px] text-v2-text-secondary mb-5 leading-relaxed">{description}</p>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 rounded-lg text-sm text-v2-text-muted hover:bg-bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-full text-[13px] text-v2-text-muted hover:bg-bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 rounded-lg text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${danger ? 'bg-error' : 'bg-brand-primary'}`}
+            className={`px-4 py-2 rounded-full text-[13px] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${danger ? 'bg-error' : 'bg-brand-primary'}`}
           >
             {loading ? '删除中…' : confirmText}
           </button>

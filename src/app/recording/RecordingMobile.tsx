@@ -46,7 +46,7 @@ export default function RecordingMobile({
             <X size={14} className="text-v2-text-primary" />
           </span>
         </button>
-        <span className="text-[15px] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
+        <span className="text-[16px] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
         <div className="w-11" />
       </div>
 
@@ -64,7 +64,7 @@ export default function RecordingMobile({
             </div>
 
             <div className="surface px-4 py-3 max-w-[260px] text-center">
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed">
+              <p className="text-[14px] text-v2-text-secondary leading-relaxed">
                 正在聆听，说完点下方「完成录音」自动转写
               </p>
             </div>

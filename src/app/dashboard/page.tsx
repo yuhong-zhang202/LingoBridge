@@ -205,14 +205,14 @@ export default function DashboardPage() {
       </div>
 
       {denied && (
-        <div className="text-v2-text-muted text-sm py-10 text-center">无权访问：成本看板仅对管理员开放。</div>
+        <div className="text-v2-text-muted text-[14px] py-10 text-center">无权访问：成本看板仅对管理员开放。</div>
       )}
 
-      {loading && !denied && <div className="text-v2-text-muted text-sm py-10 text-center">加载中…</div>}
+      {loading && !denied && <div className="text-v2-text-muted text-[14px] py-10 text-center">加载中…</div>}
 
       {error && !loading && !denied && (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="text-v2-text-secondary text-sm">加载失败，请重试</div>
+          <div className="text-v2-text-secondary text-[14px]">加载失败，请重试</div>
           <button onClick={() => setReloadKey(k => k + 1)}
             className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full text-[12px] font-medium bg-v2-text-primary text-white">
             重试
