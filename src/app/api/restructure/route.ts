@@ -12,8 +12,8 @@ import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
-import { bumpAnonRestructureTodayServer } from '@/lib/db/corpus-server'
-import { ANON_RESTRUCTURE_LIMIT } from '@/lib/constants'
+import { bumpAnonRestructureTodayServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { ANON_RESTRUCTURE_LIMIT, REG_RESTRUCTURE_DAILY_LIMIT } from '@/lib/constants'
 
 // 输入上限：整理是按字数估算 token 计费的付费调用，限长防止单请求刷高 token 成本
 const MAX_RAW_TEXT_LENGTH = 3000
@@ -36,11 +36,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '内容过长，请分段提交（上限 3000 字）' }, { status: 400 })
     }
     // 匿名试用整理次数：原子递增当日计数，超上限即 402（原子递增放 AI 调用前，攻击者刷失败也计数、防绕过）。
-    // 注册用户跳过此计数，走各自既有额度。
     if (isAnonymous) {
       const n = await bumpAnonRestructureTodayServer(userId)
       if (n > ANON_RESTRUCTURE_LIMIT) {
         return NextResponse.json({ error: '试用整理次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+      }
+    } else {
+      // 注册用户熔断：同样先计次后调 AI——超额时 AI 零调用、logApiUsage 零记账。
+      // 与三个 AI 接口同范式，只是匿名侧走的是 restructure 专用的 bumpAnonRestructureTodayServer（不落 daily_usage），故这里分支写。
+      // 超熔断上限 → 429（不带 code，不触发配额弹层）。
+      const dailyCount = await bumpDailyUsageServer(userId, 'restructure')
+      if (dailyCount > REG_RESTRUCTURE_DAILY_LIMIT) {
+        return NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
       }
     }
     // restructure 处于建语料之前，无 corpusId；带 userId 归属留证。

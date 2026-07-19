@@ -1,8 +1,8 @@
 /**
  * @module   api/daily-quota.test
- * @desc     每日次数熔断回归守卫 —— 钉死 matching / analysis / analysis-phrases 三个付费 AI 接口的核心不变式：
+ * @desc     每日次数熔断回归守卫 —— 钉死 matching / analysis / analysis-phrases / restructure 四个付费 AI 接口的核心不变式：
  *           超额时【返回 402(QUOTA_EXCEEDED) 且绝不触达 AI 服务】（计次必须在 AI 调用之前，超额零成本）。
- *           这三条此前只有 corpus 月额度间接约束、无每日熔断，单账号可反复调 qwen-plus 烧钱。
+ *           这几条此前只有 corpus 月额度间接约束、无每日熔断，单账号可反复调 qwen-plus / qwen-flash 烧钱。
  *           另覆盖注册档 429 与「matching 读档命中不计次」。全部依赖 mock，不碰真实 DB/模型/鉴权。
  * @author   LingoBridge
  * @created  2026-07-19
@@ -17,23 +17,28 @@ jest.mock('@/services/analysis', () => ({
   generatePhrases: jest.fn(),
 }))
 jest.mock('@/services/matching', () => ({ matchByStory: jest.fn() }))
+jest.mock('@/services/restructure', () => ({ restructureText: jest.fn() }))
 
 jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true } }))
 jest.mock('@/lib/api-logger', () => ({
   logApiUsage: jest.fn(),
   qwenPlusCostCny: jest.fn(() => 0.001),
-  API_PRICING: { qwen_plus_input_per_1m: 0.8, qwen_plus_output_per_1m: 2.0 },
+  API_PRICING: { qwen_plus_input_per_1m: 0.8, qwen_plus_output_per_1m: 2.0, qwen_flash_per_1k_tokens: 0.0003 },
 }))
 jest.mock('@/lib/api-auth', () => ({
   requireUserAllowAnon: jest.fn(),
   assertCorpusOwner: jest.fn(),
   authErrorResponse: jest.fn(() => null),
 }))
-jest.mock('@/lib/consent-server', () => ({ requireConsent: jest.fn(() => Promise.resolve(null)) }))
+jest.mock('@/lib/consent-server', () => ({
+  requireConsent: jest.fn(() => Promise.resolve(null)),
+  hasRecordedConsent: jest.fn(() => Promise.resolve(true)),
+}))
 jest.mock('@/lib/db/questions', () => ({ getQuestionById: jest.fn() }))
 jest.mock('@/lib/db/corpus-server', () => ({
   getCorpusByIdServer: jest.fn(),
   bumpDailyUsageServer: jest.fn(),
+  bumpAnonRestructureTodayServer: jest.fn(),
 }))
 jest.mock('@/lib/db/match-snapshots', () => ({
   getMatchSnapshotServer: jest.fn(),
@@ -47,12 +52,14 @@ jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 import { POST as matchingPost } from '@/app/api/matching/route'
 import { GET as analysisGet } from '@/app/api/analysis/route'
 import { GET as phrasesGet } from '@/app/api/analysis/phrases/route'
+import { POST as restructurePost } from '@/app/api/restructure/route'
 
 import { generateAnalysis, generatePhrases } from '@/services/analysis'
+import { restructureText } from '@/services/restructure'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
 import { getQuestionById } from '@/lib/db/questions'
-import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { getCorpusByIdServer, bumpDailyUsageServer, bumpAnonRestructureTodayServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
@@ -60,6 +67,7 @@ import {
   ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
   ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT,
   ANON_PHRASES_LIMIT, REG_PHRASES_DAILY_LIMIT,
+  ANON_RESTRUCTURE_LIMIT, REG_RESTRUCTURE_DAILY_LIMIT,
   RANKING_ALGO_VERSION,
 } from '@/lib/constants'
 
@@ -71,6 +79,8 @@ const mockGetSnapshot = getMatchSnapshotServer as jest.MockedFunction<typeof get
 const mockMatchByStory = matchByStory as jest.MockedFunction<typeof matchByStory>
 const mockLogApiUsage = logApiUsage as jest.MockedFunction<typeof logApiUsage>
 const mockGetSupabase = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
+const mockRestructure = restructureText as jest.MockedFunction<typeof restructureText>
+const mockBumpAnonRestructure = bumpAnonRestructureTodayServer as jest.MockedFunction<typeof bumpAnonRestructureTodayServer>
 
 const CLEANED = '上周末我去公园散步，待了很久就放松下来了。'
 const HASH = createHash('sha256').update(CLEANED, 'utf8').digest('hex')
@@ -114,6 +124,14 @@ function phrasesReq(): Request {
   return new Request('http://localhost/api/analysis/phrases?questionId=q1', { headers: { authorization: 'Bearer t' } })
 }
 
+function restructureReq(): Request {
+  return new Request('http://localhost/api/restructure', {
+    method: 'POST',
+    headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+    body: JSON.stringify({ rawText: '上周末 去公园 走走 挺放松的' }),
+  })
+}
+
 /** 设定当前用户身份（匿名 / 注册） */
 function asUser(isAnonymous: boolean): void {
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous })
@@ -131,6 +149,8 @@ beforeEach(() => {
   mockMatchByStory.mockResolvedValue(makeResult())
   ;(generateAnalysis as jest.Mock).mockResolvedValue({ structureLabel: 's', focusPoints: [], phrases: [] })
   ;(generatePhrases as jest.Mock).mockResolvedValue([])
+  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true })
+  mockBumpAnonRestructure.mockResolvedValue(1)
   mockBumpDaily.mockResolvedValue(1)
 
   // matching 的 persistMatches 走真实代码，给最小可链式 stub
@@ -180,6 +200,18 @@ describe('每日次数熔断 · 匿名超额 → 402 且未触达 AI', () => {
     expect(generatePhrases).not.toHaveBeenCalled()
     expect(mockLogApiUsage).not.toHaveBeenCalled()
   })
+
+  test('restructure POST：匿名超 ANON_RESTRUCTURE_LIMIT → 402 QUOTA_EXCEEDED，restructureText 零调用、零记账', async () => {
+    asUser(true)
+    mockBumpAnonRestructure.mockResolvedValue(ANON_RESTRUCTURE_LIMIT + 1)
+
+    const res = await restructurePost(restructureReq())
+
+    expect(res.status).toBe(402)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'QUOTA_EXCEEDED' }))
+    expect(mockRestructure).not.toHaveBeenCalled()
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+  })
 })
 
 describe('每日次数熔断 · 注册超熔断上限 → 429 且未触达 AI（不带 code，不弹配额层）', () => {
@@ -204,6 +236,17 @@ describe('每日次数熔断 · 注册超熔断上限 → 429 且未触达 AI（
     expect(res.status).toBe(429)
     expect(generatePhrases).not.toHaveBeenCalled()
   })
+
+  test('restructure POST：注册超 REG_RESTRUCTURE_DAILY_LIMIT → 429，restructureText 零调用、零记账', async () => {
+    mockBumpDaily.mockResolvedValue(REG_RESTRUCTURE_DAILY_LIMIT + 1)
+
+    const res = await restructurePost(restructureReq())
+
+    expect(res.status).toBe(429)
+    expect(await res.json()).toEqual(expect.not.objectContaining({ code: 'QUOTA_EXCEEDED' }))
+    expect(mockRestructure).not.toHaveBeenCalled()
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+  })
 })
 
 describe('每日次数熔断 · 未超额放行 + 计次口径', () => {
@@ -222,6 +265,22 @@ describe('每日次数熔断 · 未超额放行 + 计次口径', () => {
     beforeEachRefresh()
     expect((await phrasesGet(phrasesReq())).status).toBe(200)
     expect(mockBumpDaily).toHaveBeenCalledWith('u1', 'phrases')
+
+    jest.clearAllMocks()
+    beforeEachRefresh()
+    expect((await restructurePost(restructureReq())).status).toBe(200)
+    expect(mockBumpDaily).toHaveBeenCalledWith('u1', 'restructure')
+  })
+
+  test('restructure 匿名：只走 restructure 专用计数，不动 daily_usage（匿名侧原逻辑未被改坏）', async () => {
+    asUser(true)
+    mockBumpAnonRestructure.mockResolvedValue(1)
+
+    const res = await restructurePost(restructureReq())
+
+    expect(res.status).toBe(200)
+    expect(mockBumpAnonRestructure).toHaveBeenCalledWith('u1')
+    expect(mockBumpDaily).not.toHaveBeenCalled()
   })
 
   test('matching 读档命中：不跑模型 → 不扣配额（重看已匹配结果不该被白扣次数）', async () => {
@@ -244,5 +303,7 @@ function beforeEachRefresh(): void {
   mockLogApiUsage.mockResolvedValue(undefined)
   ;(generateAnalysis as jest.Mock).mockResolvedValue({ structureLabel: 's', focusPoints: [], phrases: [] })
   ;(generatePhrases as jest.Mock).mockResolvedValue([])
+  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true })
+  mockBumpAnonRestructure.mockResolvedValue(1)
   mockBumpDaily.mockResolvedValue(1)
 }

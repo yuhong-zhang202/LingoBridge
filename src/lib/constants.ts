@@ -116,6 +116,8 @@ export const REG_MATCHING_DAILY_LIMIT = 50
 export const REG_ANALYSIS_DAILY_LIMIT = 200
 /** 注册每日：phrases 换词组（重出按钮可连点，介于 polish 100 与 analysis 200 之间取 150）*/
 export const REG_PHRASES_DAILY_LIMIT = 150
+/** 注册每日：restructure 文字整理（与 transcribe 对齐 200——两者一一配对，且走最便宜的 qwen-flash，压太低会误伤真实用户）*/
+export const REG_RESTRUCTURE_DAILY_LIMIT = 200
 
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
