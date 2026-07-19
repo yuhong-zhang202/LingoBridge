@@ -160,12 +160,12 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
 }
 
 export default function MatchingDesktop({
-  result, loading, error, totalVisible, availableTabs, activeTab, filtered,
+  result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab, filtered,
   highGroup, midGroup, noneVisible, globalNoneVisible, selectedId,
   onSelectTab, onSelect, onPractice, onRetry, onExit,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
 
-  const hasList = !loading && !error && !!result && !result.noMatch && !globalNoneVisible
+  const hasList = !loading && !error && !dailyLimitHit && !!result && !result.noMatch && !globalNoneVisible
   // 有序可导航列表：高→中→低（与左栏展示顺序一致）
   const ordered = [...highGroup, ...midGroup]
   const selected = result ? (result.questions.find(q => q.id === selectedId) ?? null) : null
@@ -231,6 +231,22 @@ export default function MatchingDesktop({
             <Skeleton className="flex-1 h-[420px] rounded-[16px]" />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // 当日上限（429）：排在 error 之前，且不给「重试」——重试只会再撞 429，把用户锁进死循环。
+  if (dailyLimitHit) {
+    return (
+      <div className={`${STAGE} flex items-center justify-center px-8`}>
+        <EmptyState
+          title="今天的匹配次数用完了"
+          subtitle="明天会自动恢复。已经匹配过的题目仍然可以打开。"
+          ctaLabel="回首页"
+          onCta={onExit}
+          orbSize={100}
+          alert
+        />
       </div>
     )
   }

@@ -12,6 +12,8 @@ import { mutate } from 'swr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
+import Toast from '@/components/Toast'
 import AnalysisMobile from './AnalysisMobile'
 import AnalysisDesktop from './AnalysisDesktop'
 import type { AnalysisViewProps } from './types'
@@ -37,6 +39,12 @@ function AnalysisContent() {
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
+  // 402（匿名试用额度用尽）→ 弹 QuotaReached trial 引导注册；429（注册用户当日上限）→ 行内/Toast 提示，绝不引导注册。
+  // 记来源而非布尔：两处 402 的关闭语义不同 —— 整页取数失败关掉只能回首页（页面无内容），
+  // 换词失败时页面主体（当前档位词组）还在，关掉应留在原页继续看。
+  const [quotaShown, setQuotaShown] = useState<'page' | 'phrases' | null>(null)
+  const [dailyLimitHit, setDailyLimitHit] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const [openPhrase, setOpenPhrase] = useState<string | null>(null)
   const [level, setLevel] = useState('6.0')
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
@@ -54,12 +62,16 @@ function AnalysisContent() {
     let cancelled = false
     const ac = new AbortController()
     ;(async () => {
-      setLoading(true); setError(null)
+      setLoading(true); setError(null); setDailyLimitHit(false)
       try {
         const res = await apiFetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
         // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「生成分析失败」。
         // 分析是零红线环节（点进题目看到的全部内容），务必兜好而非停在错误态。
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
+        // 402 = 匿名试用额度用尽 → 转化点，弹注册引导覆盖层
+        if (res.status === 402) { if (!cancelled) setQuotaShown('page'); return }
+        // 429 = 注册用户当日上限 → 只告知「明天恢复」，不走 error 通道（其 CTA 是重试，点了还撞 429）
+        if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
@@ -84,11 +96,17 @@ function AnalysisContent() {
         const res = await apiFetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
         // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
         if (res.status === 403) { router.push('/'); return }
+        // 402/429 必须在此判、不能等 catch —— catch 里拿不到 res.status。
+        // 档位回退保留（状态不该与内容脱节），但必须配提示：否则用户点 7.0 → 档位自己跳回 6.0
+        // → 内容一字未变 → 零反馈 → 以为按钮坏了反复点，每点一次烧一次 AI。
+        if (res.status === 402) { setLevel(prevLevel); setQuotaShown('phrases'); return }
+        if (res.status === 429) { setLevel(prevLevel); setToast('今天的换词次数用完了，明天会自动恢复。'); return }
         if (!res.ok) throw new Error('换词失败')
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)
       } catch {
         setLevel(prevLevel)
+        setToast(`没换成 ${newLevel}，还是 ${prevLevel} 的版本。再点一次试试？`)
       } finally {
         setPhrasesLoading(false)
       }
@@ -124,6 +142,7 @@ function AnalysisContent() {
     data,
     loading,
     error,
+    dailyLimitHit,
     level,
     levelMenuOpen,
     phrasesLoading,
@@ -135,6 +154,7 @@ function AnalysisContent() {
     onTogglePhrase: (key) => setOpenPhrase(key),
     onToggleSave: toggleSave,
     onStartPractice: () => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
+    onReviewCards: () => router.push('/review'),
     onBack: () => router.push(backTarget.href),
     onExit: () => router.push('/'),
   }
@@ -148,6 +168,16 @@ function AnalysisContent() {
           <AnalysisDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
+      {/* 402 匿名试用额度用尽：引导注册。整页失败关掉回首页；换词失败关掉留在原页（词组内容还在） */}
+      {quotaShown && (
+        <QuotaReached
+          variant="trial"
+          asOverlay
+          onClose={quotaShown === 'phrases' ? () => setQuotaShown(null) : () => router.push('/')}
+        />
+      )}
+      {/* 换词失败/换词当日上限：页面主体内容仍可读，用 Toast 而非遮罩，不打断阅读 */}
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </>
   )
 }

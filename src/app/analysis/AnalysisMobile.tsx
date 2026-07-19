@@ -54,8 +54,8 @@ function GradCard({ children }: { children: ReactNode }) {
 }
 
 export default function AnalysisMobile({
-  data, loading, error, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
-  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onBack,
+  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
+  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onBack,
 }: AnalysisViewProps) {
   return (
     <div
@@ -113,7 +113,20 @@ export default function AnalysisMobile({
             </GradCard>
           </>
         )}
-        {!loading && error && (
+        {/* 当日上限（429）：必须排在 error 分支之前，且不给「重试」——重试只会再撞 429。
+            文案只说「明天恢复」不写具体时刻：服务端计次日界是 UTC 还是本地未核实，不精确化。 */}
+        {!loading && dailyLimitHit && (
+          <EmptyState
+            title="今天的分析次数用完了"
+            subtitle="明天会自动恢复。收藏过的词卡随时可以回顾。"
+            ctaLabel="回顾词卡"
+            onCta={onReviewCards}
+            orbSize={100}
+            alert
+          />
+        )}
+
+        {!loading && !dailyLimitHit && error && (
           typeof navigator !== 'undefined' && !navigator.onLine ? (
             <OfflineState onRetry={onRetry} />
           ) : (
@@ -196,10 +209,11 @@ export default function AnalysisMobile({
                   )}
                 </div>
               </div>
+              {/* aria-live：换档后词组整体被替换，读屏用户否则感知不到内容已变（先例 PracticeDesktop 消息列表） */}
               {phrasesLoading ? (
-                <p className="text-[12px] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
+                <p aria-live="polite" className="text-[12px] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
               ) : (
-              <div className="flex flex-col gap-3.5">
+              <div aria-live="polite" className="flex flex-col gap-3.5">
                 {(data.analysis.phrases ?? []).map((g, gi) => {
                   const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                   const openItem = og === gi ? g.items[oi] : null

@@ -17,6 +17,9 @@ interface EmptyStateProps {
   onCta?: () => void
   orbSize?: number
   className?: string
+  /** 是否作为即时播报（role="alert"）。仅用于「操作被拒」类反馈（如配额用尽）；
+   *  普通空列表不要传，否则读屏会在页面加载时无端播报「暂无内容」。 */
+  alert?: boolean
 }
 
 /**
@@ -27,6 +30,7 @@ interface EmptyStateProps {
  * @param onCta      行动按钮点击回调（可选）
  * @param orbSize    Orb 直径，默认 120
  * @param className  附加 class（如外部间距）
+ * @param alert      true 时挂 role="alert" 即时播报（配额用尽等操作被拒场景）
  */
 export default function EmptyState({
   title,
@@ -35,9 +39,10 @@ export default function EmptyState({
   onCta,
   orbSize = 120,
   className,
+  alert,
 }: EmptyStateProps): JSX.Element {
   return (
-    <div className={cn('flex flex-col items-center text-center pt-16', className)}>
+    <div role={alert ? 'alert' : undefined} className={cn('flex flex-col items-center text-center pt-16', className)}>
       <Orb size={orbSize} pulse={false} />
       <p className="text-[15px] font-medium text-v2-text-primary mt-5">{title}</p>
       {subtitle && (

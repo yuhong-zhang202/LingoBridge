@@ -43,28 +43,48 @@ export function defaultNickname(seed: string | null): string {
 }
 
 // ── 内测邮箱白名单文案映射【临时措施·内测结束后连同 0023 migration 一起删除】────────
-/** DB 触发器 enforce_beta_allowlist_trg 抛错时携带的稳定关键词（见 0023_beta_allowlist.sql）。 */
-const ALLOWLIST_DENIED_KEY = 'beta_allowlist_denied'
-/** 被名单挡下时的用户可见文案（login/page.tsx 直接渲染 err.message）。 */
-const ALLOWLIST_DENIED_MSG = '该邮箱不在内测名单内，如需参加请联系我们'
+//
+// ⚠️ 历史方案已被实测证伪，勿回退：
+//   0023_beta_allowlist.sql 的注释假设「raise exception 的消息里带稳定关键词 BETA_ALLOWLIST_DENIED，
+//   供前端匹配」。qa-engineer 于 2026-07-19 在生产环境把真实错误对象整体打印后确认，
+//   GoTrue 会把 DB 异常原文【整个吞掉】，前端拿到的只有：
+//     { name:'AuthApiError', message:'Database error saving new user',
+//       status:500, code:'unexpected_failure' }
+//   自有属性仅 stack/message/__isAuthError/name/status/code —— 关键词在任何字段里都不存在。
+//   注册（updateUser 绑邮箱）与登录两条路径皆如此。故关键词匹配恒为 false，被挡的人
+//   只会看到「Database error saving new user」。
+//
+// 现方案（产品方 2026-07-19 拍板·方案 A）：改看 status + code，零后端改动。
+//   白名单启用期间，注册/登录场景下的 500 + unexpected_failure 几乎必然就是白名单拒绝。
+//
+// ⚠️ 已知误伤 + 知情取舍：真正的数据库故障（连接池打满、磁盘满等）同样会命中 500/unexpected_failure，
+//   被误判成「不在名单」。故文案刻意写成【兼容措辞】——同时给出「不在名单→联系我们」与
+//   「确认已受邀→稍后重试」两条出路，任一真因下都不误导用户。这是明知而为的取舍，不是疏漏。
+//
+// ⚠️ 拆白名单时，本段整体删除（含 isAllowlistDenied 及其两处调用点），
+//   不要只删 0023 而把这段映射留下——留下就等于把普通 DB 故障永久说成「不在内测名单」。
+
+/** 触发器拒绝时 GoTrue 实际回给前端的 HTTP 状态（DB 异常一律包成 500）。 */
+const ALLOWLIST_DENIED_STATUS = 500
+/** 触发器拒绝时 GoTrue 实际回给前端的错误码（DB 异常一律包成 unexpected_failure）。 */
+const ALLOWLIST_DENIED_CODE = 'unexpected_failure'
+/** 注册场景被挡下的用户可见文案（login/page.tsx 直接渲染 err.message）。 */
+const ALLOWLIST_DENIED_MSG_REGISTER =
+  '注册失败。如果你不在内测名单内，请联系我们获取邀请；如果你确认已受邀，请稍后重试。'
+/** 登录场景被挡下的用户可见文案（同一基调，措辞适配「登录」而非「注册」）。 */
+const ALLOWLIST_DENIED_MSG_LOGIN =
+  '登录失败。如果你不在内测名单内，请联系我们获取邀请；如果你确认已受邀，请稍后重试。'
 
 /**
- * 判断 GoTrue 错误是否由内测白名单触发器抛出。
- * GoTrue 常把 DB 异常包成 500「Database error updating user」，关键词可能落在 message 或嵌套字段里，
- * 故对整个错误对象做序列化后再匹配关键词（关键词唯一且稳定，不会误命中）。
+ * 判断 GoTrue 错误是否为内测白名单触发器拒绝。
+ * 判定依据为 status + code（原关键词匹配方案已被生产实测证伪，见上方段落注释）。
  * @param error 任意 GoTrue / 网络错误对象
- * @returns     true 表示应回「不在内测名单」文案
+ * @returns     true 表示应回白名单兼容措辞文案
  */
 function isAllowlistDenied(error: unknown): boolean {
-  if (error === null || error === undefined) return false
-  const msg = (error as { message?: unknown }).message
-  const parts = [typeof msg === 'string' ? msg : '']
-  try {
-    parts.push(JSON.stringify(error) ?? '')
-  } catch {
-    // 循环引用等，忽略：仅靠 message 匹配
-  }
-  return parts.join(' ').toLowerCase().includes(ALLOWLIST_DENIED_KEY)
+  if (error === null || typeof error !== 'object') return false
+  const { status, code } = error as { status?: unknown; code?: unknown }
+  return status === ALLOWLIST_DENIED_STATUS && code === ALLOWLIST_DENIED_CODE
 }
 
 function validateEmail(email: string): string {
@@ -93,7 +113,7 @@ export async function registerWithPassword(email: string, password: string): Pro
   // 内测白名单拒绝优先判：触发器抛的是 DB 异常（多为 500），若落到下面兜底分支
   // 用户只会看到「创建账号失败，请稍后再试」，完全不知道自己是被名单挡了。
   if (isAllowlistDenied(error)) {
-    throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG, error)
+    throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG_REGISTER, error)
   }
 
   // 邮箱已注册启发式：status 422 / message 含 already/registered/exists
@@ -118,8 +138,9 @@ export async function loginWithPassword(email: string, password: string): Promis
   const { error } = await getSupabase().auth.signInWithPassword({ email: e, password })
   if (error) {
     // 登录本身不触发白名单触发器（不写 email 列），此分支仅为万一被间接命中时不回误导性的「密码错误」。
+    // 凭据错误 GoTrue 回 400 invalid_credentials，不会命中 500/unexpected_failure，故不会抢掉「密码错误」文案。
     if (isAllowlistDenied(error)) {
-      throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG, error)
+      throw appError('NOT_ALLOWLISTED', ALLOWLIST_DENIED_MSG_LOGIN, error)
     }
     throw appError('LOGIN_FAILED', '邮箱或密码错误', error)
   }

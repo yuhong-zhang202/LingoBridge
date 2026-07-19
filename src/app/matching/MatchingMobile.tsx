@@ -40,10 +40,10 @@ function GroupHeader({ label, count, variant }: {
 }
 
 export default function MatchingMobile({
-  result, loading, error, totalVisible, availableTabs, activeTab,
+  result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
   selectedId, expanded,
-  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry, onBack,
+  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry, onBack, onExit,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
   return (
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
@@ -86,7 +86,20 @@ export default function MatchingMobile({
           </div>
         )}
 
-        {!loading && error && (
+        {/* 当日上限（429）：必须排在 error 分支之前，且不给「重试」——重试只会再撞 429。
+            文案只说「明天恢复」不写具体时刻：服务端计次日界是 UTC 还是本地未核实，不精确化。 */}
+        {!loading && dailyLimitHit && (
+          <EmptyState
+            title="今天的匹配次数用完了"
+            subtitle="明天会自动恢复。已经匹配过的题目仍然可以打开。"
+            ctaLabel="回首页"
+            onCta={onExit}
+            orbSize={100}
+            alert
+          />
+        )}
+
+        {!loading && !dailyLimitHit && error && (
           typeof navigator !== 'undefined' && !navigator.onLine ? (
             <OfflineState onRetry={onRetry} />
           ) : (

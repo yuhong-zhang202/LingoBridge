@@ -57,12 +57,12 @@ function GradCard({ children, className }: { children: ReactNode; className?: st
 }
 
 export default function AnalysisDesktop({
-  data, loading, error, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
-  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onExit,
+  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
+  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onExit,
 }: AnalysisViewProps) {
 
   // 键盘：Enter / → 进入练习、Esc 退出（仅桌面断点、有结果时才挂；焦点在输入类元素时不拦截）
-  const ready = !loading && !error && !!data
+  const ready = !loading && !error && !dailyLimitHit && !!data
   const latest = useRef({ onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu })
   latest.current = { onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu }
   useEffect(() => {
@@ -132,6 +132,22 @@ export default function AnalysisDesktop({
             </GradCard>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // 当日上限（429）：排在 error 之前，且不给「重试」——重试只会再撞 429，把用户锁进死循环。
+  if (dailyLimitHit) {
+    return (
+      <div className={`${STAGE} flex flex-col items-center justify-center px-8`}>
+        <EmptyState
+          title="今天的分析次数用完了"
+          subtitle="明天会自动恢复。收藏过的词卡随时可以回顾。"
+          ctaLabel="回顾词卡"
+          onCta={onReviewCards}
+          orbSize={100}
+          alert
+        />
       </div>
     )
   }
@@ -238,11 +254,12 @@ export default function AnalysisDesktop({
                 )}
               </div>
             </div>
+            {/* aria-live：换档后词组整体被替换，读屏用户否则感知不到内容已变（先例 PracticeDesktop 消息列表） */}
             {phrasesLoading ? (
-              <p className="flex-1 flex items-center justify-center text-[12px] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
+              <p aria-live="polite" className="flex-1 flex items-center justify-center text-[12px] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
             ) : (
             // 词组多时不撑高卡片：max-h 封顶 + 卡内滚动（min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
-            <div className="flex-1 min-h-0 max-h-[440px] overflow-y-auto flex flex-col gap-3.5 pr-1">
+            <div aria-live="polite" className="flex-1 min-h-0 max-h-[440px] overflow-y-auto flex flex-col gap-3.5 pr-1">
               {(data.analysis.phrases ?? []).map((g, gi) => {
                 const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                 const openItem = og === gi ? g.items[oi] : null

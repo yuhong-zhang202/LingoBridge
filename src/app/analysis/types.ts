@@ -11,6 +11,9 @@ export interface AnalysisViewProps {
   data: AnalysisResponse | null
   loading: boolean
   error: string | null
+  /** 当日分析次数用尽（服务端 429）。必须独立于 error：错误态 CTA 是「重试」，
+   *  而重试只会再撞一次 429 → 死循环，故两视图须在 error 分支之前判它并渲染无重试 CTA 的提示。 */
+  dailyLimitHit: boolean
   /** 当前雅思目标水平 */
   level: string
   /** 词组水平下拉是否展开 */
@@ -33,6 +36,8 @@ export interface AnalysisViewProps {
   onToggleSave: (item: AnalysisPhrase, group: string) => void
   /** 进入练习 */
   onStartPractice: () => void
+  /** 去词卡回顾（当日分析次数用尽时的出口，/review） */
+  onReviewCards: () => void
   /** 返回上一步（故事流→匹配页；雅思流→整理页；缺 from→首页）；替掉移动端 TopBar 默认 router.back() 现网破损 */
   onBack: () => void
   /** 退出回首页（桌面 Esc 用；与外壳顶栏 ✕ 一致） */

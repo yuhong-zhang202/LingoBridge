@@ -14,6 +14,7 @@ import { saveExtraction } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
+import QuotaReached from '@/components/QuotaReached'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import type { FunnelResult, PartTab, MatchingViewProps } from './types'
@@ -25,6 +26,9 @@ function MatchingContent() {
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // 402（匿名试用额度用尽）→ 弹 QuotaReached trial 引导注册；429（注册用户当日上限）→ 行内提示，绝不引导注册
+  const [quotaShown, setQuotaShown] = useState(false)
+  const [dailyLimitHit, setDailyLimitHit] = useState(false)
   const [activeTab, setActiveTab] = useState<PartTab>('全部')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -40,7 +44,7 @@ function MatchingContent() {
     let cancelled = false
     const ac = new AbortController()
     ;(async () => {
-      setLoading(true); setError(null)
+      setLoading(true); setError(null); setDailyLimitHit(false)
       try {
         const res = await apiFetch('/api/matching', {
           method: 'POST',
@@ -49,6 +53,10 @@ function MatchingContent() {
         })
         // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「匹配失败」。
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
+        // 402 = 匿名试用额度用尽 → 转化点，弹注册引导覆盖层
+        if (res.status === 402) { if (!cancelled) setQuotaShown(true); return }
+        // 429 = 注册用户当日上限 → 只告知「明天恢复」，不走 error 通道（其 CTA 是重试，点了还撞 429）
+        if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as FunnelResult
         if (!cancelled) { setResult(data); setSelectedId(data.questions[0]?.id ?? null) }
@@ -168,6 +176,7 @@ function MatchingContent() {
     result,
     loading,
     error,
+    dailyLimitHit,
     totalVisible,
     availableTabs,
     activeTab,
@@ -201,6 +210,8 @@ function MatchingContent() {
           <MatchingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
+      {/* 402 匿名试用额度用尽：引导注册；关闭即回首页（本页无内容可留） */}
+      {quotaShown && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

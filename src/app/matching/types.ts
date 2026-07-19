@@ -39,6 +39,9 @@ export interface MatchingViewProps {
   result: FunnelResult | null
   loading: boolean
   error: string | null
+  /** 当日匹配次数用尽（服务端 429）。必须独立于 error：错误态 CTA 是「重试」，
+   *  而重试只会再撞一次 429 → 死循环，故两视图须在 error 分支之前判它并渲染无重试 CTA 的提示。 */
+  dailyLimitHit: boolean
   /** 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响） */
   totalVisible: number
   /** 动态 Part 标签：只含有结果的 Part */

@@ -2,11 +2,13 @@
  * @module   QuotaReached
  * @desc     月额度用完态 — 故事 / 雅思复练两个变体；CTA 按另一额度是否也用完动态显示。
  *           视觉规格沿用 EmptyState（Orb size=120 + 标题/副文 v2 token + 渐变描边胶囊 CTA）。
+ *           asOverlay 模式为真模态：role="dialog" + aria-modal + 焦点移入/陷阱 + Esc 关闭，
+ *           保证键盘与读屏用户不会被遮罩困住（此前遮罩仅鼠标可达）。
  * @author   LingoBridge
  * @created  2026-06-18
  */
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
@@ -29,6 +31,20 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const router = useRouter()
   const [storyDone, setStoryDone] = useState(variant === 'story')
   const [reviewDone, setReviewDone] = useState(variant === 'ielts')
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /** 取面板内当前可聚焦元素（CTA 按钮随额度状态增减，故每次实时查询而非缓存） */
+  const focusables = (): HTMLElement[] => {
+    const root = panelRef.current
+    if (!root) return []
+    return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
+  }
+
+  // 浮层打开时把焦点移入首个 CTA：键盘/读屏用户否则仍停在被遮罩的背景页上。
+  useEffect(() => {
+    if (!asOverlay) return
+    focusables()[0]?.focus()
+  }, [asOverlay])
 
   // 异步核另一额度（决定要不要显示对侧 CTA）。仅月额度变体需要；trial 试用变体不涉及月额度，跳过。
   useEffect(() => {
@@ -57,14 +73,14 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const trialBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <p className="text-[15px] font-medium text-v2-text-primary mt-5">试用已完成</p>
+      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">试用已完成</h2>
       <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         注册账号，继续把你的故事变成雅思口语素材。
       </p>
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <GradientButton
           onClick={() => router.push('/login')}
-          className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+          className="px-6 py-3 rounded-full text-[14px] font-medium"
         >
           注册 / 登录
         </GradientButton>
@@ -75,7 +91,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const quotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <p className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（10/10）</p>
+      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（10/10）</h2>
       <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>
@@ -84,7 +100,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         {!reviewDone && (
           <GradientButton
             onClick={handlePracticeIelts}
-            className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+            className="px-6 py-3 rounded-full text-[14px] font-medium"
           >
             练雅思题
           </GradientButton>
@@ -92,14 +108,14 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         {!storyDone && (
           <GradientButton
             onClick={() => router.push('/')}
-            className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+            className="px-6 py-3 rounded-full text-[14px] font-medium"
           >
             讲个故事
           </GradientButton>
         )}
         <GradientButton
           onClick={() => router.push('/review')}
-          className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+          className="px-6 py-3 rounded-full text-[14px] font-medium"
         >
           回顾词卡
         </GradientButton>
@@ -115,12 +131,33 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
 
   if (!asOverlay) return body
 
+  // Esc 关闭 + Tab 焦点陷阱：模态期间焦点不得逃逸到被遮罩的背景页。
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); return }
+    if (e.key !== 'Tab') return
+    const items = focusables()
+    if (items.length === 0) return
+    const first = items[0]
+    const last  = items[items.length - 1]
+    const active = document.activeElement
+    if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
+      e.preventDefault(); last.focus()
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault(); first.focus()
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
       onClick={onClose}
+      onKeyDown={handleKeyDown}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quota-title"
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[360px] bg-bg-surface rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] animate-fade-up"
       >
