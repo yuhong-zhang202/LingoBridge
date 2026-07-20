@@ -73,7 +73,8 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           })()}
           {totalMatched === 0
             ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
-            : <p className="text-[11px] text-warm-taupe mt-1.5">每一段都是你自己的答题素材</p>}
+            /* text-v2-text-muted 而非 warm-taupe：后者 #C4B5A9 在白底约 2.0:1，11px 正文远低于 WCAG AA 4.5 */
+            : <p className="text-[11px] text-v2-text-muted mt-1.5">每一段都是你自己的答题素材</p>}
         </div>
       </div>
 
@@ -88,9 +89,23 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
         </button>
         {matchedOpen && <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2.5">
           {matchedQ.map(q => (
+            /* role="button" + tabIndex + onKeyDown 而非改成真 <button>：卡片内嵌「练习」Chip（本身是
+               button），外层若用 <button> 就是 HTML 非法的按钮嵌套，浏览器会重排 DOM 打散布局。
+               role 方案对现有样式零影响。onKeyDown 只在事件源就是卡片本身时响应，
+               避免在内嵌 Chip 上按 Enter 时冒泡上来同时触发选中。 */
             <div
               key={q.id}
+              role="button"
+              tabIndex={0}
+              aria-pressed={q.id === selectedId}
               onClick={() => setSelectedId(q.id)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()   // 空格默认滚动页面
+                  setSelectedId(q.id)
+                }
+              }}
               className="bg-white rounded-[14px] border border-black/[0.05] overflow-hidden flex shadow-[0_1px_6px_rgba(0,0,0,0.05)] cursor-pointer"
             >
               <div

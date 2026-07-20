@@ -12,7 +12,6 @@ import { RotateCcw, Pencil } from 'lucide-react'
 import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'
 import Toast from '@/components/Toast'
-import RequireAccountGate from '@/components/RequireAccountGate'
 import type { RecordingViewProps } from './types'
 
 /** 秒数格式化为 mm:ss */
@@ -154,18 +153,16 @@ export default function RecordingDesktop({
   return (
     <div className="relative h-full flex flex-col">
       <div className="ambient-light" />
-      <RequireAccountGate>
-        <ListeningStage
-          transcribing={transcribing}
-          error={error}
-          seconds={seconds}
-          audioLevel={audioLevel}
-          onFinish={onFinish}
-          onRerecord={onRerecord}
-          onSwitchToText={onSwitchToText}
-          onExit={onExit}
-        />
-      </RequireAccountGate>
+      <ListeningStage
+        transcribing={transcribing}
+        error={error}
+        seconds={seconds}
+        audioLevel={audioLevel}
+        onFinish={onFinish}
+        onRerecord={onRerecord}
+        onSwitchToText={onSwitchToText}
+        onExit={onExit}
+      />
       <Toast message={toastMsg} onDismiss={onDismissToast} />
     </div>
   )

@@ -11,7 +11,6 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, Trash2 } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
-import RequireAccountGate from '@/components/RequireAccountGate'
 import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
 import EmptyState from '@/components/EmptyState'
@@ -19,7 +18,9 @@ import OfflineState from '@/components/OfflineState'
 import IconButton from '@/components/IconButton'
 import Toast from '@/components/Toast'
 import SearchBox from '@/components/library/SearchBox'
+import LoginPrompt from '@/app/profile/_components/LoginPrompt'
 import useDebouncedValue from '@/hooks/useDebouncedValue'
+import { getAccount } from '@/lib/auth'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
@@ -51,6 +52,14 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
   const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
 
   const totalCount = stories.length + cards.length + wordsCount + pronCount
+  // 匿名判定（与 settings/profile 同范式）：仅用于决定是否展示登录软引导卡。
+  // 读取失败一律按「非匿名」降级 —— 宁可少打扰一次，也不给已登录用户误显引导。
+  const [isAnon, setIsAnon] = useState(false)
+  useEffect(() => {
+    getAccount()
+      .then(acct => setIsAnon(!!acct?.isAnonymous))
+      .catch(() => setIsAnon(false))
+  }, [])
   // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
   // 当前活跃 tab 是否处于选择模式（由各 tab 组件通知）：用于禁用同排搜索图标
@@ -107,110 +116,118 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
     <div className="min-h-screen bg-bg-page">
       <TopNav containerClassName={MANAGE_CONTAINER} />
 
-      <RequireAccountGate>
-        <main className={`${MANAGE_CONTAINER} pb-12`}>
-          <ManageHeader
-            title="我的素材库"
-            subtitle={`已攒下 ${totalCount} 条，慢慢成你自己的表达库`}
+      <main className={`${MANAGE_CONTAINER} pb-12`}>
+        <ManageHeader
+          title="我的素材库"
+          subtitle={`已攒下 ${totalCount} 条，慢慢成你自己的表达库`}
+        />
+
+        {/* 登录软引导：仅匿名且已攒下东西时出现。totalCount === 0 不放——
+            没有素材可保存时谈「永久保存」只是噪音。titleAs 保持默认 'p'：本页已有 h1（ManageHeader）。 */}
+        {isAnon && totalCount > 0 && (
+          <LoginPrompt
+            className="mb-4"
+            title={`你已经攒下 ${totalCount} 条素材`}
+            subtitle="现在只存在这台设备上。登录后永久保存，换手机也能接着用。"
           />
+        )}
 
-          {/* 今日复习 hero —— 复用 /review 入口 */}
-          <Link href="/review" className="block">
-            <Card variant="gradient" className="px-[22px] py-[18px] flex items-center gap-5 active:scale-[0.99] transition-transform">
-              <div className="flex-1 min-w-0">
-                <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>
-                <p className="text-[17px] font-bold text-v2-text-primary mt-1">
-                  {dueCount > 0
-                    ? <><span className="text-brand-primary-dark">{dueCount}</span> 张词卡，等你翻一翻</>
-                    : '今天没有要复习的卡'}
-                </p>
-                <p className="text-[13px] text-v2-text-secondary mt-1">把收藏的词组记牢——一天几张，不费劲。</p>
-              </div>
-              <span className="inline-flex items-center gap-[3px] rounded-full px-5 py-2.5 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
-                <span className="text-v2-text-secondary">开始复习</span>
-                <span className="text-brand-primary-dark">›</span>
-              </span>
-            </Card>
-          </Link>
+        {/* 今日复习 hero —— 复用 /review 入口 */}
+        <Link href="/review" className="block">
+          <Card variant="gradient" className="px-[22px] py-[18px] flex items-center gap-5 active:scale-[0.99] transition-transform">
+            <div className="flex-1 min-w-0">
+              <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>
+              <p className="text-[17px] font-bold text-v2-text-primary mt-1">
+                {dueCount > 0
+                  ? <><span className="text-brand-primary-dark">{dueCount}</span> 张词卡，等你翻一翻</>
+                  : '今天没有要复习的卡'}
+              </p>
+              <p className="text-[13px] text-v2-text-secondary mt-1">把收藏的词组记牢——一天几张，不费劲。</p>
+            </div>
+            <span className="inline-flex items-center gap-[3px] rounded-full px-5 py-2.5 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
+              <span className="text-v2-text-secondary">开始复习</span>
+              <span className="text-brand-primary-dark">›</span>
+            </span>
+          </Card>
+        </Link>
 
-          {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
-          <div className="flex items-center justify-between gap-3 my-5">
-            <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit max-w-full overflow-x-auto">
-              {TABS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => selectTab(t.id)}
-                  aria-pressed={tab === t.id}
-                  className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
-                >
-                  {t.label}
-                  {searching && t.id === tab && activeCounts ? (
-                    <span className="text-[12px] text-v2-text-secondary">
-                      {activeCounts.matched}<span className="text-v2-text-muted">/{activeCounts.total}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[12px] text-v2-text-muted">{t.count}</span>
-                  )}
-                </button>
+        {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
+        <div className="flex items-center justify-between gap-3 my-5">
+          <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit max-w-full overflow-x-auto">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => selectTab(t.id)}
+                aria-pressed={tab === t.id}
+                className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+              >
+                {t.label}
+                {searching && t.id === tab && activeCounts ? (
+                  <span className="text-[12px] text-v2-text-secondary">
+                    {activeCounts.matched}<span className="text-v2-text-muted">/{activeCounts.total}</span>
+                  </span>
+                ) : (
+                  <span className="text-[12px] text-v2-text-muted">{t.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {/* 右侧：搜索框/搜索图标 + 垃圾桶/工具栏槽。三态：选择模式→搜索禁用+工具栏；搜索展开→输入框+垃圾桶并存；默认→图标+垃圾桶 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {searchOpen && !activeSelecting ? (
+              <SearchBox value={rawQuery} onChange={setRawQuery} onClose={closeSearch} />
+            ) : (
+              <IconButton
+                icon={Search}
+                label="搜索"
+                disabled={activeSelecting}
+                onClick={() => setSearchOpen(true)}
+              />
+            )}
+            {isSelectableTab ? (
+              /* 已接入多选的 tab：对应 tab 组件把「选择」/工具栏 Portal 到这里 */
+              <div ref={toolbarSlotRef} className="flex items-center gap-2" />
+            ) : (
+              /* 未接入 tab：多选删除尚未实现，点击弹占位 Toast */
+              <IconButton icon={Trash2} label="选择" onClick={() => setHint('多选删除即将上线')} />
+            )}
+          </div>
+        </div>
+
+        {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
+        {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+        {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+        {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+        {tab === 'stories' && (
+          loading ? (
+            // 加载态容器挂 aria-busy（不 hidden 才能被播报）；骨架为 Card+Skeleton、无文本，SR 不会读出内容
+            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3" aria-busy="true">
+              {[0, 1, 2].map((i) => (
+                <Card key={i} variant="gradient" className="p-4">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <Skeleton className="w-16 h-5 rounded-full" />
+                    <Skeleton className="w-4 h-4 rounded-full" />
+                  </div>
+                  <Skeleton className="w-full h-[14px]" />
+                  <Skeleton className="w-[88%] h-[14px] mt-2" />
+                  <Skeleton className="w-[60%] h-[14px] mt-2" />
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <Skeleton className="w-14 h-[22px] rounded-full" />
+                    <Skeleton className="w-24 h-3" />
+                  </div>
+                </Card>
               ))}
             </div>
-            {/* 右侧：搜索框/搜索图标 + 垃圾桶/工具栏槽。三态：选择模式→搜索禁用+工具栏；搜索展开→输入框+垃圾桶并存；默认→图标+垃圾桶 */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {searchOpen && !activeSelecting ? (
-                <SearchBox value={rawQuery} onChange={setRawQuery} onClose={closeSearch} />
-              ) : (
-                <IconButton
-                  icon={Search}
-                  label="搜索"
-                  disabled={activeSelecting}
-                  onClick={() => setSearchOpen(true)}
-                />
-              )}
-              {isSelectableTab ? (
-                /* 已接入多选的 tab：对应 tab 组件把「选择」/工具栏 Portal 到这里 */
-                <div ref={toolbarSlotRef} className="flex items-center gap-2" />
-              ) : (
-                /* 未接入 tab：多选删除尚未实现，点击弹占位 Toast */
-                <IconButton icon={Trash2} label="选择" onClick={() => setHint('多选删除即将上线')} />
-              )}
-            </div>
-          </div>
-
-          {/* 当前 Tab 内容（复用现有子组件，列表在 lg 下两栏） */}
-          {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-          {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-          {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-          {tab === 'stories' && (
-            loading ? (
-              // 加载态容器挂 aria-busy（不 hidden 才能被播报）；骨架为 Card+Skeleton、无文本，SR 不会读出内容
-              <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3" aria-busy="true">
-                {[0, 1, 2].map((i) => (
-                  <Card key={i} variant="gradient" className="p-4">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <Skeleton className="w-16 h-5 rounded-full" />
-                      <Skeleton className="w-4 h-4 rounded-full" />
-                    </div>
-                    <Skeleton className="w-full h-[14px]" />
-                    <Skeleton className="w-[88%] h-[14px] mt-2" />
-                    <Skeleton className="w-[60%] h-[14px] mt-2" />
-                    <div className="flex items-center gap-2 mt-2.5">
-                      <Skeleton className="w-14 h-[22px] rounded-full" />
-                      <Skeleton className="w-24 h-3" />
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : error ? (
-              typeof navigator !== 'undefined' && !navigator.onLine
-                ? <OfflineState onRetry={() => window.location.reload()} />
-                // 错误文案需带下一步动作（复用 EmptyState 的重试 CTA）
-                : <EmptyState title="语料没加载出来" subtitle={error} ctaLabel="重试" onCta={() => window.location.reload()} orbSize={100} />
-            ) : (
-              <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />
-            )
-          )}
-        </main>
-      </RequireAccountGate>
+          ) : error ? (
+            typeof navigator !== 'undefined' && !navigator.onLine
+              ? <OfflineState onRetry={() => window.location.reload()} />
+              // 错误文案需带下一步动作（复用 EmptyState 的重试 CTA）
+              : <EmptyState title="语料没加载出来" subtitle={error} ctaLabel="重试" onCta={() => window.location.reload()} orbSize={100} />
+          ) : (
+            <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />
+          )
+        )}
+      </main>
 
       {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}
       <Toast message={hint} onDismiss={() => setHint(null)} />

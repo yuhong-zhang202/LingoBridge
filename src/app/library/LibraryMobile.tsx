@@ -5,7 +5,7 @@
  * @created  2026-05-20
  */
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, X, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -14,11 +14,12 @@ import Card from '@/components/Card'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
-import RequireAccountGate from '@/components/RequireAccountGate'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
+import LoginPrompt from '@/app/profile/_components/LoginPrompt'
 import useDebouncedValue from '@/hooks/useDebouncedValue'
+import { getAccount } from '@/lib/auth'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import type { LibraryViewProps } from './types'
 
@@ -44,6 +45,15 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   const searchQuery = mobileQuery.trim() === '' ? '' : debouncedQuery
   const goView = (v: View) => { setView(v); setMobileQuery('') }
 
+  // 匿名判定（与 settings/profile 同范式）：仅用于决定是否展示登录软引导卡。
+  // 读取失败一律按「非匿名」降级 —— 宁可少打扰一次，也不给已登录用户误显引导。
+  const [isAnon, setIsAnon] = useState(false)
+  useEffect(() => {
+    getAccount()
+      .then(acct => setIsAnon(!!acct?.isAnonymous))
+      .catch(() => setIsAnon(false))
+  }, [])
+
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   const matchedTotal = stories.reduce((sum, s) => sum + (s.matchedCount ?? 0), 0)
   const latestCard = cards[0]
@@ -63,7 +73,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           50%      { transform: translateY(-5px); }
         }
       `}</style>
-      <RequireAccountGate>
       {view !== 'hub' ? (
         <>
           {/* 二级页返回栏 */}
@@ -151,6 +160,16 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 已攒下 <span className="text-brand-primary-dark font-semibold">{totalCount}</span> 条，慢慢成你自己的表达库
               </p>
             </div>
+
+            {/* 1.5) 登录软引导：仅匿名且已攒下东西时出现。totalCount === 0 不放——
+                没有素材可保存时谈「永久保存」只是噪音。titleAs 保持默认 'p'：本页已有 h1（素材积累）。 */}
+            {isAnon && totalCount > 0 && (
+              <LoginPrompt
+                className="animate-fade-up mb-4"
+                title={`你已经攒下 ${totalCount} 条素材`}
+                subtitle="现在只存在这台设备上。登录后永久保存，换手机也能接着用。"
+              />
+            )}
 
             {/* 2) 复习闪卡 Hero */}
             <Link href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>
@@ -330,7 +349,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           </div>
         </>
       )}
-      </RequireAccountGate>
 
       <TabBar />
     </div>

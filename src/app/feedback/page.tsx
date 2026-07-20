@@ -11,7 +11,7 @@
 import { type JSX, useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatMonthDay } from '@/lib/date'
-import { getSessionPolishes, clearSessionPolishes, markTrialDone } from '@/lib/storage'
+import { getSessionPolishes, clearSessionPolishes } from '@/lib/storage'
 import { addSavedPhrase } from '@/lib/db/saved-phrases'
 import { refreshSavedPhrases } from '@/hooks/library-data'
 import type { SessionPolish } from '@/lib/types'
@@ -33,8 +33,8 @@ export default function FeedbackPage(): JSX.Element {
   const startXRef  = useRef(0)
   const isDragging = useRef(false)
 
-  // 唯一一次读取本场暂存；同时标记「免费一圈走完」给试用墙用
-  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true); markTrialDone() }, [])
+  // 唯一一次读取本场暂存
+  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
 
   const total   = cards.length
   const current = cards[index]

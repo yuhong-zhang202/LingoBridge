@@ -11,7 +11,6 @@ import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
 import Toast from '@/components/Toast'
-import RequireAccountGate from '@/components/RequireAccountGate'
 import type { RecordingViewProps } from './types'
 
 /** 秒数格式化为 mm:ss */
@@ -50,7 +49,6 @@ export default function RecordingMobile({
         <div className="w-11" />
       </div>
 
-      <RequireAccountGate>
       {/* 中心内容（桌面端居中沉浸列，加大间距） */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-7 relative z-10 gap-4 py-4 lg:gap-6">
 
@@ -106,7 +104,6 @@ export default function RecordingMobile({
           </button>
         </div>
       </div>
-      </RequireAccountGate>
       <Toast message={toastMsg} onDismiss={onDismissToast} />
     </div>
   )

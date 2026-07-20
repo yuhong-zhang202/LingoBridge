@@ -9,7 +9,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
-import RequireAccountGate from '@/components/RequireAccountGate'
 import DimensionTab from './DimensionTabMobile'
 import QuestionListTab from './QuestionListTabMobile'
 import type { useQuestionBank } from './useQuestionBank'
@@ -30,7 +29,6 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="当季题库" />
 
-      <RequireAccountGate>
       {!isEmpty && (
         <div className="px-6 pt-4 pb-0 flex-shrink-0">
           <div className="flex rounded-[10px] p-[3px] bg-bg-muted">
@@ -118,8 +116,6 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
           />
         )}
       </div>
-
-      </RequireAccountGate>
 
       <div className="relative z-20 flex-shrink-0"><TabBar /></div>
     </div>
