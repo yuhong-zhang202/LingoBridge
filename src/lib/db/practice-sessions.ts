@@ -7,7 +7,7 @@
 import { getSupabase, ensureSession } from '../supabase'
 
 /** 雅思"复练"月额度（自然月） */
-export const IELTS_MONTHLY_LIMIT = 10
+export const IELTS_MONTHLY_LIMIT = 100
 
 /** 当月 1 日 0 点（本地时区）的 ISO 字符串，作为月度计数的下界。 */
 function monthStartISO(): string {

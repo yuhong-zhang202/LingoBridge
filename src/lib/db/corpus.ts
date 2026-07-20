@@ -9,7 +9,7 @@ import { getSupabase, ensureSession } from '../supabase'
 import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 
 /** 故事链路月额度（自然月） */
-export const STORY_MONTHLY_LIMIT = 10
+export const STORY_MONTHLY_LIMIT = 100
 
 /** 当月 1 日 0 点（本地时区）的 ISO 字符串。 */
 function monthStartISO(): string {
