@@ -4,6 +4,8 @@
  *           超额时【返回 402(QUOTA_EXCEEDED) 且绝不触达 AI 服务】（计次必须在 AI 调用之前，超额零成本）。
  *           这几条此前只有 corpus 月额度间接约束、无每日熔断，单账号可反复调 qwen-plus / qwen-flash 烧钱。
  *           另覆盖注册档 429 与「matching 读档命中不计次」。全部依赖 mock，不碰真实 DB/模型/鉴权。
+ *           2026-07-20 起追加一组 analysis / phrases 的入参契约用例：两接口由 GET 改 POST、
+ *           参数从 query string 迁到 body，钉死「参数确实从 body 读到」与「非法 body → 400 不记账」。
  * @author   LingoBridge
  * @created  2026-07-19
  */
@@ -50,8 +52,8 @@ jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown
 jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 
 import { POST as matchingPost } from '@/app/api/matching/route'
-import { GET as analysisGet } from '@/app/api/analysis/route'
-import { GET as phrasesGet } from '@/app/api/analysis/phrases/route'
+import { POST as analysisPost } from '@/app/api/analysis/route'
+import { POST as phrasesPost } from '@/app/api/analysis/phrases/route'
 import { POST as restructurePost } from '@/app/api/restructure/route'
 
 import { generateAnalysis, generatePhrases } from '@/services/analysis'
@@ -117,11 +119,20 @@ function matchingReq(): Request {
     body: JSON.stringify({ corpusId: 'c1' }),
   })
 }
+// analysis / phrases 已由 GET 改 POST（有副作用：扣额度 + 调 AI，不能被预取无意触发），入参走 body
 function analysisReq(): Request {
-  return new Request('http://localhost/api/analysis?questionId=q1', { headers: { authorization: 'Bearer t' } })
+  return new Request('http://localhost/api/analysis', {
+    method: 'POST',
+    headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+    body: JSON.stringify({ questionId: 'q1' }),
+  })
 }
 function phrasesReq(): Request {
-  return new Request('http://localhost/api/analysis/phrases?questionId=q1', { headers: { authorization: 'Bearer t' } })
+  return new Request('http://localhost/api/analysis/phrases', {
+    method: 'POST',
+    headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+    body: JSON.stringify({ questionId: 'q1' }),
+  })
 }
 
 function restructureReq(): Request {
@@ -177,11 +188,11 @@ describe('每日次数熔断 · 匿名超额 → 402 且未触达 AI', () => {
     expect(mockLogApiUsage).not.toHaveBeenCalled()
   })
 
-  test('analysis GET：匿名超 ANON_ANALYSIS_LIMIT → 402 QUOTA_EXCEEDED，generateAnalysis 零调用、零记账', async () => {
+  test('analysis POST：匿名超 ANON_ANALYSIS_LIMIT → 402 QUOTA_EXCEEDED，generateAnalysis 零调用、零记账', async () => {
     asUser(true)
     mockBumpDaily.mockResolvedValue(ANON_ANALYSIS_LIMIT + 1)
 
-    const res = await analysisGet(analysisReq())
+    const res = await analysisPost(analysisReq())
 
     expect(res.status).toBe(402)
     expect(await res.json()).toEqual(expect.objectContaining({ code: 'QUOTA_EXCEEDED' }))
@@ -189,11 +200,11 @@ describe('每日次数熔断 · 匿名超额 → 402 且未触达 AI', () => {
     expect(mockLogApiUsage).not.toHaveBeenCalled()
   })
 
-  test('analysis/phrases GET：匿名超 ANON_PHRASES_LIMIT → 402 QUOTA_EXCEEDED，generatePhrases 零调用、零记账', async () => {
+  test('analysis/phrases POST：匿名超 ANON_PHRASES_LIMIT → 402 QUOTA_EXCEEDED，generatePhrases 零调用、零记账', async () => {
     asUser(true)
     mockBumpDaily.mockResolvedValue(ANON_PHRASES_LIMIT + 1)
 
-    const res = await phrasesGet(phrasesReq())
+    const res = await phrasesPost(phrasesReq())
 
     expect(res.status).toBe(402)
     expect(await res.json()).toEqual(expect.objectContaining({ code: 'QUOTA_EXCEEDED' }))
@@ -223,16 +234,16 @@ describe('每日次数熔断 · 注册超熔断上限 → 429 且未触达 AI（
     expect(mockMatchByStory).not.toHaveBeenCalled()
   })
 
-  test('analysis GET：注册超 REG_ANALYSIS_DAILY_LIMIT → 429', async () => {
+  test('analysis POST：注册超 REG_ANALYSIS_DAILY_LIMIT → 429', async () => {
     mockBumpDaily.mockResolvedValue(REG_ANALYSIS_DAILY_LIMIT + 1)
-    const res = await analysisGet(analysisReq())
+    const res = await analysisPost(analysisReq())
     expect(res.status).toBe(429)
     expect(generateAnalysis).not.toHaveBeenCalled()
   })
 
-  test('analysis/phrases GET：注册超 REG_PHRASES_DAILY_LIMIT → 429', async () => {
+  test('analysis/phrases POST：注册超 REG_PHRASES_DAILY_LIMIT → 429', async () => {
     mockBumpDaily.mockResolvedValue(REG_PHRASES_DAILY_LIMIT + 1)
-    const res = await phrasesGet(phrasesReq())
+    const res = await phrasesPost(phrasesReq())
     expect(res.status).toBe(429)
     expect(generatePhrases).not.toHaveBeenCalled()
   })
@@ -258,12 +269,12 @@ describe('每日次数熔断 · 未超额放行 + 计次口径', () => {
 
     jest.clearAllMocks()
     beforeEachRefresh()
-    expect((await analysisGet(analysisReq())).status).toBe(200)
+    expect((await analysisPost(analysisReq())).status).toBe(200)
     expect(mockBumpDaily).toHaveBeenCalledWith('u1', 'analysis')
 
     jest.clearAllMocks()
     beforeEachRefresh()
-    expect((await phrasesGet(phrasesReq())).status).toBe(200)
+    expect((await phrasesPost(phrasesReq())).status).toBe(200)
     expect(mockBumpDaily).toHaveBeenCalledWith('u1', 'phrases')
 
     jest.clearAllMocks()
@@ -291,6 +302,75 @@ describe('每日次数熔断 · 未超额放行 + 计次口径', () => {
     expect(res.status).toBe(200)
     expect(mockMatchByStory).not.toHaveBeenCalled()
     expect(mockBumpDaily).not.toHaveBeenCalled()
+  })
+})
+
+// analysis / phrases 由 GET 改 POST 后，入参从 query string 迁到 body。
+// 这组用例钉死「参数真的是从 body 读到的」—— 若哪天有人把解析写回 searchParams，
+// 上面的熔断用例仍会全绿（它们只传 questionId，且 400 与 402 都不触达 AI），本组会立刻变红。
+describe('analysis / phrases POST · 入参契约（query → body 迁移）', () => {
+  test('analysis：body 缺 questionId → 400，且不扣配额、不触达 AI', async () => {
+    const req = new Request('http://localhost/api/analysis', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+
+    const res = await analysisPost(req)
+
+    expect(res.status).toBe(400)
+    expect(mockBumpDaily).not.toHaveBeenCalled()          // 计次在校验之后，失败请求不白扣次数
+    expect(generateAnalysis).not.toHaveBeenCalled()
+  })
+
+  test('analysis：body 里的 storyId 被读到 → 走越权校验并带进故事读取', async () => {
+    const req = new Request('http://localhost/api/analysis', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1', storyId: 'c1' }),
+    })
+
+    const res = await analysisPost(req)
+
+    expect(res.status).toBe(200)
+    expect(assertCorpusOwner).toHaveBeenCalledWith('u1', 'c1')
+    expect(mockGetCorpus).toHaveBeenCalledWith('c1')
+  })
+
+  test('phrases：body 里的 level 被读到并传给 generatePhrases（换档位不再走 query）', async () => {
+    const req = new Request('http://localhost/api/analysis/phrases', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1', storyId: 'c1', level: '7.5' }),
+    })
+
+    const res = await phrasesPost(req)
+
+    expect(res.status).toBe(200)
+    expect(generatePhrases).toHaveBeenCalledWith(
+      expect.objectContaining({ level: '7.5' }),
+      expect.any(Function),
+    )
+  })
+
+  test('phrases：body 未给 level → 回退默认 6.0（旧 query 缺省语义不变）', async () => {
+    const res = await phrasesPost(phrasesReq())
+
+    expect(res.status).toBe(200)
+    expect(generatePhrases).toHaveBeenCalledWith(
+      expect.objectContaining({ level: '6.0' }),
+      expect.any(Function),
+    )
+  })
+
+  test('analysis：请求体不是合法 JSON → 400（而不是抛进 catch 白记一条 error 账）', async () => {
+    const req = new Request('http://localhost/api/analysis', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: '这不是 JSON',
+    })
+
+    const res = await analysisPost(req)
+
+    expect(res.status).toBe(400)
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+    expect(generateAnalysis).not.toHaveBeenCalled()
   })
 })
 

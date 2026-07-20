@@ -60,8 +60,8 @@ jest.mock('@/lib/consent-server', () => ({
 }))
 
 import { POST as matchingPost } from '@/app/api/matching/route'
-import { GET as analysisGet } from '@/app/api/analysis/route'
-import { GET as phrasesGet } from '@/app/api/analysis/phrases/route'
+import { POST as analysisPost } from '@/app/api/analysis/route'
+import { POST as phrasesPost } from '@/app/api/analysis/phrases/route'
 import { POST as pronouncePost } from '@/app/api/pronounce/route'
 import { POST as corpusPost } from '@/app/api/corpus/route'
 import { POST as practicePost } from '@/app/api/practice/route'
@@ -102,8 +102,8 @@ function makeReq(path: string): Request {
  */
 const cases: Array<{ name: string; klass: string; run: () => Promise<Response>; probes: jest.Mock[] }> = [
   { name: 'matching', klass: '重排出口', run: () => matchingPost(makeReq('/api/matching')), probes: [matchByStory as jest.Mock] },
-  { name: 'analysis', klass: '分析出口', run: () => analysisGet(makeReq('/api/analysis')), probes: [generateAnalysis as jest.Mock] },
-  { name: 'analysis/phrases', klass: '分析出口', run: () => phrasesGet(makeReq('/api/analysis/phrases')), probes: [generatePhrases as jest.Mock] },
+  { name: 'analysis', klass: '分析出口', run: () => analysisPost(makeReq('/api/analysis')), probes: [generateAnalysis as jest.Mock] },
+  { name: 'analysis/phrases', klass: '分析出口', run: () => phrasesPost(makeReq('/api/analysis/phrases')), probes: [generatePhrases as jest.Mock] },
   { name: 'pronounce', klass: '发音出口', run: () => pronouncePost(makeReq('/api/pronounce')), probes: [generatePronunciationTip as jest.Mock] },
   { name: 'corpus', klass: '建故事出口', run: () => corpusPost(makeReq('/api/corpus')), probes: [createCorpusServer as jest.Mock] },
   { name: 'practice', klass: '对话出口', run: () => practicePost(makeReq('/api/practice')), probes: [buildScaffold as jest.Mock, coachReply as jest.Mock] },

@@ -54,8 +54,8 @@ jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown
 jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 jest.mock('@/lib/audio/transcode', () => ({ transcodeToWav: jest.fn() }))
 
-import { GET as analysisGet } from '@/app/api/analysis/route'
-import { GET as phrasesGet } from '@/app/api/analysis/phrases/route'
+import { POST as analysisPost } from '@/app/api/analysis/route'
+import { POST as phrasesPost } from '@/app/api/analysis/phrases/route'
 import { POST as practicePost } from '@/app/api/practice/route'
 import { POST as restructurePost } from '@/app/api/restructure/route'
 import { POST as transcribePost } from '@/app/api/transcribe/route'
@@ -113,9 +113,13 @@ beforeEach(() => {
 })
 
 describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径都必须调用 logApiUsage', () => {
-  test('analysis GET → 记 qwen_plus 一条（带 user_id 归属 + phase=analysis）', async () => {
-    const req = new Request('http://localhost/api/analysis?questionId=q1', { headers: { authorization: 'Bearer t' } })
-    const res = await analysisGet(req)
+  test('analysis POST → 记 qwen_plus 一条（带 user_id 归属 + phase=analysis）', async () => {
+    // 已由 GET 改 POST（扣额度 + 调 AI 的副作用接口，不能被预取无意触发），入参走 body
+    const req = new Request('http://localhost/api/analysis', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1' }),
+    })
+    const res = await analysisPost(req)
     expect(res.status).toBe(200)
     expect(mockLogApiUsage).toHaveBeenCalledTimes(1)
     expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
@@ -124,9 +128,12 @@ describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径�
     }))
   })
 
-  test('analysis/phrases GET → 记 qwen_plus 一条', async () => {
-    const req = new Request('http://localhost/api/analysis/phrases?questionId=q1', { headers: { authorization: 'Bearer t' } })
-    const res = await phrasesGet(req)
+  test('analysis/phrases POST → 记 qwen_plus 一条', async () => {
+    const req = new Request('http://localhost/api/analysis/phrases', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1' }),
+    })
+    const res = await phrasesPost(req)
     expect(res.status).toBe(200)
     expect(mockLogApiUsage).toHaveBeenCalledTimes(1)
     expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({ service: 'qwen_plus', status: 'success' }))

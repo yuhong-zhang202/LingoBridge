@@ -2,7 +2,7 @@
  * @module   AnalysisDesktop
  * @desc     题目分析页桌面视图（split 档）—— FlowShellDesktop 沉浸外壳内的两栏舞台：
  *           顶部跨栏题目卡，下方 max-w-[960px] grid-cols-2「左 考官侧重点 | 右 可用词组」左右并置一眼对照，
- *           底部居中「开始练习」CTA。两栏定高（PANEL_H）恒等高：左栏内容垂直居中、右栏词组含详情卡
+ *           底部居中「开始练习」CTA。两栏定高（PANEL_H）恒等高：左栏内容顶部对齐、右栏词组含详情卡
  *           一律卡内滚动，展开详情不撑高布局。水平下拉 / 词组详情 / 收藏逻辑经 props 由 page.tsx 外壳下发。
  *           桌面独有交互：词组 chip 与主按钮 hover 轻微浮起；Enter/→ 进入练习、Esc 退出。
  * @author   LingoBridge
@@ -33,13 +33,16 @@ const PHRASE_CHIP_STYLES = [
 /** 可选雅思口语目标水平 */
 const LEVELS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0']
 
-/** 舞台最小高度：满屏减去外壳 72px 顶栏 */
+/** 舞台最小高度：满屏减去外壳顶栏高度。
+ *  这里的 72 = TOPNAV_H_DESKTOP（见 @/lib/constants）——Tailwind 的 calc() 必须是字面量、
+ *  不能插值运行时变量（JIT 扫不到动态拼出的 class），故此处保留字面量并以注释锚定。
+ *  改 TOPNAV_H_DESKTOP 必须同步改这里，以及下方 PANEL_H 那笔首屏高度账。 */
 const STAGE = 'min-h-[calc(100vh-72px)]'
 
 /** 两栏舞台定高：左右卡片恒等高、不随内容（含词组详情卡展开）变化，超出部分走卡内滚动。
  *  取 360px —— 落在既有 min-h-[340px]（左栏原下限，不压缩现有内容）与 max-h-[440px] 之间，
  *  并留出 1080p 首屏余量：整页所需高度 ≈ 旁白 44 + 题目卡 ~149 + 24 + 360 + 32 + CTA 46
- *  + 12 + 提示 18 + 舞台 py-12 96 + 顶栏 72 ≈ 853px，1080p 窗口可视高约 900–970，
+ *  + 12 + 提示 18 + 舞台 py-12 96 + 顶栏 TOPNAV_H_DESKTOP(72) ≈ 853px，1080p 窗口可视高约 900–970，
  *  即便题面折成 3 行仍不把「开始练习」推出首屏。改这个值前先重算这笔账。 */
 const PANEL_H = 'h-[360px]'
 
@@ -226,12 +229,13 @@ export default function AnalysisDesktop({
             {data.analysis.structureLabel && (
               <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
             )}
-            {/* 垂直居中且兼顾超长内容（同 /settings 的解法）：外层是定高滚动容器，
-                内层 min-h-full + justify-center —— 内容不满则被撑到容器高、有余量可分 = 居中；
-                内容超高则容器随内容长高（min-h 是下限非上限）、无余量可分 = 等价顶部起排且可滚，
-                不会出现 flex 居中导致顶部内容被裁、滚不到的塌陷。 */}
+            {/* 顶部对齐（产品方 2026-07-20 拍板）：内容顶着标题起排，不做垂直居中——
+                居中版实际观感是内容悬空、与标题脱节。pt-3 是标题与第一条之间的呼吸，
+                取值与条目间距 gap-5(20px) 相协调、又不至于把首条推得太低。
+                外层保持 flex-1 min-h-0 overflow-y-auto：内容超过定高 PANEL_H 时栏内滚动，
+                两栏等高与右栏内部滚动的布局契约不受影响。 */}
             <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-              <div className="min-h-full flex flex-col justify-center gap-5">
+              <div className="flex flex-col justify-start pt-3 gap-5">
                 {data.analysis.focusPoints.map((fp, i) => (
                   <div key={i} className="flex items-start gap-2.5">
                     <StepNum n={i + 1} />

@@ -1,6 +1,10 @@
 /**
  * @module   api/analysis/phrases
- * @desc     GET ?questionId&storyId&level → 只按目标雅思水平重出「可用词组」
+ * @desc     POST { questionId, storyId?, story?, level? } → 只按目标雅思水平重出「可用词组」
+ *
+ *           为什么是 POST 而不是 GET：本接口有副作用——扣每日额度 + 真实调用付费 AI。
+ *           GET 在 HTTP 语义上被视为安全/可缓存，浏览器预取、爬虫、链接预览、代理预热都会
+ *           自行发起 GET，那些无意的请求会直接烧掉 AI 调用费。与 /api/analysis 同口径。
  * @author   LingoBridge
  * @created  2026-06-07
  */
@@ -16,18 +20,34 @@ import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { ANON_PHRASES_LIMIT, REG_PHRASES_DAILY_LIMIT } from '@/lib/constants'
 
-export async function GET(req: Request): Promise<NextResponse> {
+/** 请求体形状：字段来源同旧版 query string，仅传输位置从 URL 改为 body。 */
+interface PhrasesRequestBody {
+  questionId?: unknown
+  storyId?: unknown
+  /** 故事正文兜底：DB 读不到 storyId 对应语料时用它（历史上由 URL 携带，现随 body 走） */
+  story?: unknown
+  level?: unknown
+}
+
+/** 取 body 里的字符串字段；非字符串/缺省一律回退空串（与旧版 searchParams.get() ?? '' 同语义）。 */
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+
+export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
     // 同意闸硬前置：换词组会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
-    const { searchParams } = new URL(req.url)
-    const questionId = searchParams.get('questionId') ?? ''
-    const storyId    = searchParams.get('storyId') ?? ''
-    const storyUrl   = searchParams.get('story') || undefined
-    const level      = searchParams.get('level') || '6.0'
+    // body 解析容错：非法/空 JSON 视作空对象，交由下面的 questionId 校验统一回 400
+    // （而不是让 req.json() 抛进 catch、白记一条 error 账）。
+    const body = await req.json().catch(() => ({})) as PhrasesRequestBody
+    const questionId = str(body.questionId)
+    const storyId    = str(body.storyId)
+    const storyUrl   = str(body.story) || undefined
+    const level      = str(body.level) || '6.0'
     if (!questionId) {
       return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     }
@@ -35,7 +55,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     if (storyId) await assertCorpusOwner(userId, storyId)
 
     // 服务端硬防线：计次在任何 AI 调用之前——超额时不产生任何 AI 费用。
-    // 与 /api/analysis 同理（GET 但可反复调），位置同样选在入参校验后、读故事/取题之前。
+    // 与 /api/analysis 同理（可反复调），位置同样选在入参校验后、读故事/取题之前。
     // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。与 practice 同范式。
     const dailyCount = await bumpDailyUsageServer(userId, 'phrases')
     if (isAnonymous ? dailyCount > ANON_PHRASES_LIMIT : dailyCount > REG_PHRASES_DAILY_LIMIT) {

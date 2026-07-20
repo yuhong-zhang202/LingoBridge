@@ -64,7 +64,13 @@ function AnalysisContent() {
     ;(async () => {
       setLoading(true); setError(null); setDailyLimitHit(false)
       try {
-        const res = await apiFetch(`/api/analysis?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}`, { signal: ac.signal })
+        // POST 而非 GET：该接口扣额度 + 真调 AI，用 GET 会被浏览器预取 / 爬虫无意触发、白烧钱。
+        // apiFetch 行为不变——非 2xx 不抛、返回原始 Response，故下面仍按 res.status 分流。
+        const res = await apiFetch('/api/analysis', {
+          method: 'POST',
+          json: { questionId, storyId },
+          signal: ac.signal,
+        })
         // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「生成分析失败」。
         // 分析是零红线环节（点进题目看到的全部内容），务必兜好而非停在错误态。
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
@@ -93,7 +99,11 @@ function AnalysisContent() {
     setPhrasesLoading(true)
     ;(async () => {
       try {
-        const res = await apiFetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
+        // 同 /api/analysis：POST 而非 GET（扣额度 + 真调 AI，不能被预取无意触发）
+        const res = await apiFetch('/api/analysis/phrases', {
+          method: 'POST',
+          json: { questionId, storyId, level: newLevel },
+        })
         // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
         // 同样要回退档位：跳转是异步的，回退前这一帧（以及用户按浏览器返回退回本页时）
         // 档位不能停在换失败的新值上，否则与页面里没换成的词组内容对不上。

@@ -13,7 +13,7 @@ import { Mic } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import NotificationBell from '@/components/NotificationBell'
 import { useAccount } from '@/hooks/useAccount'
-import { PAGE_CONTAINER } from '@/lib/constants'
+import { PAGE_CONTAINER, TOPNAV_H_DESKTOP_CLASS } from '@/lib/constants'
 
 const NAV = [
   { href: '/',              label: '首页' },
@@ -37,7 +37,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
     : '我'
   return (
     <header className="sticky top-0 z-30 bg-bg-page border-b border-black/[0.045]">
-      <div className={`${containerClassName} h-[64px] lg:h-[72px] flex items-center gap-10`}>
+      <div className={`${containerClassName} h-[64px] ${TOPNAV_H_DESKTOP_CLASS} flex items-center gap-10`}>
         {/* 品牌 */}
         <Link href="/" className="flex items-center gap-3 flex-shrink-0">
           <span className="w-10 h-10 rounded-[11px] bg-brand-primary grid place-items-center text-white">

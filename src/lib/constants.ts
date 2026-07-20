@@ -12,6 +12,14 @@ import type { DimensionId, DimensionLabel } from '@/lib/types'
 //    改内容区宽度只改这一处。手机端沉浸布局(max-w-[430px])与核心链路任务页的聚焦宽度不走这里。
 export const PAGE_CONTAINER = 'max-w-[1120px] mx-auto px-8 lg:px-12'
 
+// ── 桌面顶栏高度：TopNav 在 lg 断点(1024px)及以上的固定高度（px）。
+//    不止 TopNav 自己用：核心链路任务页的「满屏舞台」高度是 100vh 减去顶栏，
+//    改这个值必须同步复核所有 calc(100vh - 顶栏) 的舞台高度（如 analysis / practice / matching 桌面视图），
+//    否则舞台会溢出一屏或留白。lg 以下为 64px，移动端不走沉浸舞台，故不抽常量。
+export const TOPNAV_H_DESKTOP = 72
+/** TopNav 桌面高度的 Tailwind class（唯一来源，见 TOPNAV_H_DESKTOP） */
+export const TOPNAV_H_DESKTOP_CLASS = 'lg:h-[72px]'
+
 // ── 模型名常量（千问 qwen-plus 稳定别名；qwen-flash 用于成本敏感、质量要求次之的环节）
 export const MODEL_RANKING     = 'qwen-plus'
 export const MODEL_PRACTICE    = 'qwen-plus'
