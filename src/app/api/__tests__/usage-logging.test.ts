@@ -226,3 +226,111 @@ describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径�
     expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({ service: 'qwen_plus', status: 'success' }))
   })
 })
+
+/**
+ * 失败可诊断性守卫 —— 钉死「AI 调用抛错时，失败记账也带 metadata.phase」。
+ * 背景：此前失败行 metadata 是空对象 {}，看板按 phase 分桶时全部掉进 other 桶，
+ * 分不清是哪个接口/哪一步挂的（也是查 62.75% 错误率时所有失败落 other 的根因）。
+ * 系统故障【不】补 error_kind（缺键即系统故障，这是既定语义），此处一并守住「别误标成 user_input」。
+ */
+describe('失败可诊断性守卫 · AI 调用抛错时失败记账带 phase、且不误标 error_kind', () => {
+  /** 取本次唯一一条 error 记账入参 */
+  function errorCall(): { status?: string; metadata?: { phase?: string; error_kind?: string } } {
+    const calls = mockLogApiUsage.mock.calls.map((c) => c[0])
+    const err = calls.find((c) => c.status === 'error')
+    if (!err) throw new Error('未记到 status=error 的失败账')
+    return err as never
+  }
+
+  test('analysis 失败 → 记 status=error 且 phase=analysis，不带 error_kind', async () => {
+    ;(generateAnalysis as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/analysis', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1' }),
+    })
+    const res = await analysisPost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('analysis')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('analysis/phrases 失败 → phase=phrases，不带 error_kind', async () => {
+    ;(generatePhrases as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/analysis/phrases', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1' }),
+    })
+    const res = await phrasesPost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('phrases')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('restructure 失败 → phase=restructure，不带 error_kind', async () => {
+    ;(restructureText as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/restructure', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ rawText: '呃我周末就是去公园走了走' }),
+    })
+    const res = await restructurePost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('restructure')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('practice 续轮失败 → 兜底 phase=coach，不带 error_kind', async () => {
+    ;(coachReply as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const scaffold = { part: 1, questionForAI: 'q', displayEn: 'q', displayZh: 'q', focusPoints: [], part3Questions: [], level: '6.0' }
+    const req = new Request('http://localhost/api/practice', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ scaffold, messages: [{ role: 'user', content: 'hi' }] }),
+    })
+    const res = await practicePost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('coach')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('practice 首轮建脚手架失败 → 同样兜底 phase=coach（catch 分不清哪步）', async () => {
+    ;(buildScaffold as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/practice', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ questionId: 'q1' }),
+    })
+    const res = await practicePost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('coach')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('practice/polish 失败 → phase=polish，不带 error_kind', async () => {
+    ;(polishSentence as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/practice/polish', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ sentence: 'I very like coffee' }),
+    })
+    const res = await polishPost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('polish')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+
+  test('pronounce 失败 → phase=pronounce，不带 error_kind', async () => {
+    ;(generatePronunciationTip as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
+    const req = new Request('http://localhost/api/pronounce', {
+      method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ intended: 'work', heard: 'walk' }),
+    })
+    const res = await pronouncePost(req)
+    expect(res.status).toBe(500)
+    const call = errorCall()
+    expect(call.metadata?.phase).toBe('pronounce')
+    expect(call.metadata?.error_kind).toBeUndefined()
+  })
+})

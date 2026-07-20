@@ -293,4 +293,23 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     expect(body.servedFrom).toBe('fresh')
     expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
   })
+
+  /**
+   * 失败可诊断性（2026-07-20）：matchByStory 抛错时，catch 里的失败记账要带 metadata.phase，
+   * 否则空 metadata 会掉进看板 other 桶、辨不出是匹配接口挂的。萃取 / 重排两步同在 matchByStory 内深处，
+   * 从 catch 处无法判定挂在哪步，故用能表意的兜底值 'matching'。系统故障不补 error_kind（缺键即系统故障）。
+   */
+  test('10. matchByStory 抛错 → 记 status=error 且 phase=matching 兜底，不带 error_kind', async () => {
+    mockMatchByStory.mockRejectedValue(new Error('重排上游 5xx'))
+
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(500)
+    const calls = mockLogApiUsage.mock.calls.map(([arg]) => arg)
+    const errCall = calls.find((c) => c.status === 'error')
+    expect(errCall).toBeDefined()
+    const meta = errCall?.metadata as { phase?: string; error_kind?: string } | undefined
+    expect(meta?.phase).toBe('matching')
+    expect(meta?.error_kind).toBeUndefined()
+  })
 })

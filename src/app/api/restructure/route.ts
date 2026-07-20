@@ -65,7 +65,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
+    // 失败行补 phase（与成功分支同值），否则空 metadata 会掉进看板「other」桶、辨不出是哪个环节挂的。
+    // 此处 catch 只接 AI/系统故障（rawText 空/超长在前面已 400 早退），故不补 error_kind（缺键即系统故障）。
+    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'restructure' } })
     logErr('[restructure API]', e)
     return NextResponse.json({ error: '整理失败，请稍后再试' }, { status: 500 })
   }

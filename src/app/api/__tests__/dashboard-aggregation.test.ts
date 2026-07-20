@@ -301,7 +301,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
 
 /**
  * ⑨ 各环节耗时 / 每日失败 / 今日状况 —— 本轮新增的三组口径守卫。
- * 关键在【延迟口径断点 2026-07-20】：此前 extraction/ranking 的 latency_ms 是同一总时长记了两遍，
+ * 关键在【延迟口径断点 UTC 2026-07-20 19:00 = 香港 07-21】：此前 extraction/ranking 的 latency_ms 是同一总时长记了两遍，
  * 一旦断点过滤被拆掉，耗时统计会掺进翻倍的旧值、看上去像"性能突然变好一半"。
  */
 describe('GET /api/dashboard · 耗时 / 失败 / 今日状况', () => {
@@ -343,7 +343,7 @@ describe('GET /api/dashboard · 耗时 / 失败 / 今日状况', () => {
     expect(ranking.max).toBe(4000)
     // 按 P90 降序：analysis（20s）在 ranking（4s）之前
     expect(body.phaseLatency[0].phase).toBe('analysis')
-    expect(body.latencyCutoff).toBe('2026-07-20')
+    expect(body.latencyCutoff).toBe('2026-07-21')
 
     // 趋势：断点之前的日子必须是 null（给 0 会被画成"那几天延迟为零"的假谷底）
     const analysisTrend = body.latencyTrend.find((t: { phase: string }) => t.phase === 'analysis')
