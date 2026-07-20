@@ -2,6 +2,9 @@
  * @module   PracticeQuestionPage
  * @desc     练习题目页 — 展示一道雅思题 + 能匹配它的语料列表 + 添加语料；
  *           选中语料后出现「练习」按钮直达分析，「添加语料」复用雅思直达流（?qid=）。
+ *           本页只挂 TopBar（其返回键 lg:hidden），桌面端另补 DesktopBackLink 出口：走 router.back()，
+ *           与移动端 TopBar 默认返回行为完全一致（不改变本页原有退出语义——本页无未保存状态，
+ *           返回即离开，无需确认）；兜底 /question-bank，因为唯一入口就是题库列表的题目卡。
  * @author   LingoBridge
  * @created  2026-06-21
  */
@@ -10,6 +13,7 @@ import { type JSX, Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Plus, RefreshCw } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import DesktopBackLink from '@/components/DesktopBackLink'
 import Card from '@/components/Card'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
@@ -158,6 +162,8 @@ function PracticeQuestionContent(): JSX.Element {
 
       {/* 加载态用 Fragment 无容器可挂，故 aria-busy 挂在常驻滚动区、随 loading 切换 */}
       <div aria-busy={loading} className="flex-1 min-h-0 overflow-y-auto px-5 pt-4 pb-[72px] relative z-10 flex flex-col gap-4 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
+        {/* 放在所有状态分支之前：加载 / 报错 / 正常态都要有出口，尤其报错态不能让桌面用户困死 */}
+        <DesktopBackLink fallback="/question-bank" />
         {loading && (
           <>
             {/* 题目卡骨架 */}

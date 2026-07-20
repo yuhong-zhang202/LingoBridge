@@ -116,6 +116,14 @@ function RecordingContent(): JSX.Element {
         if (!ac.signal.aborted) router.push('/')
         return
       }
+      // 匿名 ASR 试用额度用尽：402 必须走 trial 覆盖层引导注册，不能落进下面的通用 !res.ok 错误态
+      // （只显示「转写失败，请重试」= 让撞上限的匿名用户以为是故障，反复重试仍失败 → 转化流失）。
+      // 与 showStoryQuota 的区别：402 是匿名试用用尽 → trial 变体（引导注册）；
+      // showStoryQuota 是已注册用户的每月语料上限 → story 变体。两者来源与文案都不同，不可混用。
+      if (res.status === 402) {
+        if (!ac.signal.aborted) { setQuotaReached(true); setTranscribing(false) }
+        return
+      }
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
         throw new Error(

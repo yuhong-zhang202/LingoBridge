@@ -2,6 +2,10 @@
  * @module   ResetPasswordPage
  * @desc     重置密码 — 用户从邮件链接进入，Supabase JS 自动处理 URL 中的 recovery token
  *           并建立临时会话；本页让用户设新密码并保存。
+ *           本页只挂 TopBar（其返回键 lg:hidden），桌面端另补 DesktopBackLink 出口。此处刻意不用
+ *           router.back()：入口是邮件链接（多为新标签页打开，历史栈为空，back() 无效），且「上一页」
+ *           可能是邮箱网页这类站外页面，没有产品语义。故固定 push /login —— 与本页失效态 CTA、
+ *           保存成功后的 router.replace('/login') 去向一致，重置密码的下一步本就是回去登录。
  * @author   LingoBridge
  * @created  2026-06-17
  */
@@ -10,6 +14,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import DesktopBackLink from '@/components/DesktopBackLink'
 import GradientButton from '@/components/GradientButton'
 import { updatePassword } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
@@ -68,6 +73,7 @@ export default function ResetPasswordPage() {
       <TopBar title="重置密码" />
 
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
+        <DesktopBackLink to="/login" label="返回登录" />
         {hasRecoverySession === null && (
           <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
         )}

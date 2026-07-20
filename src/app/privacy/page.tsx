@@ -1,10 +1,14 @@
 /**
  * @module   PrivacyPage
- * @desc     隐私政策 — 最小占位条款，上线前需人工审校替换为正式版本
+ * @desc     隐私政策 — 最小占位条款，上线前需人工审校替换为正式版本。
+ *           本页只挂 TopBar（其返回键 lg:hidden），桌面端另补 DesktopBackLink 出口：入口有设置页、
+ *           登录页、首次同意弹窗三处，无唯一上级 ⇒ 走 router.back()，兜底回首页（条款链接可能被直接
+ *           粘贴打开 / 新标签页打开，此时历史栈为空、back() 是空操作）。
  * @author   LingoBridge
  * @created  2026-06-17
  */
 import TopBar from '@/components/TopBar'
+import DesktopBackLink from '@/components/DesktopBackLink'
 import { PRIVACY_VENDOR, PRIVACY_HUMAN_READ_DISCLOSURE } from '@/lib/privacy-copy'
 
 export default function PrivacyPage() {
@@ -13,6 +17,7 @@ export default function PrivacyPage() {
       <TopBar title="隐私政策" />
 
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
+        <DesktopBackLink fallback="/" />
         <p className="text-[12px] text-v2-text-muted mb-4">最后更新：2026-06-17</p>
 
         <section className="mb-5">
