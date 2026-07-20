@@ -29,6 +29,9 @@ export interface HomeViewProps {
   typed: string
   /** 桌面「信息复用」Tab 舞台当前功能索引 */
   reuseTab: number
+  /** 桌面「或用文字输入」入口的目标地址（外壳按 ieltsMode/question 算好）。
+   *  仅供 <Link href> 保留原生链接能力（右键/新标签/悬停预览）；普通左键点击走 onOpenWrite 守卫。 */
+  writeHref: string
 
   /** 移动端切换文字输入面板显隐（打开前外壳会先核本月故事额度，超额则改弹额度覆盖层） */
   onSetShowTextInput: (v: boolean) => void
@@ -40,6 +43,8 @@ export interface HomeViewProps {
   onNext: () => void
   /** 开始录音（先探测麦克风权限） */
   onStartRecording: () => void
+  /** 桌面「或用文字输入」普通左键点击：外壳先核建新故事额度，超额则改弹额度覆盖层、不跳转 */
+  onOpenWrite: () => void
   /** 文字输入内容变更 */
   onChangeTextStory: (v: string) => void
   /** 提交文字故事 */

@@ -162,10 +162,12 @@ export default function HomeDesktop({
   error,
   typed,
   reuseTab,
+  writeHref,
   onSelectMyStory,
   onSelectIelts,
   onNext,
   onStartRecording,
+  onOpenWrite,
   onSelectReuseTab,
 }: HomeViewProps) {
   const ActivePreview = REUSE[reuseTab].Preview
@@ -245,7 +247,19 @@ export default function HomeDesktop({
                     <GradientButton onClick={onStartRecording} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                       <Mic2 size={18} />开始录音
                     </GradientButton>
-                    <Link href={ieltsMode && question ? `/write?qid=${question.id}` : '/write'} className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary">
+                    {/* 保留 <Link>（而非改 button）：右键「在新标签打开」/ 中键 / ctrl+click / 悬停预览 /
+                        屏幕阅读器的链接语义都得以保留。普通左键改走 onOpenWrite —— 先核建新故事额度，
+                        超额直接弹覆盖层、不跳转，避免用户进 /write 写完才被拦（白写一场）。
+                        带修饰键的点击一律放行原生行为：那条路仍有 /write 自身的守卫 + 服务端 402 兜底。 */}
+                    <Link
+                      href={writeHref}
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                        e.preventDefault()
+                        onOpenWrite()
+                      }}
+                      className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary"
+                    >
                       <Pencil size={15} />或用文字输入
                     </Link>
                   </div>

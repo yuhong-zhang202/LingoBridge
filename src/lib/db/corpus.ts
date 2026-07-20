@@ -30,6 +30,22 @@ export async function countCorpusThisMonth(): Promise<number> {
   return count ?? 0
 }
 
+/**
+ * 统计当前用户的语料总条数（不限时间，RLS 自动按当前用户过滤）。
+ * 用于匿名试用额度 ANON_CORPUS_LIMIT 的前置判定 —— 该额度是「总条数」口径，不是按月，
+ * 故不可复用 countCorpusThisMonth。服务端对应实现见 corpus-server.countCorpusForUserServer。
+ * @returns  语料总条数
+ * @throws   Error —— 查询出错（调用方一律 fail-open，交服务端 402 兜底）
+ */
+export async function countCorpusTotal(): Promise<number> {
+  await ensureSession()
+  const { count, error } = await getSupabase()
+    .from('corpus')
+    .select('*', { count: 'exact', head: true })
+  if (error) throw new Error(`读取语料总数失败：${error.message}`)
+  return count ?? 0
+}
+
 /** corpus 表行（snake_case）；与服务端创建路径 corpus-server.ts 共用映射 */
 export interface CorpusRow {
   id: string

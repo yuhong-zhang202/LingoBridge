@@ -2,6 +2,8 @@
  * @module   PracticeQuestionPage
  * @desc     练习题目页 — 展示一道雅思题 + 能匹配它的语料列表 + 添加语料；
  *           选中语料后出现「练习」按钮直达分析，「添加语料」复用雅思直达流（?qid=）。
+ *           「添加语料」是建新语料入口，故挂 useStoryQuotaGuard：额度已满时当场弹覆盖层、不进录音页，
+ *           与首页 /write /recording 同一份判断（避免用户录完整理完才被告知试用结束）。
  *           本页只挂 TopBar（其返回键 lg:hidden），桌面端另补 DesktopBackLink 出口：走 router.back()，
  *           与移动端 TopBar 默认返回行为完全一致（不改变本页原有退出语义——本页无未保存状态，
  *           返回即离开，无需确认）；兜底 /question-bank，因为唯一入口就是题库列表的题目卡。
@@ -22,6 +24,8 @@ import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
 import GradientButton from '@/components/GradientButton'
+import QuotaReached from '@/components/QuotaReached'
+import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
 import { getQuestionById } from '@/lib/db/questions'
 import { listCorpusByQuestion, type CorpusMatch, type MatchLevel } from '@/lib/db/matches'
 import { formatRelativeTime } from '@/lib/utils'
@@ -116,9 +120,13 @@ function PracticeQuestionContent(): JSX.Element {
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [textOpen, setTextOpen] = useState(false)
   const [textVal, setTextVal]   = useState('')
+  // 建新故事额度守卫（与首页 / write / recording 同一份 hook）：本页「添加语料」也是建新语料入口，
+  // 且它是录音与文字回退两条路的唯一入口（文字面板只从麦克风失败的 sheet 打开），故在此一处拦即可覆盖两条。
+  const storyQuota = useStoryQuotaGuard()
 
-  // 点「添加语料」先探测麦克风：有权限照常进录音页，没权限弹 sheet（逻辑照搬首页 handleStartRecording）
+  // 点「添加语料」先核额度、再探测麦克风：有权限照常进录音页，没权限弹 sheet（逻辑照搬首页 handleStartRecording）
   async function handleAddCorpus() {
+    if (await storyQuota.checkBlocked()) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
@@ -259,6 +267,12 @@ function PracticeQuestionContent(): JSX.Element {
           </>
         )}
       </div>
+
+      {/* 建新故事额度已满：只在点「添加语料」时弹，关闭即回本页正常态（仍可练已有语料）。
+          匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
+      {storyQuota.blockedVariant && (
+        <QuotaReached variant={storyQuota.blockedVariant} asOverlay onClose={storyQuota.dismiss} />
+      )}
 
       {/* 麦克风权限弹层：没权限时引导去设置或改用文字 */}
       <MicPermissionSheet
