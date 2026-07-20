@@ -51,31 +51,45 @@ export interface FunnelMatchResult {
 }
 
 /**
- * matchByStory 内两次 AI 调用（萃取 + 重排）各自的真实用量回调。
- * 分开两个回调而非一个：route 要把这两次调用【各记一条账】（此前只记了萃取的估算，漏了最大的重排）。
+ * matchByStory 内两次 AI 调用（萃取 + 重排）各自的真实用量 + 真实耗时回调。
+ * 分开两组回调而非一组：route 要把这两次调用【各记一条账】（此前只记了萃取的估算，漏了最大的重排）。
+ *
+ * 2026-07-20 新增 onExtractionLatency / onRankingLatency：此前 route 两条日志的 latency_ms
+ * 都写「从请求入口到全部跑完」的总耗时，同一个总时长被记了两遍（生产数据里两条差值中位数仅 207ms
+ * ——那只是中间一次 Supabase insert 的往返）。真实的分段耗时只有本服务内部知道，故由本服务测量后回传。
  */
 export interface MatchUsageSink {
   /** extractCorpus 一次调用的真实 token 用量 */
   onExtraction?: (usage: LLMUsage) => void
   /** rankQuestions 一次调用（累加内部重试轮次）的真实 token 用量；无候选题时不触发（不会调重排） */
   onRanking?: (usage: LLMUsage) => void
+  /** extractCorpus 一次调用的真实墙钟耗时（ms），只覆盖该调用本身，不含漏斗/重排 */
+  onExtractionLatency?: (ms: number) => void
+  /** rankQuestions 一次调用（含内部重试轮次）的真实墙钟耗时（ms）；无候选题时不触发 */
+  onRankingLatency?: (ms: number) => void
 }
 
 /**
  * 根据故事文本做三层漏斗真实反向匹配，并对候选题做相关性排名
  * @param cleanedText  整理后的中文故事
- * @param usage        两次 AI 调用的真实用量回调（供 route 各记一条账；不传则不回调）
+ * @param usage        两次 AI 调用的真实用量 + 真实耗时回调（供 route 各记一条账；不传则不回调）
  * @returns            主/副观察点 + 漏斗匹配结果（含 matchedViaSecondary / noMatch / 排名后 questions）
  */
 export async function matchByStory(
   cleanedText: string,
   usage?: MatchUsageSink,
 ): Promise<FunnelMatchResult> {
-  // 1. 萃取观察点（主 + 副）
-  const extraction = await extractCorpus(cleanedText, usage?.onExtraction)
-
-  // 2. 观察点元信息（code → name + dimensionId）
-  const points = await listObservationPoints()
+  // 1. 萃取观察点（主 + 副）｜2. 观察点元信息（code → name + dimensionId）
+  // 两者并发：listObservationPoints 是一次纯读 DB，不依赖萃取结果，串行等于白搭 0.2–0.3s。
+  // 耗时在 task 内部单独计（不用 Promise.all 前后的时间差）：并发下墙钟是两者的 max，
+  // 那样记出来的「萃取耗时」会混进 DB 查询，口径不准。
+  const extractionTask = async (): Promise<Awaited<ReturnType<typeof extractCorpus>>> => {
+    const t = Date.now()
+    const r = await extractCorpus(cleanedText, usage?.onExtraction)
+    usage?.onExtractionLatency?.(Date.now() - t)
+    return r
+  }
+  const [extraction, points] = await Promise.all([extractionTask(), listObservationPoints()])
   const pointMeta = new Map(points.map((p) => [p.code, p]))
 
   // 观察点元信息的二道网。主防线是 extraction 的 taxonomy 白名单校验；能走到这里说明
@@ -193,7 +207,9 @@ export async function matchByStory(
       const face = questionFace(q)
       return { id: q.id, en: face.en, zh: face.zh, obs: q.pointName }
     })
+    const tRanking = Date.now()
     const scores = await rankQuestions(cleanedText, candidates, usage?.onRanking)
+    usage?.onRankingLatency?.(Date.now() - tRanking)
 
     if (scores.length > 0) {
       // 回填前先核对「返回的 id 集合」与「候选 id 集合」。ranking.ts 已在模型边界做过严格对齐，

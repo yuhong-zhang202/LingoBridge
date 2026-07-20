@@ -88,7 +88,16 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'corpusId 不能为空' }, { status: 400 })
     }
     await assertCorpusOwner(userId, corpusId)
-    const cleanedText = (await getCorpusByIdServer(corpusId))?.trim() ?? ''
+
+    // 鉴权 / 同意闸 / 归属校验三道安全边界【必须串行且在最前】，绝不为省几百毫秒并进下面这组读。
+    // 到这里已确认「是本人的这份语料」，才开始并发读：取正文与取匹配存档互不依赖，
+    // 香港节点到 Supabase 单次往返 150–300ms，串行等于白搭一次。
+    // 开关关（MATCH_SNAPSHOT_ENABLED=0）时【不发】存档查询，保持「回滚后不查存档」的既有行为。
+    const [rawText, snap] = await Promise.all([
+      getCorpusByIdServer(corpusId),
+      env.matchSnapshotEnabled ? getMatchSnapshotServer(corpusId) : Promise.resolve(null),
+    ])
+    const cleanedText = rawText?.trim() ?? ''
     if (!cleanedText) {
       return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
     }
@@ -96,16 +105,14 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     // 匹配存档：命中即冻结返回、不跑模型。命中判定 = 开关开 且 存档存在 且 story_hash 一致 且 algo_version 一致。
     // env.matchSnapshotEnabled=false（MATCH_SNAPSHOT_ENABLED=0）时永远未命中 → 回退到每次重算的旧行为（回滚开关）。
-    let cached: FunnelMatchResult | null = null
-    if (env.matchSnapshotEnabled) {
-      const snap = await getMatchSnapshotServer(corpusId)
-      if (snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION) {
-        cached = snap.result
-      }
-    }
+    const cached: FunnelMatchResult | null =
+      snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
 
     let result: FunnelMatchResult
     const servedFrom: 'fresh' | 'cache' = cached ? 'cache' : 'fresh'
+    // 响应前必须落地、但互不依赖的后置任务（留档 / 记账 / 埋点）。
+    // 全部先「发出去」再统一 await：见下方 Promise.all 处的错误处理纪律说明。
+    const afterTasks: Promise<unknown>[] = []
     if (cached) {
       // 读档命中：直接用存档结果，不跑模型、不刷 corpus_question_matches 反查表、不记 usage（无模型调用=无成本）。
       result = cached
@@ -125,24 +132,37 @@ export async function POST(req: Request): Promise<NextResponse> {
       // matchByStory 内部是【两次】qwen-plus 调用（萃取 + 重排），此前只记了萃取的一条估算、漏了最大的重排。
       // 用两个回调把两次调用的真实 usage 各自接出来，各记一条账；模型没吐 usage 才回退到估算。
       // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后两个变量已落值。
+      //
+      // latency_ms 口径变更（2026-07-20）：extractionMs / rankingMs 由 matchByStory 内部【分段实测】。
+      // 此前两条日志的 latency_ms 都写 `Date.now() - t0`（从请求入口算起的总耗时），等于把同一个
+      // 总时长记了两遍——看板上 matching 的耗时因此被虚报了约一倍（例：实际 19.8s 被读成 39s）。
+      // 历史数据无法追溯修正：2026-07-20 之前的 api_usage_logs 里 phase=extraction/ranking 两行
+      // 各自都是「请求总耗时」，与本日之后的「单次模型调用耗时」不是同一个量，看趋势图时
+      // 必须按这个时间点断开，别把口径修正误读成「性能突然变好了一半」。
       let extractionUsage: LLMUsage | null = null
       let rankingUsage: LLMUsage | null = null
+      let extractionMs = 0
+      let rankingMs = 0
       result = await runWithRawLogContext({ userId, corpusId }, () =>
         matchByStory(cleanedText, {
           onExtraction: (u) => { extractionUsage = u },
           onRanking: (u) => { rankingUsage = u },
+          onExtractionLatency: (ms) => { extractionMs = ms },
+          onRankingLatency: (ms) => { rankingMs = ms },
         }),
       )
-      // 持久化匹配结果供反查；写库失败不阻断匹配返回
-      await persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e))
+      // 持久化匹配结果供反查；写库失败不阻断匹配返回（.catch 必须留着：台账 115 记过它曾静默失败很久）
+      afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
       // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
-      await upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
-        .catch((e) => logErr('[matching snapshot upsert]', e))
+      afterTasks.push(
+        upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+          .catch((e) => logErr('[matching snapshot upsert]', e)),
+      )
 
       // ── 调用 1：萃取（extractCorpus）。萃取必发，恒记一条。
       // 估算兜底：语料字数 × 0.8 token/字 + 系统提示约 1200；输出约 100。
       const exUsage: LLMUsage = extractionUsage ?? { promptTokens: Math.round(cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } })
+      afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: extractionMs, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } }))
 
       // ── 调用 2：重排（rankQuestions）。仅在有候选题时才会被调用（noMatch/零候选不发），故按候选数判是否记账。
       // 估算兜底：故事全文 × 0.8 + 全部候选题干字数 × 0.5 + 系统提示约 2000；输出按候选数 × 40。
@@ -152,14 +172,14 @@ export async function POST(req: Request): Promise<NextResponse> {
           promptTokens: Math.round(cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
           completionTokens: result.questions.length * 40,
         }
-        await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } })
+        afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: rankingMs, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } }))
       }
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
     // 假空率 = (noMatch=false 但 visibleCount=0) 的故事 ÷ 故事总数（分母走 flow.corpus_bound 计数，
     // 不用 candidateCount——那是模型能自己控的量，违反分母铁律）。logEvent 内部已吞异常，不阻断返回。
-    await logEvent({
+    afterTasks.push(logEvent({
       event: 'match.result',
       flowId: req.headers.get('x-flow-id'),
       storyId: corpusId,
@@ -176,7 +196,22 @@ export async function POST(req: Request): Promise<NextResponse> {
         // 读档命中标 'cache'、重算标 'fresh'：离线口径只在 fresh 上算分布/假空率，避免重访读档被重复计数。
         served_from: servedFrom,
       },
-    })
+    }))
+
+    // 后置任务统一并行等待。这些写没有一条影响返回给用户的响应体（全是留档、记账、埋点），
+    // 但仍必须在返回前落地——serverless 上响应一发，进程随时可能被冻结，fire-and-forget 会丢数据。
+    // 串行时香港节点到 Supabase 每次 150–300ms、六次白吃 1–2 秒；并行后墙钟≈最慢的那一次。
+    //
+    // 错误处理纪律：每个任务在 push 前【各自 catch】，所以 Promise.all 收到的永远是 fulfilled ——
+    // 1) persistMatches 的 .catch(logErr) 一字未动，静默失败仍会留 error 证据（台账 115）；
+    // 2) 任何一个失败都不会中断 Promise.all 的等待，其余任务照样跑完（这正是不用 rejection 的原因）；
+    // 3) 两条 logApiUsage（extraction/ranking）并行发出，但都在这里被 await，仍是「都写」而非「写一条」。
+    //    它们原先的先后顺序不承载任何语义（各自独立一行，metadata.phase 自带区分）；
+    //    logApiUsage 自身内部已 try/catch 吞异常，故不再叠一层 catch。
+    // 4) logEvent 不额外包 catch —— 它内部已吞异常，真抛出来说明是编程错误，
+    //    与改动前 `await logEvent(...)` 的行为保持逐字一致（照旧冒泡到外层 catch → 500）。
+    await Promise.all(afterTasks)
+
     // 响应 DTO 附 servedFrom（在 route 包一层，不改 matchByStory 的 service 返回契约）：前端可据此区分冻结档/新算。
     return NextResponse.json({ ...result, servedFrom })
   } catch (e) {

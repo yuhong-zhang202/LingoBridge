@@ -17,6 +17,7 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
 import NoMatchView from '@/components/matching/NoMatchView'
+import MatchingProgress from '@/components/matching/MatchingProgress'
 import type { MatchingViewProps } from './types'
 
 /** 分组标题行：label + 横线 */
@@ -54,6 +55,9 @@ export default function MatchingMobile({
 
         {loading && (
           <div className="pt-2" aria-busy="true">
+            {/* 分阶段进度：匹配要跑 20–47 秒真实模型调用，光一块不动的骨架屏用户无从判断是在跑还是卡死 */}
+            <MatchingProgress className="mb-5" />
+
             {/* 标题骨架 */}
             <div className="mb-4">
               <Skeleton className="w-3/5 h-[20px]" />

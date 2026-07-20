@@ -154,16 +154,18 @@ describe('rankQuestions · 超时预算与重问轮数', () => {
     expect(probe.seenOpts().timeoutMs!).toBeGreaterThan(30_000)
   })
 
-  test('18. 重问轮数为 3（整批重问，尺子不变）', async () => {
+  // 2026-07-20：3 → 2。轮数乘在超时预算上（14 道候选单轮 36s），三轮全超时用户要干等 108 秒。
+  // 这条断言的意义是钉死「轮数不许悄悄调大」——调大就等于把最坏等待时间成倍放给用户。
+  test('18. 重问轮数为 2（整批重问，尺子不变；轮数乘超时预算，不许调大）', async () => {
     const probe = driveWith([goodRaw()])
     await rankQuestions(STORY, CANDIDATES)
-    expect(probe.seenOpts().maxAttempts).toBe(3)
+    expect(probe.seenOpts().maxAttempts).toBe(2)
   })
 })
 
-describe('rankQuestions · 3 轮用尽后仍缺题', () => {
+describe('rankQuestions · 2 轮用尽后仍缺题', () => {
   test('19. 缺的题保持无分，但必须打 error 点名是哪几道，绝不静默', async () => {
-    // 3 轮整批重问后模型始终只交出 q2，q1 一直缺
+    // 2 轮整批重问后模型始终只交出 q2，q1 一直缺
     const raw = JSON.stringify({
       scores: [{ id: 'q2', q: 'What is the most beautiful scenery you', score: 92, reason: 'b' }],
     })
@@ -172,9 +174,9 @@ describe('rankQuestions · 3 轮用尽后仍缺题', () => {
 
     expect(r).toEqual([{ id: UUID_SCENERY, score: 92, reason: 'b' }])  // 缺的那道不给分
     expect(console.error).toHaveBeenCalledWith(
-      '[Ranking] 已用尽 3 轮整批重问，仍有候选题拿不到可信打分，这些题将不展示分数',
+      '[Ranking] 已用尽 2 轮整批重问，仍有候选题拿不到可信打分，这些题将不展示分数',
       expect.objectContaining({
-        attempts: 3,
+        attempts: 2,
         totalCandidates: 2,
         missingCount: 1,
         missingQuestions: [{ seq: 'q1', en: expect.stringContaining('Do you like taking photos') }],

@@ -19,6 +19,7 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import GradientButton from '@/components/GradientButton'
 import NoMatchView from '@/components/matching/NoMatchView'
+import MatchingProgress from '@/components/matching/MatchingProgress'
 import { SCORE_HIGH, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 import type { MatchingViewProps, FunnelQuestion } from './types'
 
@@ -215,6 +216,10 @@ export default function MatchingDesktop({
   if (loading) {
     return (
       <div className={`${STAGE} flex flex-col items-center px-8 py-8`} aria-busy="true">
+        {/* 分阶段进度：匹配要跑 20–47 秒真实模型调用，光一块不动的骨架屏用户无从判断是在跑还是卡死 */}
+        <div className="w-full max-w-[1040px] mb-6">
+          <MatchingProgress />
+        </div>
         <div className="w-full max-w-[1040px]" aria-hidden="true">
           <Skeleton className="w-2/5 h-[24px]" />
           <Skeleton className="w-1/3 h-3 mt-3" />

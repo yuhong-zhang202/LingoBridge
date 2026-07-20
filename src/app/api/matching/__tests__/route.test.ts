@@ -46,6 +46,7 @@ import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
 import { logEvent } from '@/lib/events'
 import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { logErr } from '@/lib/log'
 import { RANKING_ALGO_VERSION } from '@/lib/constants'
 
 const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchByStory>
@@ -191,6 +192,62 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
         metadata: expect.objectContaining({ phase: 'ranking', prompt_tokens: 555, completion_tokens: 88, cost_source: 'actual' }),
       }),
     )
+  })
+
+  /**
+   * 口径回归（2026-07-20）：两条 usage 日志的 latency_ms 曾【都】写 `Date.now() - t0`（请求总耗时），
+   * 同一个总时长被记了两遍，看板上 matching 耗时因此虚报约一倍（实际 19.8s 被读成 39s）。
+   * 生产数据的佐证是两条记录差值中位数仅 207ms —— 那只是中间一次 Supabase insert 的往返，
+   * 而不是萃取与重排的耗时差。这组断言就是钉死这个口径：分段实测，各记各的，绝不能再相等。
+   */
+  test('7. latency_ms 分段实测：萃取与重排各记各的真实耗时，两条不再相等', async () => {
+    mockMatchByStory.mockImplementation(async (_text, usage) => {
+      usage?.onExtractionLatency?.(1_800)
+      usage?.onRankingLatency?.(17_400)
+      return makeResult('fresh')
+    })
+
+    await POST(makeReq())
+
+    const calls = mockLogApiUsage.mock.calls.map(([arg]) => arg)
+    const extraction = calls.find((c) => (c.metadata as { phase?: string } | undefined)?.phase === 'extraction')
+    const ranking = calls.find((c) => (c.metadata as { phase?: string } | undefined)?.phase === 'ranking')
+
+    // 各自记回传的真实分段耗时，而不是请求总耗时
+    expect(extraction?.latency_ms).toBe(1_800)
+    expect(ranking?.latency_ms).toBe(17_400)
+    // 核心：两条不许再是同一个数（回退成 Date.now()-t0 时这条必挂）
+    expect(extraction?.latency_ms).not.toBe(ranking?.latency_ms)
+  })
+
+  test('8. 服务未回传分段耗时：latency_ms 落 0，绝不退回拿请求总耗时冒充分段耗时', async () => {
+    // 不触发 onExtractionLatency / onRankingLatency
+    mockMatchByStory.mockResolvedValue(makeResult('fresh'))
+
+    await POST(makeReq())
+
+    const calls = mockLogApiUsage.mock.calls.map(([arg]) => arg)
+    expect(calls).toHaveLength(2)
+    expect(calls.every((c) => c.latency_ms === 0)).toBe(true)
+  })
+
+  /**
+   * 后置任务（留档/记账/埋点）改为并行发出、统一 await 后，错误处理纪律不许丢：
+   * persistMatches 曾静默失败很久（台账 115），它的 .catch(logErr) 必须还在；
+   * 且一个任务失败不许拖垮其余——两条 usage 账、写档、埋点都得照写，响应照常 200。
+   */
+  test('9. 并行后置任务：persistMatches 失败被吞并留证，其余任务与响应均不受影响', async () => {
+    cqmUpsert.mockResolvedValue({ error: { message: 'boom' } })
+
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(200)
+    // 失败留证（绝不静默）
+    expect(logErr).toHaveBeenCalledWith('[matching persist]', expect.anything())
+    // 其余后置任务一个不少
+    expect(mockUpsertSnapshot).toHaveBeenCalled()
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(mockLogEvent).toHaveBeenCalled()
   })
 
   test('6. fresh 但零候选（noMatch）：不调重排 → 只记萃取一条账', async () => {
