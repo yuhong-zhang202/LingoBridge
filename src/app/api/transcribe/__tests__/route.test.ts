@@ -6,6 +6,8 @@
  *           ③ 已超额 → 402/429 且既不转码也不调 ASR。全部依赖 mock，不碰真实 DB / ffmpeg / 豆包。
  *           另守卫 ASR 并发闸接线：闸门参数、排队被拒 → 503 ASR_BUSY，以及
  *           ④【排队超时绝不扣次数】—— 等待发生在计次之前，超时用户一次都不该被扣。
+ *           另守卫失败记账口径：⑤ EMPTY_TRANSCRIPT 打 metadata.error_kind='user_input' 且按真实时长记费
+ *           （看板据此从错误率摘出、但保留在失败成本里）；其余失败无标记且记 0。
  * @author   LingoBridge
  * @created  2026-07-20
  */
@@ -130,6 +132,45 @@ describe('转写计次时机 · ASR 已调用后失败 → 照常计次，不退
 
     expect(res.status).toBe(500)
     expect(mockBump).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('转写失败记账 · 区分「用户输入问题」与「系统故障」', () => {
+  test('EMPTY_TRANSCRIPT：打 error_kind=user_input，且按真实时长记费（钱确实花了）', async () => {
+    mockTranscribe.mockRejectedValue({ code: 'EMPTY_TRANSCRIPT', message: '没识别到内容' })
+
+    await POST(audioReq())
+
+    // 1 秒音频 × ¥0.0001/s（mock 单价）。记 0 会让成本看板的"失败成本"永远看不到这笔白烧。
+    expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+      usage_amount: 1,
+      estimated_cost_cny: 0.0001,
+      metadata: { error_kind: 'user_input' },
+      user_id: 'u1',              // 失败行同样要归到人，否则「按用户成本」漏账
+      is_anonymous: false,
+    }))
+  })
+
+  test('系统故障（上游超时）：不打 user_input 标记，且不拿音频时长虚增成本', async () => {
+    mockTranscribe.mockRejectedValue(new Error('上游超时'))
+
+    await POST(audioReq())
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
+    expect(arg.status).toBe('error')
+    expect(arg.metadata).toBeUndefined()   // 无标记 → 看板按系统故障计入错误率
+    expect(arg.estimated_cost_cny).toBe(0) // 豆包没跑完整趟，不认这笔钱
+  })
+
+  test('ASR 之前失败（转码报错）：豆包没被调用 → 记 0 且无 user_input 标记', async () => {
+    mockTranscode.mockRejectedValue(new Error('ffmpeg 挂了'))
+
+    await POST(audioReq())
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
+    expect(arg.estimated_cost_cny).toBe(0)
+    expect(arg.metadata).toBeUndefined()
   })
 })
 

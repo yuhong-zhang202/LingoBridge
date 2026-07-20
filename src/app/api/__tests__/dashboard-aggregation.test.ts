@@ -7,7 +7,9 @@
  *           ④ 延迟 p95（仅成功调用）；
  *           ⑤ 按环节失败率 + 失败成本（部分失败白烧）；
  *           ⑥ 最贵 Top-N 调用（按成本降序，独立于时间序"最近调用"）；
- *           ⑦ 按用户成本 Top-N（按 user_id 归因、成本降序、匿名标记）+ 匿名/登录成本占比，无归属行跳过分组。
+ *           ⑦ 按用户成本 Top-N（按 user_id 归因、成本降序、匿名标记）+ 匿名/登录成本占比，无归属行跳过分组；
+ *           ⑧ 用户输入问题（metadata.error_kind='user_input'，如空录音）不计入错误率但仍计入失败成本，
+ *             且无该标记的历史行一律按系统故障计（口径不追溯改写历史）。
  *           另验预算线常量与 recentLogs.metadata 透传。全部 mock，不碰真实 DB/鉴权。
  * @author   LingoBridge
  * @created  2026-07-18
@@ -207,5 +209,49 @@ describe('GET /api/dashboard · 聚合口径', () => {
 
     // 全局失败成本汇总
     expect(body.failedCost).toBe(0.3)
+  })
+
+  test('用户输入问题（空录音）不计入错误率，但仍计入失败成本', async () => {
+    // 4 次调用：2 次成功、1 次系统故障（¥0.3）、1 次空录音（error_kind=user_input，¥0.6 已经花掉）。
+    // 期望：错误率只认那 1 次系统故障（1/4 = 25%，而非 2/4 = 50%）；失败成本两笔都算（0.3 + 0.6）。
+    const rangeRows = [
+      { service: 'doubao_asr', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
+        created_at: '2026-07-18T01:00:00Z', metadata: null },
+      { service: 'doubao_asr', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
+        created_at: '2026-07-18T01:00:00Z', metadata: null },
+      { service: 'doubao_asr', estimated_cost_cny: 0.3, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: null },
+      { service: 'doubao_asr', estimated_cost_cny: 0.6, latency_ms: 900, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { error_kind: 'user_input' } },
+    ]
+    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null }, EMPTY, EMPTY])
+    const req = new Request('http://localhost/api/dashboard?range=7d')
+    const res = await GET(req)
+    const body = await res.json()
+
+    // ① 摘出：空录音不进错误率
+    expect(body.errorRate).toBe(25)
+    // ② 留下：钱确实花了，失败成本两笔都算
+    expect(body.failedCost).toBe(0.9)
+
+    // ③ 按环节下钻同口径：transcribe 无 phase → other；errors 只数系统故障，errorCost 仍全量
+    const other = body.phaseTotals.find((p: { phase: string }) => p.phase === 'other')
+    expect(other.calls).toBe(4)
+    expect(other.errors).toBe(1)
+    expect(other.errorRate).toBe(25)
+    expect(other.errorCost).toBe(0.9)
+  })
+
+  test('历史数据不追溯：无 error_kind 的老 error 行一律按系统故障计', async () => {
+    const rangeRows = [
+      { service: 'doubao_asr', estimated_cost_cny: 0, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: null },
+      { service: 'doubao_asr', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
+        created_at: '2026-07-18T01:00:00Z', metadata: null },
+    ]
+    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null }, EMPTY, EMPTY])
+    const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
+    const body = await res.json()
+    expect(body.errorRate).toBe(50)
   })
 })

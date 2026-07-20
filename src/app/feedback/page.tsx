@@ -12,6 +12,12 @@ import { type JSX, useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, clearSessionPolishes } from '@/lib/storage'
+import {
+  consumePracticeRecordFailure,
+  PRACTICE_RECORD_FAILED_EVENT,
+  PRACTICE_RECORD_FAILED_MESSAGE,
+} from '@/lib/practice-session-record'
+import Toast from '@/components/Toast'
 import { addSavedPhrase } from '@/lib/db/saved-phrases'
 import { refreshSavedPhrases } from '@/hooks/library-data'
 import type { SessionPolish } from '@/lib/types'
@@ -35,6 +41,17 @@ export default function FeedbackPage(): JSX.Element {
 
   // 唯一一次读取本场暂存
   useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
+
+  // 打卡记录写失败的告知落点。练习页点「结束」就跳到这里，提示放在那边会被跳转直接冲掉，故收在本页：
+  // 重试早于本页挂载就结束 → 挂载时消费标记；晚于挂载才结束 → 事件接住。两条路都指向同一条 Toast。
+  const [recordFailed, setRecordFailed] = useState(false)
+  useEffect(() => {
+    if (consumePracticeRecordFailure()) setRecordFailed(true)
+    // 事件路径也顺手消费掉标记：否则那枚标记会留到下一次进本页，弹一条已经提示过的陈旧提醒。
+    const onFailed = (): void => { consumePracticeRecordFailure(); setRecordFailed(true) }
+    window.addEventListener(PRACTICE_RECORD_FAILED_EVENT, onFailed)
+    return () => window.removeEventListener(PRACTICE_RECORD_FAILED_EVENT, onFailed)
+  }, [])
 
   const total   = cards.length
   const current = cards[index]
@@ -105,6 +122,13 @@ export default function FeedbackPage(): JSX.Element {
           <FeedbackDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
+      {/* 打卡没存上的提示：fixed 浮层，只渲染一次（移动/桌面共用）。比默认 3.5s 长一些 ——
+          这句话要读完两层意思（没存上 / 但句子没事），扫一眼的时间不够。 */}
+      <Toast
+        message={recordFailed ? PRACTICE_RECORD_FAILED_MESSAGE : null}
+        onDismiss={() => setRecordFailed(false)}
+        duration={6000}
+      />
     </>
   )
 }

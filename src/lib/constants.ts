@@ -119,6 +119,23 @@ export const REG_PHRASES_DAILY_LIMIT = 150
 /** 注册每日：restructure 文字整理（与 transcribe 对齐 200——两者一一配对，且走最便宜的 qwen-flash，压太低会误伤真实用户）*/
 export const REG_RESTRUCTURE_DAILY_LIMIT = 200
 
+// ── 失败归因（api_usage_logs.metadata.error_kind）──
+// 背景：并非所有 status='error' 都是系统故障。用户录了一段没人声的音频（EMPTY_TRANSCRIPT）属于
+// 「用户输入问题」——服务是好的，只是这份输入没法处理。混进成本看板的错误率会淹没真实故障信号
+// （2026-07 历史错误率 62.75% 几乎全是这类噪音）。
+//
+// 为什么打在 metadata 而不是新增 status='user_error'：
+//   · 0012 迁移对 status 有 check(status in ('success','error'))，加值要改约束、且代码先于迁移上线会静默丢日志；
+//   · 「已经花掉的钱」口径必须不变 —— 失败成本 / 按环节 errorCost 都按 status='error' 汇总，
+//     换 status 会让这些行凭空从失败成本里消失，正好与产品方拍板（留在失败成本里）相反。
+//   打标记则只影响显式检查该标记的那一处口径，其余全部零改动。
+//
+// 历史数据：已有行没有这个键 → 一律按系统故障计（口径只影响新数据，绝不追溯改写历史）。
+/** metadata.error_kind 的键名 */
+export const ERROR_KIND_KEY = 'error_kind'
+/** 用户输入问题（空录音、将来的音频过大/文字超长等同类）：计入失败成本，但不计入系统错误率 */
+export const ERROR_KIND_USER_INPUT = 'user_input'
+
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
   emotion: '情绪内核',

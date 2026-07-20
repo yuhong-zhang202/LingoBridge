@@ -13,7 +13,10 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
-import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
+import {
+  ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT,
+  ERROR_KIND_KEY, ERROR_KIND_USER_INPUT,
+} from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
 import type { AppError } from '@/types/errors'
 
@@ -90,8 +93,14 @@ function mimeToExt(mimeType: string): string {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账用的两份上下文，在 try 内赋值、catch 内读取：
+  //   · attribution —— 归属（谁烧的钱）。失败行同样要能归到人，否则「按用户成本」漏账。
+  //   · billedDurationS —— 豆包已完整处理的音频秒数，仅在「调用真的走完一整趟」的失败里用于记账（见 catch）。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
+  let billedDurationS: number | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     // 服务端同意闸：语音流首个第三方 AI 入口（字节 ASR）。未捕获同意 → 拒绝，绝不把录音外发。
     // 客户端同意弹窗只挂首页、深链可绕过，故这里必须再硬校验一次（放在计次/转码之前）。
     if (!(await hasRecordedConsent(userId))) {
@@ -136,12 +145,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
       if (dailyCount > dailyLimit) return overQuotaRes()
 
+      // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
+      const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
+      billedDurationS = duration_s   // 供 catch 给「已跑完整趟」的失败记真实费用
       // transcribe 处于建语料之前，无 corpusId；带 userId 归属 ASR 转写留证。
       const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
         transcribeAudio(wavBlob),
       )
-      // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
-      const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
       await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous })
       return NextResponse.json({ text })
     } finally {
@@ -151,7 +161,24 @@ export async function POST(req: Request): Promise<NextResponse> {
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: 0, usage_unit: 'seconds', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error' })
+    // ——— 失败记账：区分「系统故障」与「用户输入问题」，两者花的钱都要记 ———
+    // EMPTY_TRANSCRIPT = 豆包完整处理了整段音频、只是没识别出人声：
+    //   · 费用：钱确实花了（按真实时长记，与成功路径同一公式）——记 0 会让"失败成本"永远看不到这笔白烧；
+    //   · 归因：打 error_kind=user_input，成本看板据此把它排除在系统错误率之外，但仍计入失败成本。
+    // 其余失败（转码报错 / 并发被拒 / 网络中断）豆包没跑完整趟，一律记 0，绝不拿音频时长虚增成本。
+    const isUserInputError = isAppError(e) && e.code === 'EMPTY_TRANSCRIPT'
+    const failedDurationS  = isUserInputError ? (billedDurationS ?? 0) : 0
+    await logApiUsage({
+      service: 'doubao_asr',
+      endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash',
+      usage_amount: failedDurationS,
+      usage_unit: 'seconds',
+      estimated_cost_cny: failedDurationS * API_PRICING.doubao_asr_per_second,
+      latency_ms: Date.now() - t0,
+      status: 'error',
+      ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
+      ...(isUserInputError ? { metadata: { [ERROR_KIND_KEY]: ERROR_KIND_USER_INPUT } } : {}),
+    })
     logErr('[transcribe API]', e)
     // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）
     if (isAppError(e)) {

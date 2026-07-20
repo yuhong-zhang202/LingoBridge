@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
+import { ERROR_KIND_USER_INPUT } from '@/lib/constants'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -76,8 +77,8 @@ function parseRange(raw: string | null): number {
   return 7
 }
 
-/** api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的两键） */
-type LogMeta = { phase?: string; cost_source?: string } | null
+/** api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的三键） */
+type LogMeta = { phase?: string; cost_source?: string; error_kind?: string } | null
 // 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
 // user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
 type AttribRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
@@ -89,6 +90,21 @@ type RecentRow = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number
   latency_ms: number; status: string; metadata: LogMeta
+}
+
+/**
+ * 这条失败是不是「系统故障」（用于错误率口径）。
+ *
+ * status='error' 里混着两类东西，混在一起算错误率会让真实故障被噪音淹没（历史 62.75% 几乎全是空录音）：
+ *   · 系统故障 —— 模型报错、上游超时、我方 bug。这是错误率要盯的信号。
+ *   · 用户输入问题 —— metadata.error_kind='user_input'（如没有人声的空录音）。服务本身是好的。
+ * 只有【错误率】这一个口径按此过滤；失败成本 / 按环节 errorCost 一律照旧全量统计 error 行
+ * （钱确实花了，产品方拍板：从错误率摘出、留在失败成本里）。
+ * 历史行没有该键 → 归为系统故障，口径变化不追溯改写历史数据。
+ * @param row  日志行（只用到 status 与 metadata.error_kind）
+ */
+function isSystemError(row: { status: string; metadata: LogMeta }): boolean {
+  return row.status === 'error' && row.metadata?.error_kind !== ERROR_KIND_USER_INPUT
 }
 
 /** 把某一 UTC 时刻按东八区折算，返回该日 0 点对应的 UTC 时刻（供日界/月界计算） */
@@ -196,13 +212,16 @@ export async function GET(req: Request): Promise<NextResponse> {
       : 0
     // p95 延迟：均值藏长尾，p95 才暴露偶发慢请求。只算成功调用（失败常瞬时返回，混入会拉低）。
     const p95Latency    = percentile(successRows.map(r => r.latency_ms), 95)
+    // 错误率只算系统故障：用户输入问题（空录音等）不是故障，混进来会淹没真实故障信号。见 isSystemError。
     const errorRate     = rngRows.length > 0
-      ? r2(rngRows.filter(r => r.status === 'error').length / rngRows.length * 100)
+      ? r2(rngRows.filter(isSystemError).length / rngRows.length * 100)
       : 0
     const rangeCost     = rngRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
     const avgDailyCost  = r2(rangeCost / rangeDays)
     // 失败成本（白烧）：状态为 error 的调用仍可能已消耗 token（如 ranking 失败前已产出部分输出）。
     // 汇总一个总额，配合按环节失败率定位"钱花了但没拿到结果"的环节。
+    // ⚠️ 口径刻意与 errorRate 不同：这里【全量】统计 error 行，用户输入问题（空录音）同样计入 ——
+    //    豆包被调用过、音频被处理过，钱是真花了。摘出错误率不等于当作没花钱。
     const failedCost    = r2(rngRows.filter(r => r.status === 'error').reduce((s, r) => s + r.estimated_cost_cny, 0))
 
     // ── 估算占比（本期成本 X% 为估算）：cost_source='estimate' 的成本 ÷ 本期总成本 ──
@@ -227,16 +246,16 @@ export async function GET(req: Request): Promise<NextResponse> {
     // ── 按环节成本 + 按环节失败率（哪个环节最贵 / 哪个环节在失败）：按 metadata.phase 聚合，降序 ──
     // errors/errorCost 让"部分失败白烧"在 phase 级可见：如 matching 中 extraction 成功记账后 ranking 失败，
     // extraction 有成本、error 行落在对应 phase（无 phase 的失败归 other），错误率一眼可辨是哪环节在漏。
+    // errors 与顶部 errorRate 同口径（只数系统故障），否则顶部 3% 而 other 环节 60% 会自相矛盾、没法下钻；
+    // errorCost 则与 failedCost 同口径（全量 error 行），两者刻意不同 —— 一个问"哪坏了"，一个问"钱哪去了"。
     const phaseMap = new Map<string, { cost: number; calls: number; errors: number; errorCost: number }>()
     for (const row of rngRows) {
       const key = row.metadata?.phase ?? 'other'
       const cur = phaseMap.get(key) ?? { cost: 0, calls: 0, errors: 0, errorCost: 0 }
       cur.cost += row.estimated_cost_cny
       cur.calls += 1
-      if (row.status === 'error') {
-        cur.errors += 1
-        cur.errorCost += row.estimated_cost_cny
-      }
+      if (isSystemError(row)) cur.errors += 1
+      if (row.status === 'error') cur.errorCost += row.estimated_cost_cny
       phaseMap.set(key, cur)
     }
     const phaseTotals = Array.from(phaseMap.entries())
