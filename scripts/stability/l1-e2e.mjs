@@ -77,6 +77,48 @@ if (PARTS.includes('quota-anon')) {
 }
 estLines.push(`成本阀 MAX_AI_CALLS=${MAX_AI_CALLS}（超出立即 exit(2)）`)
 
+// ── 安全阀 2.5：方法契约预检（零成本、无 token，早于任何花钱与人工确认）──────
+// 为什么要有这一道：台账 120 记的同型事故已第三次 —— 产品把 analysis/phrases 从 GET 改成 POST
+// （0ab7e60），脚本没跟上。照旧脚本跑，会在【花掉 ASR + matching 的钱之后】才在 analysis 这跳拿 405 挂掉。
+// 契约不符必须在花第一分钱之前暴露，所以这一段放在 confirmCost 之前。
+//
+// 判据用 A/B 对照，而不是单看「有没有被拒」：
+//   正确方法 + 无 token → 401：证明该方法存在，且请求走到了鉴权层（≠ 被路由层拒）
+//   错误方法 + 无 token → 405：证明旧方法确实已下线
+// 只看 401 不够：路由整个坏掉/被删也可能给出非 200；只看 405 也不够：那区分不出「方法错」和「路由没了」。
+// 全程不带 token、不带有效 questionId，鉴权在一切业务逻辑之前 → 0 次 AI 调用、0 元、不消耗任何额度。
+async function preflightMethodContract() {
+  const CONTRACT = [
+    { path: '/api/analysis', method: 'POST', legacy: 'GET', body: { questionId: 'preflight' } },
+    { path: '/api/analysis/phrases', method: 'POST', legacy: 'GET', body: { questionId: 'preflight' } },
+  ]
+  log('\n── 方法契约预检（无 token / 零成本 / 早于花钱确认）──')
+  const bad = []
+  for (const c of CONTRACT) {
+    const good = await timedFetch(`${BASE}${c.path}`, {
+      method: c.method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(c.body),
+    }, 20_000)
+    const legacy = await timedFetch(`${BASE}${c.path}`, { method: c.legacy }, 20_000)
+    log(`   ${c.method} ${c.path} → ${good.status}（期望 401）｜ ${c.legacy} → ${legacy.status}（期望 405）`)
+    if (good.status === 405) {
+      bad.push(`${c.method} ${c.path} 拿到 405 —— 产品已不接受 ${c.method}，脚本契约过期。请重读 src/app${c.path}/route.ts 的 export。`)
+    } else if (good.status !== 401) {
+      bad.push(`${c.method} ${c.path} 拿到 ${good.status}，期望 401 —— 可能是路由异常或鉴权闸失效，两种都不该继续花钱。`)
+    }
+    if (legacy.status !== 405) {
+      bad.push(`${c.legacy} ${c.path} 拿到 ${legacy.status}，期望 405 —— 旧方法可能仍可达（会被浏览器预取/爬虫无意触发烧钱）。`)
+    }
+  }
+  if (bad.length) {
+    log('')
+    bad.forEach((b) => log(`🔴 ${b}`))
+    fail('方法契约预检未通过 —— 已在花掉任何 AI 费用之前中止。上面每条都要先核对路由源码再重跑。')
+  }
+  log('   ✅ 契约一致（正确方法走到鉴权、旧方法已被路由层拒绝）')
+}
+// core / authz 两段都要打 analysis，跑它们之前必须先过契约预检。
+if (PARTS.includes('core') || PARTS.includes('authz')) await preflightMethodContract()
+
 // ── 安全阀 3：交互确认 ────────────────────────────────────────
 // 只有【会花钱的段】才要求人工确认；纯零成本段（authz/consent/archive）免确认，以便无 TTY 环境跑。
 // 判定不看 est 数值（浮点 0 不可靠），而是白名单式看「有没有选中会调 AI 的段」——宁可多问一次，不可少问一次。
@@ -172,14 +214,16 @@ if (PARTS.includes('core')) {
   check('匹配至少产出 1 道题（后续分析/词组依赖它）', !!qid, `questionId=${qid}`)
 
   if (qid && corpusId) {
-    // ⚠️ 契约以路由源码 + 前端 src/app/analysis/page.tsx 为准（2026-07-19 逐字段核对）：
-    // 两者都是 GET + query，参数名是 storyId（不是 corpusId）；level 是雅思分数档字符串（默认 '6.0'），不是 CEFR 的 'B2'。
-    const an = await api(`/api/analysis?questionId=${encodeURIComponent(qid)}&storyId=${encodeURIComponent(corpusId)}`,
-      { method: 'GET', token, aiKind: 'analysis(qwen-plus)' })
+    // ⚠️ 契约以路由源码为准（2026-07-20 复核 commit 0ab7e60 后的实现，逐字段核对）：
+    //   两者都是 POST + JSON body（此前是 GET + query，产品方因「GET 会被预取/爬虫无意触发烧钱」改掉）。
+    //   字段：questionId（必填，缺则 400）、storyId（可选，参数名不是 corpusId）、story（正文兜底）、
+    //   phrases 另收 level —— 雅思分数档字符串，路由内 `str(body.level) || '6.0'`，不是 CEFR 的 'B2'。
+    const an = await api('/api/analysis',
+      { body: { questionId: qid, storyId: corpusId }, token, aiKind: 'analysis(qwen-plus)' })
     check('侧重点分析 200', an.status === 200, `status=${an.status} body=${an.text.slice(0, 120)}`)
 
-    const ph = await api(`/api/analysis/phrases?questionId=${encodeURIComponent(qid)}&storyId=${encodeURIComponent(corpusId)}&level=6.0`,
-      { method: 'GET', token, aiKind: 'phrases(qwen-plus)' })
+    const ph = await api('/api/analysis/phrases',
+      { body: { questionId: qid, storyId: corpusId, level: '6.0' }, token, aiKind: 'phrases(qwen-plus)' })
     check('换词组 200', ph.status === 200, `status=${ph.status} body=${ph.text.slice(0, 120)}`)
   }
 
@@ -242,17 +286,17 @@ if (PARTS.includes('archive')) {
 // ══════════════ authz：越权 ══════════════
 if (PARTS.includes('authz')) {
   const FAKE = '00000000-0000-0000-0000-000000000000'
-  // ⚠️ 接口契约以路由源码为准（2026-07-19 复核）：
-  //   /api/matching        POST，JSON body { corpusId }
-  //   /api/analysis        GET ，query ?questionId=&storyId=   ← 不是 POST、参数名不是 corpusId
-  //   /api/analysis/phrases GET ，query ?questionId=&storyId=&level=
+  // ⚠️ 接口契约以路由源码为准（2026-07-20 复核，commit 0ab7e60 后）：
+  //   /api/matching         POST，JSON body { corpusId }
+  //   /api/analysis         POST，JSON body { questionId, storyId? }        ← 参数名是 storyId，不是 corpusId
+  //   /api/analysis/phrases POST，JSON body { questionId, storyId?, level? } ← level 默认 '6.0'
   // 三者的 assertCorpusOwner 都在 bumpDailyUsage 与任何模型调用之前 → 本段 0 次 AI、且不消耗每日额度。
   const r1 = await api('/api/matching', { body: { corpusId: FAKE }, token })
   check('越权 POST /api/matching → 403（不得 200/500）', r1.status === 403, `status=${r1.status} body=${r1.text.slice(0, 120)}`)
   for (const path of ['/api/analysis', '/api/analysis/phrases']) {
-    const qs = `?questionId=qa-authz-probe&storyId=${FAKE}`
-    const r = await api(`${path}${qs}`, { method: 'GET', token })
-    check(`越权 GET ${path} → 403（不得 200/500/405）`, r.status === 403, `status=${r.status} body=${r.text.slice(0, 120)}`)
+    const r = await api(path, { body: { questionId: 'qa-authz-probe', storyId: FAKE }, token })
+    // 405 单列：它意味着方法契约又漂了，此时「非 200」是路由层拒的，不能算越权防护通过。
+    check(`越权 POST ${path} → 403（不得 200/500/405）`, r.status === 403, `status=${r.status} body=${r.text.slice(0, 120)}`)
   }
 }
 

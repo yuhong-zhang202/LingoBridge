@@ -81,12 +81,13 @@ const GUARDED = [
   ['POST', '/api/restructure', { rawText: 'x' }],       // 花钱·qwen-flash
   ['POST', '/api/corpus', { rawText: 'x' }],
   ['POST', '/api/matching', { corpusId: 'x' }],         // 花钱·qwen-plus ×2
-  // ⚠️ 这两个是 GET 不是 POST（route.ts 只 export GET）。
-  // 2026-07-19 首跑用 POST 打出 405 —— 405 是 Next.js 在路由层就拒了，
-  // 【根本没走到鉴权】，等于这两个花钱端点的鉴权闸当时没被测到。
-  // 教训同台账 107/111：检查手段的覆盖面必须等于被检查对象，方法写错 = 漏测。
-  ['GET',  '/api/analysis?questionId=x', null],          // 花钱
-  ['GET',  '/api/analysis/phrases?questionId=x', null],  // 花钱
+  // ⚠️ 这两个是 POST（commit 0ab7e60，2026-07-20 起）。此前是 GET，产品方改成 POST 的原因是
+  // GET 在 HTTP 语义上安全/可缓存，浏览器预取、爬虫、链接预览会自行发起，而这两个端点
+  // 扣额度 + 真实调付费 AI —— 那些无意的 GET 会直接烧钱。契约以 route.ts 的 export 为准。
+  // 历史教训（台账 120）：方法写错会拿到 405，而 405 是 Next.js 在【路由层】就拒了、
+  // 【根本没走到鉴权】，却极易被记成「鉴权断言通过」。下面第 4.1 节的 405 对照就是为此设的。
+  ['POST', '/api/analysis', { questionId: 'x' }],          // 花钱
+  ['POST', '/api/analysis/phrases', { questionId: 'x' }],  // 花钱
   ['POST', '/api/pronounce', { intended: 'a', heard: 'b' }], // 花钱
   ['POST', '/api/practice', { messages: [] }],          // 花钱
   ['POST', '/api/practice/polish', { sentence: 'a' }],  // 花钱
@@ -107,6 +108,27 @@ for (const [method, path, body] of GUARDED) {
 }
 log('')
 table(log, ['端点', 'status', '耗时', '判定'], rows)
+
+// ── 4.1 方法契约 A/B 对照：光看「被拒了」区分不出是路由层拒的还是鉴权层拒的 ──
+// 上面那轮无 token 请求若拿到 401，只能证明「这个方法走到了鉴权」；若哪天产品把方法改回去，
+// 上面会变成 405，而 405 同样是「非 200」—— 断言写成「不得 200」就会假通过。
+// 故这里做同路径的 A/B：正确方法 → 401（走到鉴权），错误方法 → 405（路由层拒）。
+// 两个方向都对上，才能说「脚本用的方法和产品实现的方法一致」。全程无 token、零 AI 调用、零成本。
+const METHOD_CONTRACT = [
+  ['/api/analysis', 'POST', 'GET'],
+  ['/api/analysis/phrases', 'POST', 'GET'],
+]
+for (const [path, good, bad] of METHOD_CONTRACT) {
+  const okRes = await timedFetch(`${BASE}${path}`, {
+    method: good, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ questionId: 'x' }),
+  }, 20_000)
+  check(`方法契约 ${good} ${path} → 401（说明该方法确实存在且走到了鉴权，不是 405）`,
+    okRes.status === 401, `实际 status=${okRes.status}（405=路由不认这个方法，脚本契约已过期）`)
+
+  const badRes = await timedFetch(`${BASE}${path}`, { method: bad }, 20_000)
+  check(`方法契约 ${bad} ${path} → 405（旧方法必须已被路由层拒绝，否则仍可被预取烧钱）`,
+    badRes.status === 405, `实际 status=${badRes.status}`)
+}
 
 // ── 5. 伪造 token：必须 401，不能 500，也不能放行 ────────────
 for (const [method, path] of [['GET', '/api/dashboard'], ['POST', '/api/transcribe']]) {
