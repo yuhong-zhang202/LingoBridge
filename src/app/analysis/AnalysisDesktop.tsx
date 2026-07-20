@@ -2,7 +2,8 @@
  * @module   AnalysisDesktop
  * @desc     题目分析页桌面视图（split 档）—— FlowShellDesktop 沉浸外壳内的两栏舞台：
  *           顶部跨栏题目卡，下方 max-w-[960px] grid-cols-2「左 考官侧重点 | 右 可用词组」左右并置一眼对照，
- *           底部居中「开始练习」CTA。水平下拉 / 词组详情 / 收藏逻辑经 props 由 page.tsx 外壳下发。
+ *           底部居中「开始练习」CTA。两栏定高（PANEL_H）恒等高：左栏内容垂直居中、右栏词组含详情卡
+ *           一律卡内滚动，展开详情不撑高布局。水平下拉 / 词组详情 / 收藏逻辑经 props 由 page.tsx 外壳下发。
  *           桌面独有交互：词组 chip 与主按钮 hover 轻微浮起；Enter/→ 进入练习、Esc 退出。
  * @author   LingoBridge
  * @created  2026-07-09
@@ -35,6 +36,13 @@ const LEVELS = ['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0']
 /** 舞台最小高度：满屏减去外壳 72px 顶栏 */
 const STAGE = 'min-h-[calc(100vh-72px)]'
 
+/** 两栏舞台定高：左右卡片恒等高、不随内容（含词组详情卡展开）变化，超出部分走卡内滚动。
+ *  取 360px —— 落在既有 min-h-[340px]（左栏原下限，不压缩现有内容）与 max-h-[440px] 之间，
+ *  并留出 1080p 首屏余量：整页所需高度 ≈ 旁白 44 + 题目卡 ~149 + 24 + 360 + 32 + CTA 46
+ *  + 12 + 提示 18 + 舞台 py-12 96 + 顶栏 72 ≈ 853px，1080p 窗口可视高约 900–970，
+ *  即便题面折成 3 行仍不把「开始练习」推出首屏。改这个值前先重算这笔账。 */
+const PANEL_H = 'h-[360px]'
+
 /** 序号圆圈：外层极淡渐变描边 + 内层白底 + 灰色数字 */
 function StepNum({ n }: { n: number }) {
   return (
@@ -47,10 +55,11 @@ function StepNum({ n }: { n: number }) {
 }
 
 /** 渐变描边卡片 — 极淡 1px 渐变 border + 白底内层。
- *  桌面 split 两栏等高：h-full + min-h 让「侧重点 | 词组」高度一致，消除底部参差。 */
+ *  桌面 split 两栏定高：h-full 吃 grid 行的固定高度（PANEL_H），
+ *  min-h-0 让内部 flex 子项可收缩、把溢出交给卡内滚动容器而不是撑高卡片。 */
 function GradCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <Card variant="gradient" className={cn('px-[22px] pt-[18px] pb-[22px] h-full flex flex-col min-h-[340px]', className)}>
+    <Card variant="gradient" className={cn('px-[22px] pt-[18px] pb-[22px] h-full min-h-0 flex flex-col', className)}>
       {children}
     </Card>
   )
@@ -88,6 +97,14 @@ export default function AnalysisDesktop({
     return () => window.removeEventListener('keydown', onKey)
   }, [ready])
 
+  // 词组栏定高后详情卡内联展开在被点 chip 下方，可能落在可视区外 = 用户点了没反应。
+  // 展开后把详情卡滚进视野；block:'nearest' 只做最小位移（已可见则不动），不打断阅读位置。
+  const detailRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!openPhrase) return
+    detailRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [openPhrase])
+
   if (loading) {
     return (
       <div className={`${STAGE} flex flex-col justify-center px-8 py-12`} aria-busy="true">
@@ -101,7 +118,7 @@ export default function AnalysisDesktop({
             <Skeleton className="w-[70%] h-[14px] mt-3" />
             <Skeleton className="w-1/3 h-3 mt-2" />
           </Card>
-          <div className="grid grid-cols-2 gap-8 items-stretch mt-6">
+          <div className={`grid grid-cols-2 gap-8 items-stretch mt-6 ${PANEL_H}`}>
             {/* 答题侧重点骨架 */}
             <GradCard>
               <Skeleton className="w-24 h-3.5" />
@@ -196,8 +213,9 @@ export default function AnalysisDesktop({
           <p className="text-[13px] text-v2-text-muted">{data.question.zh}</p>
         </Card>
 
-        {/* split 档：左 考官侧重点 | 右 可用词组，天然成对左右并置、等高对照 */}
-        <div className="grid grid-cols-2 gap-8 items-stretch mt-6">
+        {/* split 档：左 考官侧重点 | 右 可用词组，天然成对左右并置、等高对照。
+            行高由 PANEL_H 锁死：两栏恒等高，词组详情卡展开只在栏内滚动，整页布局纹丝不动。 */}
+        <div className={`grid grid-cols-2 gap-8 items-stretch mt-6 ${PANEL_H}`}>
 
           {/* 左栏：考官侧重点 */}
           <GradCard>
@@ -208,17 +226,22 @@ export default function AnalysisDesktop({
             {data.analysis.structureLabel && (
               <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
             )}
-            {/* justify-start：内容紧跟标题（Proximity），富余高度全部沉到底部，不再上下各撑出空洞 */}
-            <div className="flex-1 flex flex-col justify-start pt-1 gap-5">
-              {data.analysis.focusPoints.map((fp, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <StepNum n={i + 1} />
-                  <div className="flex-1 pt-[1px]">
-                    <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
-                    <p className="text-[12px] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
+            {/* 垂直居中且兼顾超长内容（同 /settings 的解法）：外层是定高滚动容器，
+                内层 min-h-full + justify-center —— 内容不满则被撑到容器高、有余量可分 = 居中；
+                内容超高则容器随内容长高（min-h 是下限非上限）、无余量可分 = 等价顶部起排且可滚，
+                不会出现 flex 居中导致顶部内容被裁、滚不到的塌陷。 */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+              <div className="min-h-full flex flex-col justify-center gap-5">
+                {data.analysis.focusPoints.map((fp, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <StepNum n={i + 1} />
+                    <div className="flex-1 pt-[1px]">
+                      <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
+                      <p className="text-[12px] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </GradCard>
 
@@ -261,8 +284,9 @@ export default function AnalysisDesktop({
             {phrasesLoading ? (
               <p aria-live="polite" className="flex-1 flex items-center justify-center text-[12px] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
             ) : (
-            // 词组多时不撑高卡片：max-h 封顶 + 卡内滚动（min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
-            <div aria-live="polite" className="flex-1 min-h-0 max-h-[440px] overflow-y-auto flex flex-col gap-3.5 pr-1">
+            // 卡片已定高：词组多 / 详情卡展开一律不撑高外层，全部在本容器内滚动
+            // （min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
+            <div aria-live="polite" className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 pr-1">
               {(data.analysis.phrases ?? []).map((g, gi) => {
                 const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                 const openItem = og === gi ? g.items[oi] : null
@@ -289,7 +313,7 @@ export default function AnalysisDesktop({
                       })}
                     </div>
                     {openItem && (
-                      <div className="mt-2.5">
+                      <div ref={detailRef} className="mt-2.5">
                         <PhraseDetailCard
                           id={`phrase-detail-${gi}-${oi}`}
                           text={openItem.text}
