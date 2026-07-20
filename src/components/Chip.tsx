@@ -1,6 +1,7 @@
 /**
  * @module   Chip
- * @desc     交互型胶囊按钮 — 可点击，gradient / ghost / default 三种样式，sm / md 两种尺寸
+ * @desc     交互型胶囊按钮 — 可点击，gradient / ghost / default 三种样式，sm / md 两种尺寸。
+ *           两个分支都显式 type="button"：默认 type 是 submit，放进 <form> 会误触发提交。
  * @author   LingoBridge
  * @created  2026-05-29
  */
@@ -39,6 +40,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
   if (useGradient) {
     return (
       <button
+        type="button"
         onClick={onClick}
         className={cn(BASE, SIZES[size], 'bg-white text-v2-text-secondary font-semibold', className)}
         style={GRADIENT_BORDER_STYLE}
@@ -54,6 +56,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(BASE, SIZES[size], variantClass, className)}
     >

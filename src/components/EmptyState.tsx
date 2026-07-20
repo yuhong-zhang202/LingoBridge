@@ -67,7 +67,9 @@ export default function EmptyState({
             {ctaLabel}
           </button>
         ) : (
-          <GradientButton onClick={onCta} className="mt-5 px-6 py-2.5 rounded-full text-[14px] font-medium">
+          // 主要动作：渐变描边胶囊。min-h-[44px] 让触控命中区达 WCAG 2.5.5（py-2.5 + 14px 字实测仅约 40px）；
+          // 配 inline-flex 居中，避免仅靠 min-height 撑高后文字贴顶。
+          <GradientButton onClick={onCta} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[14px] font-medium">
             {ctaLabel}
           </GradientButton>
         )

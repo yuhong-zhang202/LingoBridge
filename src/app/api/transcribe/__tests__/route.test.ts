@@ -4,10 +4,30 @@
  *           ① ASR 前失败（转码报错）→ 一次都没计（等价于回滚，且无需递减、无并发风险）；
  *           ② ASR 已被调用后失败（含 EMPTY_TRANSCRIPT）→ 照常计次，不退（费用已产生，且防构造必失败请求刷额度）；
  *           ③ 已超额 → 402/429 且既不转码也不调 ASR。全部依赖 mock，不碰真实 DB / ffmpeg / 豆包。
+ *           另守卫 ASR 并发闸接线：闸门参数、排队被拒 → 503 ASR_BUSY，以及
+ *           ④【排队超时绝不扣次数】—— 等待发生在计次之前，超时用户一次都不该被扣。
  * @author   LingoBridge
  * @created  2026-07-20
  */
 jest.mock('server-only', () => ({}))
+
+// 闸门本体行为由 lib/__tests__/concurrency-gate.test.ts 覆盖；这里只替身化，用来精确制造
+// 「队列满 / 等待超时」两种拒绝，避免在路由层堆 25 个并发请求。
+// 替身内联在工厂里：路由模块在 import 阶段就会构造闸门，此刻外层 const 尚在 TDZ，引用不到。
+jest.mock('@/lib/concurrency-gate', () => {
+  const acquire  = jest.fn()
+  const release  = jest.fn()
+  const createdWith: unknown[] = []
+  return {
+    createConcurrencyGate: (options: unknown) => {
+      createdWith.push(options)
+      return { acquire, activeCount: 0, queuedCount: 0 }
+    },
+    __acquire:     acquire,
+    __release:     release,
+    __createdWith: createdWith,
+  }
+})
 
 jest.mock('@/lib/audio/transcode', () => ({ transcodeToWav: jest.fn() }))
 jest.mock('@/services/transcription', () => ({ transcribeAudio: jest.fn() }))
@@ -41,6 +61,12 @@ const mockTranscribe  = transcribeAudio as jest.MockedFunction<typeof transcribe
 const mockBump        = bumpDailyUsageServer as jest.MockedFunction<typeof bumpDailyUsageServer>
 const mockRead        = readDailyUsageServer as jest.MockedFunction<typeof readDailyUsageServer>
 
+const gateMock = jest.requireMock('@/lib/concurrency-gate') as {
+  __acquire:     jest.Mock
+  __release:     jest.Mock
+  __createdWith: unknown[]
+}
+
 /** 造一个带音频文件的 multipart 请求 */
 function audioReq(): Request {
   const form = new FormData()
@@ -65,6 +91,8 @@ beforeEach(() => {
   mockTranscode.mockResolvedValue(Buffer.alloc(44 + 32000)) // 约 1 秒的 16kHz WAV
   mockTranscribe.mockResolvedValue('hello world')
   ;(logApiUsage as jest.Mock).mockResolvedValue(undefined)
+  // 默认：闸门不拥堵，立刻放行
+  gateMock.__acquire.mockResolvedValue({ ok: true, release: gateMock.__release })
 })
 
 describe('转写计次时机 · ASR 之前失败 → 不计次（等价回滚）', () => {
@@ -81,12 +109,14 @@ describe('转写计次时机 · ASR 之前失败 → 不计次（等价回滚）
 })
 
 describe('转写计次时机 · ASR 已调用后失败 → 照常计次，不退', () => {
-  test('豆包返回 EMPTY_TRANSCRIPT：返回 500 且带 code，但计次已落（费用已产生，不回滚）', async () => {
+  test('豆包返回 EMPTY_TRANSCRIPT：返回 422 且带 code（用户输入问题非服务端故障），但计次已落（费用已产生，不回滚）', async () => {
     mockTranscribe.mockRejectedValue({ code: 'EMPTY_TRANSCRIPT', message: '没识别到内容' })
 
     const res = await POST(audioReq())
 
-    expect(res.status).toBe(500)
+    // 422 而非 500：录到音但没有可用人声属「请求合法、内容无法处理」。
+    // 前端 recording/page.tsx 走 !res.ok + code 判分支，4xx 同样命中友好提示。
+    expect(res.status).toBe(422)
     expect(await res.json()).toEqual(expect.objectContaining({ code: 'EMPTY_TRANSCRIPT' }))
     // 核心不变式：豆包已被调用 → 计次必须保留，否则可构造必失败请求无限刷 ASR
     expect(mockTranscribe).toHaveBeenCalled()
@@ -152,5 +182,66 @@ describe('转写额度熔断 · 已超额零成本挡掉', () => {
 
     expect(res.status).toBe(402)
     expect(mockTranscribe).not.toHaveBeenCalled()
+  })
+})
+
+describe('ASR 并发闸 · 排队被拒绝', () => {
+  test('闸门参数钉死：并发 4（豆包上限 5 留 1 余量）/ 队列 20 / 等待 15s', () => {
+    // createdWith 在模块加载时写入，clearAllMocks 不会清空（它是普通数组，不是 jest.fn）
+    expect(gateMock.__createdWith).toEqual([
+      { maxConcurrent: 4, maxQueue: 20, maxWaitMs: 15_000 },
+    ])
+  })
+
+  test.each([
+    ['队列已满', 'queue_full'],
+    ['等待超时', 'timeout'],
+  ])('%s：503 + code=ASR_BUSY，且【一次都不计次】、不调 ASR', async (_label, reason) => {
+    gateMock.__acquire.mockResolvedValue({ ok: false, reason })
+
+    const res = await POST(audioReq())
+
+    // 与「转写失败」(500) / 「你的额度用尽」(402/429) 三者互不重叠，前端才能给出「人多」的专属文案
+    expect(res.status).toBe(503)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'ASR_BUSY' }))
+    expect(res.headers.get('Retry-After')).toBe('5')
+    // 核心不变式：排队与超时都发生在计次之前 —— 等了半天还超时、还被扣一次，绝不可接受
+    expect(mockBump).not.toHaveBeenCalled()
+    expect(mockTranscribe).not.toHaveBeenCalled()
+    // 被拒时没有拿到名额，自然也不该归还
+    expect(gateMock.__release).not.toHaveBeenCalled()
+  })
+
+  test('拿到名额后无论成功还是抛错，release 都必须被调用（否则名额永久泄漏）', async () => {
+    await POST(audioReq())
+    expect(gateMock.__release).toHaveBeenCalledTimes(1)
+
+    gateMock.__release.mockClear()
+    mockTranscribe.mockRejectedValue(new Error('上游超时'))
+    await POST(audioReq())
+    expect(gateMock.__release).toHaveBeenCalledTimes(1)
+  })
+
+  test('闸门只包住 ASR，不包转码：acquire 发生在转码之后', async () => {
+    const order: string[] = []
+    mockTranscode.mockImplementation(async () => { order.push('transcode'); return Buffer.alloc(44) })
+    gateMock.__acquire.mockImplementation(async () => { order.push('acquire'); return { ok: true, release: gateMock.__release } })
+    mockBump.mockImplementation(async () => { order.push('bump'); return 1 })
+    mockTranscribe.mockImplementation(async () => { order.push('asr'); return 'ok' })
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(200)
+    // 转码是本机 CPU、不占豆包并发；排队必须在计次之前，计次仍紧贴 ASR
+    expect(order).toEqual(['transcode', 'acquire', 'bump', 'asr'])
+  })
+
+  test('豆包仍返回 45000292（并发超限）：归到 503 ASR_BUSY，而非误报「转写失败」', async () => {
+    mockTranscribe.mockRejectedValue({ code: '45000292', message: 'concurrency limit exceeded' })
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(503)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'ASR_BUSY' }))
   })
 })

@@ -126,10 +126,14 @@ function RecordingContent(): JSX.Element {
       }
       if (!res.ok) {
         const errData = (await res.json()) as { error?: string; code?: string }
+        // ASR_BUSY（503，转写并发排队满/超时）必须和「转写失败」分开说：前者是"人多"、几秒后重试就好，
+        // 后者是"坏了"。文案混用会让用户以为产品故障而直接放弃。
         throw new Error(
-          errData.code === 'EMPTY_TRANSCRIPT'
-            ? '好像没太听清，要不要再说一次？'
-            : '转写失败，请重试'
+          errData.code === 'ASR_BUSY'
+            ? '现在使用的人有点多，稍等几秒再说一次就好'
+            : errData.code === 'EMPTY_TRANSCRIPT'
+              ? '好像没太听清，要不要再说一次？'
+              : '转写失败，请重试'
         )
       }
       const data = (await res.json()) as { text: string }

@@ -14,19 +14,65 @@ import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
+import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
 import type { AppError } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
+// ——— 豆包 ASR 并发闸 ———
+// 火山引擎控制台实测：「录音文件识别大模型·极速版」并发限额 = 5（增购需付费，产品方 2026-07-20 决定不买、改排队）。
+// 超限时豆包直接返回错误码 45000292，用户刚录的那段话白费。故在服务端自行把并发压在上限内、超出的排队。
+//
+// 三个参数的取值依据（L3 压测：单次转写 P50 约 2.8–3.4s，8 并发时 5 成功 3 失败）：
+//   · 并发 4 —— 不取满 5。我方 release 的时刻早于豆包服务端计数回落，取满 5 仍会因时序抖动撞限；留 1 个余量。
+//   · 队列 20 —— 吞吐 ≈ 4 / 3s ≈ 1.33 req/s，排在第 20 位约需等 15s，正好与下面的等待上限对齐：
+//     队列再长也只是让人白等到超时，没有意义。绝不无界排队（否则高峰期耗尽连接、拖垮整个服务）。
+//   · 等待 15s —— 转写本身约 3s，再等 15s 已是体验下限。且 15(排队) + 10(转码) + 30(ASR 超时) = 55s < maxDuration 60s。
+//
+// ⚠️ 进程内状态，多实例失效 —— 详见 lib/concurrency-gate 顶部说明。
+const ASR_MAX_CONCURRENT = 4
+const ASR_MAX_QUEUE      = 20
+const ASR_MAX_WAIT_MS    = 15_000
+const asrGate = createConcurrencyGate({
+  maxConcurrent: ASR_MAX_CONCURRENT,
+  maxQueue:      ASR_MAX_QUEUE,
+  maxWaitMs:     ASR_MAX_WAIT_MS,
+})
+
 // ffmpeg 需要 Node.js 运行时（不支持 Edge）
 export const runtime = 'nodejs'
-// 给转码（≤10s）+ 豆包识别（≤30s）留足时间
+// 给排队（≤15s）+ 转码（≤10s）+ 豆包识别（≤30s）留足时间
 export const maxDuration = 60
 
 /** AppError 类型守卫（code + message 字段） */
 function isAppError(e: unknown): e is AppError {
   return typeof e === 'object' && e !== null && 'code' in e && 'message' in e
+}
+
+/** 豆包并发超限错误码（transcription 层把上游 X-Api-Status-Code 原样放进 AppError.code） */
+const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
+
+/** 「人多」的三种来源：本地队列满 / 本地等待超时 / 仍被豆包判并发超限 */
+type BusyReason = GateRejectReason | 'upstream_limit'
+
+/**
+ * 「服务繁忙」响应（队列满 / 等待超时 / 上游并发超限）
+ * @param reason  繁忙来源，仅用于服务端日志定位，不回传给客户端
+ * @returns       503 + code=ASR_BUSY
+ *
+ * 为什么是 503 而不是 429/500：
+ *   · 429 在本接口已被「注册用户每日额度用尽」占用，复用会让前端分不清「你用超了」和「大家都在用」；
+ *   · 500 会让前端落进「转写失败，请稍后再试」，用户以为产品坏了 —— 这正是要区分开的场景。
+ *   503 语义就是「服务暂时过载」，配 Retry-After 提示客户端稍后重试。
+ *   前端按 code=ASR_BUSY 给「人多，稍等几秒再说一次」的专属文案。
+ */
+function busyRes(reason: BusyReason): NextResponse {
+  logErr('[transcribe API] ASR 并发闸拒绝', { reason, maxConcurrent: ASR_MAX_CONCURRENT, maxQueue: ASR_MAX_QUEUE })
+  return NextResponse.json(
+    { error: '现在使用的人有点多，请稍等几秒再试一次', code: 'ASR_BUSY' },
+    { status: 503, headers: { 'Retry-After': '5' } },
+  )
 }
 
 /**
@@ -79,18 +125,29 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 构造 WAV Blob 传给 transcription 层，令其 resolveFormat 得到 "wav"
     const wavBlob  = new Blob([new Uint8Array(wavBuf)], { type: 'audio/wav' })
 
-    // ② 计次的分界线就在这一行：它下面是花钱的豆包调用，它上面的任何失败都不曾计次。
-    const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
-    if (dailyCount > dailyLimit) return overQuotaRes()
+    // ——— 并发闸只包住豆包调用这一段 ———
+    // 转码是本机 CPU、不占豆包并发配额，绝不能圈进来（圈进来白白拉低吞吐）。
+    // ⚠️ 排队【必须在计次之前】：排队等待与超时都发生在花钱之前，等超时的用户一次都没扣，
+    //    否则「排了队、还超时、还被扣次数」= 白扣，不可接受。名额到手之后才计次，计次点依旧紧贴 ASR。
+    const slot = await asrGate.acquire()
+    if (!slot.ok) return busyRes(slot.reason)
+    try {
+      // ② 计次的分界线就在这一行：它下面是花钱的豆包调用，它上面的任何失败都不曾计次。
+      const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
+      if (dailyCount > dailyLimit) return overQuotaRes()
 
-    // transcribe 处于建语料之前，无 corpusId；带 userId 归属 ASR 转写留证。
-    const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
-      transcribeAudio(wavBlob),
-    )
-    // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
-    const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
-    await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous })
-    return NextResponse.json({ text })
+      // transcribe 处于建语料之前，无 corpusId；带 userId 归属 ASR 转写留证。
+      const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
+        transcribeAudio(wavBlob),
+      )
+      // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
+      const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)
+      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous })
+      return NextResponse.json({ text })
+    } finally {
+      // 名额必须归还：无论成功、超额早退还是抛错。漏了就是永久泄漏，闸门会越关越死。
+      slot.release()
+    }
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
@@ -98,7 +155,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     logErr('[transcribe API]', e)
     // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）
     if (isAppError(e)) {
-      return NextResponse.json({ error: '转写失败，请稍后再试', code: e.code }, { status: 500 })
+      // 兜底：即便排了队，我方 release 与豆包服务端计数回落之间仍有时序窗口，偶发仍会撞并发限额。
+      // 45000292 = 豆包并发超限，与队列满/超时是同一件事（人多），归到同一个 ASR_BUSY 分支，
+      // 别让它变成「转写失败」把锅甩给产品。不自动重试的取舍见交付说明。
+      if (e.code === DOUBAO_CONCURRENCY_LIMIT_CODE) return busyRes('upstream_limit')
+      // EMPTY_TRANSCRIPT（录到了音但没有可用人声）是用户输入问题、不是服务端故障，用 422 而非 500：
+      // 语义上「请求格式没问题、内容无法处理」正是 422。前端按 !res.ok + code 判分支，状态码换了仍命中。
+      const status = e.code === 'EMPTY_TRANSCRIPT' ? 422 : 500
+      return NextResponse.json({ error: '转写失败，请稍后再试', code: e.code }, { status })
     }
     return NextResponse.json({ error: '转写失败，请稍后再试' }, { status: 500 })
   }

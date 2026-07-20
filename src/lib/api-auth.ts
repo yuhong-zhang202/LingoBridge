@@ -104,21 +104,6 @@ export async function requireUser(req: Request): Promise<{ userId: string }> {
 }
 
 /**
- * 校验调用者是「已注册」用户（非匿名会话）。用于付费 AI 接口：anon key 公开 + signInAnonymously
- * 可用，匿名 token 也能通过 requireUser，故须在此额外挡掉匿名会话，防脚本化无限调用烧钱。
- * @param req  进入的请求（读 Authorization 头）
- * @returns    { userId } 当前已注册用户 id
- * @throws     ApiAuthError(401) —— 缺 token 或 token 无效
- * @throws     ApiAuthError(403) —— 会话为匿名（尚未注册账号）
- * @sideEffect 调 admin.auth.getUser(token) 校验 token 并读 is_anonymous（service_role client）
- */
-export async function requireRegisteredUser(req: Request): Promise<{ userId: string }> {
-  const user = await authUser(req)
-  if (user.isAnonymous) throw authError(403, 'FORBIDDEN', '请先注册账号后使用')
-  return { userId: user.id }
-}
-
-/**
  * 放行匿名与注册用户（只挡无效 token），并把是否匿名一并返回供调用方按额度区分处理。
  * 用于保留「未注册免费试用一遍」的付费 AI 接口：匿名放行但由服务端额度约束，防脚本无限白嫖。
  * @param req  进入的请求（读 Authorization 头）

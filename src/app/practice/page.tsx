@@ -146,7 +146,12 @@ function PracticeContent(): JSX.Element {
       // 额度用尽（402，匿名撞 ASR 试用上限）：与初始化同一套配额提示，别落进「转写失败」普通错误态 ——
       // 用户会以为产品坏了，白丢一次转化。
       if (tr.status === 402) { setReviewQuotaShown(true); setPhase('idle'); return }
-      if (!tr.ok) throw new Error('转写失败')
+      if (!tr.ok) {
+        // ASR_BUSY（503，转写并发排队满/超时）是"人多"不是"坏了"，几秒后重试就能成 —— 单独给文案，
+        // 否则用户看到「转写失败」会以为产品故障，直接放弃这一轮对话。
+        const errData = (await tr.json().catch(() => ({}))) as { code?: string }
+        throw new Error(errData.code === 'ASR_BUSY' ? '现在使用的人有点多，稍等几秒再说一次就好' : '转写失败')
+      }
       const { text } = (await tr.json()) as { text: string }
 
       const next: PracticeMessage[] = [...messages, { role: 'user', content: text }]

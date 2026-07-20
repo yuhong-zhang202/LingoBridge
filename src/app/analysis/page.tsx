@@ -95,7 +95,9 @@ function AnalysisContent() {
       try {
         const res = await apiFetch(`/api/analysis/phrases?questionId=${encodeURIComponent(questionId)}&storyId=${encodeURIComponent(storyId)}&level=${encodeURIComponent(newLevel)}`)
         // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
-        if (res.status === 403) { router.push('/'); return }
+        // 同样要回退档位：跳转是异步的，回退前这一帧（以及用户按浏览器返回退回本页时）
+        // 档位不能停在换失败的新值上，否则与页面里没换成的词组内容对不上。
+        if (res.status === 403) { setLevel(prevLevel); router.push('/'); return }
         // 402/429 必须在此判、不能等 catch —— catch 里拿不到 res.status。
         // 档位回退保留（状态不该与内容脱节），但必须配提示：否则用户点 7.0 → 档位自己跳回 6.0
         // → 内容一字未变 → 零反馈 → 以为按钮坏了反复点，每点一次烧一次 AI。

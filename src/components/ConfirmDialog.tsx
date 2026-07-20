@@ -16,8 +16,10 @@ interface ConfirmDialogProps {
   cancelText?: string
   /** true 时确认按钮用 error 红 */
   danger?: boolean
-  /** 请求进行中：禁用两个按钮、忽略 Esc/点遮罩，确认按钮显示「删除中…」 */
+  /** 请求进行中：禁用两个按钮、忽略 Esc/点遮罩，确认按钮改显 loadingText */
   loading?: boolean
+  /** loading 态确认按钮文案。默认中性的「处理中…」，删除场景可传「删除中…」 */
+  loadingText?: string
   onConfirm: () => void
   onCancel: () => void
 }
@@ -29,6 +31,7 @@ interface ConfirmDialogProps {
  * @param description  说明文案
  * @param danger       危险操作（确认按钮红色）
  * @param loading      请求进行中（锁定交互）
+ * @param loadingText  loading 态确认按钮文案，默认「处理中…」
  * @param onConfirm    点确认
  * @param onCancel     点取消 / Esc / 点遮罩
  * @sideEffect         打开时监听 Esc、锁定 body 滚动
@@ -41,6 +44,7 @@ export default function ConfirmDialog({
   cancelText = '取消',
   danger = false,
   loading = false,
+  loadingText = '处理中…',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -94,7 +98,7 @@ export default function ConfirmDialog({
             disabled={loading}
             className={`px-4 py-2 rounded-full text-[13px] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${danger ? 'bg-error' : 'bg-brand-primary'}`}
           >
-            {loading ? '删除中…' : confirmText}
+            {loading ? loadingText : confirmText}
           </button>
         </div>
       </div>

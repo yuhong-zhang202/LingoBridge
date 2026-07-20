@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 // Next15 会因 home 目录下存在其它 lockfile 而误推断 workspace root；显式钉死为本项目目录，
-// 保证 outputFileTracingIncludes 的相对路径（ffmpeg 二进制 → Vercel）从项目根解析、生产 /api/transcribe 不丢二进制。
+// 让下面 outputFileTracingIncludes 的相对路径从项目根解析。
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
@@ -14,7 +14,13 @@ const nextConfig = {
   outputFileTracingRoot: __dirname,
   // ffmpeg-static / fluent-ffmpeg 包含原生二进制，不能被 webpack 打包（Next15：已从 experimental 提升到顶层）
   serverExternalPackages: ['ffmpeg-static', 'fluent-ffmpeg'],
-  // 让 Vercel output tracing 包含 ffmpeg 二进制（Next15：已从 experimental 提升到顶层）
+  // ⚠️ 下面两项 outputFileTracing* 是 Vercel 时代遗留，在当前部署方式下【不生效】：
+  //    Zeabur 跑标准 `next start` + 完整 node_modules（未开 output:'standalone'），产物追踪结果根本不被消费。
+  //    当前生产的 ffmpeg 二进制靠的是 Zeabur 环境变量
+  //      ZBPACK_INSTALL_COMMAND = npm install && node node_modules/ffmpeg-static/install.js
+  //    （构建机 npm 默认拦安装脚本，见 docs/部署交接-香港PaaS.md §10）——与这里的配置无关。
+  //    保留而不删：目前无害，且若将来改用 standalone 产物仍需要它；删改属部署面变更，要单独验证。
+  // 让 output tracing 包含 ffmpeg 二进制（Next15：已从 experimental 提升到顶层）
   outputFileTracingIncludes: {
     '/api/transcribe': ['./node_modules/ffmpeg-static/**'],
   },
