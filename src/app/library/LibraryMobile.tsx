@@ -167,7 +167,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               <LoginPrompt
                 className="animate-fade-up mb-4"
                 title={`你已经攒下 ${totalCount} 条素材`}
-                subtitle="现在只存在这台设备上。登录后永久保存，换手机也能接着用。"
+                subtitle="现在只存在这台设备上。注册后永久保存，换手机也能接着用。"
               />
             )}
 

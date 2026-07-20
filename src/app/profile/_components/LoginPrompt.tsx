@@ -20,8 +20,14 @@ interface LoginPromptProps {
 /**
  * 未登录时展示的引导卡
  * @param className  附加 class（如外部间距）
- * @param title      自定义主文案；默认「登录后保存你的故事与练习进度」
- * @param subtitle   自定义副文案；默认「匿名记录会在登录后自动同步，一条都不会丢」
+ * @param title      自定义主文案；默认「注册后保存你的故事与练习进度」
+ * @param subtitle   自定义副文案；默认「注册后自动保存，一条都不会丢」
+ *
+ * ⚠️ 文案一律用「注册」而非泛化的「登录」：本卡的承诺（数据保留/永久保存/换手机接着用）
+ *    只在【注册＝updateUser 升级当前匿名账号，user_id 不变、数据保留】这条路径成立。
+ *    若诱导用户去「登录」一个已有的老账号（signInWithPassword 切 session），当前匿名会话
+ *    的语料+收藏会孤儿化，承诺兑现不了。/login 默认就是 register 模式、老用户走注册撞
+ *    EMAIL_EXISTS 会自动切到登录 tab，故收敛到「注册」既不误伤老用户召回、又对齐了默认路径。
  * @param titleAs    主文案渲染标签，默认 'p'。仅当本卡是整页唯一内容（试用墙整页阻断）时传 'h1'——
  *                   此时页面自身的 h1（ManageHeader）不会被渲染，不传就整页零 heading，读屏用户
  *                   的标题跳转会落空。在 /profile 里本卡只是页面的一个区块、页面另有 h1，必须保持
@@ -30,8 +36,8 @@ interface LoginPromptProps {
  */
 export default function LoginPrompt({
   className,
-  title = '登录后保存你的故事与练习进度',
-  subtitle = '匿名记录会在登录后自动同步，一条都不会丢',
+  title = '注册后保存你的故事与练习进度',
+  subtitle = '注册后自动保存，一条都不会丢',
   titleAs = 'p',
 }: LoginPromptProps): JSX.Element {
   const router = useRouter()
@@ -53,7 +59,7 @@ export default function LoginPrompt({
           onClick={() => router.push('/login')}
           className="btn-gradient px-6 py-2.5 rounded-full mt-4"
         >
-          登录 / 创建账号
+          注册账号，保存进度
         </button>
       </div>
     </div>
