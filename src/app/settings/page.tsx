@@ -1,6 +1,9 @@
 /**
  * @module   SettingsPage
- * @desc     设置页 — 账号 / 隐私 / 危险区（删除我的数据，GDPR 被遗忘权）
+ * @desc     设置页 — 账号 / 隐私 / 危险区（删除我的数据，GDPR 被遗忘权）。
+ *           断点分发两套外壳、共用同一份内容（settingsBody）：移动端(lg 以下) TopBar + px-5 单栏，
+ *           与桌面化之前逐像素一致；桌面端(lg 及以上) TopNav + MANAGE_CONTAINER(1120) 外层 +
+ *           640 内层，结构对齐 ProfileDesktop 未登录态。桌面走 TopNav 同时解掉「进设置页无返回路径」。
  * @author   LingoBridge
  * @created  2026-06-17
  */
@@ -10,6 +13,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import TopNav from '@/components/TopNav'
+import { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import Toast from '@/components/Toast'
 import PasswordModal from '@/app/profile/_components/PasswordModal'
 import { getAccount, logout, maskEmail } from '@/lib/auth'
@@ -68,59 +73,84 @@ export default function SettingsPage() {
     }
   }, [router])
 
+  // 设置项内容：移动端 / 桌面端两套外壳共用同一份 JSX，避免两边内容漂移
+  const settingsBody = (
+    <>
+      {/* 账号 */}
+      <section className="mb-6">
+        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
+        <div className="flex flex-col gap-2">
+          <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
+            <span className="text-[13px] text-v2-text-secondary">邮箱</span>
+            <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
+          </div>
+          {/* 仅登录态：匿名/未登录用户没有密码可改 */}
+          {loggedIn && (
+            <button
+              onClick={() => setPasswordOpen(true)}
+              className="w-full bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between active:scale-[0.99] transition-transform duration-150"
+            >
+              <span className="text-[14px] text-v2-text-primary">修改密码</span>
+              <ChevronRight size={15} className="text-v2-text-muted" />
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* 隐私 */}
+      <section className="mb-6">
+        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">隐私</h2>
+        <div className="flex flex-col gap-2">
+          <Link href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+            《隐私政策》
+          </Link>
+          <Link href="/privacy/beta" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+            内测数据处理说明
+          </Link>
+        </div>
+      </section>
+
+      {/* 危险区 */}
+      <section>
+        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">危险区</h2>
+        <p className="text-[12px] text-v2-text-muted leading-relaxed mb-3 px-1">
+          删除后将永久移除你的账号、所有故事和练习记录，不可恢复。
+        </p>
+        <button
+          onClick={() => setConfirming(true)}
+          className="w-full bg-white border border-error text-error text-[14px] font-medium rounded-full py-3 active:scale-[0.97] transition-transform duration-150"
+        >
+          删除我的数据
+        </button>
+      </section>
+    </>
+  )
+
   return (
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
-      <TopBar title="设置" />
-
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
-        {/* 账号 */}
-        <section className="mb-6">
-          <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
-          <div className="flex flex-col gap-2">
-            <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
-              <span className="text-[13px] text-v2-text-secondary">邮箱</span>
-              <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
-            </div>
-            {/* 仅登录态：匿名/未登录用户没有密码可改 */}
-            {loggedIn && (
-              <button
-                onClick={() => setPasswordOpen(true)}
-                className="w-full bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between active:scale-[0.99] transition-transform duration-150"
-              >
-                <span className="text-[14px] text-v2-text-primary">修改密码</span>
-                <ChevronRight size={15} className="text-v2-text-muted" />
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* 隐私 */}
-        <section className="mb-6">
-          <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">隐私</h2>
-          <div className="flex flex-col gap-2">
-            <Link href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
-              《隐私政策》
-            </Link>
-            <Link href="/privacy/beta" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
-              内测数据处理说明
-            </Link>
-          </div>
-        </section>
-
-        {/* 危险区 */}
-        <section>
-          <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">危险区</h2>
-          <p className="text-[12px] text-v2-text-muted leading-relaxed mb-3 px-1">
-            删除后将永久移除你的账号、所有故事和练习记录，不可恢复。
-          </p>
-          <button
-            onClick={() => setConfirming(true)}
-            className="w-full bg-white border border-error text-error text-[14px] font-medium rounded-full py-3 active:scale-[0.97] transition-transform duration-150"
-          >
-            删除我的数据
-          </button>
-        </section>
+      {/* 顶栏按断点分发：移动端沿用带返回键的 TopBar；桌面端换 TopNav（TopBar 的返回键是 lg:hidden，
+          本页又不挂 TabBar，桌面端原先进来即死胡同——TopNav 同时补上全站导航出口） */}
+      <div className="lg:hidden">
+        <TopBar title="设置" />
       </div>
+      <div className="hidden lg:block">
+        <TopNav containerClassName={MANAGE_CONTAINER} />
+      </div>
+
+      {/* 移动端外壳：与桌面化之前逐像素一致，不加任何 lg: 覆盖 */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10 lg:hidden">
+        {settingsBody}
+      </div>
+
+      {/* 桌面端外壳：1120 容器（MANAGE_CONTAINER，与题库/素材库/我的同源）+ 640 内层收窄，
+          结构对齐 ProfileDesktop 未登录态。单独一棵子树，故移动端类名不受影响 */}
+      <main className="hidden lg:block flex-1 min-h-0 overflow-y-auto relative z-10">
+        <div className={`${MANAGE_CONTAINER} pt-6 pb-12`}>
+          <div className="max-w-[640px] mx-auto">
+            {settingsBody}
+          </div>
+        </div>
+      </main>
 
       {/* 确认模态 */}
       {confirming && (

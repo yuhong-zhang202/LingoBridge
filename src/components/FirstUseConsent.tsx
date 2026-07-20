@@ -9,6 +9,9 @@
  *           次要出口「不同意」给真离开动作：退出登录并回登录页（清 session，不作为已登录用户留下），
  *           避免键盘 / 读屏用户被 focus trap 困死。披露文案唯一真源在 src/lib/privacy-copy.ts；
  *           落库 / 查库逻辑在 src/lib/consent.ts。
+ *           形态：移动端底部 sheet；桌面端(lg+)贴底通栏对话框（左正文 / 右按钮组，次要在左、主 CTA 在右）。
+ *           全屏遮罩两端都保留——硬闸不能长成「可忽略的 cookie 条」。桌面样式一律走 lg: 增量覆盖，
+ *           lg 以下与桌面化之前逐像素一致（包裹层用 display:contents，在移动端不生成盒子）。
  * @author   LingoBridge
  * @created  2026-06-17
  */
@@ -20,6 +23,17 @@ import GradientButton from '@/components/GradientButton'
 import { CONSENT_POPUP_TITLE, CONSENT_POPUP_DISCLOSURE } from '@/lib/privacy-copy'
 import { hasRecordedConsent, recordConsent, clearConsentCache } from '@/lib/consent'
 import { getSupabase } from '@/lib/supabase'
+import { PAGE_CONTAINER } from '@/lib/constants'
+
+// 桌面端(lg+)贴底通栏的内栏：复用全站唯一宽度真源 PAGE_CONTAINER，与 TopNav / 各页内容左右对齐。
+// `contents` 让这几层包裹 div 在 lg 以下不生成盒子（不吃 padding / max-width / margin），
+// 移动端布局与桌面化之前逐像素一致；到 lg 才变成真正的 flex 容器。
+const CONSENT_BAR = `contents ${PAGE_CONTAINER} lg:flex lg:items-center lg:gap-10 lg:py-6`
+/** 通栏左侧正文列（标题 + 披露段落 + 链接） */
+const CONSENT_TEXT_COL = 'contents lg:block lg:flex-1 lg:min-w-0'
+/** 通栏右侧按钮组：DOM 顺序保持「主 CTA 在前」以维持移动端纵排次序与 focus trap 取元素顺序，
+ *  桌面靠 flex-row-reverse 呈现「左次要 → 右主要」（与 settings 删除模态的「取消 | 确认」一致） */
+const CONSENT_ACTIONS = 'contents lg:flex lg:flex-row-reverse lg:items-center lg:gap-4 lg:flex-shrink-0'
 
 export default function FirstUseConsent() {
   const router = useRouter()
@@ -101,7 +115,11 @@ export default function FirstUseConsent() {
   }
 
   return (
+    // 遮罩层：桌面端一并保留不动。本组件是硬闸（aria-modal + focus trap + 无 skip），去掉遮罩会退化成
+    // 「可忽略的 cookie 条」，形态承诺自由而约束不给；保留遮罩 = 底部通栏对话框。
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+      {/* 面板：移动端底部 sheet 原样；lg+ 变撑满视口宽的贴底通栏
+          （lg:!pb-0 覆盖 inline 的 safe-area 内边距——桌面无 safe-area） */}
       <div
         ref={dialogRef}
         role="dialog"
@@ -109,69 +127,79 @@ export default function FirstUseConsent() {
         aria-labelledby="consent-dialog-title"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter focus:outline-none focus-visible:outline-none"
+        className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter focus:outline-none focus-visible:outline-none lg:max-w-none lg:rounded-none lg:px-0 lg:pt-0 lg:!pb-0 lg:border-t lg:border-black/[0.06] lg:shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
         style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
       >
+        <div className={CONSENT_BAR}>
         {declined ? (
           // 次要出口的阻断视图：用户选择不同意 → 可「再想想」回到同意，或「退出登录并离开」真正离开
           <>
-            <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center">暂时无法使用</h3>
-            <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">
-              练习功能需要把你的录音与文字发送给第三方 AI 处理，未同意则无法开始。你可以再想想，或退出登录直接离开。
-            </p>
-            <GradientButton
-              onClick={() => setDeclined(false)}
-              className="w-full mt-5 py-3 rounded-full text-[14px] font-medium"
-            >
-              我再想想
-            </GradientButton>
-            <button
-              type="button"
-              onClick={() => void handleLeave()}
-              disabled={leaving}
-              className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50"
-            >
-              退出登录并离开
-            </button>
+            <div className={CONSENT_TEXT_COL}>
+              <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center lg:text-left">暂时无法使用</h3>
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">
+                练习功能需要把你的录音与文字发送给第三方 AI 处理，未同意则无法开始。你可以再想想，或退出登录直接离开。
+              </p>
+            </div>
+            <div className={CONSENT_ACTIONS}>
+              <GradientButton
+                onClick={() => setDeclined(false)}
+                className="w-full mt-5 py-3 rounded-full text-[14px] font-medium lg:w-auto lg:px-8 lg:mt-0 lg:font-semibold lg:text-[15px]"
+              >
+                我再想想
+              </GradientButton>
+              <button
+                type="button"
+                onClick={() => void handleLeave()}
+                disabled={leaving}
+                className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50 lg:w-auto lg:mt-0 lg:text-[13px] lg:whitespace-nowrap"
+              >
+                退出登录并离开
+              </button>
+            </div>
           </>
         ) : (
           <>
-            <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center">{CONSENT_POPUP_TITLE}</h3>
-            {CONSENT_POPUP_DISCLOSURE.map((para, i) => (
-              <p key={i} className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">
-                {para}
-              </p>
-            ))}
-            <div className="flex justify-center gap-4 mt-3">
-              <Link href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
-                内测数据处理说明
-              </Link>
-              <Link href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
-                完整隐私政策
-              </Link>
+            <div className={CONSENT_TEXT_COL}>
+              <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center lg:text-left">{CONSENT_POPUP_TITLE}</h3>
+              {CONSENT_POPUP_DISCLOSURE.map((para, i) => (
+                <p key={i} className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">
+                  {para}
+                </p>
+              ))}
+              <div className="flex justify-center gap-4 mt-3 lg:justify-start">
+                <Link href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
+                  内测数据处理说明
+                </Link>
+                <Link href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline">
+                  完整隐私政策
+                </Link>
+              </div>
+              {failed && (
+                <p className="text-[12px] text-error text-center mt-3 lg:text-left">
+                  保存同意记录失败，请检查网络后重试。
+                </p>
+              )}
             </div>
-            {failed && (
-              <p className="text-[12px] text-error text-center mt-3">
-                保存同意记录失败，请检查网络后重试。
-              </p>
-            )}
-            <GradientButton
-              onClick={handleAgree}
-              loading={submitting}
-              className="w-full mt-5 py-3 rounded-full text-[14px] font-medium"
-            >
-              同意并开始
-            </GradientButton>
-            <button
-              type="button"
-              onClick={() => setDeclined(true)}
-              disabled={submitting}
-              className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50"
-            >
-              不同意，暂不使用
-            </button>
+            <div className={CONSENT_ACTIONS}>
+              <GradientButton
+                onClick={handleAgree}
+                loading={submitting}
+                className="w-full mt-5 py-3 rounded-full text-[14px] font-medium lg:w-auto lg:px-8 lg:mt-0 lg:font-semibold lg:text-[15px]"
+              >
+                同意并开始
+              </GradientButton>
+              <button
+                type="button"
+                onClick={() => setDeclined(true)}
+                disabled={submitting}
+                className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50 lg:w-auto lg:mt-0 lg:text-[13px] lg:whitespace-nowrap"
+              >
+                不同意，暂不使用
+              </button>
+            </div>
           </>
         )}
+        </div>
       </div>
     </div>
   )
