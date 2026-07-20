@@ -63,8 +63,8 @@ export default function AnalysisDesktop({
 
   // 键盘：Enter / → 进入练习、Esc 退出（仅桌面断点、有结果时才挂；焦点在输入类元素时不拦截）
   const ready = !loading && !error && !dailyLimitHit && !!data
-  const latest = useRef({ onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu })
-  latest.current = { onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu }
+  const latest = useRef({ onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu, openPhrase, onTogglePhrase })
+  latest.current = { onStartPractice, onExit, levelMenuOpen, onToggleLevelMenu, openPhrase, onTogglePhrase }
   useEffect(() => {
     if (!ready) return
     const onKey = (e: KeyboardEvent) => {
@@ -77,6 +77,8 @@ export default function AnalysisDesktop({
         if (e.key === 'Escape') { e.preventDefault(); s.onToggleLevelMenu() }
         return
       }
+      // 词组详情展开时：Esc 先收起详情卡（关卡片是最自然的预期），不再直接退出整场练习流程
+      if (s.openPhrase && e.key === 'Escape') { e.preventDefault(); s.onTogglePhrase(null); return }
       // Enter/→ 交还给聚焦的原生控件（按钮 / 下拉项）自行激活，不劫持去练习
       if ((e.key === 'Enter' || e.key === 'ArrowRight') && t?.closest('button, a, [role="button"]')) return
       if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); s.onStartPractice() }
@@ -206,8 +208,8 @@ export default function AnalysisDesktop({
             {data.analysis.structureLabel && (
               <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
             )}
-            {/* flex-1 + justify-center：等高卡内把侧重点纵向居中，多出的高度化为呼吸留白 */}
-            <div className="flex-1 flex flex-col justify-center gap-5">
+            {/* justify-start：内容紧跟标题（Proximity），富余高度全部沉到底部，不再上下各撑出空洞 */}
+            <div className="flex-1 flex flex-col justify-start pt-1 gap-5">
               {data.analysis.focusPoints.map((fp, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <StepNum n={i + 1} />
@@ -275,6 +277,7 @@ export default function AnalysisDesktop({
                             key={ii}
                             onClick={() => onTogglePhrase(isOpen ? null : `${gi}-${ii}`)}
                             aria-expanded={isOpen}
+                            aria-controls={isOpen ? `phrase-detail-${gi}-${ii}` : undefined}
                             className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap transition-transform duration-150 hover:-translate-y-[2px] active:scale-[0.97] ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                           >
                             {p.text}
@@ -288,11 +291,13 @@ export default function AnalysisDesktop({
                     {openItem && (
                       <div className="mt-2.5">
                         <PhraseDetailCard
+                          id={`phrase-detail-${gi}-${oi}`}
                           text={openItem.text}
                           meaning={openItem.meaning}
                           scene={openItem.scene}
                           isSaved={savedSet.has(openItem.text)}
                           onToggleSave={() => onToggleSave(openItem, g.group)}
+                          onClose={() => onTogglePhrase(null)}
                         />
                       </div>
                     )}

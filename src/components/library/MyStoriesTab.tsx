@@ -129,7 +129,8 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
       {searching && sel.visibleItems.length === 0 ? (
         <div className="pt-3"><EmptyState title={searchEmptyTitle(searchQuery ?? '')} subtitle="换个关键词试试" /></div>
       ) : (
-      <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
+      // 桌面 items-stretch：同行两卡等高，消除参差（移动端单列不受影响）
+      <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-stretch">
         {sel.visibleItems.map(story => (
           <SelectableCardWrapper
             key={story.id}
@@ -140,7 +141,7 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
             checkboxSide="right"
           >
             <SwipeToDelete borderRadius={16} onDelete={() => onDelete?.(story.id)}>
-              <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4">
+              <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-4 lg:h-full">
                 <div className="flex items-center gap-2 mb-2.5">
                   {story.inputType === 'voice' ? (
                     <div className="flex-shrink-0 inline-flex" style={{ background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
@@ -159,25 +160,25 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
                   )}
                   <span className="text-[12px] text-v2-text-muted">{story.createdAt}</span>
                 </div>
-                <p className="text-[14px] text-v2-text-primary leading-[1.6] line-clamp-3 mb-2.5">
+                {/* lg:min-h 4.8em = 3 × leading-[1.6]，恰为三行文本盒高，短语料也占满三行（随字号自适应，不写死 px） */}
+                <p className="text-[14px] text-v2-text-primary leading-[1.6] line-clamp-3 mb-2.5 lg:min-h-[4.8em]">
                   {story.content}
                 </p>
-                {(story.dimension || story.matchedCount > 0) && (
-                  <div className="flex items-center gap-2">
-                    {story.dimension && <Tag variant="green" label={story.dimension} />}
-                    {story.matchedCount > 0 && (
-                      <>
-                        <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
-                        <button
-                          onClick={() => router.push(`/matching?corpusId=${story.id}`)}
-                          className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
-                        >
-                          查看<ChevronRight size={13} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
+                {/* 元信息行容器恒渲染、内容仍条件渲染：桌面留出定高一行保证卡片等高；移动端无 min-h 时空行高度为 0 */}
+                <div className="flex items-center gap-2 lg:min-h-[21px]">
+                  {story.dimension && <Tag variant="green" label={story.dimension} />}
+                  {story.matchedCount > 0 && (
+                    <>
+                      <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
+                      <button
+                        onClick={() => router.push(`/matching?corpusId=${story.id}`)}
+                        className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
+                      >
+                        查看<ChevronRight size={13} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </SwipeToDelete>
           </SelectableCardWrapper>

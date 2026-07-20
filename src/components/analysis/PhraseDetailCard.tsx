@@ -5,7 +5,7 @@
  * @created  2026-06-11
  */
 'use client'
-import { Star, Volume2, Layers, Check } from 'lucide-react'
+import { Star, Volume2, Layers, Check, X } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 
 function speak(text: string) {
@@ -30,29 +30,53 @@ interface Props {
   onAddToMemory?: () => void
   /** 播放按钮内联紧跟词组（素材库桌面选择场景用，右上角让位给 checkbox）；默认 false = 绝对定位在右上，analysis 原样 */
   inlineSpeaker?: boolean
+  /** 传了才渲染右上角关闭按钮（analysis 页展开态用；素材库不传即不渲染） */
+  onClose?: () => void
+  /** 供 chip 的 aria-controls 指向本卡 */
+  id?: string
 }
 
-export default function PhraseDetailCard({ text, meaning, scene, group, level, isSaved, onToggleSave, inDeck, onAddToMemory, inlineSpeaker = false }: Props) {
+/** 44px 触控目标：负 margin 把外扩的点击区收回，视觉尺寸与原图标一致 */
+const TOUCH_44 = 'w-11 h-11 -m-[15px] flex items-center justify-center'
+
+export default function PhraseDetailCard({ text, meaning, scene, group, level, isSaved, onToggleSave, inDeck, onAddToMemory, inlineSpeaker = false, onClose, id }: Props) {
+  // 有关闭按钮时走内联播放分支：右上角腾给关闭按钮，避免与绝对定位的播放键撞位
+  const inline = inlineSpeaker || !!onClose
   return (
-    <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="rounded-[14px] px-3.5 py-3">
-      {inlineSpeaker ? (
-        // 播放内联紧跟词组；pr-7 预留右上角给外壳 checkbox（避让）
-        <div className="flex items-center gap-1.5 mb-2 pr-7">
+    <div
+      id={id}
+      role={id ? 'region' : undefined}
+      aria-label={id ? '词组详情' : undefined}
+      style={GRADIENT_BORDER_STYLE_FULL_OPAQUE}
+      className="rounded-[14px] px-3.5 py-3"
+    >
+      {inline ? (
+        // 播放内联紧跟词组；无关闭按钮时 pr-9 预留右上角给外壳 checkbox（避让）
+        <div className={`flex items-center gap-1.5 mb-2 ${onClose ? '' : 'pr-9'}`}>
           <p className="text-[13px] font-medium text-v2-text-primary">{text}</p>
           <button
             onClick={() => speak(text)}
-            className="flex-shrink-0 active:opacity-50 transition-opacity"
+            className={`flex-shrink-0 active:opacity-50 transition-opacity ${TOUCH_44}`}
             aria-label="播放"
           >
             <Volume2 size={13} className="text-v2-text-muted" />
           </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className={`flex-shrink-0 ml-auto active:opacity-50 transition-opacity ${TOUCH_44}`}
+              aria-label="关闭"
+            >
+              <X size={14} className="text-v2-text-muted" />
+            </button>
+          )}
         </div>
       ) : (
       <div className="relative mb-2">
         <p className="text-[13px] font-medium text-v2-text-primary pr-7">{text}</p>
         <button
           onClick={() => speak(text)}
-          className="absolute right-0 top-0 active:opacity-50 transition-opacity"
+          className={`absolute right-0 top-0 active:opacity-50 transition-opacity ${TOUCH_44}`}
           aria-label="播放"
         >
           <Volume2 size={13} className="text-v2-text-muted" />

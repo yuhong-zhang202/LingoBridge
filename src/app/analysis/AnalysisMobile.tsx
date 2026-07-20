@@ -228,6 +228,8 @@ export default function AnalysisMobile({
                             <button
                               key={ii}
                               onClick={() => onTogglePhrase(isOpen ? null : `${gi}-${ii}`)}
+                              aria-expanded={isOpen}
+                              aria-controls={isOpen ? `phrase-detail-${gi}-${ii}` : undefined}
                               className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap active:scale-[0.97] transition-transform duration-150 ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                             >
                               {p.text}
@@ -241,11 +243,13 @@ export default function AnalysisMobile({
                       {openItem && (
                         <div className="mt-2.5">
                           <PhraseDetailCard
+                            id={`phrase-detail-${gi}-${oi}`}
                             text={openItem.text}
                             meaning={openItem.meaning}
                             scene={openItem.scene}
                             isSaved={savedSet.has(openItem.text)}
                             onToggleSave={() => onToggleSave(openItem, g.group)}
+                            onClose={() => onTogglePhrase(null)}
                           />
                         </div>
                       )}

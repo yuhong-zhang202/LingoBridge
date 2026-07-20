@@ -14,14 +14,25 @@ interface RephrasePopupProps {
   result: PolishResult | null
   onClose: () => void
   popupRef: RefObject<HTMLDivElement | null>
+  /** 定位变体：mobile = fixed 贴视口左右（默认，移动端原样）；desktop = absolute 收进 600px 对话列内，避免横跨全屏 */
+  variant?: 'mobile' | 'desktop'
 }
 
-export default function RephrasePopup({ loading, result, onClose, popupRef }: RephrasePopupProps): JSX.Element {
+export default function RephrasePopup({ loading, result, onClose, popupRef, variant = 'mobile' }: RephrasePopupProps): JSX.Element {
+  const desktop = variant === 'desktop'
   return (
     <div
       ref={popupRef}
-      className="fixed z-[40] rounded-[16px]"
-      style={{ ...GRADIENT_BORDER_STYLE_FULL, left: 14, right: 14, bottom: 100, padding: '11px 13px 12px' }}
+      className={
+        desktop
+          ? 'absolute z-[40] rounded-[16px] left-0 right-0 bottom-[118px]'
+          : 'fixed z-[40] rounded-[16px]'
+      }
+      style={
+        desktop
+          ? { ...GRADIENT_BORDER_STYLE_FULL, padding: '11px 13px 12px' }
+          : { ...GRADIENT_BORDER_STYLE_FULL, left: 14, right: 14, bottom: 100, padding: '11px 13px 12px' }
+      }
     >
       {/* 向下三角，指向左下角云团 */}
       <div
@@ -31,7 +42,8 @@ export default function RephrasePopup({ loading, result, onClose, popupRef }: Re
 
       <div className="flex justify-between items-center mb-2">
         <span className="text-[13px] font-semibold text-v2-text-primary">换个说法</span>
-        <button onClick={onClose} aria-label="关闭" className="active:opacity-60 transition-opacity"><X size={14} color="#A89990" /></button>
+        {/* 触控目标 44px：负 margin 抵消视觉外扩，不改变原有留白观感 */}
+        <button onClick={onClose} aria-label="关闭" className="w-11 h-11 -mr-3 -my-3 flex items-center justify-center active:opacity-60 transition-opacity"><X size={14} color="#A89990" /></button>
       </div>
 
       {loading ? (

@@ -95,7 +95,8 @@ export default function PracticeDesktop({
 
   return (
     <div className={`${STAGE} flex flex-col items-center px-8`}>
-      <div className="w-full max-w-[600px] flex-1 min-h-0 flex flex-col">
+      {/* relative：给「换个说法」弹窗做 absolute 定位基准，弹窗宽度收进本列而非横跨全屏 */}
+      <div className="relative w-full max-w-[600px] flex-1 min-h-0 flex flex-col">
 
         {/* 题目条（舞台顶部安静 caption，样式对齐移动端题目条） */}
         <div className="shrink-0 pt-6 pb-3">
@@ -140,10 +141,10 @@ export default function PracticeDesktop({
           <div ref={bottomRef} />
         </div>
 
-        {/* 遮罩 + 换个说法弹窗（复用不改；fixed 定位由组件自身持有，单挂载下无双监听冲突） */}
+        {/* 遮罩 + 换个说法弹窗（desktop 变体：absolute 收进本列，宽度与对话气泡对齐） */}
         {showPolish && <div className="fixed inset-0 z-[19]" onClick={onClosePolish} />}
         {showPolish && (
-          <RephrasePopup loading={polishLoading} result={polishResult} onClose={onClosePolish} popupRef={popupRef} />
+          <RephrasePopup loading={polishLoading} result={polishResult} onClose={onClosePolish} popupRef={popupRef} variant="desktop" />
         )}
 
         {/* 输入区：flex 钉底（不 fixed），随 600px 列居中 */}

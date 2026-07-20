@@ -1,7 +1,9 @@
 /**
  * @module   RecordingDesktop
- * @desc     录音页桌面端「聆听舞台」—— focus 档居中单列：放大 Orb(340) + 氛围光 + 宽波形
- *           + 计时器（满 30s 转 success 色）+ 居中动作簇（完成/重录）+ 键盘控制。
+ * @desc     录音页桌面端「聆听舞台」—— focus 档居中单列：Orb(240) + 氛围光 + 宽波形
+ *           + 计时器（满 30s 转 success 色）+ 键盘控制。
+ *           布局同移动端：展示区可滚动（flex-1 min-h-0 overflow-y-auto），动作区 shrink-0 钉底，
+ *           保证矮屏（1080p 实际可视高约 900px）下「完成录音」始终在首屏内。
  *           纯展示组件，录音逻辑由 page.tsx 外壳持有并经 props 传入。
  * @author   LingoBridge
  * @created  2026-07-04
@@ -56,23 +58,25 @@ function ListeningStage({
   }, [])
 
   return (
-    <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 py-8">
-      <div className="w-full max-w-[600px] flex flex-col items-center">
+    // 展示区滚动 + 动作区钉底（对齐 RecordingMobile 的正确结构）：矮屏下「完成录音」始终可见
+    <div className="relative z-10 flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-8 py-6">
+        <div className="w-full max-w-[600px] flex flex-col items-center">
 
         <div className="contents" aria-hidden="true">
-          <Orb size={340} audioLevel={transcribing ? 0 : audioLevel} pulse={transcribing} />
+          <Orb size={240} audioLevel={transcribing ? 0 : audioLevel} pulse={transcribing} />
         </div>
 
         {!transcribing ? (
           <>
-            <div className="mt-10 flex flex-col items-center gap-3">
+            <div className="mt-6 flex flex-col items-center gap-3">
               <div className="h-7 flex items-center">
                 <Waveform active className="scale-[1.55]" />
               </div>
               <span className="text-[13px] text-v2-text-muted italic">listening…</span>
             </div>
 
-            <div className="surface px-5 py-3.5 max-w-[360px] text-center mt-7">
+            <div className="surface px-5 py-3.5 max-w-[360px] text-center mt-5">
               <p className="text-[14px] text-v2-text-secondary leading-relaxed">
                 正在聆听，说完点「完成录音」自动转写
               </p>
@@ -81,7 +85,7 @@ function ListeningStage({
             {/* 满 30s 进入推荐时长区间，计时器转 success 色轻点一下 */}
             <span
               className={
-                `mt-7 text-[22px] font-semibold tracking-[2px] tabular-nums transition-colors duration-500 ` +
+                `mt-5 text-[22px] font-semibold tracking-[2px] tabular-nums transition-colors duration-500 ` +
                 (seconds >= 30 ? 'text-success' : 'text-v2-text-primary')
               }
             >
@@ -92,15 +96,18 @@ function ListeningStage({
             </p>
           </>
         ) : (
-          <p className="mt-10 text-[14px] text-v2-text-muted">正在转写你的录音…</p>
+          <p className="mt-6 text-[14px] text-v2-text-muted">正在转写你的录音…</p>
         )}
 
         {error && (
-          <p role="alert" className="mt-7 text-center text-[13px] text-error">{error}</p>
+          <p role="alert" className="mt-5 text-center text-[13px] text-error">{error}</p>
         )}
 
-        {/* 居中动作簇（不再 fixed 贴底） */}
-        <div className="mt-12 flex flex-col items-center gap-4">
+        </div>
+      </div>
+
+      {/* 动作区：移出滚动区、shrink-0 钉底，矮屏也不会被挤出首屏 */}
+      <div className="shrink-0 flex flex-col items-center gap-4 px-8 pb-8 pt-4">
           <button
             onClick={onFinish}
             disabled={transcribing}
@@ -126,10 +133,9 @@ function ListeningStage({
               <Pencil size={15} />改用文字
             </button>
           </div>
-        </div>
 
         {!transcribing && (
-          <p className="mt-8 text-[12px] text-v2-text-muted">
+          <p className="text-[12px] text-v2-text-muted">
             空格 完成录音 · R 重录 · Esc 退出
           </p>
         )}
