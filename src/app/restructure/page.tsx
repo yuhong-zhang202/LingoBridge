@@ -175,11 +175,13 @@ function RestructureContent() {
     }
   }, [rawStory, aiText, qid, corpusId, router])
 
-  // 未保存 = 用户编辑过整理后文本；退出 / 重新整理前若有未保存内容先确认（仅桌面接线，移动端行为不变）。
+  // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline
   const [confirm, setConfirm] = useState<null | 'exit' | 'rerestructure'>(null)
   const doExit = () => router.push('/')
-  const requestExit = () => { if (hasUnsaved) setConfirm('exit'); else doExit() }
+  // 退出（移动端返回键 / 桌面 ✕ / Esc）一律先弹确认：此页的语料尚未落库，直接离开等于丢弃本次输入，
+  // 无论是否编辑过整理结果都要问一句。确认才回首页，取消留在本页（数据全在 state，不受影响）。
+  const requestExit = () => setConfirm('exit')
   const requestReRestructure = () => { if (hasUnsaved) setConfirm('rerestructure'); else void reRestructure() }
 
   // 返回态水合失败：不 MOCK 兜底，明确告知语料取不回 + 回首页出口。
@@ -211,30 +213,32 @@ function RestructureContent() {
     onToggleEdit: () => setIsEditing(v => !v),
     onReRestructure: () => void reRestructure(),
     onMatch: () => void handleMatchClick(),
-    onExit: doExit,
+    onExit: requestExit,
   }
 
   return (
     <>
       <div className="lg:hidden"><RestructureMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（整理步激活）+ 两栏舞台。
-          ✕ / Esc③ / 重新整理 都走 request*：编辑过未保存时先弹确认。 */}
+          ✕ / Esc③ / 重新整理 都走 request*：退出必确认，重新整理仅在编辑过未保存时确认。 */}
       <div className="hidden lg:block">
         <FlowShellDesktop activeStep="restructure" onExit={requestExit}>
-          <RestructureDesktop {...viewProps} onExit={requestExit} onReRestructure={requestReRestructure} />
+          <RestructureDesktop {...viewProps} onReRestructure={requestReRestructure} />
         </FlowShellDesktop>
-        <ConfirmDialog
-          open={confirm !== null}
-          title="还没保存哦"
-          description={confirm === 'rerestructure'
-            ? '重新整理会用新的整理结果覆盖你刚改过的内容，确定吗？'
-            : '你改过的内容还没保存，离开就没啦。确定要离开吗？'}
-          confirmText={confirm === 'rerestructure' ? '重新整理' : '离开'}
-          cancelText="留下继续"
-          onConfirm={() => { const c = confirm; setConfirm(null); if (c === 'exit') doExit(); else void reRestructure() }}
-          onCancel={() => setConfirm(null)}
-        />
       </div>
+      {/* 确认弹窗放在断点分发之外：移动端返回键与桌面 ✕ / Esc 共用同一个（关闭态不渲染任何 DOM，
+          移动端未触发时与改动前完全一致）。 */}
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm === 'rerestructure' ? '还没保存哦' : '取消这次语料输入？'}
+        description={confirm === 'rerestructure'
+          ? '重新整理会用新的整理结果覆盖你刚改过的内容，确定吗？'
+          : '返回首页后，这次说的内容和整理结果都不会保存，需要重新录入。确定取消吗？'}
+        confirmText={confirm === 'rerestructure' ? '重新整理' : '返回首页'}
+        cancelText={confirm === 'rerestructure' ? '留下继续' : '继续整理'}
+        onConfirm={() => { const c = confirm; setConfirm(null); if (c === 'exit') doExit(); else void reRestructure() }}
+        onCancel={() => setConfirm(null)}
+      />
       {/* 额度超限覆盖层：匿名走 trial（引导注册）、注册走 story（月额度）；关闭即回首页 */}
       {storyQuotaReached && <QuotaReached variant={isAnon ? 'trial' : 'story'} asOverlay onClose={() => router.push('/')} />}
     </>

@@ -42,11 +42,14 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
 
 export default function RestructureMobile({
   rawStory, aiText, isEditing, isLoading, error, usable, isSaving, saveError, qid,
-  onAiChange, onToggleEdit, onReRestructure, onMatch,
+  onAiChange, onToggleEdit, onReRestructure, onMatch, onExit,
 }: RestructureViewProps) {
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
-      <TopBar title="整理确认" />
+      {/* 返回键显式接 onExit（弹「取消此次语料输入」确认 → 确认才回首页）。
+          不能用 TopBar 默认的 router.back()：历史栈里上一条常是 /matching（从匹配页「返回上一步」进来），
+          默认行为会把用户甩回匹配页，与「返回 = 放弃本次输入回首页」的语义相反。 */}
+      <TopBar title="整理确认" onBack={onExit} />
       <StepBar currentStep="restructure" />
 
       <div

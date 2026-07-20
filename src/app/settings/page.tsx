@@ -3,7 +3,10 @@
  * @desc     设置页 — 账号 / 隐私 / 危险区（删除我的数据，GDPR 被遗忘权）。
  *           断点分发两套外壳、共用同一份内容（settingsBody）：移动端(lg 以下) TopBar + px-5 单栏，
  *           与桌面化之前逐像素一致；桌面端(lg 及以上) TopNav + MANAGE_CONTAINER(1120) 外层 +
- *           640 内层，结构对齐 ProfileDesktop 未登录态。桌面走 TopNav 同时解掉「进设置页无返回路径」。
+ *           640 内层，结构对齐 ProfileDesktop 未登录态。桌面走 TopNav 提供全站导航出口，另在内容区左上角
+ *           补一个显式「返回」（走 router.back()：桌面入口有「我的」页与左侧栏设置项两处，没有唯一上级）。
+ *           桌面内容垂直居中：内层 min-h-full + justify-center —— 不满一屏时居中，超出时容器随内容长高、
+ *           justify-center 无剩余空间可分，自然从顶部开始并照常滚动，不会顶出视口。
  * @author   LingoBridge
  * @created  2026-06-17
  */
@@ -11,7 +14,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TopNav from '@/components/TopNav'
 import { MANAGE_CONTAINER } from '@/components/ManageHeader'
@@ -145,8 +148,15 @@ export default function SettingsPage() {
       {/* 桌面端外壳：1120 容器（MANAGE_CONTAINER，与题库/素材库/我的同源）+ 640 内层收窄，
           结构对齐 ProfileDesktop 未登录态。单独一棵子树，故移动端类名不受影响 */}
       <main className="hidden lg:block flex-1 min-h-0 overflow-y-auto relative z-10">
-        <div className={`${MANAGE_CONTAINER} pt-6 pb-12`}>
-          <div className="max-w-[640px] mx-auto">
+        <div className={`${MANAGE_CONTAINER} min-h-full flex flex-col justify-center pt-6 pb-12`}>
+          <div className="max-w-[640px] mx-auto w-full">
+            <button
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-1 -ml-1 mb-4 text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
+            >
+              <ChevronLeft size={16} />
+              返回
+            </button>
             {settingsBody}
           </div>
         </div>
