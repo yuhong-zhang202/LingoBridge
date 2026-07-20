@@ -64,4 +64,19 @@ export const env = {
    * 默认启用：仅显式设 '0' 才关闭（未设/其它值一律视为启用）。
    */
   matchSnapshotEnabled: process.env.MATCH_SNAPSHOT_ENABLED !== '0',
+
+  /**
+   * 同意审计痕迹的哈希盐（服务端专用，切勿加 NEXT_PUBLIC_）。
+   *
+   * 删号时先往 consent_audit 写一条去标识化痕迹（见 migration 0025），其中 email_hash =
+   * sha256(lower(btrim(email)) || 本 salt)。邮箱空间小，裸 sha256 可被彩虹表反查回明文，
+   * 故必须加盐；salt 只存在于环境变量，绝不落库、绝不进 git、代码里绝不硬编码任何默认值。
+   *
+   * ⚠️ 缺失时删号路由【在做任何删除动作之前】直接中止报 500（账号与数据完好，用户可重试）——
+   * 即本变量未配 = 线上删号整体不可用。这是【故意做响的】：宁可让部署方立刻发现漏配，
+   * 也不要静默跳过审计写入、等到监管来问才发现凭据一直没在写。
+   *
+   * ⚠️ 一旦启用【不可更换】：换 salt 会让此前写入的 email_hash 全部失配、再也无法比对。
+   */
+  consentHashSalt: process.env.CONSENT_HASH_SALT ?? '',
 }

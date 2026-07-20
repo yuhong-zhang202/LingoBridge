@@ -76,6 +76,16 @@ function WriteContent(): JSX.Element {
     submit()
   }
 
+  /**
+   * 「切换到语音」入口：与首页「开始录音」同一道守卫。
+   * 录音页下一步就是花钱的 ASR，若额度满还放进去，用户录完、转完文字（真花钱）才在保存时被 402 拦 ——
+   * 用户时间白花、ASR 费用也白花。故在离开本页前就拦住。
+   */
+  async function handleSwitchToVoice(): Promise<void> {
+    if (await blockedByStoryQuota()) return
+    router.push(qid ? `/recording?qid=${qid}` : '/recording')
+  }
+
   // ?qid 存在时取题目做上下文 caption（客户端读，找不到/出错静默忽略，不挡写作）
   useEffect(() => {
     if (!qid) { setQuestionContext(null); return }
@@ -104,7 +114,7 @@ function WriteContent(): JSX.Element {
     canSubmit,
     submitting,
     onSubmit: () => void handleSubmit(),
-    onSwitchToVoice: () => router.push(qid ? `/recording?qid=${qid}` : '/recording'),
+    onSwitchToVoice: () => void handleSwitchToVoice(),
     questionContext,
     onExit: doExit,
   }

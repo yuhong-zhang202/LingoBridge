@@ -11,12 +11,29 @@ import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUser, authErrorResponse } from '@/lib/api-auth'
 import { deleteUserRawLogs } from '@/lib/raw-log'
+import { writeConsentAuditTrace } from '@/lib/consent-audit'
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     // 1) 鉴权：复用 requireUser 从 Authorization 头反查 user.id（缺/无效 token 抛 ApiAuthError(401)）
     const { userId } = await requireUser(req)
     const admin = getSupabaseServer()
+
+    // 1.5) 取邮箱 —— 【必须在 admin.deleteUser 之前】，账号删掉后再也取不到。
+    // 两处下游依赖它：① consent_audit 的加盐邮箱哈希；② beta_allowlist 按邮箱删残留行。
+    // 取不到用户（已被删/id 失效）不算错：当作匿名/无邮箱处理，后续两步各自跳过，不阻断删号。
+    const { data: authUser, error: getUserErr } = await admin.auth.admin.getUserById(userId)
+    if (getUserErr) throw getUserErr
+    const email = authUser?.user?.email ?? null
+
+    // 1.6) 同意审计痕迹（【硬前置，失败必须中止删号】）：写一条不含可识别信息的痕迹到 consent_audit
+    //（migration 0025），保住「该用户确曾看过并同意过某版披露」的举证能力 —— 下面第 2 步会把
+    // consent_records 原始记录硬删掉，那是我们向监管自证的唯一凭据。
+    // ⚠️ 顺序不可反：必须【先写痕迹、成功后再删记录】，反了会在写失败时既没证据也没记录。
+    // ⚠️ 本步也是 CONSENT_HASH_SALT 的预检 —— 未配置即在此抛错，此刻【尚未删除任何数据】，
+    //    账号与全部数据完好无损，用户重试即可；报响而非静默跳过，是为了让漏配环境变量立刻暴露，
+    //    而不是等监管来问才发现凭据一直没在写（见 lib/consent-audit.ts 与 .env.example）。
+    await writeConsentAuditTrace(userId, email)
 
     // 2) 删业务数据（service_role 绕 RLS）。删除策略是「防御性显式删 + cascade 兜底」的混合，
     //    并非对所有表都不信 cascade：枚举到的业务表逐张显式删（不单赌线上 FK 是否 on delete cascade），
@@ -47,11 +64,22 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     // 头像 storage 清理（best-effort）：avatars 桶公开读，删号后残留文件凭旧 URL 仍可被任何人访问，属被遗忘权缺口。
     // 单独 try/catch、只 logErr 不中断——账号与数据库数据的删除是核心，头像清理是补充，不能因它失败导致删不掉号。
+    // ⚠️ 必须【分页取完】：list() 不传 limit 时 Supabase 默认只返回 100 条，而 lib/db/avatar.ts 的路径是
+    //    {user_id}/{时间戳}.{ext} —— 每次上传都是新文件、旧头像从不清理。换过 100 次以上头像的用户，
+    //    第 101 张起会永久留在【公开读】的桶里，凭 URL 任何人可访问，且路径首段就是 user_id、内容是人脸照片。
     try {
-      const { data: avatarObjs, error: listErr } = await admin.storage.from('avatars').list(userId)
-      if (listErr) throw listErr
-      // 头像按 {user_id}/xxx.ext 存放（见 migration 0008），拼完整路径后整批删除
-      const paths = (avatarObjs ?? []).map((o) => `${userId}/${o.name}`)
+      const PAGE = 100
+      const paths: string[] = []
+      for (let offset = 0; ; offset += PAGE) {
+        const { data: page, error: listErr } = await admin.storage
+          .from('avatars')
+          .list(userId, { limit: PAGE, offset })
+        if (listErr) throw listErr
+        // 头像按 {user_id}/xxx.ext 存放（见 migration 0008），拼完整路径后整批删除
+        const batch = page ?? []
+        paths.push(...batch.map((o) => `${userId}/${o.name}`))
+        if (batch.length < PAGE) break // 不足一页 = 已到末尾（取空亦然）
+      }
       if (paths.length > 0) {
         const { error: rmErr } = await admin.storage.from('avatars').remove(paths)
         if (rmErr) throw rmErr
@@ -71,15 +99,32 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 不含用户原文——被遗忘权靠断掉个人链接即满足，而非删行。硬删会让离职用户的成本从总额蒸发、账目失真。
     // 故只把 user_id / corpus_id 置 null，保留 is_anonymous / cost / 其余字段供成本统计。
     // 这与上面 raw_logs 的「彻底删」口径不同是有意的：原文该彻底删，聚合成本该去标识化保留。
-    // 单独 try/catch、只 logErr 不中断——同头像/留证清理的补充性纪律。
-    try {
-      const { error: anonErr } = await admin
-        .from('api_usage_logs')
-        .update({ user_id: null, corpus_id: null })
-        .eq('user_id', userId)
-      if (anonErr) throw anonErr
-    } catch (e) {
-      logErr('[account/delete] 费用日志去标识化失败（不中断删号）', e)
+    //
+    // ⚠️【硬前置，失败必须中止删号】——刻意【不吞异常】，与上面 deleteUserRawLogs 同款纪律，
+    // 而与头像清理的 best-effort 【不同】。理由：本步失败若被静默放过，user_id 会原样留在库里、
+    // 账号却已被删 → 留下一个【指向已注销自然人的 uuid】，且再无任何机制会清它（无重试、无补偿、
+    // 无审计）。这个代价明显高于「让用户重试一次删号」。头像清理可以 best-effort，是因为它失败时
+    // 残留的是文件、事后仍可按 user_id 前缀人工清；这里残留的是删不掉也找不回的库内标识符。
+    const { error: anonErr } = await admin
+      .from('api_usage_logs')
+      .update({ user_id: null, corpus_id: null })
+      .eq('user_id', userId)
+    if (anonErr) throw anonErr
+
+    // 内测白名单残留清理（【硬前置，失败必须中止删号】）：public.beta_allowlist（0023）以 email 为主键、
+    // 无 user_id、无外键，故 cascade 与上面按 user_id 的批量删【都碰不到它】——不显式删，注销者的邮箱
+    // 会永久留在生产库，而邮箱是直接标识符，对删除权义务而言是确认的残留。
+    // 比对口径对齐 0023 触发器的 lower(btrim(email))：名单由人工在 Table Editor 录入，入库大小写
+    // 未必规范，故【必须大小写不敏感】地删，否则录成 Foo@X.com 的行会被 eq('foo@x.com') 漏掉。
+    // 用 ilike 而非 eq 来做这件事，代价是要转义通配符：`_` 是合法邮箱字符，不转义会误伤同名不同字的
+    // 别人那一行（ilike 里 `_` 匹配任意单字符）。反斜杠是 Postgres LIKE 的默认转义符。
+    // 该表 RLS 为「启用且零策略」，仅 service_role 可写 —— 本路由用的正是 service_role。
+    // 同样不吞异常：残留的是邮箱本身，性质同上，不接受静默失败。
+    const normalizedEmail = (email ?? '').trim().toLowerCase()
+    if (normalizedEmail) {
+      const literal = normalizedEmail.replace(/[\\%_]/g, (c) => `\\${c}`)
+      const { error: allowErr } = await admin.from('beta_allowlist').delete().ilike('email', literal)
+      if (allowErr) throw allowErr
     }
 
     // 3) 删账号本体

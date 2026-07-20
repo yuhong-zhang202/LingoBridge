@@ -45,6 +45,7 @@ jest.mock('@/lib/db/questions', () => ({ getQuestionById: jest.fn() }))
 jest.mock('@/lib/db/corpus-server', () => ({
   getCorpusByIdServer: jest.fn(),
   bumpDailyUsageServer: jest.fn(),
+  readDailyUsageServer: jest.fn(() => Promise.resolve(0)),
   bumpAnonRestructureTodayServer: jest.fn(),
 }))
 jest.mock('@/lib/db/practice-sessions-server', () => ({ countReviewPracticeThisMonthServer: jest.fn() }))

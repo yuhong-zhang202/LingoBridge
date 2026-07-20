@@ -96,3 +96,60 @@ Zeabur 构建机的 npm 出于安全**默认拦截依赖的安装脚本**（日�
 ### 海外访问（如柏林：慢 / 白屏）
 实测：服务器 CPU≈0%、内存≈471MB/2GB（都很闲，**非服务器瓶颈**）；慢在**腾讯云香港 ↔ 欧洲的国际线路**（首次访问还叠加了证书/路由初始化）。
 - 「国内与海外一样快」用单一香港 origin 做不到（物理距离）。要海外也快：**自定义域名 + 套 Cloudflare（免费）边缘缓存**静态资源（JS/CSS/字体/图片），香港 origin 保留给 SSR + AI 调用；动态/AI 那一下仍就近国内最优。对面向国内的内测，香港方案本身是对的。
+
+---
+
+## 11. ⚠️ 事故记录与防复发（2026-07-20 凌晨）
+
+### 发生了什么
+在 Zeabur 控制台点了「**重新上传**」，服务被重新识别为**静态 HTML 网站**，生产全站 404（首页与所有 `/api/*`）。代码一行没坏，纯部署配置事故。
+
+**故障特征（下次一眼认出）：**
+- 服务图标由 Next.js 的 `N` 变成**橙色 HTML5 图标**
+- Source 由 `yuhong-zhang202/LingoBridge` 变成 `registry-oci.zeabur.cloud/...`
+- 首页与 `/api/version` 同时 404（响应体为空）
+
+⇒ **生产异常时先看服务图标和 Source 这两个信号，比翻日志直接。**
+
+### 🔴 硬规矩
+- **只点「重新部署」，永远不要点「重新上传」。**
+  - 「重新部署」= 从 GitHub 拉最新代码重新构建 ✅
+  - 「重新上传」= 更换部署源为上传制品 → 触发重新识别 → 变静态站 ❌
+- **改部署配置前先查平台文档确认按钮语义**，不要靠字面猜。
+
+### 已上的防线
+`zbpack.json`（仓库根目录，commit `6640958`）显式声明构建方式：
+```json
+{ "build_command": "npm run build", "start_command": "npm run start" }
+```
+有它之后 zbpack 不会再把项目猜成静态站。
+⚠️ **前提：部署源必须是 Git。** 若 Source 指向 OCI registry，仓库里的 `zbpack.json` 根本不会被读取。
+
+### 恢复方式（本次实际用的）
+改回 Git 源无效（会自己变回去），最终**重建 Service** 解决：
+1. 先把「环境变量」全部备份（**特别是修 ffmpeg 的 npm allowScripts 那条，见 §10，漏了构建必失败**）
+2. 新建 Service → Git → `yuhong-zhang202/LingoBridge` → 分支 `main` → 同一台香港服务器
+3. 粘回全部环境变量
+4. 域名 `lingobridge.zeabur.app` 从旧服务解绑、绑到新服务
+5. **验证全绿后**再删旧服务
+
+### 重建后的验收脚本（零成本，照跑即可）
+```bash
+BASE=https://lingobridge.zeabur.app
+curl -s -o /dev/null -w "首页 %{http_code}\n" "$BASE/"
+curl -s "$BASE/api/version"                      # 应 {"version":"vX.Y.Z"}
+curl -s -o /dev/null -w "questions %{http_code}\n" "$BASE/api/questions?part=1"
+# 需鉴权端点无 token 应全 401（注意 POST/GET 方法要对，见下）
+for p in transcribe restructure corpus matching practice practice/polish pronounce events account/delete consent; do
+  printf "%-18s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/$p" -H 'Content-Type: application/json' -d '{}')"
+done
+for p in "analysis?questionId=x&storyId=y" "analysis/phrases?questionId=x&storyId=y&level=6.0" "dashboard"; do
+  printf "%-18s %s\n" "${p%%\?*}" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/$p")"
+done
+```
+
+### ⚠️ 两个验证陷阱（本次真实踩过，台账 120 同型）
+1. **`analysis` / `analysis/phrases` / `dashboard` 是 GET-only**。用 POST 打会得 **405 —— 那是路由层拒绝，请求根本没走到鉴权**，却极易被记成「鉴权断言通过/异常」。**方法必须对。**
+2. **`grep -c` 数的是行数不是出现次数**。HTML 压缩成一行时恒为 1，会把「双子树正常」误判成「只渲染了一棵」。**要用 `grep -o ... | wc -l`。**
+
+⇒ 同一条老教训：**每条断言都要问「它失败时，能否与『被更早一层拒绝』区分开」。**

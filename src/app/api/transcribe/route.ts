@@ -12,7 +12,7 @@ import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
-import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
 import type { AppError } from '@/types/errors'
 
@@ -59,19 +59,29 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (file.size > MAX_AUDIO_BYTES) {
       return NextResponse.json({ error: '录音文件过大，请分段录制' }, { status: 400 })
     }
-    // 服务端硬防线：先计次再转码/ASR。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code）。
-    const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
-    if (isAnonymous ? dailyCount > ANON_TRANSCRIBE_LIMIT : dailyCount > REG_TRANSCRIBE_DAILY_LIMIT) {
-      return isAnonymous
-        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
-        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
-    }
+    // ——— 额度闸分两拍 ———
+    // 目标：「没出字就别扣次数」与「已经花了钱就必须扣次数」同时成立。
+    // ① 只读早退：已超额的请求立刻挡掉，连转码 CPU 都不浪费（只读值非原子，仅作优化，失败按 0 放行）。
+    // ② 转码成功、真正要调豆包之前，才原子递增并复核 —— 原子递增依旧是并发硬防线。
+    // 由此：ASR 之前的失败（转码报错 / 空文件等）天然没计过次，无需任何回滚，也就没有递减带来的并发错乱；
+    // 豆包一旦被调用（含 EMPTY_TRANSCRIPT）则计次已落且不退 —— 费用已产生，且防攻击者构造必失败请求刷 ASR 额度。
+    const dailyLimit = isAnonymous ? ANON_TRANSCRIBE_LIMIT : REG_TRANSCRIBE_DAILY_LIMIT
+    /** 超额响应：匿名 402(QUOTA_EXCEEDED) 供前端弹试用提示；注册 429（不带 code，不弹配额层）。 */
+    const overQuotaRes = (): NextResponse => isAnonymous
+      ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+      : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+
+    if (await readDailyUsageServer(userId, 'transcribe') >= dailyLimit) return overQuotaRes()
 
     const inputBuf = Buffer.from(await file.arrayBuffer())
     const ext      = mimeToExt(file.type)
     const wavBuf   = await transcodeToWav(inputBuf, ext)
     // 构造 WAV Blob 传给 transcription 层，令其 resolveFormat 得到 "wav"
     const wavBlob  = new Blob([new Uint8Array(wavBuf)], { type: 'audio/wav' })
+
+    // ② 计次的分界线就在这一行：它下面是花钱的豆包调用，它上面的任何失败都不曾计次。
+    const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
+    if (dailyCount > dailyLimit) return overQuotaRes()
 
     // transcribe 处于建语料之前，无 corpusId；带 userId 归属 ASR 转写留证。
     const text = await runWithRawLogContext({ userId, corpusId: null }, () =>

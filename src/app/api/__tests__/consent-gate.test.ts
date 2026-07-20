@@ -22,6 +22,7 @@ jest.mock('@/lib/api-auth', () => ({
 jest.mock('@/lib/consent-server', () => ({ hasRecordedConsent: jest.fn() }))
 jest.mock('@/lib/db/corpus-server', () => ({
   bumpDailyUsageServer: jest.fn(() => Promise.resolve(1)),
+  readDailyUsageServer: jest.fn(() => Promise.resolve(0)),
   bumpAnonRestructureTodayServer: jest.fn(() => Promise.resolve(1)),
 }))
 jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown, fn: () => unknown) => fn() }))

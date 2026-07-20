@@ -143,6 +143,9 @@ function PracticeContent(): JSX.Element {
       const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，别落入 !ok 分支报误导性的「转写失败」。
       if (tr.status === 403) { router.push('/'); return }
+      // 额度用尽（402，匿名撞 ASR 试用上限）：与初始化同一套配额提示，别落进「转写失败」普通错误态 ——
+      // 用户会以为产品坏了，白丢一次转化。
+      if (tr.status === 402) { setReviewQuotaShown(true); setPhase('idle'); return }
       if (!tr.ok) throw new Error('转写失败')
       const { text } = (await tr.json()) as { text: string }
 
@@ -156,6 +159,9 @@ function PracticeContent(): JSX.Element {
       })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在对话失败态。
       if (res.status === 403) { router.push('/'); return }
+      // 额度用尽（402，聊到第 N 轮才撞上限）：同上，走配额提示而非「对话失败」。
+      // 用户这一轮的发言已经上屏，关闭覆盖层后不丢。
+      if (res.status === 402) { setReviewQuotaShown(true); setPhase('idle'); return }
       if (!res.ok) throw new Error('对话失败')
       const data = (await res.json()) as { reply: string }
       setMessages([...next, { role: 'assistant', content: data.reply }])
@@ -315,7 +321,7 @@ function PracticeContent(): JSX.Element {
     onExit: () => router.push('/'),
   }
 
-  // 复练额度超限覆盖层：练习无法开始，关闭即返回上一页。
+  // 额度超限覆盖层：初始化时（练习无法开始）与对话中途（撞轮次/ASR 上限）共用，关闭即返回上一页。
   // 匿名用户没有月额度，撞的是试用轮次上限 → trial 变体（引导注册），不能显示「本月额度已用完 10/10」。
   const quotaOverlay = reviewQuotaShown
     ? <QuotaReached variant={isAnon ? 'trial' : 'ielts'} asOverlay onClose={() => router.back()} />

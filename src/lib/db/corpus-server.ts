@@ -78,6 +78,38 @@ export async function bumpDailyUsageServer(userId: string, kind: string): Promis
 }
 
 /**
+ * 只读某用户「今日某类用量」当前值（不递增）。供需要「先便宜地早退、真花钱前才计次」的接口
+ * （如 transcribe：转码在前、ASR 在后）做前置早退判断。
+ *
+ * 【非原子，只能当优化用】本函数不加锁、不递增，并发下可能读到偏小的值；额度的权威闸门仍是
+ * bumpDailyUsageServer 的原子递增 + 递增后复核。读失败或时区口径不一致时一律按 0 返回（失败开放），
+ * 最坏结果只是白做一次转码，绝不会放过超额请求。
+ *
+ * @param  userId  requireUserAllowAnon 反查出的用户 id
+ * @param  kind    用量类别（同 bumpDailyUsageServer）
+ * @returns        当日该类已计次数；无记录 / 读取失败均返回 0
+ * @sideEffect     service_role 读 daily_usage_counts（绕 RLS，须显式按 user_id 过滤）
+ */
+export async function readDailyUsageServer(userId: string, kind: string): Promise<number> {
+  try {
+    // day 列由 RPC 用 Postgres current_date 写入（库时区 UTC），故这里同样取 UTC 日期对齐口径
+    const today = new Date().toISOString().slice(0, 10)
+    const { data, error } = await getSupabaseServer()
+      .from('daily_usage_counts')
+      .select('count')
+      .eq('user_id', userId)
+      .eq('day', today)
+      .eq('kind', kind)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return (data as { count: number } | null)?.count ?? 0
+  } catch (err) {
+    console.warn('[corpus-server] readDailyUsageServer 失败，按 0 处理（权威闸门在 bump）', err)
+    return 0
+  }
+}
+
+/**
  * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
  * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
  * @param  input   source（voice/text）与原始文本

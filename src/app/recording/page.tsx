@@ -13,6 +13,8 @@ import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { apiFetch } from '@/lib/api-client'
+import { getAccount } from '@/lib/auth'
+import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -29,7 +31,45 @@ function RecordingContent(): JSX.Element {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   // 预检 402（匿名整理额度用尽）→ 弹试用结束覆盖层，不带用户去 restructure 页再失败一次
   const [quotaReached, setQuotaReached] = useState(false)
+  // 登录用户本月故事额度已满 → 点「完成」时弹 story 覆盖层（不在挂载时拦，见 blockedByStoryQuota 注释）
+  const [storyQuotaOver, setStoryQuotaOver] = useState<boolean | null>(null)
+  const [showStoryQuota, setShowStoryQuota] = useState(false)
   const { audioLevel, start, stop } = useAudioRecorder()
+
+  // 登录用户：挂载时预取当月语料数，供点「完成」时零延迟判断。仅预取，不改变本页渲染（录音照常开始）。
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const acct = await getAccount()
+        if (!acct || acct.isAnonymous || !acct.email) return
+        const n = await countCorpusThisMonth()
+        if (!cancelled) setStoryQuotaOver(n >= STORY_MONTHLY_LIMIT)
+      } catch { /* 静默：不挡正常流程 */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  /**
+   * 完成守卫：本月故事额度已用完时弹覆盖层并返回 true（调用方须中止上传）。
+   * 【为何拦在「完成」而不是挂载】本页深链/浏览器后退可直达，首页与 /write 的入口守卫覆盖不到；
+   * 但录音本身不花钱，真正花钱的是点「完成」后的 ASR，且挂载即拦会为所有正常用户引入一次异步等待、
+   * 拖慢自动开录。故拦在离花钱最近的那一步。
+   * 匿名与未登录用户不受月额度约束（各自走试用额度闸），一律放行；核不准也放行，服务端仍是硬防线。
+   */
+  const blockedByStoryQuota = useCallback(async (): Promise<boolean> => {
+    let over = storyQuotaOver
+    if (over === null) {
+      try {
+        const acct = await getAccount()
+        if (!acct || acct.isAnonymous || !acct.email) return false
+        over = (await countCorpusThisMonth()) >= STORY_MONTHLY_LIMIT
+        setStoryQuotaOver(over)
+      } catch { return false }
+    }
+    if (over) { setShowStoryQuota(true); return true }
+    return false
+  }, [storyQuotaOver])
 
   // 计时（转写时暂停）
   useEffect(() => {
@@ -50,6 +90,11 @@ function RecordingContent(): JSX.Element {
     // 第一层：录音过短，提示继续说而非上传（保持录音中）
     if (secondsRef.current < 5) {
       setError('还想再说点什么吗？目前语料可能有点短哦')
+      return
+    }
+    // 第二层：月额度守卫 —— 超额就别再调 ASR（花了钱也只会在保存时被 402 拦）。停掉录音、弹提示。
+    if (await blockedByStoryQuota()) {
+      await stop()
       return
     }
     // 语音路径的流程起点：开启一次新 flow_id，串起 ASR→整理→建语料（经 X-Flow-Id 头透传，不进 URL）
@@ -119,7 +164,7 @@ function RecordingContent(): JSX.Element {
       setError(e instanceof Error ? e.message : '转写失败，请重试')
       setTranscribing(false)
     }
-  }, [stop, router, qid])
+  }, [stop, router, qid, blockedByStoryQuota])
 
   const handleRerecord = useCallback(async () => {
     await stop()
@@ -154,6 +199,8 @@ function RecordingContent(): JSX.Element {
       </div>
       {/* 匿名整理额度用尽：试用结束覆盖层，关闭即回首页 */}
       {quotaReached && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
+      {/* 登录用户本月故事额度用完：点「完成」时才弹，关闭即回首页（录音已停，无法继续本条） */}
+      {showStoryQuota && <QuotaReached variant="story" asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }
