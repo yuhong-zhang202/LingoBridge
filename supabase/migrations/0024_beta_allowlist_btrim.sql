@@ -131,7 +131,7 @@ create trigger enforce_beta_allowlist_trg
 --
 -- 下一步（交产品方，一次性操作）：
 --   在 Supabase 控制台 SQL Editor 执行下面这句，把输出原样贴回，
---   由后续迁移（0025）原文收编：
+--   由后续迁移（0026）原文收编：【已完成 2026-07-20，见 0026_get_practice_streak.sql】
 --     select pg_get_functiondef(p.oid)
 --       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 --      where n.nspname = 'public' and p.proname = 'get_practice_streak';
