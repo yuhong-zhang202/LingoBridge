@@ -15,6 +15,7 @@ import QuotaReached from '@/components/QuotaReached'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
+import PracticeChip from './PracticeChip'
 import { useGotoPractice } from './useGotoPractice'
 
 const DIM_EN: Record<Dimension, DimensionId> = {
@@ -44,7 +45,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
   const router = useRouter()
   const [sel, setSel] = useState<Dimension | null>(null)
   // 复练入口（含月额度拦截）与移动端共用同一份实现，见 useGotoPractice
-  const { reviewQuotaShown, dismissReviewQuota, gotoPractice } = useGotoPractice()
+  const { reviewQuotaShown, dismissReviewQuota, pendingQid, gotoPractice } = useGotoPractice()
 
   const dimsCov = dimensionSummaries.filter((d) => (progressById[DIM_EN[d.dimension]]?.lit ?? 0) > 0).length
   // 覆盖从多到少：既是雷达右侧网格的排序，也决定默认选中（最有内容的维度）
@@ -176,7 +177,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                     <div className="text-[13.5px] text-v2-text-primary leading-[1.35]">{q.displayText}</div>
                     <div className="text-[11.5px] text-v2-text-muted mt-0.5">{[q.displayTextZh, `Part ${q.part}`].filter(Boolean).join(' · ')}</div>
                   </div>
-                  <Chip variant="gradient" size="sm" onClick={() => void gotoPractice(q.id)} className="font-medium flex-shrink-0">练习</Chip>
+                  <PracticeChip pending={pendingQid === q.id} onClick={() => void gotoPractice(q.id)} />
                 </div>
               ))}
               {todo.map(q => (

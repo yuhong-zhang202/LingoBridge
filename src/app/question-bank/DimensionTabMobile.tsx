@@ -14,6 +14,7 @@ import QuotaReached from '@/components/QuotaReached'
 import type { DimensionLabel as Dimension, DimensionId, QBDimensionSummary } from '@/lib/types'
 import RadarChart from './RadarChart'
 import SegmentDots from './SegmentDots'
+import PracticeChip from './PracticeChip'
 import { useGotoPractice } from './useGotoPractice'
 
 const SOFT    = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
@@ -47,7 +48,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
   const [open, setOpen] = useState<Dimension | null>(null)
   const [sel, setSel] = useState<Dimension>('情绪内核')   // 桌面端「按维度看题目」选中维度
   // 复练入口（含月额度拦截）与桌面端共用同一份实现，见 useGotoPractice
-  const { reviewQuotaShown, dismissReviewQuota, gotoPractice } = useGotoPractice()
+  const { reviewQuotaShown, dismissReviewQuota, pendingQid, gotoPractice } = useGotoPractice()
   const dimsCov = dimensionSummaries.filter((d) => (progressById[DIM_EN[d.dimension]]?.lit ?? 0) > 0).length
   const sorted = [...dimensionSummaries].sort((a, b) => (progressById[DIM_EN[b.dimension]]?.lit ?? 0) - (progressById[DIM_EN[a.dimension]]?.lit ?? 0))
 
@@ -187,14 +188,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                       : <Circle size={14} className="text-v2-text-muted flex-shrink-0" />}
                     <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-v2-text-muted'}`}>{q.displayText}</p>
                     {q.matched && (
-                      <Chip
-                        variant="gradient"
-                        size="sm"
-                        onClick={() => void gotoPractice(q.id)}
-                        className="font-medium flex-shrink-0"
-                      >
-                        练习
-                      </Chip>
+                      <PracticeChip pending={pendingQid === q.id} onClick={() => void gotoPractice(q.id)} />
                     )}
                   </div>
                 ))}
@@ -244,7 +238,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                     <div className="text-[14px] text-v2-text-primary leading-snug">{q.displayText}</div>
                     {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
                   </div>
-                  <Chip variant="gradient" size="sm" onClick={() => void gotoPractice(q.id)} className="font-medium flex-shrink-0">练习</Chip>
+                  <PracticeChip pending={pendingQid === q.id} onClick={() => void gotoPractice(q.id)} />
                 </div>
               ))}
               {todo.map(q => (
