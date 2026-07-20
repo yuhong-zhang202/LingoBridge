@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LingoBridge · 莫兰迪奶油方向（图5）</title>
+<style>
+  :root {
+    --bg-page: #FFF6EF;
+    --bg-surface: #FFFDFB;
+    --bg-cream: #FFE8DB;
+    --ink: #2A2724;
+    --ink-2: #6E6259;
+    --ink-3: #9A8C80;
+    --purple: #9584A4;
+    --purple-pale: #EFEAF3;
+    --purple-text: #6A5A7C;
+    --terra: #E87B5C;
+    --terra-pale: #FBE7DF;
+    --terra-text: #B14E31;
+    --peach: #F9BD98;
+    --peach-pale: #FDEEE1;
+    --border: #F0E2D6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: var(--bg-page);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 顶栏 ── */
+  nav {
+    max-width: 1080px; margin: 0 auto; padding: 22px 32px;
+    display: flex; align-items: center; gap: 40px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 12px;
+    background: var(--ink);
+    display: grid; place-items: center; color: var(--bg-page); font-size: 16px;
+  }
+  .nav-links { display: flex; gap: 6px; flex: 1; }
+  .nav-links a {
+    text-decoration: none; color: var(--ink-2); font-size: 14px;
+    padding: 8px 16px; border-radius: 20px; transition: all .15s;
+  }
+  .nav-links a.active { background: var(--ink); color: var(--bg-page); font-weight: 600; }
+  .nav-links a:hover:not(.active) { color: var(--ink); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--purple);
+    display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 600;
+  }
+
+  /* ── Hero：柔色块漂浮 ── */
+  .hero {
+    position: relative; max-width: 1080px; margin: 20px auto 0; padding: 96px 32px 116px;
+    overflow: hidden; border-radius: 28px; background: var(--bg-surface);
+    border: 1px solid var(--border);
+  }
+  .blob { position: absolute; border-radius: 42% 58% 56% 44% / 50% 44% 56% 50%; filter: blur(2px); pointer-events: none; }
+  .blob-purple { width: 220px; height: 190px; background: var(--purple); opacity: .8; top: -70px; left: 4%; transform: rotate(-14deg); }
+  .blob-terra  { width: 250px; height: 200px; background: var(--terra); opacity: .82; top: 40px; right: -50px; transform: rotate(10deg); }
+  .blob-peach  { width: 280px; height: 220px; background: var(--peach); opacity: .75; bottom: -90px; left: 26%; transform: rotate(6deg); }
+  .hero-inner { position: relative; max-width: 560px; }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--peach-pale); color: var(--terra-text);
+    font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 20px; margin-bottom: 26px;
+  }
+  .hero-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--terra); }
+  h1 { font-size: 46px; line-height: 1.22; letter-spacing: -0.01em; font-weight: 700; }
+  h1 .accent { color: var(--terra); }
+  .hero-desc { font-size: 17px; line-height: 1.75; color: var(--ink-2); margin: 22px 0 34px; max-width: 470px; }
+  .cta-row { display: flex; align-items: center; gap: 22px; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--ink); color: var(--bg-page);
+    font-size: 16px; font-weight: 600; padding: 15px 34px; border-radius: 14px;
+    border: none; cursor: pointer; transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 2px 14px rgba(42,39,36,.16);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(42,39,36,.2); }
+  .btn-primary .mic {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--terra);
+    display: grid; place-items: center; font-size: 11px;
+  }
+  .link-text { color: var(--ink-2); font-size: 15px; text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: 2px; }
+  .link-text:hover { color: var(--terra-text); border-color: var(--terra); }
+
+  /* ── 能力三卡：每卡一个莫兰迪色 ── */
+  .section { max-width: 1080px; margin: 30px auto; padding: 0 32px; }
+  .section-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .section-sub { font-size: 14px; color: var(--ink-3); margin-bottom: 28px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card {
+    border-radius: 18px; padding: 26px 24px; transition: transform .18s, box-shadow .18s;
+    border: 1px solid transparent;
+  }
+  .card-a { background: var(--purple-pale); }
+  .card-b { background: var(--terra-pale); }
+  .card-c { background: var(--peach-pale); }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(42,39,36,.09); }
+  .card-icon {
+    width: 44px; height: 44px; border-radius: 13px; margin-bottom: 16px;
+    display: grid; place-items: center; font-size: 20px; background: var(--bg-surface);
+  }
+  .card h3 { font-size: 17px; margin-bottom: 8px; }
+  .card p { font-size: 13.5px; line-height: 1.7; color: var(--ink-2); }
+  .card .tag {
+    display: inline-block; margin-top: 14px; font-size: 11.5px; font-weight: 600;
+    padding: 4px 11px; border-radius: 7px; background: var(--bg-surface);
+  }
+  .card-a .tag { color: var(--purple-text); }
+  .card-b .tag { color: var(--terra-text); }
+  .card-c .tag { color: #A5713D; }
+
+  /* ── 五步流程 ── */
+  .flow { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 22px; padding: 34px 30px; }
+  .flow-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 24px; }
+  .step { text-align: center; position: relative; padding: 0 6px; }
+  .step:not(:last-child)::after {
+    content: '→'; position: absolute; right: -8px; top: 12px; color: var(--ink-3); font-size: 15px;
+  }
+  .step-num {
+    width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 12px;
+    display: grid; place-items: center; font-size: 15px; font-weight: 700; color: #fff;
+  }
+  .step:nth-child(1) .step-num { background: var(--purple); }
+  .step:nth-child(2) .step-num { background: var(--terra); }
+  .step:nth-child(3) .step-num { background: var(--peach); color: var(--ink); }
+  .step:nth-child(4) .step-num { background: var(--purple); }
+  .step:nth-child(5) .step-num { background: var(--terra); }
+  .step h4 { font-size: 14px; margin-bottom: 5px; }
+  .step p { font-size: 12px; color: var(--ink-3); line-height: 1.55; }
+
+  footer { max-width: 1080px; margin: 46px auto 40px; padding: 0 32px; font-size: 12px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="logo-mark">🎙</span>LingoBridge</div>
+  <div class="nav-links">
+    <a class="active" href="#">首页</a><a href="#">题库</a><a href="#">素材库</a><a href="#">我的</a>
+  </div>
+  <div class="avatar">B</div>
+</nav>
+
+<section class="hero">
+  <div class="blob blob-purple"></div>
+  <div class="blob blob-terra"></div>
+  <div class="blob blob-peach"></div>
+  <div class="hero-inner">
+    <span class="hero-eyebrow"><span class="dot"></span>雅思口语 · 即兴表达训练</span>
+    <h1>你的生活，<br>就是你的<span class="accent">口语素材</span></h1>
+    <p class="hero-desc">不用背模板。把发生过的事讲出来，AI 帮你理清逻辑、补上地道表达，再匹配到合适的雅思真题——越练越敢开口。</p>
+    <div class="cta-row">
+      <button class="btn-primary"><span class="mic">🎤</span>开始录音</button>
+      <a class="link-text" href="#">或用文字输入 →</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">为什么是「讲故事」，而不是「背题」</div>
+  <div class="section-sub">背下来的答案，考官换个问法就卡住；你亲身经历的事，怎么问都讲得出、讲得真。</div>
+  <div class="cards">
+    <div class="card card-a">
+      <div class="card-icon">🗣️</div>
+      <h3>真实故事，随口就来</h3>
+      <p>用录音或打字讲一件小事，中文也行。AI 识别出故事里可用的维度和观察点。</p>
+      <span class="tag">情绪内核 · 人际羁绊</span>
+    </div>
+    <div class="card card-b">
+      <div class="card-icon">🎯</div>
+      <h3>匹配当季真题</h3>
+      <p>从你的故事出发，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。</p>
+      <span class="tag">Part 1 · Part 2 · Part 3</span>
+    </div>
+    <div class="card card-c">
+      <div class="card-icon">💬</div>
+      <h3>即兴对练 + 正反馈</h3>
+      <p>与 AI 教练围绕你的故事对话，每次练完给你具体、正向的反馈闭环。</p>
+      <span class="tag">越练越敢开口</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="flow">
+    <div class="section-title" style="font-size:22px;">五步，从生活到考场</div>
+    <div class="flow-steps">
+      <div class="step"><div class="step-num">1</div><h4>讲故事</h4><p>录音或文字，把小事说出来</p></div>
+      <div class="step"><div class="step-num">2</div><h4>AI 整理</h4><p>理清逻辑，补上地道表达</p></div>
+      <div class="step"><div class="step-num">3</div><h4>匹配真题</h4><p>识别维度，命中当季题目</p></div>
+      <div class="step"><div class="step-num">4</div><h4>题目分析</h4><p>看清考官侧重与可用词组</p></div>
+      <div class="step"><div class="step-num">5</div><h4>即兴练习</h4><p>和教练对话，收获反馈</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>LingoBridge · 把你的生活，变成你的口语 —— 莫兰迪奶油方向（图5）设计稿</footer>
+
+</body>
+</html>
