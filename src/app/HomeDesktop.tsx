@@ -280,10 +280,14 @@ export default function HomeDesktop({
                   sub="不是又一个题库 App，是帮你把自己的故事，练成能考场脱口而出的表达"
                 />
               </Reveal>
-              <div className="grid grid-cols-3 gap-6">
+              {/* items-stretch 虽是 grid 默认值，但下方 Reveal/Card 的 h-full 等高依赖它，显式写出以免后续改对齐时静默失效 */}
+              <div className="grid grid-cols-3 gap-6 items-stretch">
                 {FEATURES.map(({ Icon, img, tint, title, lead, desc }, i) => (
-                  <Reveal key={title} delay={i * 0.08}>
-                  <Card className="px-6 pt-8 pb-7 text-center transition-transform duration-200 hover:-translate-y-1">
+                  /* h-full 逐层下传：Reveal 撑满 grid row（由最高卡定高）、Card 再撑满 Reveal，
+                     使三卡等高且与文案长度解耦（文案仍为 TODO 占位，故不用 min-h 锁死行数） */
+                  <Reveal key={title} delay={i * 0.08} className="h-full">
+                  {/* 整卡不可点、无链接，故不做 hover 上浮（上浮是"可点击"的交互暗示）；无其他 hover 态，transition 一并移除 */}
+                  <Card className="px-6 pt-8 pb-7 text-center h-full">
                     {img ? (
                       /* 拼图图标（已抠除白底的透明 PNG），尺寸对齐原图标 64px */
                       <Image src={img} alt="" width={128} height={128} className="mx-auto mb-5 w-16 h-16 object-contain" />
