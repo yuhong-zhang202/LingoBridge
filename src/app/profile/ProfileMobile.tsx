@@ -8,7 +8,7 @@
 'use client'
 import { type JSX, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Pencil } from 'lucide-react'
+import { Settings, Pencil, Camera } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Avatar from '@/components/Avatar'
@@ -16,6 +16,7 @@ import { maskEmail, defaultNickname } from '@/lib/auth'
 import { LATEST_VERSION } from '@/lib/changelog'
 import { useAccount } from '@/hooks/useAccount'
 import NameModal from './_components/NameModal'
+import AvatarModal from './_components/AvatarModal'
 import OrbAvatar from './_components/OrbAvatar'
 import LoginPrompt from './_components/LoginPrompt'
 import LoggedInView from './_components/LoggedInView'
@@ -29,6 +30,7 @@ const STATS = { corpus: 12 }
 export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
   const [nameOpen, setNameOpen] = useState(false)
+  const [avatarOpen, setAvatarOpen] = useState(false)
   // 订阅账号态：取 avatarUrl 做头像回退、displayName 做昵称显示（上传/改名后自动刷新）
   const { account } = useAccount()
   const maskedEmail = loggedIn && email ? maskEmail(email) : null
@@ -56,7 +58,23 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
 
         {/* ── 1. 用户头像区 */}
         <div className="flex flex-col items-center pt-6 pb-5">
-          <Avatar avatarUrl={account?.avatarUrl} size={84} fallback={<OrbAvatar size={84} />} />
+          {/* 点击头像换头像（对齐桌面 IdentityCard 范式，无条件可点；权限由 AvatarModal 内部处理）。
+              移动端无 hover，叠一个相机角标暗示「可换」。button 不加 overflow-hidden 以免裁掉角标。 */}
+          <button
+            onClick={() => setAvatarOpen(true)}
+            aria-label="更换头像"
+            className="relative shrink-0 rounded-full active:scale-[0.97] transition-transform"
+          >
+            <span className="block rounded-full overflow-hidden">
+              <Avatar avatarUrl={account?.avatarUrl} size={84} fallback={<OrbAvatar size={84} />} />
+            </span>
+            <span
+              aria-hidden
+              className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-primary ring-2 ring-white shadow-sm flex items-center justify-center"
+            >
+              <Camera size={14} className="text-white" />
+            </span>
+          </button>
           {loggedIn ? (
             <>
               {/* 昵称行（在邮箱上方）+ 编辑按钮 */}
@@ -104,6 +122,7 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
       <div className="flex-shrink-0"><TabBar /></div>
 
       {nameOpen && <NameModal currentName={account?.displayName ?? null} onClose={() => setNameOpen(false)} />}
+      {avatarOpen && <AvatarModal onClose={() => setAvatarOpen(false)} />}
     </div>
   )
 }
