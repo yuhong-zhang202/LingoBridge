@@ -30,7 +30,7 @@ const PHASE_META: Record<string, string> = {
   other:       '其他（含语音转写）',
 }
 
-// 部署形态：Vercel + 香港节点。DB 存 UTC，"今日"/日界/小时桶一律按东八区（UTC+8，无夏令时）折算，
+// 部署形态：Zeabur + 腾讯云香港 VPS（next start 常驻进程）。DB 存 UTC，"今日"/日界/小时桶一律按东八区（UTC+8，无夏令时）折算，
 // 否则香港用户看到的"今日"和"小时分布"会错位 8 小时。
 const HK_OFFSET_MS = 8 * 60 * 60 * 1000
 
@@ -89,7 +89,15 @@ function percentile(values: number[], p: number): number {
 // 本看板此前 5 条聚合查询全部裸查，撞上限后是【静默少报】：实测 1237 行 / ¥13.7828 被算成
 // 1000 次 / ¥12.01（少 12.9%），且行数越涨少报越多、永不回正 —— 对唯一的花费仪表这是致命的。
 // 修法：按 range() 逐页拉全量，Node 侧汇总口径一字不动（见 fetchAllRows）。
-const PAGE_SIZE = 1000
+//
+// 每页行数。【必须严格小于 PostgREST 的 db-max-rows（默认 1000）】——这是判停不变式的护栏，
+// 不是随手取的数：fetchAllRows 靠「batch.length < PAGE_SIZE = 已到表尾」判停，而带 range 的请求
+// 同样被 db-max-rows 封顶。一旦 PAGE_SIZE ≥ db-max-rows，满页会被 cap 削成"不满页" → 误判到底、
+// 提前收工，且 dataTruncated 仍为 false —— 静默少报（正是 b56ee61 修掉那个 bug）就此无声复活。
+// 取 500 而非贴着上限的 1000：留足余量，使判停不再依赖运维把 db-max-rows 恰好留在 1000
+//（把 db-max-rows 调低到 500 防慢查询是常见运维动作，那会让 =1000 的旧值当场失真）。
+// 代价：页数翻倍（1237 行 2 页 → 3 页），每页多一次往返；看板仅管理员低频打开，此量级无感。
+const PAGE_SIZE = 500
 
 // 分页上限（= 20 万行）：宁可截断也不让看板无限翻页把请求挂死。
 // ⚠️ 触顶时【绝不静默】——置 dataTruncated 并打错误日志，因为"静默少报"正是本次修的 bug 本身。

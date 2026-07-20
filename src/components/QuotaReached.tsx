@@ -70,7 +70,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
   const handlePracticeIelts = () => router.push('/question-bank')
 
-  // trial：匿名试用结束态，面向注册转化，与「月额度用完（10/10）」文案区分，避免误导匿名用户。
+  // trial：匿名试用结束态，面向注册转化，与「月额度用完（n/n）」文案区分，避免误导匿名用户。
   const trialBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
@@ -89,10 +89,15 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
     </div>
   )
 
+  // 「已用/上限」两个数都读常量、绝不写死：上限取本变体对应的月额度常量（story→STORY、ielts→IELTS，
+  // quotaBody 仅这两个变体渲染），已用因处于"已用完"态即等于上限。这样内测前把常量调回 10 时文案自动跟随，
+  // 不必再记着改这第三处（此前写死「10/10」而常量临时放开到 100，文案与真实上限自相矛盾）。
+  const monthlyLimit = variant === 'story' ? STORY_MONTHLY_LIMIT : IELTS_MONTHLY_LIMIT
+
   const quotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（10/10）</h2>
+      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（{monthlyLimit}/{monthlyLimit}）</h2>
       <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>

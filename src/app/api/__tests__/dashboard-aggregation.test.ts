@@ -37,7 +37,10 @@ type Spec = Partial<Record<QueryKey, unknown[]>>
 // 用于把三条 select 完全相同（'estimated_cost_cny'）的费用卡查询区分开。
 const TODAY_START_ISO = '2026-07-17T16:00:00.000Z'   // 香港 07-18 00:00
 
-/** PostgREST 默认 max-rows：任何不带 range 的查询最多只返回这么多行，且不报错 */
+// PostgREST 的 db-max-rows：单次查询最多返回这么多行、且不报错——【带 range 的请求同样被它封顶】。
+// 【必须严格大于 route 里的 PAGE_SIZE(500)】：这样"满页(PAGE_SIZE)恒在封顶内"，判停不变式才成立。
+// 二者若相等（此前 1000=1000 的巧合）会掩盖耦合——满页恰好贴着 cap、看不出被削；一旦有人把
+// PAGE_SIZE 调到 ≥ db-max-rows，满页会被下方 range 分支的封顶削成"不满页"、误判到底，跨页断言随即转红。
 const PG_MAX_ROWS = 1000
 
 /** 一次查询被链式调用时捕获到的特征 */
@@ -77,9 +80,12 @@ function makeBuilder(spec: Spec) {
   b.order = self
   b.limit = (n: number) => { q.limit = n; return b }
   const rowsOf = (): unknown[] => spec[classify(q)] ?? []
+  // range(from,to) 返回该段切片，【但同样封顶到 PG_MAX_ROWS 行】——真实 PostgREST 里带 range 的
+  // 请求也逃不过 db-max-rows。故意让 PG_MAX_ROWS > PAGE_SIZE：满页(≤PAGE_SIZE)恒在封顶内、slice 不生效；
+  // 若哪天 PAGE_SIZE 被调到 ≥ PG_MAX_ROWS，满页在此被削成"不满页" → route 误判到底 → 跨页断言转红。
   b.range = (from: number, to: number) => ({
     then: (resolve: (r: { data: unknown[]; error: null }) => void) =>
-      resolve({ data: rowsOf().slice(from, to + 1), error: null }),
+      resolve({ data: rowsOf().slice(from, to + 1).slice(0, PG_MAX_ROWS), error: null }),
   })
   // 不带 range 直接 await：【必须】模拟 PostgREST max-rows=1000 的静默截断，
   // 否则 mock 会比真实 DB 更慷慨地返回全量，超 1000 行的分页守卫就成了摆设 ——

@@ -4,8 +4,9 @@
  *           按 kind 分表落进 Supabase：LLM → llm_raw_logs，ASR → asr_raw_logs（见 migration 0020）。
  *           由 RAW_LOG_ENABLED 单一开关控制（env.rawLogEnabled，布尔，默认关）——关闭时直接 return。
  *
- *   2026-07-17 从本地 JSONL 文件搬到数据库表：本地文件在 Vercel serverless 生产上活不过一次冷启动，
- *   留证等于打水漂；入库后才谈得上持久化、删除权、30 天过期（GC 见 0020 的 pg_cron）。
+ *   2026-07-17 从本地 JSONL 文件搬到数据库表：当时按 Vercel serverless 规划，本地文件活不过
+ *   一次冷启动、留证等于打水漂（注：生产后改为 Zeabur 常驻进程，但入库仍是对的方向）；
+ *   入库后才谈得上持久化、删除权、30 天过期（GC 见 0020 的 pg_cron）。
  *   两条铁律一字未变：① 开关关 → 直接 return；② 写失败只 console.warn、绝不影响主链路。
  *
  *   ⚠️ 这里落库的是【用户故事原文 / 语音转写原文】——LLM 记录的 messages 是完整 prompt，

@@ -31,7 +31,7 @@ export const env = {
   // 原始输出留证总开关（=1 开、其它/未设=关，默认关）。开启时 lib/raw-log.ts 把每次 LLM 调用的
   // 完整 prompt + 原始输出、每次 ASR 的转写原文入库（llm_raw_logs / asr_raw_logs，见 migration 0020），
   // 供离线复盘「模型是否把 score/reason 贴错 id」。含用户原文，靠表 RLS（service_role 唯一入口）+
-  // pg_cron 30 天过期兜底；生产内测由产品方在 Vercel 显式置 1。
+  // pg_cron 30 天过期兜底；生产内测由产品方在 Zeabur 服务的环境变量里显式置 1。
   rawLogEnabled: process.env.RAW_LOG_ENABLED === '1',
 
   /**

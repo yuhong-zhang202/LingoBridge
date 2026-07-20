@@ -6,7 +6,11 @@
  */
 import { getSupabase, ensureSession } from '../supabase'
 
-/** 雅思"复练"月额度（自然月） */
+/**
+ * 雅思"复练"月额度（自然月）。
+ * ⚠️【内测前必调回 10】当前 100 是产品方自测临时放开（18d96fd），设计值是 10。
+ *    与 STORY_MONTHLY_LIMIT（corpus.ts）一并调回。
+ */
 export const IELTS_MONTHLY_LIMIT = 100
 
 /** 当月 1 日 0 点（本地时区）的 ISO 字符串，作为月度计数的下界。 */
