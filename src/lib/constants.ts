@@ -111,11 +111,11 @@ export const REG_POLISH_DAILY_LIMIT = 100
 export const REG_PRONOUNCE_DAILY_LIMIT = 100
 export const REG_TRANSCRIBE_DAILY_LIMIT = 200
 /** 注册每日：matching 真实匹配（单次 = 萃取 + 重排两次 qwen-plus，是全站最贵的一跳，故压到 50）*/
-export const REG_MATCHING_DAILY_LIMIT = 1
+export const REG_MATCHING_DAILY_LIMIT = 50
 /** 注册每日：analysis 侧重点分析（可传任意 questionId 反复调，与 practice 同档 200）*/
-export const REG_ANALYSIS_DAILY_LIMIT = 1
+export const REG_ANALYSIS_DAILY_LIMIT = 200
 /** 注册每日：phrases 换词组（重出按钮可连点，介于 polish 100 与 analysis 200 之间取 150）*/
-export const REG_PHRASES_DAILY_LIMIT = 1
+export const REG_PHRASES_DAILY_LIMIT = 150
 /** 注册每日：restructure 文字整理（与 transcribe 对齐 200——两者一一配对，且走最便宜的 qwen-flash，压太低会误伤真实用户）*/
 export const REG_RESTRUCTURE_DAILY_LIMIT = 200
 
