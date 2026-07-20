@@ -72,10 +72,11 @@ export default function ResetPasswordPage() {
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="重置密码" />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10 lg:max-w-[400px] lg:mx-auto lg:w-full">
         <DesktopBackLink to="/login" label="返回登录" />
+        <h1 className="sr-only">重置密码</h1>
         {hasRecoverySession === null && (
-          <p className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
+          <p role="status" className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
         )}
 
         {hasRecoverySession === false && (
@@ -95,25 +96,29 @@ export default function ResetPasswordPage() {
         {hasRecoverySession === true && !done && (
           <div className="pt-6">
             <p className="text-[13px] text-v2-text-secondary mb-3">为你的账号设置新密码（至少 6 位）。</p>
+            <label htmlFor="new-password" className="sr-only">新密码</label>
             <div className="relative mb-2">
               <input
+                id="new-password"
                 type={showPwd ? 'text' : 'password'}
                 value={pwd}
                 onChange={e => setPwd(e.target.value)}
                 placeholder="新密码"
                 autoComplete="new-password"
+                aria-invalid={!!err}
+                aria-describedby={err ? 'new-password-error' : undefined}
                 className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPwd(v => !v)}
                 aria-label={showPwd ? '隐藏密码' : '显示密码'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-v2-text-muted"
+                className="absolute right-1 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] flex items-center justify-center text-v2-text-muted"
               >
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {err && <p className="text-[12px] text-error mt-1 mb-2 px-1">{err}</p>}
+            {err && <p id="new-password-error" role="alert" className="text-[13px] text-error mt-1 mb-2 px-1">{err}</p>}
             <GradientButton
               onClick={() => void handleSubmit()}
               disabled={submitting}
@@ -125,7 +130,7 @@ export default function ResetPasswordPage() {
         )}
 
         {done && (
-          <p className="text-[14px] text-v2-text-primary text-center pt-16">
+          <p role="status" className="text-[14px] text-v2-text-primary text-center pt-16">
             ✓ 密码已更新，正在返回登录…
           </p>
         )}
