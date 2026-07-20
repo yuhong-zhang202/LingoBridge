@@ -27,33 +27,74 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 
 const mockGetSupabase = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
 
-type QueryResult = { data: unknown[]; error: null }
+/** 七条查询的标识（与 route 内 Promise.all 的七个位置一一对应） */
+type QueryKey = 'allTime' | 'month' | 'lastMonth' | 'today' | 'range' | 'recent' | 'costly'
 
-/** 造一个 thenable 查询构建器：链式 select/gte/lt/order/limit 均返回自身，await 解析为预置结果 */
-function makeBuilder(result: QueryResult) {
+/** 各查询的预置返回行；未指定的键按空表处理 */
+type Spec = Partial<Record<QueryKey, unknown[]>>
+
+// 冻结时刻 UTC 2026-07-18T02:00Z（香港 07-18 10:00）下的日界/月界锚点，
+// 用于把三条 select 完全相同（'estimated_cost_cny'）的费用卡查询区分开。
+const TODAY_START_ISO = '2026-07-17T16:00:00.000Z'   // 香港 07-18 00:00
+
+/** PostgREST 默认 max-rows：任何不带 range 的查询最多只返回这么多行，且不报错 */
+const PG_MAX_ROWS = 1000
+
+/** 一次查询被链式调用时捕获到的特征 */
+type Captured = { select: string; gte: string[]; lt: string[]; limit: number | null }
+
+/**
+ * 按查询特征反推它是七条中的哪一条。
+ * 【不能】按 from() 调用顺序分派 —— 分页后同一条逻辑查询会多次 from()，各条的翻页交错、顺序不再稳定。
+ * @param q  该次查询捕获到的 select/过滤/limit 特征
+ */
+function classify(q: Captured): QueryKey {
+  if (q.select.includes('user_id')) return 'allTime'
+  if (q.select.includes('service')) {
+    if (q.limit === 30) return 'recent'
+    if (q.limit !== null) return 'costly'
+    return 'range'
+  }
+  if (q.lt.length > 0) return 'lastMonth'
+  return q.gte[0] === TODAY_START_ISO ? 'today' : 'month'
+}
+
+/**
+ * 造一个 thenable 查询构建器：链式调用记录特征，await（或 .range()）时按特征取对应预置数据。
+ * range(from,to) 返回该段切片 —— 真实还原 PostgREST 的分页语义，使「超过 1000 行」可被测出来。
+ * @param spec  各查询的预置行
+ */
+function makeBuilder(spec: Spec) {
+  const q: Captured = { select: '', gte: [], lt: [], limit: null }
   const b: Record<string, unknown> = {}
   const self = () => b
-  b.select = self
-  b.gte = self
-  b.lt = self
+  b.select = (cols: string) => { q.select = cols; return b }
+  b.gte = (_col: string, v: string) => { q.gte.push(v); return b }
+  b.lt = (_col: string, v: string) => { q.lt.push(v); return b }
   b.order = self
-  b.limit = self
-  b.then = (resolve: (r: QueryResult) => void) => resolve(result)
+  b.limit = (n: number) => { q.limit = n; return b }
+  const rowsOf = (): unknown[] => spec[classify(q)] ?? []
+  b.range = (from: number, to: number) => ({
+    then: (resolve: (r: { data: unknown[]; error: null }) => void) =>
+      resolve({ data: rowsOf().slice(from, to + 1), error: null }),
+  })
+  // 不带 range 直接 await：【必须】模拟 PostgREST max-rows=1000 的静默截断，
+  // 否则 mock 会比真实 DB 更慷慨地返回全量，超 1000 行的分页守卫就成了摆设 ——
+  // 分页一旦被改回裸查，测试仍会全绿。这一行是那组守卫真正的支点。
+  b.then = (resolve: (r: { data: unknown[]; error: null }) => void) =>
+    resolve({ data: rowsOf().slice(0, PG_MAX_ROWS), error: null })
   return b
 }
 
 /**
- * 装配 supabase mock：7 条查询按 from() 调用顺序取预置结果
- * （顺序 = allTime, month, lastMonth, today, range, recent, costly，与 route 内 Promise.all 数组一致）。
+ * 装配 supabase mock：按查询特征分派预置数据，未指定的查询返回空表。
+ * @param spec  形如 { range: [...], allTime: [...] }
  */
-function wireSupabase(results: QueryResult[]): void {
-  let call = 0
+function wireSupabase(spec: Spec): void {
   mockGetSupabase.mockReturnValue({
-    from: () => makeBuilder(results[call++]),
+    from: () => makeBuilder(spec),
   } as never)
 }
-
-const EMPTY: QueryResult = { data: [], error: null }
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -91,8 +132,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
         usage_amount: 500, usage_unit: 'tokens', estimated_cost_cny: 5, latency_ms: 200, status: 'success',
         metadata: { phase: 'coach', cost_source: 'actual' } },
     ]
-    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null },
-      { data: recentRows, error: null }, { data: costlyRows, error: null }])
+    wireSupabase({ range: rangeRows, recent: recentRows, costly: costlyRows })
 
     const req = new Request('http://localhost/api/dashboard?range=7d')
     const res = await GET(req)
@@ -137,7 +177,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
       { estimated_cost_cny: 30, user_id: 'anon1', is_anonymous: true },
       { estimated_cost_cny: 2,  user_id: null,    is_anonymous: null },
     ]
-    wireSupabase([{ data: allTimeRows, error: null }, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY])
+    wireSupabase({ allTime: allTimeRows })
     const req = new Request('http://localhost/api/dashboard?range=7d')
     const res = await GET(req)
     expect(res.status).toBe(200)
@@ -154,7 +194,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
   })
 
   test('空数据：本期无调用 → estimateRatio=0、phaseTotals 为空、无小时桶、p95=0、失败成本=0', async () => {
-    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY])
+    wireSupabase({})
     const req = new Request('http://localhost/api/dashboard?range=7d')
     const res = await GET(req)
     expect(res.status).toBe(200)
@@ -186,7 +226,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
         created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'ranking', cost_source: 'actual' } },
       success(1000, 'extraction', 1),
     ]
-    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null }, EMPTY, EMPTY])
+    wireSupabase({ range: rangeRows })
     const req = new Request('http://localhost/api/dashboard?range=7d')
     const res = await GET(req)
     const body = await res.json()
@@ -224,7 +264,7 @@ describe('GET /api/dashboard · 聚合口径', () => {
       { service: 'doubao_asr', estimated_cost_cny: 0.6, latency_ms: 900, status: 'error',
         created_at: '2026-07-18T01:00:00Z', metadata: { error_kind: 'user_input' } },
     ]
-    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null }, EMPTY, EMPTY])
+    wireSupabase({ range: rangeRows })
     const req = new Request('http://localhost/api/dashboard?range=7d')
     const res = await GET(req)
     const body = await res.json()
@@ -249,9 +289,103 @@ describe('GET /api/dashboard · 聚合口径', () => {
       { service: 'doubao_asr', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
         created_at: '2026-07-18T01:00:00Z', metadata: null },
     ]
-    wireSupabase([EMPTY, EMPTY, EMPTY, EMPTY, { data: rangeRows, error: null }, EMPTY, EMPTY])
+    wireSupabase({ range: rangeRows })
     const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
     const body = await res.json()
     expect(body.errorRate).toBe(50)
+  })
+})
+
+/**
+ * ⑨ 分页守卫 —— 回归 2026-07-20 实测的静默少报：
+ * PostgREST 对不带 range 的 select 强制只返回前 1000 行且不报错，看板据此把
+ * 真实 1237 行 / ¥13.7828 显示成 1000 次 / ¥12.01（少 12.9%），且行数越涨少报越多。
+ * 这组用例统一把数据造到 1000 行以上，并【刻意把关键行放在第 1000 行之后】——
+ * 一旦分页退化回裸查，这些断言必然全红。
+ */
+describe('GET /api/dashboard · 超 1000 行分页汇总', () => {
+  test('全时段 1237 行：总花费/调用数/按用户归因均跨页完整，不被截断在 1000', async () => {
+    // 前 1000 行归 u_head（各 ¥0.01），第 1000 行【之后】的 237 行归 u_tail（各 ¥0.02）。
+    // 若只取到首页：总额会是 ¥10.00、u_tail 整个人凭空消失。
+    const allTimeRows = [
+      ...Array.from({ length: 1000 }, () => ({
+        estimated_cost_cny: 0.01, user_id: 'u_head', is_anonymous: false,
+      })),
+      ...Array.from({ length: 237 }, () => ({
+        estimated_cost_cny: 0.02, user_id: 'u_tail', is_anonymous: true,
+      })),
+    ]
+    wireSupabase({ allTime: allTimeRows })
+    const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
+    const body = await res.json()
+
+    // 调用数与总额取全量：1237 次 / 10 + 4.74 = ¥14.74（而非截断值 1000 次 / ¥10.00）
+    expect(body.allTimeCalls).toBe(1237)
+    expect(body.allTimeCost).toBe(14.74)
+
+    // 按用户成本 Top-N 同样跨页：只存在于尾页的 u_tail 必须出现且金额完整
+    expect(body.userTotals).toEqual([
+      { userId: 'u_head', isAnonymous: false, cost: 10,   calls: 1000 },
+      { userId: 'u_tail', isAnonymous: true,  cost: 4.74, calls: 237 },
+    ])
+    // 匿名/登录占比也来自同一次全量查询
+    expect(body.anonymousCost).toBe(4.74)
+    expect(body.loggedInCost).toBe(10)
+
+    // 正常翻页到底，未触发 MAX_PAGES 截断
+    expect(body.dataTruncated).toBe(false)
+  })
+
+  test('range 窗口 1500 行：错误率 / 失败成本两套口径跨页各自成立', async () => {
+    // 1400 条成功在前，100 条失败【全部排在第 1400 行之后】：50 条系统故障（各 ¥0.3）、
+    // 50 条空录音 user_input（各 ¥0.6）。裸查只看得到前 1000 行时，失败成本会是 ¥0。
+    const success = () => ({
+      service: 'qwen_plus', estimated_cost_cny: 0.01, latency_ms: 100, status: 'success',
+      created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach', cost_source: 'actual' },
+    })
+    const rangeRows = [
+      ...Array.from({ length: 1400 }, success),
+      ...Array.from({ length: 50 }, () => ({
+        service: 'qwen_plus', estimated_cost_cny: 0.3, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach' },
+      })),
+      ...Array.from({ length: 50 }, () => ({
+        service: 'qwen_plus', estimated_cost_cny: 0.6, latency_ms: 900, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach', error_kind: 'user_input' },
+      })),
+    ]
+    wireSupabase({ range: rangeRows })
+    const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
+    const body = await res.json()
+
+    // 错误率只数系统故障：50 / 1500 = 3.33%（不是把空录音也算进去的 6.67%）
+    expect(body.errorRate).toBe(3.33)
+    // 失败成本【全量】统计 error 行：50×0.3 + 50×0.6 = ¥45（空录音的钱也是真花了）
+    expect(body.failedCost).toBe(45)
+
+    // 按环节下钻同样跨页：coach 环节 1500 次调用、50 次系统故障、errorCost 全量 ¥45
+    const coach = body.phaseTotals.find((p: { phase: string }) => p.phase === 'coach')
+    expect(coach.calls).toBe(1500)
+    expect(coach.errors).toBe(50)
+    expect(coach.errorCost).toBe(45)
+
+    // 日均调用基于全量行数：1500 / 7 天
+    expect(body.avgDailyCalls).toBe(214.29)
+    // 小时桶也拿到全量：1500 条都落在香港 9:00
+    const h9 = body.hourlyData.find((h: { hour: string }) => h.hour === '9:00')
+    expect(h9.calls).toBe(1500)
+  })
+
+  test('边界：恰好 1000 行（整除页大小）不多不少、也不空转', async () => {
+    // 首页满员时无法判断"是否到底"，必须再翻一页拿到空结果才停 —— 这里钉死不会少算也不会死循环。
+    const allTimeRows = Array.from({ length: 1000 }, () => ({
+      estimated_cost_cny: 0.01, user_id: 'u1', is_anonymous: false,
+    }))
+    wireSupabase({ allTime: allTimeRows })
+    const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
+    const body = await res.json()
+    expect(body.allTimeCalls).toBe(1000)
+    expect(body.allTimeCost).toBe(10)
+    expect(body.dataTruncated).toBe(false)
   })
 })

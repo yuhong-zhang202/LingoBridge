@@ -1,6 +1,7 @@
 /**
  * @module   api/dashboard
- * @desc     GET /api/dashboard?range=7d|14d|30d — 聚合 api_usage_logs，返回看板所需全部统计
+ * @desc     GET /api/dashboard?range=7d|14d|30d — 聚合 api_usage_logs，返回看板所需全部统计。
+ *           聚合类查询一律经 fetchAllRows 分页拉全量，绝不裸查（PostgREST 会静默截断到 1000 行）。
  * @author   LingoBridge
  * @created  2026-06-04
  */
@@ -60,6 +61,51 @@ function percentile(values: number[], p: number): number {
   return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * frac)
 }
 
+// ── 分页拉取（绕开 PostgREST max-rows=1000 截断） ──
+// PostgREST 对任何不带 range 的 select 强制只返回前 1000 行，且【不报错、不提示】。
+// 本看板此前 5 条聚合查询全部裸查，撞上限后是【静默少报】：实测 1237 行 / ¥13.7828 被算成
+// 1000 次 / ¥12.01（少 12.9%），且行数越涨少报越多、永不回正 —— 对唯一的花费仪表这是致命的。
+// 修法：按 range() 逐页拉全量，Node 侧汇总口径一字不动（见 fetchAllRows）。
+const PAGE_SIZE = 1000
+
+// 分页上限（= 20 万行）：宁可截断也不让看板无限翻页把请求挂死。
+// ⚠️ 触顶时【绝不静默】——置 dataTruncated 并打错误日志，因为"静默少报"正是本次修的 bug 本身。
+// 触顶即意味着该换方案（把汇总下推成 DB 端 RPC / 物化日汇总表），不要简单调大这个数。
+const MAX_PAGES = 200
+
+/** 分页查询的最小响应形状（只取本文件用到的两键，避免耦合 supabase-js 内部类型） */
+type QueryResponse<T> = { data: T[] | null; error: { message: string } | null }
+
+/** 汇总结果：data 为全量行；truncated 表示撞到 MAX_PAGES 上限、数据不完整 */
+type PagedResult<T> = { data: T[]; error: { message: string } | null; truncated: boolean }
+
+/**
+ * 逐页拉取一条查询的全部结果行，绕开 PostgREST 的 1000 行默认上限。
+ *
+ * 入参是【工厂函数】而非查询对象：PostgrestBuilder 每次 await 即发请求且不可重复使用，
+ * 每页必须重新构造一条查询。调用方在工厂里务必带上稳定排序（created_at asc, id asc），
+ * 否则无序分页在 OFFSET 下会漏行/重行；按 created_at 升序还能保证分页期间新写入的行
+ * 一律追加在尾部，不会挤动已翻过的页。
+ *
+ * @param makeQuery  每次调用返回一条【新的】待执行查询（须已带 select/过滤/排序）
+ * @returns          全量行 + 首个错误 + 是否因触顶而截断
+ */
+async function fetchAllRows<T>(
+  makeQuery: () => { range: (from: number, to: number) => PromiseLike<QueryResponse<T>> },
+): Promise<PagedResult<T>> {
+  const rows: T[] = []
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const from = page * PAGE_SIZE
+    const { data, error } = await makeQuery().range(from, from + PAGE_SIZE - 1)
+    if (error) return { data: [], error, truncated: false }
+    const batch = data ?? []
+    for (const row of batch) rows.push(row)
+    // 不满一页 = 已到表尾。满页则可能还有，继续翻。
+    if (batch.length < PAGE_SIZE) return { data: rows, error: null, truncated: false }
+  }
+  return { data: rows, error: null, truncated: true }
+}
+
 /** 最贵调用视图取前 N 条 */
 const TOP_COST_N = 20
 
@@ -82,6 +128,8 @@ type LogMeta = { phase?: string; cost_source?: string; error_kind?: string } | n
 // 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
 // user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
 type AttribRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
+/** 纯金额行：月/上月/今日三张费用卡只需成本一列 */
+type CostRow = { estimated_cost_cny: number }
 type RangeRow = {
   service: string; estimated_cost_cny: number; latency_ms: number
   status: string; created_at: string; metadata: LogMeta
@@ -146,28 +194,41 @@ export async function GET(req: Request): Promise<NextResponse> {
     const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
 
     // ── 7 条并行查询 ──
+    // 前 5 条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
+    // 后 2 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
     const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes] = await Promise.all([
       // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
-      supabase
+      // 这条永不设时间下界、行数只增不减，是最先撞 1000 行上限、也是少报最严重的一条。
+      fetchAllRows<AttribRow>(() => supabase
         .from('api_usage_logs')
-        .select('estimated_cost_cny, user_id, is_anonymous'),
-      supabase
+        .select('estimated_cost_cny, user_id, is_anonymous')
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
+      fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
-        .gte('created_at', monthStart.toISOString()),
-      supabase
+        .gte('created_at', monthStart.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
+      fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
         .gte('created_at', lastMonthStart.toISOString())
-        .lt('created_at', monthStart.toISOString()),
-      supabase
+        .lt('created_at', monthStart.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
+      fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
-        .gte('created_at', todayStart.toISOString()),
-      supabase
+        .gte('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
+      fetchAllRows<RangeRow>(() => supabase
         .from('api_usage_logs')
         .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata')
-        .gte('created_at', rangeStartDate.toISOString()),
+        .gte('created_at', rangeStartDate.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
       supabase
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
@@ -187,11 +248,20 @@ export async function GET(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: firstErr.message }, { status: 500 })
     }
 
-    const allRows = (allTimeRes.data ?? []) as AttribRow[]
-    const mRows   = monthRes.data    ?? []
-    const lmRows  = lastMonthRes.data ?? []
-    const tdRows  = todayRes.data    ?? []
-    const rngRows = (rangeRes.data  ?? []) as RangeRow[]
+    // 分页触顶 = 数据不完整、看板在少报。绝不静默：打日志 + 随响应返回标记。
+    const dataTruncated = allTimeRes.truncated || monthRes.truncated
+      || lastMonthRes.truncated || todayRes.truncated || rangeRes.truncated
+    if (dataTruncated) {
+      logErr('[dashboard API]', new Error(
+        `api_usage_logs 分页触顶（${MAX_PAGES} 页 × ${PAGE_SIZE} 行），统计已被截断、金额偏低；该把汇总下推到 DB 端了`,
+      ))
+    }
+
+    const allRows = allTimeRes.data
+    const mRows   = monthRes.data
+    const lmRows  = lastMonthRes.data
+    const tdRows  = todayRes.data
+    const rngRows = rangeRes.data
     const recent  = (recentRes.data ?? []) as RecentRow[]
     const costly  = (costlyRes.data ?? []) as RecentRow[]
 
@@ -210,6 +280,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     // ── 迷你统计（基于 range 窗口） ──
     const successRows = rngRows.filter(r => r.status === 'success')
     const avgDailyCalls = r2(rngRows.length / rangeDays)
+    // ⚠️ latency 口径断点 2026-07-20（fc0dbb8）：此前 matching 的 extraction / ranking 两条日志
+    //    latency_ms 【都】写请求总耗时（同一个时长记两遍），之后才改成各自分段实测。
+    //    故 range 窗口跨越 2026-07-20 时，avgLatency / p95Latency 是新旧两种口径的混合值，
+    //    会显得"性能突然变好了一半"——那是口径修正，不是真的变快。历史行不追溯改写。
     const avgLatency    = successRows.length > 0
       ? Math.round(successRows.reduce((s, r) => s + r.latency_ms, 0) / successRows.length)
       : 0
@@ -357,6 +431,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       hourlyData,
       recentLogs: recent,
       costlyLogs: costly,
+      // 数据完整性标记：true = 分页触顶、以上金额均偏低，不可当作真实花费看。正常恒为 false。
+      dataTruncated,
     })
   } catch (e) {
     const authRes = authErrorResponse(e)
