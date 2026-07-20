@@ -27,8 +27,8 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 
 const mockGetSupabase = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
 
-/** 七条查询的标识（与 route 内 Promise.all 的七个位置一一对应） */
-type QueryKey = 'allTime' | 'month' | 'lastMonth' | 'today' | 'range' | 'recent' | 'costly'
+/** 八条查询的标识（与 route 内 Promise.all 的八个位置一一对应） */
+type QueryKey = 'allTime' | 'month' | 'lastMonth' | 'today' | 'range' | 'recent' | 'costly' | 'failed'
 
 /** 各查询的预置返回行；未指定的键按空表处理 */
 type Spec = Partial<Record<QueryKey, unknown[]>>
@@ -41,7 +41,7 @@ const TODAY_START_ISO = '2026-07-17T16:00:00.000Z'   // 香港 07-18 00:00
 const PG_MAX_ROWS = 1000
 
 /** 一次查询被链式调用时捕获到的特征 */
-type Captured = { select: string; gte: string[]; lt: string[]; limit: number | null }
+type Captured = { select: string; gte: string[]; lt: string[]; eq: string[]; limit: number | null }
 
 /**
  * 按查询特征反推它是七条中的哪一条。
@@ -51,6 +51,8 @@ type Captured = { select: string; gte: string[]; lt: string[]; limit: number | n
 function classify(q: Captured): QueryKey {
   if (q.select.includes('user_id')) return 'allTime'
   if (q.select.includes('service')) {
+    // 失败明细是唯一带 .eq('status','error') 的一条，仅靠 select/limit 与「最贵」区分不开
+    if (q.eq.includes('error')) return 'failed'
     if (q.limit === 30) return 'recent'
     if (q.limit !== null) return 'costly'
     return 'range'
@@ -65,12 +67,13 @@ function classify(q: Captured): QueryKey {
  * @param spec  各查询的预置行
  */
 function makeBuilder(spec: Spec) {
-  const q: Captured = { select: '', gte: [], lt: [], limit: null }
+  const q: Captured = { select: '', gte: [], lt: [], eq: [], limit: null }
   const b: Record<string, unknown> = {}
   const self = () => b
   b.select = (cols: string) => { q.select = cols; return b }
   b.gte = (_col: string, v: string) => { q.gte.push(v); return b }
   b.lt = (_col: string, v: string) => { q.lt.push(v); return b }
+  b.eq = (_col: string, v: string) => { q.eq.push(v); return b }
   b.order = self
   b.limit = (n: number) => { q.limit = n; return b }
   const rowsOf = (): unknown[] => spec[classify(q)] ?? []
@@ -233,8 +236,8 @@ describe('GET /api/dashboard · 聚合口径', () => {
 
     // ④ p95：成功延迟 [100,200,300,400,1000]（含 extraction 那条 1000），5 个点 p95 → 880
     expect(body.p95Latency).toBe(880)
-    // 失败那条延迟 5ms 未混入
-    expect(body.avgLatency).toBe(400)  // (100+200+300+400+1000)/5
+    // 失败那条延迟 5ms 未混入：混进来的话中位数会被拉到 250 以下
+    expect(body.p50Latency).toBe(300)  // [100,200,300,400,1000] 的中位数
 
     // ⑤ ranking 环节：5 次调用、1 次失败 → 20% 错误率、失败成本 0.3
     const ranking = body.phaseTotals.find((p: { phase: string }) => p.phase === 'ranking')
@@ -297,7 +300,106 @@ describe('GET /api/dashboard · 聚合口径', () => {
 })
 
 /**
- * ⑨ 分页守卫 —— 回归 2026-07-20 实测的静默少报：
+ * ⑨ 各环节耗时 / 每日失败 / 今日状况 —— 本轮新增的三组口径守卫。
+ * 关键在【延迟口径断点 2026-07-20】：此前 extraction/ranking 的 latency_ms 是同一总时长记了两遍，
+ * 一旦断点过滤被拆掉，耗时统计会掺进翻倍的旧值、看上去像"性能突然变好一半"。
+ */
+describe('GET /api/dashboard · 耗时 / 失败 / 今日状况', () => {
+  // 冻结到断点【之后】：香港 2026-07-24 10:00，今日界 = 07-23T16:00Z，7 天窗自 07-17T16:00Z 起
+  const NOW_ISO = '2026-07-24T02:00:00Z'
+
+  /** 造一行 range 窗口日志 */
+  function row(
+    createdAt: string, phase: string | null, latencyMs: number,
+    status: 'success' | 'error' = 'success', errorKind?: string,
+  ) {
+    return {
+      service: 'qwen_plus', estimated_cost_cny: 1, latency_ms: latencyMs, status,
+      created_at: createdAt,
+      metadata: phase == null && !errorKind ? null : { phase: phase ?? undefined, error_kind: errorKind },
+    }
+  }
+
+  beforeEach(() => {
+    jest.setSystemTime(new Date(NOW_ISO))
+  })
+
+  test('耗时统计只取口径断点之后的行，按 P90 降序', async () => {
+    const rangeRows = [
+      // 断点【之前】：ranking 一条 60s 的旧口径行（总时长记两遍的产物），必须被完全排除
+      row('2026-07-18T01:00:00Z', 'ranking', 60_000),
+      // 断点之后
+      row('2026-07-21T01:00:00Z', 'ranking',  2_000),
+      row('2026-07-21T02:00:00Z', 'ranking',  4_000),
+      row('2026-07-24T01:00:00Z', 'analysis', 18_000),
+      row('2026-07-24T01:10:00Z', 'analysis', 20_000),
+    ]
+    wireSupabase({ range: rangeRows })
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    // 断点前那条 60s 若混入，ranking 的 max 会是 60000、且会排到最前
+    const ranking = body.phaseLatency.find((p: { phase: string }) => p.phase === 'ranking')
+    expect(ranking.calls).toBe(2)
+    expect(ranking.max).toBe(4000)
+    // 按 P90 降序：analysis（20s）在 ranking（4s）之前
+    expect(body.phaseLatency[0].phase).toBe('analysis')
+    expect(body.latencyCutoff).toBe('2026-07-20')
+
+    // 趋势：断点之前的日子必须是 null（给 0 会被画成"那几天延迟为零"的假谷底）
+    const analysisTrend = body.latencyTrend.find((t: { phase: string }) => t.phase === 'analysis')
+    const d18 = analysisTrend.days.find((d: { date: string }) => d.date === '7/18')
+    expect(d18.p50).toBeNull()
+    expect(d18.calls).toBe(0)
+    const d24 = analysisTrend.days.find((d: { date: string }) => d.date === '7/24')
+    expect(d24.calls).toBe(2)
+    // 趋势最多只画最慢的 3 个环节
+    expect(body.latencyTrend.length).toBeLessThanOrEqual(3)
+  })
+
+  test('每日失败只数系统故障，今日状况给出今日失败数与近 7 日基线', async () => {
+    const rangeRows = [
+      row('2026-07-21T01:00:00Z', 'ranking', 1_000, 'error'),            // 系统故障（非今日）
+      row('2026-07-24T01:00:00Z', 'ranking', 1_000, 'error'),            // 今日系统故障
+      row('2026-07-24T01:05:00Z', 'ranking', 1_000, 'error'),            // 今日系统故障
+      row('2026-07-24T01:10:00Z', null,      1_000, 'error', 'user_input'), // 今日空录音：不计
+      row('2026-07-24T02:00:00Z', 'ranking', 1_000),
+    ]
+    wireSupabase({ range: rangeRows })
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    const d21 = body.dailyFailures.find((d: { date: string }) => d.date === '7/21')
+    const d24 = body.dailyFailures.find((d: { date: string }) => d.date === '7/24')
+    expect(d21.failures).toBe(1)
+    // 空录音那条若被算进来会是 3 —— 那正是"真故障被噪音淹掉"的样子
+    expect(d24.failures).toBe(2)
+    expect(body.dailyFailures.length).toBe(7)
+
+    expect(body.todayStatus.todayFailures).toBe(2)
+    expect(body.todayStatus.avgDailyFailures7).toBe(0.43)   // 3 次系统故障 / 7 天
+    expect(body.todayStatus.slowestPhase.name).toBe('题目重排')
+  })
+
+  test('失败明细独立透传（含 error_kind），是每日失败柱图的下钻出口', async () => {
+    const failedRows = [
+      { id: 'f1', created_at: '2026-07-24T01:00:00Z', service: 'qwen_plus', endpoint: 'x/completions',
+        usage_amount: 10, usage_unit: 'tokens', estimated_cost_cny: 0.2, latency_ms: 900, status: 'error',
+        metadata: { phase: 'ranking' } },
+      { id: 'f2', created_at: '2026-07-23T01:00:00Z', service: 'doubao_asr', endpoint: 'x/asr',
+        usage_amount: 3, usage_unit: 'sec', estimated_cost_cny: 0.01, latency_ms: 300, status: 'error',
+        metadata: { error_kind: 'user_input' } },
+    ]
+    wireSupabase({ failed: failedRows })
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    expect(body.failedLogs).toHaveLength(2)
+    expect(body.failedLogs[0].id).toBe('f1')
+    // error_kind 必须透传：明细表要能区分系统故障与用户输入问题，否则一屏全是"失败"没信息量
+    expect(body.failedLogs[1].metadata.error_kind).toBe('user_input')
+  })
+})
+
+/**
+ * ⑩ 分页守卫 —— 回归 2026-07-20 实测的静默少报：
  * PostgREST 对不带 range 的 select 强制只返回前 1000 行且不报错，看板据此把
  * 真实 1237 行 / ¥13.7828 显示成 1000 次 / ¥12.01（少 12.9%），且行数越涨少报越多。
  * 这组用例统一把数据造到 1000 行以上，并【刻意把关键行放在第 1000 行之后】——

@@ -11,6 +11,9 @@ import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
+import TodayStatusBar from '@/components/dashboard/TodayStatusBar'
+import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
+import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
 import { apiFetch } from '@/lib/api-client'
 import { formatCny } from '@/lib/format-cost'
 
@@ -20,13 +23,19 @@ type UserTotal    = { userId: string; isAnonymous: boolean; cost: number; calls:
 type RecentLog = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
-  metadata?: { phase?: string; cost_source?: string } | null
+  metadata?: { phase?: string; cost_source?: string; error_kind?: string } | null
+}
+type PhaseLatency = { phase: string; name: string; p50: number; p90: number; max: number; calls: number }
+type TrendPhase   = { phase: string; name: string; days: Array<{ date: string; p50: number | null; p90: number | null; calls: number }> }
+type TodayStatus  = {
+  todayFailures: number; avgDailyFailures7: number; avgDailyCost7: number
+  slowestPhase: { name: string; p90: number } | null
 }
 type DashboardData = {
   allTimeCost: number; allTimeCalls: number
   monthCost: number;  monthCalls: number; monthChange: number | null
   todayCost:  number; todayCalls: number
-  avgDailyCalls: number; avgLatency: number; p95Latency: number; errorRate: number; avgDailyCost: number
+  avgDailyCalls: number; p50Latency: number; p95Latency: number; errorRate: number; avgDailyCost: number
   failedCost: number; estimateRatio: number; dailyBudget: number
   serviceTotals: ServiceTotal[]
   phaseTotals: PhaseTotal[]
@@ -34,9 +43,16 @@ type DashboardData = {
   anonymousCost: number
   loggedInCost: number
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
+  dailyFailures: Array<{ date: string; failures: number }>
+  phaseLatency: PhaseLatency[]
+  latencyTrend: TrendPhase[]
+  latencyCutoff: string
+  latencyWarnMs: number
+  todayStatus: TodayStatus
   hourlyData: Array<{ hour: string; calls: number }>
   recentLogs: RecentLog[]
   costlyLogs: RecentLog[]
+  failedLogs: RecentLog[]
 }
 
 const RANGES = ['7d', '14d', '30d'] as const
@@ -49,7 +65,8 @@ const AXIS_TICK_FILL = '#7C6B5E'
 
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
-  { label: '平均延迟', value: `${d.avgLatency}ms` },
+  // 中位数而非均值：同输入长度不同的调用延迟能差 3 倍，均值谁也不代表（P95 保留，答"最坏能多坏"）
+  { label: '中位数延迟', value: `${d.p50Latency}ms` },
   { label: 'P95 延迟', value: `${d.p95Latency}ms` },
   { label: '错误率',   value: `${d.errorRate}%` },
   { label: '日均费用', value: formatCny(d.avgDailyCost) },
@@ -195,6 +212,10 @@ export default function DashboardPage() {
 
   const hasRangeData = !!data && data.dailyData.some(d => d.total > 0)
   const hasTodayData = !!data && data.hourlyData.some(h => h.calls > 0)
+  // 今日小时分布的 aria 概述用：读屏用户靠这一句掌握"今天调用多不多、集中在几点"
+  const todayTotalCalls = data?.hourlyData.reduce((s, h) => s + h.calls, 0) ?? 0
+  const todayPeakHour   = data?.hourlyData.reduce((m, h) => (h.calls > m.calls ? h : m), { hour: '', calls: 0 })
+    ?? { hour: '', calls: 0 }
 
   return (
     <main className="max-w-[1400px] mx-auto px-4 md:px-10 pt-8 pb-12">
@@ -221,6 +242,11 @@ export default function DashboardPage() {
       )}
 
       {data && !loading && !denied && !error && (<>
+        {/* 今日状况条：内测期"今天有没有出事"的唯一入口，故置于费用卡之上。
+            时间窗固定为今日 + 近 7 日基线，不随下方区间选择器变 */}
+        <TodayStatusBar status={data.todayStatus} todayCost={data.todayCost}
+          dailyBudget={data.dailyBudget} latencyWarnMs={data.latencyWarnMs} />
+
         {/* 三张费用卡 */}
         <section aria-label="费用总览">
           <h2 className="sr-only">费用总览</h2>
@@ -286,30 +312,55 @@ export default function DashboardPage() {
         {/* 按环节成本 / 失败率 */}
         <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
 
+        {/* 各环节耗时（分布 / 趋势）：与上一块同为"按环节"视角，紧贴着放 */}
+        <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
+          cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
+
         {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
         <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
 
-        {/* 今日调用分布 */}
-        <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
-          <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
-          {hasTodayData ? (
-            <ResponsiveContainer width="100%" height={100}>
-              <BarChart data={data.hourlyData} barSize={6} margin={{ top: 0, right: 0, bottom: 0, left: -16 }}>
-                <XAxis dataKey="hour" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} interval={3} />
-                <Bar dataKey="calls" radius={[2, 2, 0, 0]}>
-                  {data.hourlyData.map((h, i) => (
-                    <Cell key={i} fill="#7BA699" fillOpacity={h.calls > 0 ? 0.6 : 0.15} />
+        {/* 今日调用分布 + 每日失败次数并排（两张小图，通栏各占一行会失衡） */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4">
+            <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
+            {hasTodayData ? (<>
+              {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附 sr-only 数据表兜底（与同页另两图一致） */}
+              <div role="img"
+                aria-label={`今日调用按小时分布柱状图，全天共 ${todayTotalCalls} 次调用，峰值 ${todayPeakHour.hour} 共 ${todayPeakHour.calls} 次。详细数据见下方数据表。`}>
+                <ResponsiveContainer width="100%" height={100}>
+                  <BarChart data={data.hourlyData} barSize={6} margin={{ top: 0, right: 0, bottom: 0, left: -16 }}>
+                    <XAxis dataKey="hour" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} interval={3} />
+                    <Bar dataKey="calls" radius={[2, 2, 0, 0]}>
+                      {data.hourlyData.map((h, i) => (
+                        <Cell key={i} fill="#7BA699" fillOpacity={h.calls > 0 ? 0.6 : 0.15} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <table className="sr-only">
+                <caption>今日调用按小时分布（东八区）</caption>
+                <thead>
+                  <tr><th scope="col">时刻</th><th scope="col">调用次数</th></tr>
+                </thead>
+                <tbody>
+                  {data.hourlyData.map(h => (
+                    <tr key={h.hour}><th scope="row">{h.hour}</th><td>{h.calls}</td></tr>
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="text-v2-text-muted text-[12px] h-[100px] flex items-center justify-center">今日暂无调用</div>
-          )}
-        </section>
+                </tbody>
+              </table>
+            </>) : (
+              <div className="text-v2-text-muted text-[12px] h-[100px] flex items-center justify-center">今日暂无调用</div>
+            )}
+          </section>
+          <section aria-label="每日失败次数" className="bg-white rounded-[16px] border border-black/[0.05] p-4">
+            <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">每日失败次数（仅系统故障）</h2>
+            <DailyFailureChart data={data.dailyFailures} />
+          </section>
+        </div>
 
-        {/* 调用明细表格（最近 / 最贵可切换） */}
-        <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} />
+        {/* 调用明细表格（最近 / 最贵 / 失败可切换，失败视图是上方柱图的下钻出口） */}
+        <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs} />
 
         {/* 底部单价参考 */}
         <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">

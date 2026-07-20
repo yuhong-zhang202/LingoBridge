@@ -38,6 +38,25 @@ const HK_OFFSET_MS = 8 * 60 * 60 * 1000
 // 告警推送是上线前的事，本轮不做。内测阶段先按此值做视觉参照。
 const DAILY_BUDGET_CNY = 20
 
+// ── 延迟口径断点（2026-07-20 香港 00:00 = UTC 07-19 16:00） ──
+// 此前 matching 的 extraction / ranking 两条日志的 latency_ms 【都】写请求总耗时（同一时长记两遍），
+// fc0dbb8 才改成各自分段实测。跨断点画线会看到"性能突然变好一半"——那是口径修正、不是真变快。
+// 故【按环节耗时】区块（分布 + 趋势两视图）一律只取断点之后的行；历史行不追溯改写，也不参与耗时统计。
+// ⚠️ 顶部迷你条的 p50/p95 沿用全区间旧口径（那是既有指标，本轮不动），两者数字不一致属预期。
+const LATENCY_CUTOFF_TS = Date.parse('2026-07-19T16:00:00.000Z')
+
+/** 断点日期的展示串（给前端标"数据窗口"小字用，避免前端再硬编码一遍日期） */
+const LATENCY_CUTOFF_LABEL = '2026-07-20'
+
+/** 环节耗时警示阈值：P90 超过 15 秒即视为"最坏体验已经很坏"，条色/文字转警示暖色 */
+const LATENCY_WARN_MS = 15_000
+
+/** 耗时趋势只画最慢的前 N 个环节：环节有 9 个，全画成线团，看不出任何东西 */
+const TREND_PHASE_N = 3
+
+/** 失败明细视图取前 N 条（区间内按时间倒序）：自带 limit、天然在分页上限内 */
+const FAILED_LOG_N = 100
+
 /** 保留两位小数 */
 function r2(n: number): number {
   return Math.round(n * 100) / 100
@@ -173,7 +192,8 @@ function hkDayKey(iso: string): string {
  * 聚合 api_usage_logs，返回看板所需全部统计数据
  * @param req  GET 请求，支持 ?range=7d|14d|30d
  * @returns    三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
- *             每日趋势、小时分布、最近调用
+ *             每日趋势、每日失败次数、各环节耗时（分布 + 趋势）、今日状况、小时分布、
+ *             最近 / 最贵 / 失败三份调用明细
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -193,10 +213,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const lastMonthStart = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth() - 1, 1)
     const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
 
-    // ── 7 条并行查询 ──
+    // ── 8 条并行查询 ──
     // 前 5 条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
-    // 后 2 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
-    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes] = await Promise.all([
+    // 后 3 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
+    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes, failedRes] = await Promise.all([
       // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
       // 这条永不设时间下界、行数只增不减，是最先撞 1000 行上限、也是少报最严重的一条。
       fetchAllRows<AttribRow>(() => supabase
@@ -240,10 +260,20 @@ export async function GET(req: Request): Promise<NextResponse> {
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
         .order('estimated_cost_cny', { ascending: false })
         .limit(TOP_COST_N),
+      // 失败明细（区间内 status='error'，时间倒序）：每日失败柱图的下钻出口。
+      // 刻意【不】在 SQL 层摘掉 user_input —— 明细表要能看到"这条失败到底是哪一类"，
+      // 由前端按 error_kind 列展示；柱图的计数口径才只数系统故障（与 errorRate 一致）。
+      supabase
+        .from('api_usage_logs')
+        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .eq('status', 'error')
+        .gte('created_at', rangeStartDate.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(FAILED_LOG_N),
     ])
 
     const firstErr = allTimeRes.error ?? monthRes.error ?? lastMonthRes.error
-      ?? todayRes.error ?? rangeRes.error ?? recentRes.error ?? costlyRes.error
+      ?? todayRes.error ?? rangeRes.error ?? recentRes.error ?? costlyRes.error ?? failedRes.error
     if (firstErr) {
       return NextResponse.json({ error: firstErr.message }, { status: 500 })
     }
@@ -264,6 +294,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const rngRows = rangeRes.data
     const recent  = (recentRes.data ?? []) as RecentRow[]
     const costly  = (costlyRes.data ?? []) as RecentRow[]
+    const failed  = (failedRes.data ?? []) as RecentRow[]
 
     // ── 三张费用卡 ──
     const allTimeCost   = r2(allRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
@@ -284,9 +315,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     //    latency_ms 【都】写请求总耗时（同一个时长记两遍），之后才改成各自分段实测。
     //    故 range 窗口跨越 2026-07-20 时，avgLatency / p95Latency 是新旧两种口径的混合值，
     //    会显得"性能突然变好了一半"——那是口径修正，不是真的变快。历史行不追溯改写。
-    const avgLatency    = successRows.length > 0
-      ? Math.round(successRows.reduce((s, r) => s + r.latency_ms, 0) / successRows.length)
-      : 0
+    // 用【中位数】而非均值：同一环节的延迟随输入长度能差 3 倍，均值谁也不代表；
+    // 中位数答"典型一次要等多久"，配合 p95 答"最坏能有多坏"，两个数才拼得出体感。
+    const p50Latency    = percentile(successRows.map(r => r.latency_ms), 50)
     // p95 延迟：均值藏长尾，p95 才暴露偶发慢请求。只算成功调用（失败常瞬时返回，混入会拉低）。
     const p95Latency    = percentile(successRows.map(r => r.latency_ms), 95)
     // 错误率只算系统故障：用户输入问题（空录音等）不是故障，混进来会淹没真实故障信号。见 isSystemError。
@@ -379,19 +410,99 @@ export async function GET(req: Request): Promise<NextResponse> {
       entry[row.service] = (entry[row.service] ?? 0) + row.estimated_cost_cny
       entry['total']     = (entry['total']     ?? 0) + row.estimated_cost_cny
     }
-    const dailyData = Array.from({ length: rangeDays }, (_, i) => {
-      const dayStart = new Date(rangeStartDate.getTime() + i * 24 * 60 * 60 * 1000)
-      const hk  = new Date(dayStart.getTime() + HK_OFFSET_MS)
-      const key = `${hk.getUTCFullYear()}-${hk.getUTCMonth()}-${hk.getUTCDate()}`
+    // 区间内每一天的「分桶键 + 展示标签」骨架：费用趋势、每日失败、耗时趋势三处共用同一套日期轴，
+    // 各自单独生成的话，某天无数据时三张图的横轴会错位对不上。
+    const dayBuckets = Array.from({ length: rangeDays }, (_, i) => {
+      const hk = new Date(rangeStartDate.getTime() + i * 24 * 60 * 60 * 1000 + HK_OFFSET_MS)
+      return {
+        key:   `${hk.getUTCFullYear()}-${hk.getUTCMonth()}-${hk.getUTCDate()}`,
+        date:  `${hk.getUTCMonth() + 1}/${hk.getUTCDate()}`,
+      }
+    })
+    const dailyData = dayBuckets.map(({ key, date }) => {
       const entry = dailyMap.get(key) ?? {}
       return {
-        date:          `${hk.getUTCMonth() + 1}/${hk.getUTCDate()}`,
+        date,
         doubao_asr:    r2(entry['doubao_asr']    ?? 0),
         qwen_flash:    r2(entry['qwen_flash']    ?? 0),
         qwen_plus:     r2(entry['qwen_plus']     ?? 0),
         total:         r2(entry['total']         ?? 0),
       }
     })
+
+    // ── 每日失败次数（rangeDays 天，与 dailyData 同一日期轴） ──
+    // 口径【只数系统故障】，与顶部 errorRate 一致：空录音之类的用户输入问题混进来会淹掉真故障，
+    // 而这张图存在的唯一意义就是"哪天真的坏了"。金额口径的 failedCost 仍是全量 error，两者刻意不同。
+    const failureMap = new Map<string, number>()
+    for (const row of rngRows) {
+      if (!isSystemError(row)) continue
+      const key = hkDayKey(row.created_at)
+      failureMap.set(key, (failureMap.get(key) ?? 0) + 1)
+    }
+    const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
+
+    // ── 各环节耗时（分布 + 趋势）──
+    // 只取成功调用（失败常瞬时返回，混入会把 P50 拉低成假象）且只取口径断点之后的行（见 LATENCY_CUTOFF_TS）。
+    const latencyRows = rngRows.filter(r =>
+      r.status === 'success' && new Date(r.created_at).getTime() >= LATENCY_CUTOFF_TS)
+
+    const latencyByPhase = new Map<string, number[]>()
+    for (const row of latencyRows) {
+      const key = row.metadata?.phase ?? 'other'
+      const arr = latencyByPhase.get(key)
+      if (arr) arr.push(row.latency_ms)
+      else latencyByPhase.set(key, [row.latency_ms])
+    }
+    // 按 P90 降序：要看的是"最坏体验有多坏"，最慢的排最上面。刻意【不给均值列】——
+    // 同一环节不同输入的延迟能差 3 倍，均值谁也不代表，给了只会被当成"正常水平"误读。
+    const phaseLatency = Array.from(latencyByPhase.entries())
+      .map(([phase, ms]) => ({
+        phase,
+        name:  PHASE_META[phase] ?? phase,
+        p50:   percentile(ms, 50),
+        p90:   percentile(ms, 90),
+        max:   Math.round(ms.reduce((m, v) => Math.max(m, v), 0)),
+        calls: ms.length,
+      }))
+      .sort((a, b) => b.p90 - a.p90)
+
+    // 耗时趋势：只画最慢的前 N 个环节，且一次只让前端画一个环节的 P50/P90 双线（见 PhaseLatencyPanel）。
+    // 断点之前的日子给 null 而非 0 —— 0 会被画成"那几天延迟为零"的假谷底，null 让折线直接断开。
+    const latencyTrend = phaseLatency.slice(0, TREND_PHASE_N).map(p => {
+      const perDay = new Map<string, number[]>()
+      for (const row of latencyRows) {
+        if ((row.metadata?.phase ?? 'other') !== p.phase) continue
+        const key = hkDayKey(row.created_at)
+        const arr = perDay.get(key)
+        if (arr) arr.push(row.latency_ms)
+        else perDay.set(key, [row.latency_ms])
+      }
+      return {
+        phase: p.phase,
+        name:  p.name,
+        days:  dayBuckets.map(({ key, date }) => {
+          const ms = perDay.get(key)
+          return ms && ms.length > 0
+            ? { date, p50: percentile(ms, 50), p90: percentile(ms, 90), calls: ms.length }
+            : { date, p50: null, p90: null, calls: 0 }
+        }),
+      }
+    })
+
+    // ── 今日状况条（顶部"一眼看出今天有没有出事"）──
+    // 时间窗【固定近 7 日】、不随区间选择器变：判断"今天是不是异常"要跟一个稳定的近期基线比，
+    // 基线跟着区间一起漂移的话，切到 30 天就会因为均值被稀释而看不出今天的异常。
+    // rangeDays 最小值就是 7，故 rngRows 必然覆盖得到这 7 天。
+    const last7StartTs = todayStart.getTime() - 6 * 24 * 60 * 60 * 1000
+    const last7Rows    = rngRows.filter(r => new Date(r.created_at).getTime() >= last7StartTs)
+    const todayRowsInRange = rngRows.filter(r => new Date(r.created_at).getTime() >= todayStart.getTime())
+    const slowest = phaseLatency[0] ?? null
+    const todayStatus = {
+      todayFailures:     todayRowsInRange.filter(isSystemError).length,
+      avgDailyFailures7: r2(last7Rows.filter(isSystemError).length / 7),
+      avgDailyCost7:     r2(last7Rows.reduce((s, r) => s + r.estimated_cost_cny, 0) / 7),
+      slowestPhase:      slowest ? { name: slowest.name, p90: slowest.p90 } : null,
+    }
 
     // ── 今日小时分布（从 rngRows 中筛 today，按东八区取小时桶） ──
     const todayTs  = todayStart.getTime()
@@ -415,7 +526,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       todayCost,
       todayCalls,
       avgDailyCalls,
-      avgLatency,
+      p50Latency,
       p95Latency,
       errorRate,
       avgDailyCost,
@@ -428,9 +539,17 @@ export async function GET(req: Request): Promise<NextResponse> {
       anonymousCost: r2(anonymousCost),
       loggedInCost:  r2(loggedInCost),
       dailyData,
+      dailyFailures,
+      phaseLatency,
+      latencyTrend,
+      // 耗时两视图的数据起点（口径断点）：前端在区块标题右侧标出，避免被误读成"只有这几天有调用"
+      latencyCutoff: LATENCY_CUTOFF_LABEL,
+      latencyWarnMs: LATENCY_WARN_MS,
+      todayStatus,
       hourlyData,
       recentLogs: recent,
       costlyLogs: costly,
+      failedLogs: failed,
       // 数据完整性标记：true = 分页触顶、以上金额均偏低，不可当作真实花费看。正常恒为 false。
       dataTruncated,
     })

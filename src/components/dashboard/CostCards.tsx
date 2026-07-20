@@ -72,7 +72,8 @@ export default function CostCards({ data }: { data: CostCardData }) {
             <div className="h-[3px]" style={{ backgroundColor: card.accent, opacity: 0.6 }} />
             <div className="px-4 pt-3 pb-4">
               <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-[14px]">{card.icon}</span>
+                {/* 纯装饰 emoji：读屏会把它念成"条形图"之类的名字，对旁边的卡片标签是纯干扰 */}
+                <span className="text-[14px]" aria-hidden="true">{card.icon}</span>
                 <span className="text-[11px] text-v2-text-muted">{card.getLabel()}</span>
               </div>
               <div className="text-[26px] font-bold text-v2-text-primary leading-tight">
