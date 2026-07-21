@@ -20,6 +20,15 @@ export const TOPNAV_H_DESKTOP = 72
 /** TopNav 桌面高度的 Tailwind class（唯一来源，见 TOPNAV_H_DESKTOP） */
 export const TOPNAV_H_DESKTOP_CLASS = 'lg:h-[72px]'
 
+// ── 题库季度（换季软下架）─────────────────────────────
+/**
+ * 当前在考季度，格式 'YYYY-MM'。匹配召回与首页切换池只取 season === 此值的题；
+ * 过季题（season 为旧值）保留在库、仍可经 id 直接练习/分析，但不进召回。
+ * 每年 1/5/9 月换题季时：更新此常量 + 配套跑换季导入（import:season → remap:links v3）。
+ * 语义与 DB questions.season 默认值 / 迁移 0027 一致。
+ */
+export const CURRENT_SEASON = '2026-05'
+
 // ── 模型名常量（千问 qwen-plus 稳定别名；qwen-flash 用于成本敏感、质量要求次之的环节）
 export const MODEL_RANKING     = 'qwen-plus'
 export const MODEL_PRACTICE    = 'qwen-plus'

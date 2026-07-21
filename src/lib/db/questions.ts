@@ -5,6 +5,7 @@
  * @created  2026-06-03
  */
 import { getSupabase, ensureSession } from '../supabase'
+import { CURRENT_SEASON } from '../constants'
 import type { DBQuestion, QuestionWithLinks, SwitchQuestion } from '../types'
 
 export interface QuestionWithMatchTag extends QuestionWithLinks {
@@ -41,6 +42,7 @@ function mapQuestion(raw: RawQuestionRow): QuestionWithLinks {
     is_new: raw.is_new,
     topic_only: raw.topic_only,
     parent_card_id: raw.parent_card_id,
+    season: raw.season,
     created_at: raw.created_at,
     observation_points: (raw.question_observation_links ?? []).map((l) => l.observation_point_id),
   }
@@ -102,10 +104,12 @@ export async function getQuestionsByObservation(
 ): Promise<QuestionWithMatchTag[]> {
   await ensureSession()
   const supabase = getSupabase()
+  // questions!inner + questions.season 过滤：只召回当季题，过季题的映射行整行剔除（inner join）
   const base = supabase
     .from('question_observation_links')
-    .select(`is_primary, questions(*, question_observation_links(observation_point_id))`)
+    .select(`is_primary, questions!inner(*, question_observation_links(observation_point_id))`)
     .eq('observation_point_id', observationPointId)
+    .eq('questions.season', CURRENT_SEASON)
 
   // order 必须挂在 eq 之后：supabase-js 的 TransformBuilder 上没有 eq
   const filtered = includeSecondary ? base : base.eq('is_primary', true)
@@ -129,10 +133,12 @@ export async function getQuestionCountByObservations(
 ): Promise<number> {
   if (codes.length === 0) return 0
   await ensureSession()
+  // questions!inner + questions.season 过滤：只计当季题（去重口径与召回一致）
   const base = getSupabase()
     .from('question_observation_links')
-    .select('question_id')
+    .select('question_id, questions!inner(season)')
     .in('observation_point_id', codes)
+    .eq('questions.season', CURRENT_SEASON)
 
   const { data, error } = await (includeSecondary ? base : base.eq('is_primary', true))
   if (error) throw new Error(`读取匹配题数失败：${error.message}`)
@@ -201,6 +207,7 @@ export async function getRandomSwitchQuestion(
     .select(selectFields)
     .in('part', [1, 2])
     .eq('topic_only', true)
+    .eq('season', CURRENT_SEASON)
     .limit(20)
 
   if (excludeIds.length > 0) {
@@ -221,6 +228,7 @@ export async function getRandomSwitchQuestion(
     .select(selectFields)
     .in('part', [1, 2])
     .eq('topic_only', false)
+    .eq('season', CURRENT_SEASON)
     .limit(20)
 
   if (excludeIds.length > 0) {

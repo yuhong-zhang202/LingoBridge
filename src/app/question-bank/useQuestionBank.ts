@@ -10,8 +10,8 @@ import { getDimensionScores, getDimensionProgress } from '@/lib/db/dimension-sco
 import { listMyCorpus, listMyObservationCodes } from '@/lib/db/corpus'
 import { getQuestions } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
-import { DIMENSION_LABEL } from '@/lib/constants'
-import type { DimensionId, DimensionLabel, QBQuestion, QBDimensionSummary } from '@/lib/types'
+import { DIMENSION_LABEL, CURRENT_SEASON } from '@/lib/constants'
+import type { DimensionId, DimensionLabel, QBQuestion, QBDimensionSummary, QuestionWithLinks } from '@/lib/types'
 
 const DIMENSION_ORDER: DimensionId[] = [
   'emotion', 'relationship', 'space', 'spirit', 'growth', 'value',
@@ -24,6 +24,8 @@ export interface UseQuestionBankReturn {
   progressById: Partial<Record<DimensionId, { lit: number; total: number }>>
   corpusCount: number
   mappedQuestions: QBQuestion[]
+  /** 过季题（season !== CURRENT_SEASON）；主列表底部「已过季」折叠块用，不计入维度视图与进度 */
+  offseasonQuestions: QBQuestion[]
   dimensionSummaries: QBDimensionSummary[]
   totalMapped: number
   totalMatched: number
@@ -41,6 +43,7 @@ export function useQuestionBank(): UseQuestionBankReturn {
   const [progressById, setProgressById] = useState<Partial<Record<DimensionId, { lit: number; total: number }>>>({})
   const [corpusCount, setCorpusCount] = useState(0)
   const [mappedQuestions, setMappedQuestions] = useState<QBQuestion[]>([])
+  const [offseasonQuestions, setOffseasonQuestions] = useState<QBQuestion[]>([])
   const [dimensionSummaries, setDimensionSummaries] = useState<QBDimensionSummary[]>([])
   const [totalMapped, setTotalMapped] = useState(0)
   const [totalMatched, setTotalMatched] = useState(0)
@@ -71,8 +74,8 @@ export function useQuestionBank(): UseQuestionBankReturn {
 
       const userCodeSet = new Set(userCodes)
 
-      // 只保留有观察点映射的题（277 道），逐题组装
-      const mapped: QBQuestion[] = allQuestions.flatMap((q) => {
+      // 只保留有观察点映射的题，逐题组装
+      const toQB = (q: QuestionWithLinks): QBQuestion[] => {
         if (q.observation_points.length === 0) return []
         const primaryCode = q.observation_points[0]
         const dimId = codeToDimId[primaryCode]
@@ -86,7 +89,11 @@ export function useQuestionBank(): UseQuestionBankReturn {
           dimension,
           matched: q.observation_points.some((c) => userCodeSet.has(c)),
         }]
-      })
+      }
+
+      // 按季度切分：当季题走主列表 + 维度视图 + 进度口径；过季题只进底部折叠块，不计入任何统计
+      const mapped = allQuestions.filter((q) => q.season === CURRENT_SEASON).flatMap(toQB)
+      const offseason = allQuestions.filter((q) => q.season !== CURRENT_SEASON).flatMap(toQB)
 
       const matched = mapped.filter((q) => q.matched).length
       const parts = [...new Set(mapped.map((q) => q.part))].sort() as (1 | 2 | 3)[]
@@ -99,6 +106,7 @@ export function useQuestionBank(): UseQuestionBankReturn {
       })
 
       setMappedQuestions(mapped)
+      setOffseasonQuestions(offseason)
       setDimensionSummaries(summaries)
       setTotalMapped(mapped.length)
       setTotalMatched(matched)
@@ -110,5 +118,5 @@ export function useQuestionBank(): UseQuestionBankReturn {
     }).finally(() => setLoading(false))
   }, [])
 
-  return { loading, error, scoreById, progressById, corpusCount, mappedQuestions, dimensionSummaries, totalMapped, totalMatched, availableParts }
+  return { loading, error, scoreById, progressById, corpusCount, mappedQuestions, offseasonQuestions, dimensionSummaries, totalMapped, totalMatched, availableParts }
 }

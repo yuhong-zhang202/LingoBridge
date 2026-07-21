@@ -1,0 +1,768 @@
+{
+  "version": "remap.v3",
+  "createdAt": "2026-07-21",
+  "basis": "2026年5-8月换季题库(综合版为主+途鸭补充)。保留题声明照抄remap.v2人工复审结论;新题按49点体系(含REL_12)给出建议映射,note含\"待审\"者须人工复核后方可apply。仅声明season=2026-05的当季题;过季(2026-01)题的存量链接按reconcile政策一律保留。",
+  "matching_rule": "按规范化文本匹配DB:Part1按topic名匹配整组(overrides按题干片段匹配个别题);Part2按cue_card_title匹配。规范化=小写、去首尾空格、弯引号转直引号、压缩空格。multi_match=N表示预期匹配N条记录、同样处理。未匹配项必须报告,禁止猜测。",
+  "reconcile_policy": "声明式:确保每条primary与secondary链接存在(primary→is_primary=true,secondary→is_primary=false);仅按remove_links显式删除;DB中存在但本文件未声明的其他链接一律保留并列入报告(不删)。绝不修改questions表任何字段(含topic_only)。",
+  "part1_topics": [
+    {
+      "topic": "HOMETOWN",
+      "primary": "SPA_03",
+      "secondary": [
+        "SPA_01"
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "STUDY",
+      "primary": "GRO_01",
+      "secondary": [],
+      "note": "保留题,声明沿用v2;说明:必考Work or studies组按关键词拆分为STUDY/WORK两组,对齐现库结构;两组同挂GRO_01,拆分不影响映射"
+    },
+    {
+      "topic": "WORK",
+      "primary": "GRO_01",
+      "secondary": [],
+      "note": "保留题,声明沿用v2;说明:同上"
+    },
+    {
+      "topic": "ACCOMMODATION",
+      "primary": "SPA_01",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Childhood Activities",
+      "primary": "EMO_06",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Walking",
+      "primary": "EMO_04",
+      "secondary": [],
+      "overrides": [
+        {
+          "match": "do you walk a lot",
+          "add_secondary": [
+            "SPA_02"
+          ]
+        },
+        {
+          "match": "where did you go for a walk",
+          "add_secondary": [
+            "SPA_02"
+          ]
+        }
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Scenery & Views",
+      "primary": "SPA_07",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Morning Time",
+      "primary": "EMO_02",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Food",
+      "primary": "EMO_08",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Hobby",
+      "primary": "EMO_05",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Building",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Sports Team",
+      "primary": "EMO_05",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Typing",
+      "primary": "GRO_02",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Life Stages",
+      "primary": "EMO_01",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Gifts",
+      "primary": "REL_03",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Pets and Animals",
+      "primary": "REL_07",
+      "secondary": [],
+      "overrides": [
+        {
+          "match": "ever had a pet before",
+          "add_secondary": [
+            "REL_08"
+          ]
+        }
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Reading",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Day Off",
+      "primary": "EMO_04",
+      "secondary": [
+        "EMO_03"
+      ],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Keys",
+      "primary": "EMO_06",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Dreams",
+      "primary": "GRO_06",
+      "secondary": [],
+      "note": "保留题,声明沿用v2;说明:Dreams(梦境)与Dream and ambition(抱负)并集;主挂GRO_06(未来方向),梦境题偏娱乐,占比低可接受"
+    },
+    {
+      "topic": "Art",
+      "primary": "SPI_04",
+      "secondary": [],
+      "note": "保留题,声明沿用v2"
+    },
+    {
+      "topic": "Relax",
+      "primary": "EMO_04",
+      "secondary": [
+        "EMO_03"
+      ],
+      "note": "保留题,声明沿用v2(话题由Having a Break更名);说明:由1-4月话题Having a Break更名而来"
+    },
+    {
+      "topic": "Music",
+      "primary": "SPI_04",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Social Media",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Teachers",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Mirrors",
+      "primary": "EMO_13",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Tidiness",
+      "primary": "EMO_06",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Websites",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Watch",
+      "primary": "SPI_05",
+      "secondary": [
+        "EMO_06"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Shopping",
+      "primary": "EMO_05",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Cars",
+      "primary": "SPA_02",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Public Gardens and Parks",
+      "primary": "SPA_07",
+      "secondary": [
+        "SPA_04"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Science",
+      "primary": "GRO_02",
+      "secondary": [],
+      "note": "5-8月新题;说明:知识兴趣类无专属点位,归GRO_02(学习技能)"
+    },
+    {
+      "topic": "Outer Space and Stars",
+      "primary": "SPA_07",
+      "secondary": [],
+      "note": "5-8月新题;说明:看星空归自然时刻SPA_07(prompt月亮例句背书)"
+    },
+    {
+      "topic": "Singing",
+      "primary": "SPI_04",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Clothing",
+      "primary": "EMO_13",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Jokes & Comedies",
+      "primary": "EMO_05",
+      "secondary": [],
+      "note": "5-8月新题;说明:幽默类无专属点位,归EMO_05充电"
+    },
+    {
+      "topic": "Headphones",
+      "primary": "SPI_06",
+      "secondary": [
+        "SPI_04"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "News",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Pen & Pencil",
+      "primary": "EMO_06",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Exciting Activities",
+      "primary": "EMO_05",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Sports Programs",
+      "primary": "EMO_05",
+      "secondary": [
+        "SPI_06"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Evening Time",
+      "primary": "EMO_02",
+      "secondary": [],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Films / Cinemas",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Travelling",
+      "primary": "SPA_05",
+      "secondary": [
+        "SPA_06"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Daily Routine",
+      "primary": "EMO_02",
+      "secondary": [
+        "EMO_06"
+      ],
+      "note": "5-8月新题"
+    },
+    {
+      "topic": "Fix Things",
+      "primary": "GRO_02",
+      "secondary": [],
+      "note": "5-8月新题"
+    }
+  ],
+  "part2_cards": [
+    {
+      "cue_card_title": "A Perfect Job",
+      "primary": "GRO_06",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Famous Person",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "An Occasion When Mobile Phone Was Not Allowed",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Time You Were Proud",
+      "primary": "REL_02",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2;说明:题干分歧:综合版沿用\"为家人骄傲的经历\",途鸭改为人物卡\"令你骄傲的家人\";按主基准取综合版"
+    },
+    {
+      "cue_card_title": "An Occasion When People Were Smiling",
+      "primary": null,
+      "secondary": [
+        "REL_02",
+        "REL_04"
+      ],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "Giving Advice",
+      "primary": "REL_09",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Story",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "An App",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Friend Who Loves Drawing",
+      "primary": "REL_03",
+      "secondary": [
+        "REL_12"
+      ],
+      "note": "保留卡,声明沿用v2(由A Child Who Loves To Draw更名);说明:题干变体:孩子→朋友(综合版为准);人物从孩子变朋友,主挂已定REL_03"
+    },
+    {
+      "cue_card_title": "An Organized Person",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Piece of Technology",
+      "primary": "SPI_05",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Foreign Country",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2;说明:题干分歧:综合版改为\"国外短期工作\",现库+途鸭均为\"短期停留\",2比1维持现题干;P3取综合版"
+    },
+    {
+      "cue_card_title": "An Important Old Thing in Family",
+      "primary": "SPI_05",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Place Where You Enjoy Shopping",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2(由A Shopping Mall更名);说明:题干变体:购物中心→喜欢购物的地方,更名"
+    },
+    {
+      "cue_card_title": "A Trip",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Person Who Protects the Nature",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Person Who Solved a Problem",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Person Who Learned a Skill",
+      "primary": "REL_03",
+      "secondary": [
+        "GRO_02"
+      ],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Music Event",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Movie You Watched Recently",
+      "primary": "SPI_04",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "An Interesting Building",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Time You Needed To Use Your Imagination",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Helpful Person",
+      "primary": "REL_12",
+      "secondary": [
+        "REL_03"
+      ],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "An Item That Cost More Than Expected",
+      "primary": "SPI_05",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2(由An Expensive Item更名);说明:题干变体:昂贵物品→花费超预期的物品,更名"
+    },
+    {
+      "cue_card_title": "A Time When You Encouraged Someone",
+      "primary": "REL_09",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Relaxing Place",
+      "primary": "SPA_01",
+      "secondary": [
+        "EMO_04"
+      ],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "A Disappointing Movie",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "Something You Can't Live Without",
+      "primary": "SPI_05",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2"
+    },
+    {
+      "cue_card_title": "An Important Decision",
+      "primary": "GRO_07",
+      "secondary": [],
+      "note": "保留卡,声明沿用v2;说明:综合版误标为新题,实为现库老卡,按保留处理"
+    },
+    {
+      "cue_card_title": "A Tall Building You Like or Dislike",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "An Interesting Video",
+      "primary": "SPI_06",
+      "secondary": [],
+      "note": "5-8月新卡;说明:参照Something Interesting on Social Media先例挂SPI_06"
+    },
+    {
+      "cue_card_title": "A Boring Place",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "Your Favourite City",
+      "primary": "SPA_06",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "5-8月新卡;说明:到访(非居住)城市按远行SPA_06"
+    },
+    {
+      "cue_card_title": "A Time You Got Up Early",
+      "primary": "EMO_02",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person Who Grows Plants",
+      "primary": "REL_12",
+      "secondary": [
+        "SPA_08"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A New Law You Would Like To Introduce",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:观点类,不可萃取"
+    },
+    {
+      "cue_card_title": "A Childhood Friend",
+      "primary": "REL_03",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person Who Wants a Medical Career",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person With a Successful Business",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Plan You Changed Recently",
+      "primary": "GRO_07",
+      "secondary": [],
+      "note": "5-8月新卡;说明:改计划=一次决定,归GRO_07"
+    },
+    {
+      "cue_card_title": "A Time You Worked in a Group",
+      "primary": "GRO_03",
+      "secondary": [
+        "REL_10"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Live Sports Event",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:现场体验类,与A Music Event(v2)一致定topic_only"
+    },
+    {
+      "cue_card_title": "A Food for Special Occasions",
+      "primary": "EMO_08",
+      "secondary": [
+        "REL_02"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person Good at Learning Languages",
+      "primary": "REL_12",
+      "secondary": [
+        "GRO_02"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person Who Works in a Successful Company",
+      "primary": "REL_12",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Technological Problem You Had",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:流水账类比停电,topic_only"
+    },
+    {
+      "cue_card_title": "An Advertisement With a Famous Person",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:媒体观点类,不可萃取"
+    },
+    {
+      "cue_card_title": "A Place You Would Recommend",
+      "primary": "SPA_06",
+      "secondary": [
+        "SPA_05"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A TV or Online Program You Watched Recently",
+      "primary": "SPI_02",
+      "secondary": [
+        "SPI_04"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Broken Electronic Device",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:类比A Time You Broke Something(v2 topic_only)"
+    },
+    {
+      "cue_card_title": "A Home You Like To Visit But Not Live In",
+      "primary": "SPA_04",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Story or Book With Animals",
+      "primary": "SPI_01",
+      "secondary": [
+        "SPI_02"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Time Someone Helped You Solve a Problem",
+      "primary": "REL_10",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Law on Environmental Protection",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:观点类;注意与\"想颁布的环保法律\"是两张不同的卡"
+    },
+    {
+      "cue_card_title": "A Message That Got No Reply",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复)"
+    },
+    {
+      "cue_card_title": "A Long-term Goal",
+      "primary": "GRO_06",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Person Who Met Difficulties But Succeeded",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "A Time You Changed an Important Opinion",
+      "primary": "GRO_05",
+      "secondary": [],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "An Environmental Law You Would Like To Introduce",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:观点类"
+    },
+    {
+      "cue_card_title": "A Happy Event You Organized",
+      "primary": "GRO_03",
+      "secondary": [
+        "REL_04"
+      ],
+      "note": "5-8月新卡"
+    },
+    {
+      "cue_card_title": "Stuck in a Traffic Jam",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:流水账,topic_only"
+    },
+    {
+      "cue_card_title": "A Place You Would Like To Visit in Free Time",
+      "primary": null,
+      "secondary": [],
+      "topic_only": true,
+      "note": "5-8月新卡;说明:假想旅行,类比A Trip(v2 topic_only)"
+    },
+    {
+      "cue_card_title": "A Special Cake You Received",
+      "primary": "REL_04",
+      "secondary": [
+        "EMO_08"
+      ],
+      "note": "5-8月新卡"
+    }
+  ]
+}

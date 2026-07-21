@@ -1,6 +1,6 @@
 /**
  * @module   remap-links
- * @desc     声明式对账 question_observation_links —— 读 scripts/data/question-observation-remap.v1.json，
+ * @desc     声明式对账 question_observation_links —— 读 scripts/data/question-observation-remap.v3.json，
  *           按 matching_rule 匹配 DB 题目（Part1 按 topic 名 / overrides 按题干片段，Part2 按 cue_card_title），
  *           按 reconcile_policy 确保 primary/secondary 链接存在、删除 remove_links、保留未声明链接。
  *           默认 --dry-run 仅输出差异报告不写库；--apply 才写入，且写入前自动全量备份到 scripts/data/backup/。
@@ -27,7 +27,7 @@ interface Part1Topic {
   note?: string
 }
 interface Part2Card {
-  title: string
+  cue_card_title: string
   primary: string | null
   secondary: string[]
   multi_match?: number
@@ -64,7 +64,7 @@ interface KeepAction { questionId: string; label: string; code: string; isPrimar
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const REMAP_PATH = join(__dirname, 'data', 'question-observation-remap.v2.json')
+const REMAP_PATH = join(__dirname, 'data', 'question-observation-remap.v3.json')
 const BACKUP_DIR = join(__dirname, 'data', 'backup')
 const LINKS_TABLE = 'question_observation_links'
 
@@ -217,24 +217,24 @@ async function main(): Promise<void> {
   // ── Part2：按 cue_card_title 匹配；multi_match=N 期望恰好 N 条 ──
   const p2 = questions.filter((q) => q.part === 2)
   for (const decl of doc.part2_cards) {
-    const matched = p2.filter((q) => q.cue_card_title !== null && norm(q.cue_card_title) === norm(decl.title))
+    const matched = p2.filter((q) => q.cue_card_title !== null && norm(q.cue_card_title) === norm(decl.cue_card_title))
     if (matched.length === 0) {
-      plan.problems.push(`未匹配：Part2 卡「${decl.title}」在 DB 中无对应题目`)
+      plan.problems.push(`未匹配：Part2 卡「${decl.cue_card_title}」在 DB 中无对应题目`)
       continue
     }
     if (decl.multi_match !== undefined) {
       if (matched.length !== decl.multi_match) {
-        plan.problems.push(`数量不符：Part2 卡「${decl.title}」声明 multi_match=${decl.multi_match}，实际匹配 ${matched.length} 条 —— 不处理`)
+        plan.problems.push(`数量不符：Part2 卡「${decl.cue_card_title}」声明 multi_match=${decl.multi_match}，实际匹配 ${matched.length} 条 —— 不处理`)
         continue
       }
     } else if (matched.length > 1) {
-      plan.problems.push(`歧义：Part2 卡「${decl.title}」匹配到 ${matched.length} 条但未标 multi_match —— 不处理`)
+      plan.problems.push(`歧义：Part2 卡「${decl.cue_card_title}」匹配到 ${matched.length} 条但未标 multi_match —— 不处理`)
       continue
     }
     const removeCodes = new Set(decl.remove_links ?? [])
     const secondaries = new Set(decl.secondary)
     for (const q of matched) {
-      reconcileQuestion(q, decl.primary, secondaries, removeCodes, existingOf(q.id), `P2:${decl.title}`, plan)
+      reconcileQuestion(q, decl.primary, secondaries, removeCodes, existingOf(q.id), `P2:${decl.cue_card_title}`, plan)
     }
   }
 

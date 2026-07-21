@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import Chip from '@/components/Chip'
 import PartTag from '@/components/PartTag'
+import Tag from '@/components/Tag'
 import type { QBQuestion } from '@/lib/types'
 import { BRAND_GRADIENT_SOFT, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 
@@ -27,22 +28,28 @@ const segColor = (t: number): string => {
 
 interface Props {
   mappedQuestions: QBQuestion[]
+  offseasonQuestions: QBQuestion[]
   totalMapped: number
   totalMatched: number
   availableParts: (1 | 2 | 3)[]
 }
 
-export default function QuestionListTab({ mappedQuestions, totalMapped, totalMatched, availableParts }: Props) {
+export default function QuestionListTab({ mappedQuestions, offseasonQuestions, totalMapped, totalMatched, availableParts }: Props) {
   const router = useRouter()
   const [part, setPart] = useState('全部')
   const [matchedOpen, setMatchedOpen] = useState(true)
   const [unmatchedOpen, setUnmatchedOpen] = useState(false)
+  const [offseasonOpen, setOffseasonOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const partChips = ['全部', ...availableParts.map(p => `Part ${p}`)]
   const filtered   = part === '全部' ? mappedQuestions : mappedQuestions.filter(q => `Part ${q.part}` === part)
   const matchedQ   = filtered.filter(q => q.matched)
   const unmatchedQ = filtered.filter(q => !q.matched)
+  // 过季题沿用同一 Part 筛选；块内镜像当季结构（matched 白卡在前、unmatched 灰行在后），不加二级折叠头
+  const offseasonQ  = part === '全部' ? offseasonQuestions : offseasonQuestions.filter(q => `Part ${q.part}` === part)
+  const offMatched   = offseasonQ.filter(q => q.matched)
+  const offUnmatched = offseasonQ.filter(q => !q.matched)
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,7 +90,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
       </div>
 
       {matchedQ.length > 0 && <>
-        <button onClick={() => setMatchedOpen(v => !v)} className="flex items-center gap-1.5">
+        <button onClick={() => setMatchedOpen(v => !v)} aria-expanded={matchedOpen} className="flex items-center gap-1.5 py-1">
           <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
@@ -130,7 +137,7 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
       </>}
 
       {unmatchedQ.length > 0 && <>
-        <button onClick={() => setUnmatchedOpen(v => !v)} className="flex items-center gap-1.5">
+        <button onClick={() => setUnmatchedOpen(v => !v)} aria-expanded={unmatchedOpen} className="flex items-center gap-1.5 py-1">
           <span className="text-[12px] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
         </button>
@@ -138,6 +145,61 @@ export default function QuestionListTab({ mappedQuestions, totalMapped, totalMat
           {unmatchedQ.map(q => (
             <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
               <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              <p className="text-[14px] text-v2-text-secondary flex-1">{q.displayText}</p>
+            </div>
+          ))}
+        </div>}
+      </>}
+
+      {/* 已过季题目：默认收起的折叠块，块内镜像当季结构。交互与当季完全一致，过季题照常进练习 */}
+      {offseasonQ.length > 0 && <>
+        <button onClick={() => setOffseasonOpen(v => !v)} aria-expanded={offseasonOpen} className="flex items-center gap-1.5 py-1">
+          <span className="text-[12px] font-medium text-v2-text-muted">已过季题目 · {offseasonQ.length}</span>
+          <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${offseasonOpen ? '' : '-rotate-90'}`} />
+        </button>
+        {offseasonOpen && <div className="flex flex-col gap-2">
+          {offMatched.map(q => (
+            <div
+              key={q.id}
+              role="button"
+              tabIndex={0}
+              aria-pressed={q.id === selectedId}
+              onClick={() => setSelectedId(q.id)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setSelectedId(q.id)
+                }
+              }}
+              className="bg-white rounded-[14px] border border-black/[0.05] overflow-hidden flex shadow-[0_1px_6px_rgba(0,0,0,0.05)] cursor-pointer"
+            >
+              <div
+                className="w-[4px] flex-shrink-0 self-stretch"
+                style={{ background: q.id === selectedId ? BAR : 'transparent' }}
+              />
+              <div className="flex-1 px-[14px] py-[10px] flex items-center gap-[10px]">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <PartTag label={`Part ${q.part}`} />
+                    <Tag variant="gray" label="已过季" />
+                  </div>
+                  <p className="text-[14px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
+                </div>
+                <Chip
+                  variant="gradient"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); router.push(`/practice-question?questionId=${q.id}`) }}
+                  className="font-medium flex-shrink-0"
+                >练习</Chip>
+              </div>
+            </div>
+          ))}
+          {offUnmatched.map(q => (
+            <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
+              <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              {/* 灰底行 gray 标签文字上调到 secondary 保 WCAG AA（muted 在 bg-muted 上仅 4.28） */}
+              <Tag variant="gray" label="已过季" className="text-v2-text-secondary flex-shrink-0" />
               <p className="text-[14px] text-v2-text-secondary flex-1">{q.displayText}</p>
             </div>
           ))}
