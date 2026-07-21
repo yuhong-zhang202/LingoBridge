@@ -197,7 +197,9 @@ export async function getQuestionById(id: string): Promise<QuestionWithLinks | n
 export async function getRandomSwitchQuestion(
   excludeIds: string[] = [],
 ): Promise<SwitchQuestion | null> {
-  await ensureSession()
+  // 不调 ensureSession：本函数仅读 questions / question_observation_links（两表 RLS 关闭、公开可读，
+  // anon key 直读即可），无需用户身份。而它只在服务端 API 路由被调用，若走 ensureSession 会在每个冷启动
+  // signInAnonymously 建一个用不上的临时匿名用户（auth.users 垃圾账号来源之一），故此处显式不建会话。
   const supabase = getSupabase()
   const selectFields = `id, part, question_text, question_text_zh, cue_card_title, cue_card_title_zh, topic_only, question_observation_links(observation_point_id)`
 
