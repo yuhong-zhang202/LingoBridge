@@ -1,0 +1,1304 @@
+[
+  {
+    "id": "94779c83-42a1-481f-991e-14d89f777057",
+    "question_id": "6f82da52-a793-473e-b2d6-4215a8308a21",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "c5241d08-6581-42ed-b6f4-35c245e8c67d",
+    "question_id": "d84784a9-4190-4920-9b82-ac86cae04427",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "58480b97-7b76-47df-9f36-45528f834d75",
+    "question_id": "9f97f593-8d09-4449-996c-4d3046ac3f19",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "1aec2125-289d-458b-8ff4-7d253a9165d4",
+    "question_id": "342820e2-5cf4-4ed5-af38-060cd60115e3",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "a6fb5299-bcc1-43b7-8904-be4e8ef8be30",
+    "question_id": "d57fc751-1880-46fb-b98a-27014714312c",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "0a122bdd-03f2-4791-bc0b-fbaeaeb067eb",
+    "question_id": "c1ce8090-73ba-4f9f-97c1-3e68c1b06f16",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "58a93031-a041-43e1-8f0b-9da5ccf24af1",
+    "question_id": "a20c1501-69c8-4287-8d66-d998b5a1c366",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "d949a806-76a8-44c0-a5de-aedb3640075f",
+    "question_id": "84f415ca-406e-4e2d-8891-274b1dd49bae",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "c2e9adcf-43de-4f38-a0a7-149c58273487",
+    "question_id": "77ead590-c071-423d-bd64-662cf0c55326",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "190adbdb-c358-4f4a-a154-06cffb9cdeb3",
+    "question_id": "37e42eec-12c3-4e0c-92b8-a8b2fc9635e0",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "e3d98e16-f1af-4cd3-823f-35638075398c",
+    "question_id": "3389a076-56b6-4940-b0af-05eb384e0e14",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "f92aa839-237d-40dd-8799-034227166047",
+    "question_id": "94aaad5e-6c15-4740-8fa0-af3767081b55",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "096f077f-fa97-4b8e-acbc-747f9bcf1b61",
+    "question_id": "a8ef4b55-9cd5-40d6-b26d-cc9bc28fd40b",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "d5d57188-155c-4d48-b631-3d8babe25f1a",
+    "question_id": "3fe126e0-a754-4412-a509-9dde775a1935",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "a91d360d-0b52-49da-84b7-cc256767fb37",
+    "question_id": "bb7f2227-69d8-466a-bae4-62d0b6cfa984",
+    "observation_point_id": "SPA_03",
+    "is_primary": true
+  },
+  {
+    "id": "87847278-8ecf-4499-bba9-5a4572622ef4",
+    "question_id": "e5de6504-ae36-455e-ba63-ccee7f6df8fc",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "1933502f-7a09-414a-a6a6-bc93955aa333",
+    "question_id": "e5806df0-50ca-4ef9-be2c-477d937f0397",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "d135922d-1426-427e-a4e0-73c01df2cdbb",
+    "question_id": "b6eb7a51-64e7-43fc-a71b-28b62194802c",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "7474852a-93e3-4ee6-884f-7785bbc165b1",
+    "question_id": "1efff4b8-2a7c-4c29-8031-c72296676281",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "1bf0852c-ad82-460c-b2a5-bfb2f70aa43a",
+    "question_id": "41834516-2334-4a8f-82bf-bbb309af4f94",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "9cfa43c2-0b99-4e25-8176-10f7f41f54ee",
+    "question_id": "66c4e7b2-5482-4ff4-b1ec-659a916ddb1b",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "a0fabe60-d8a8-48f6-b5fc-7698f9939ca7",
+    "question_id": "4641b5e0-0079-40bb-9c8b-9797d8bd0391",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "1481f1b2-521b-4742-a3e9-05859236fb5b",
+    "question_id": "f862aa30-3d92-4d5d-a88f-ea810f5e6853",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "28707acd-f2ea-4f55-9e90-30a25516a610",
+    "question_id": "5bd3491a-2723-498e-9128-9e8cc07e7d93",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "b4529a69-8e44-4edc-b5ee-63384621f640",
+    "question_id": "1c2b88bd-3a4b-4466-afc1-a42fb15d45c4",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "1bba9523-3e4b-48fe-8993-42f941ac7fb3",
+    "question_id": "dbff94d4-5001-4752-ad24-afba2e493856",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "3772b13a-55b5-4eaa-b2c1-6c41febe8daf",
+    "question_id": "c401abb2-fad9-4ffe-9678-4eb0cbf82283",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "cc82682b-dd02-487d-a937-286616fc9c84",
+    "question_id": "5e44d80e-148e-4f13-91aa-80730152ba03",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "bf072368-84e9-488e-8417-ac43e10775c5",
+    "question_id": "8b79db99-15d9-47f8-9884-b402afbe8d5c",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "629d8bf6-8f70-4353-b12a-b0012e0accb4",
+    "question_id": "aa1bf257-e656-4b2a-b531-0fb374885a14",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "50042228-13c9-48d4-b173-c798cb3a963d",
+    "question_id": "de3c0583-7c2d-437f-b5f7-ed122fab2f61",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "359e85a7-78e8-49c6-84e6-01d6df94b483",
+    "question_id": "8a12cc46-011c-4353-a1c5-2695dfc823f0",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "6b8d630a-475f-4453-b2cf-b140dddbe6f6",
+    "question_id": "569fd707-3e6d-4bb1-a2fb-1609738b9713",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "d1ce07f7-063f-406c-b7ee-5af389c0f6b2",
+    "question_id": "81f7cbd0-2d74-4734-95ef-a1794f3fd5d1",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "ca798880-7152-4343-84d2-8c05a346d9b6",
+    "question_id": "34c0945d-edd8-4521-8210-c238ac9aab8f",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "f33ae4bd-e5c2-4043-b621-562673902ab5",
+    "question_id": "1122fa1a-3ad8-42bb-b3cd-f1f14d8bf018",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "c03bab0a-adb4-4de1-a23a-4a2d5b55bac3",
+    "question_id": "bbb16fae-5ae9-4f5e-991a-a626701772b1",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "f9be3447-8980-4f85-b954-cc68e20e2405",
+    "question_id": "b26f01cc-b075-460d-9374-3cf1b53a5ee6",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "a9a51f9d-23fc-42b1-bcee-efdc0adc43c9",
+    "question_id": "9f3f76d5-6be6-4bda-a15e-12011d4f5d51",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "132ca2b2-dc82-48a4-b8e6-6634cfd9526b",
+    "question_id": "d6271ac0-61ee-4d02-8e20-03f93f1319b3",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "531214e2-ede9-4e52-9f7b-be17ea18707a",
+    "question_id": "036065b6-a896-4771-89bd-d83b29f97c18",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "7cf6d845-65ac-4191-acd9-e80fc0dd93d3",
+    "question_id": "00c2303f-e7b5-4d71-8ec0-3b4a6f324648",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "a447be15-ace5-4d90-8ca1-53bae42aefb6",
+    "question_id": "759fdbb6-34ae-4adc-b54a-9615f9861f47",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "791dbf96-06a5-449d-88f1-4adfcb57e7ed",
+    "question_id": "43f61bc6-f0b2-4e1a-aa03-1619f6d223ad",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "e80a16af-95b3-4b4f-9d53-da4010da74bb",
+    "question_id": "bf846ead-3b13-43ed-986b-28355ef2437c",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "bf503ae2-4bcc-4a92-bbe7-9e47295f3890",
+    "question_id": "c2849960-afa1-46a5-a5d8-71314e0864b4",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "2294ec12-3338-4b88-a24e-adf208448203",
+    "question_id": "4e2ac5a6-9881-4545-aeb2-e1f2230a3523",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "4f92dd34-d1ec-43b8-8ef4-8013d23167f3",
+    "question_id": "e2331eb1-3597-4c6b-be21-593fed499df1",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "f4c368df-efcc-4c58-9e29-16e8f6ed43d6",
+    "question_id": "96b900d5-c2ed-4f3b-839f-d457c17bdfdf",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "2bf548d1-a573-4c36-b2a0-7d4dce21f028",
+    "question_id": "55165edd-5c9e-4bc0-a929-a3fcf234aea8",
+    "observation_point_id": "GRO_01",
+    "is_primary": true
+  },
+  {
+    "id": "aa07d1ed-7015-432b-8737-c9c5ee1e1a41",
+    "question_id": "f5832d6a-f531-49f8-9f80-e6c11edee58d",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "6f8a0921-2c3b-4bf9-b6cf-bea9d8b48bec",
+    "question_id": "efd24f8f-137a-432a-9662-c2c0f08bae8a",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "a290c5a6-f357-41c5-b41b-3cd0ab618300",
+    "question_id": "2f62f2b6-1d3d-4f3d-9dd8-28eec1081e9e",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "089a3c32-6063-46fd-8597-512a879ef883",
+    "question_id": "9aac8ca9-b0ad-4154-bfb9-1e94d923dd69",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "45e53390-a70c-4ea1-8004-201b68228d79",
+    "question_id": "149c6982-c2ea-49de-87f2-fa837b4b4935",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "a57eb8df-12e3-4ef0-9ee7-a85396cc4570",
+    "question_id": "89516670-0c7e-4ee8-bb75-81acdb5ea5eb",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "2fa579cb-1311-4747-8f1c-53ab14a9c152",
+    "question_id": "52a43c4d-8c77-4755-8002-5f4eba80535f",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "a0feb58f-dd6d-48b1-a7e8-f1bcbaa636f5",
+    "question_id": "b145c40c-e26f-470e-a866-c7180ea74104",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "5507628f-55fe-420a-aa92-60fd5665b9bc",
+    "question_id": "7fecb7db-f97b-41ba-8188-a07f4ac63ac4",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "e4e49578-7cab-432e-b013-548a626baa93",
+    "question_id": "e1f82359-cd35-48cc-b9f0-0f4a462277f1",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "370bf5f0-5446-483d-b71a-ae1c0e40f1f6",
+    "question_id": "429f63b1-c439-4540-aa9e-0275b104c6c3",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "45cfdf96-fc83-412e-9e03-feedd23ac6fc",
+    "question_id": "cdc54a75-72f8-4435-80a1-a5d6893aeeb0",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "fdabff85-0eb9-489c-bbef-0420638a47b5",
+    "question_id": "182c4da8-eb42-4a6d-a492-2dde105a0804",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "79ca6ba7-98b1-409e-9679-8e4f49c1194f",
+    "question_id": "c46eef57-dc02-4172-a759-e42ee5dbdeaf",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "0c47c7b1-52af-4dcc-9bdd-ebe297101f93",
+    "question_id": "da69cb73-0958-4b57-afa9-d9359bad37ee",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "b2c9d225-2173-4f7d-b12d-b16c11e4a4eb",
+    "question_id": "31f14cbb-2717-4923-8319-3b022b173b91",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "aefe0b1f-272e-42f2-85b9-1b57f6622aa1",
+    "question_id": "a76957d0-02ad-4627-81cb-613c88bf08db",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "fc06eeb6-c6f6-4a48-a02f-dce262be0d82",
+    "question_id": "bd375f54-c448-472f-b062-2861fec245d4",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "7dae73e5-a0a5-451f-a401-2007a539c9e3",
+    "question_id": "d0ef9198-2f25-4c08-a106-8ca504b4e70b",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "0f9f85df-a573-47cd-8671-59bc9aea5259",
+    "question_id": "a0e84b83-8bac-4189-bfd6-2d62cfdc0e34",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "e51ed533-214d-4647-9b11-87536a8fdfae",
+    "question_id": "debaac14-d2ad-40e6-8334-1ed8d1419f9b",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "fa3e017a-5074-48bc-96fb-61cd8593bfb4",
+    "question_id": "4dac8c1e-1a7e-42c9-966e-c6a17dfa82c6",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "37a0392e-17c3-43d0-82d0-f63043757ba6",
+    "question_id": "da3fdf96-341d-46a0-baab-3f52f95f4742",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "22807c95-5f37-42f5-8967-c457161acd9d",
+    "question_id": "bc14fd55-7631-400c-96f1-4e51926a515a",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "355ceba5-3f40-4004-af67-bab936ea0eb7",
+    "question_id": "7e2d318a-3aeb-4076-bb2e-87929b5f4d07",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "0a4db0c7-af82-477f-b0e7-497cc3cd3846",
+    "question_id": "c2dc0833-5d3c-4b35-bd85-25f17d535668",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "d63f59f7-e724-4b74-a614-20d9e7f46808",
+    "question_id": "52426e9c-d286-4f0f-8723-af921bf1ee22",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "e6fb4831-98c9-4dbd-b46f-718214c4ac15",
+    "question_id": "e04c0d32-2848-4959-b906-2d707b6b072e",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "fb33af08-93f9-458f-95d1-0b123889489a",
+    "question_id": "11fc6210-a6b9-4dc3-9c03-62528b2880f2",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "902fbb95-ad6d-4b9a-b6c2-9f59813753ca",
+    "question_id": "2ab5a987-39f8-47ee-8e3c-99f76a627710",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "3eab9577-fba2-4243-b1a6-b4d2709f3e31",
+    "question_id": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "8d852ca2-9272-4e17-944a-a09c9922897b",
+    "question_id": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "da64a625-115a-4bb0-b1d2-f8d377fb28ca",
+    "question_id": "fdd1837d-7daf-474c-8122-269b670ed46a",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "f697cb81-cd26-44af-9e4b-67aab9c92844",
+    "question_id": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "4fac7a62-6fac-4e27-9f20-50708a795f38",
+    "question_id": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "f16896fc-ece3-4bd5-b316-f542f4834e22",
+    "question_id": "4711c3ca-5833-4986-a83e-4f31c508087e",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "f838976e-e859-457b-a7b1-3e40dd56e044",
+    "question_id": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+    "observation_point_id": "SPA_07",
+    "is_primary": true
+  },
+  {
+    "id": "5160b429-a1db-4636-bdf5-104ea55b8af7",
+    "question_id": "7d4e97c1-0c5b-4fd0-b024-a043699a44c0",
+    "observation_point_id": "EMO_02",
+    "is_primary": true
+  },
+  {
+    "id": "c6c40f67-be05-4a31-bc3f-3c19204eaf95",
+    "question_id": "17d4b1f6-43a4-4354-967a-7d91980aee63",
+    "observation_point_id": "EMO_02",
+    "is_primary": true
+  },
+  {
+    "id": "3610cab2-51c4-47b5-81e7-b9e68151f45a",
+    "question_id": "69b78595-f289-48a5-8eae-8c0c45cba563",
+    "observation_point_id": "EMO_02",
+    "is_primary": true
+  },
+  {
+    "id": "11a8a236-388d-4037-9fc2-0fa2b401ed18",
+    "question_id": "2fa44100-bc2c-4412-9890-42e780c00ab7",
+    "observation_point_id": "EMO_02",
+    "is_primary": true
+  },
+  {
+    "id": "8ee3d511-c3bf-4b0a-9b4f-6516a1417081",
+    "question_id": "49efe71e-d5c5-4135-8674-7339a8e465d7",
+    "observation_point_id": "EMO_02",
+    "is_primary": true
+  },
+  {
+    "id": "5881af6b-b9f1-4c82-8031-c5b6527c2b3d",
+    "question_id": "6d7acbca-f1f8-49b2-9829-8cb2a4041526",
+    "observation_point_id": "EMO_08",
+    "is_primary": true
+  },
+  {
+    "id": "dda40e07-8683-4335-99b2-dd1958f92a1c",
+    "question_id": "de8ab307-5eec-4bc3-8a2d-ae6363bf7ee3",
+    "observation_point_id": "EMO_08",
+    "is_primary": true
+  },
+  {
+    "id": "de983262-aa12-45cc-9c6a-83ee51a2ee37",
+    "question_id": "7fc96c7e-5d68-4ca8-ae44-f195321917fc",
+    "observation_point_id": "EMO_08",
+    "is_primary": true
+  },
+  {
+    "id": "90d8c747-67e6-4998-aef0-d3229b6c8b05",
+    "question_id": "332f5057-e4e4-4243-a9ba-6fc9fc031451",
+    "observation_point_id": "EMO_08",
+    "is_primary": true
+  },
+  {
+    "id": "71ff608a-7fb6-4a71-965b-6a09176c009d",
+    "question_id": "91b9b144-c035-407e-b6ff-e01af6ed595b",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "9bfb3868-7c09-477c-981c-f4a87213cd7f",
+    "question_id": "a5432c2e-c5b4-4afe-b368-7bb5c40178b0",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "40490e46-113a-4ce4-9b49-1bf844d9b42f",
+    "question_id": "0f0aa3ab-e7e6-45a9-b55a-517225820107",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "9b017556-a6ad-4d5b-83d0-164a9e88a9ec",
+    "question_id": "1d9517c0-6e84-4427-b57a-4ffe47f49510",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "eb4056cf-d8d9-428b-8763-4b2aa198913b",
+    "question_id": "398665c6-fa82-46cf-a0ee-0e19e09802e5",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "2b717e0d-b8d1-4d39-9220-e34b6e836607",
+    "question_id": "78d09fa4-fbcb-4468-b95c-4647b12f9518",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "dc19a069-a281-42f4-aa78-4886b2b0b176",
+    "question_id": "2132a0c8-cffe-4843-9a2a-053fc53e9b9f",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "99f3323d-508c-4160-86c2-f3a71f7376d0",
+    "question_id": "db48a680-efef-4c75-bac4-4e93ae32b79e",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "3a575248-f672-4af9-ac79-f01cf5c2243e",
+    "question_id": "e4b545fd-100e-4582-9706-3b48d6da5604",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "6b6ebc45-1d9c-414e-97ac-f34e14d73021",
+    "question_id": "46da02e8-a681-44cd-9113-f4845bc23f0f",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "c663caec-ff09-4e54-b064-9faad5cf6173",
+    "question_id": "a6475a99-49e8-4a3d-b123-7dc4db02c58b",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "3c86605e-1f22-4506-85f3-a2dd3f77b778",
+    "question_id": "fa5c24b8-4bd0-4dd6-aac2-7d0e81814527",
+    "observation_point_id": "EMO_05",
+    "is_primary": true
+  },
+  {
+    "id": "0ff98e09-a590-43d9-99fe-b21c743cf5f4",
+    "question_id": "1a2e321e-4b79-495e-aeab-bb97f8246757",
+    "observation_point_id": "GRO_02",
+    "is_primary": true
+  },
+  {
+    "id": "0ea69c2b-da26-43f3-82b8-73d7eb2c2725",
+    "question_id": "c210740e-9030-4a08-8dc0-cae71b9d4144",
+    "observation_point_id": "GRO_02",
+    "is_primary": true
+  },
+  {
+    "id": "a43f3c90-d311-4bf4-914b-082827b422c9",
+    "question_id": "52ac9f88-a77f-4398-8308-203067a42a5c",
+    "observation_point_id": "GRO_02",
+    "is_primary": true
+  },
+  {
+    "id": "5f4bb978-3eba-4e27-b7c1-6bb7e867df72",
+    "question_id": "e8a5d098-c932-457d-97c3-8860ce5df174",
+    "observation_point_id": "GRO_02",
+    "is_primary": true
+  },
+  {
+    "id": "3d55abcc-902f-4d88-8509-19eba02b91f6",
+    "question_id": "cd09b794-d7a4-4617-ad09-7a592c086a50",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "755359ad-7812-4398-b218-86898c236d76",
+    "question_id": "3e122641-774d-41b6-94e0-ac5c5be637b7",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "8820ff8a-da76-4954-a360-2bdbd8ccb9af",
+    "question_id": "5af1acdb-3e28-4621-abfc-a5ebae51cc11",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "67ab4abd-1a0f-4ffb-8040-b3e2b01d98d3",
+    "question_id": "5c536970-148a-4f5a-9231-a6884e69c812",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "4a54e4ea-51b7-48a6-9e25-ab30c14a9076",
+    "question_id": "80c982cf-3fcd-4330-8b27-2e9d60fcd39d",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "3d6fc788-26b8-4c32-8de0-3f34c383d8c4",
+    "question_id": "4c7ad1dd-cb44-4295-9c47-7e8784c51887",
+    "observation_point_id": "EMO_01",
+    "is_primary": true
+  },
+  {
+    "id": "ccd8be61-7814-42fe-9fb3-41693709024e",
+    "question_id": "6b239973-9869-4eaa-80e5-baa783dc012f",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "1a08893f-2ebf-4ba2-8356-dc9c4d7838d6",
+    "question_id": "52d7f4f7-2e1a-4c8b-a366-833901185dd1",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "9f30a7ef-e4cc-440e-9bff-de812fae3363",
+    "question_id": "d921e4a9-79ad-47e7-843b-7f95926fd7a4",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "5f5b1c00-07a1-42c8-b86a-ef909af07086",
+    "question_id": "0ae5651c-af65-4f18-ada6-b232e3e9e875",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "083153c8-894b-4c47-a30e-9811dc970dba",
+    "question_id": "907180f1-9f59-44f0-8658-ae60210eb0ef",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "5d6e0912-fa38-4bfb-915f-e8f39038f1ea",
+    "question_id": "d88ec1a7-1ba5-4e72-8b87-a1785180f797",
+    "observation_point_id": "REL_07",
+    "is_primary": true
+  },
+  {
+    "id": "255ff648-c35a-41e0-9654-cce04aeccc1f",
+    "question_id": "1999f6d4-fefa-4c71-8bd0-16ede601e3dc",
+    "observation_point_id": "REL_07",
+    "is_primary": true
+  },
+  {
+    "id": "018770c7-eea2-4897-9abc-8441d9b19e08",
+    "question_id": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+    "observation_point_id": "REL_07",
+    "is_primary": true
+  },
+  {
+    "id": "be7fc186-0668-44be-a3f7-a4776320e177",
+    "question_id": "dc5dcd11-cf5c-4222-88a5-260b5d7da708",
+    "observation_point_id": "REL_07",
+    "is_primary": true
+  },
+  {
+    "id": "5fe4062b-b139-4451-8fd7-c293df345045",
+    "question_id": "5a78c6ad-2f3f-40b6-bdf1-086b01908d44",
+    "observation_point_id": "SPI_01",
+    "is_primary": true
+  },
+  {
+    "id": "06fd9e4c-6beb-4007-9d02-e14ebfe9cccc",
+    "question_id": "92d681cf-b5e3-4534-a768-261e8b3b426e",
+    "observation_point_id": "SPI_01",
+    "is_primary": true
+  },
+  {
+    "id": "e750fa0b-5389-4c1c-9b1e-aec5795b31a7",
+    "question_id": "e4d54c27-68c5-4356-8302-434261696cca",
+    "observation_point_id": "SPI_01",
+    "is_primary": true
+  },
+  {
+    "id": "12f4e398-252b-4f2d-905d-8fb20e73b0f0",
+    "question_id": "3c972670-5a2c-40ad-b410-e381e321f7bb",
+    "observation_point_id": "SPI_01",
+    "is_primary": true
+  },
+  {
+    "id": "2c207eaa-3c98-48f5-ab6b-9695c75073fb",
+    "question_id": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "7345c02b-78bd-43a5-87a5-32b11473eb5a",
+    "question_id": "6157a9a6-a9c1-4488-b8e7-f63dcf666f90",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "6242c39a-d57b-46a0-aede-d3accfc2a9d4",
+    "question_id": "94e623b8-c8bb-4a80-b2c9-0db12d643648",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "767a2145-a4ed-4a3f-bfcc-f5bbee821d76",
+    "question_id": "6a65c126-30cf-4832-a81e-aacba4e4ad8f",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "a093519e-b248-44a5-94d7-a14d26e95ab3",
+    "question_id": "13cd244b-2c46-4566-a983-36df1541da74",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "2f528618-7d18-4f64-aedd-9de36867bf6a",
+    "question_id": "6f0c5815-58f3-49df-af2b-9620c8f90461",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "21554ffb-96b6-46c8-b86a-c2e65ae6fc7b",
+    "question_id": "f7ece2ec-9499-42a8-88b3-d8e70ef2a37c",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "0b1d9db3-99ae-40a0-a045-f1f5554d9d89",
+    "question_id": "98e01b25-9c08-49ed-a54b-4c439f77746b",
+    "observation_point_id": "EMO_06",
+    "is_primary": true
+  },
+  {
+    "id": "972d29cd-8d88-4e3c-8f69-878e0a61185c",
+    "question_id": "91771b46-d2f4-4f56-9500-643e5b538d88",
+    "observation_point_id": "GRO_06",
+    "is_primary": true
+  },
+  {
+    "id": "3d47df7e-8383-46ec-bfd5-bc0aa3034689",
+    "question_id": "cfadadbb-cc63-47d3-b0a4-70606fd3e164",
+    "observation_point_id": "GRO_06",
+    "is_primary": true
+  },
+  {
+    "id": "b4785a28-d114-440f-919f-0f0493212419",
+    "question_id": "b644020b-6747-4932-8c09-8c54ff09338d",
+    "observation_point_id": "GRO_06",
+    "is_primary": true
+  },
+  {
+    "id": "32d96b12-d80f-4335-85e6-e4125f22cc50",
+    "question_id": "dfe181b7-5068-4aef-9e9f-13da6f570156",
+    "observation_point_id": "GRO_06",
+    "is_primary": true
+  },
+  {
+    "id": "41ca32cf-7b1a-482e-9d08-2e99cf7b0af5",
+    "question_id": "4007b2ab-d00b-4525-bf09-450fd5a6d873",
+    "observation_point_id": "SPI_04",
+    "is_primary": true
+  },
+  {
+    "id": "3778695d-a4af-4028-a64a-6b5b9c392ed2",
+    "question_id": "66375db1-53d9-411a-9be2-dbba0e3edc5e",
+    "observation_point_id": "SPI_04",
+    "is_primary": true
+  },
+  {
+    "id": "de337424-ff35-4bd9-9746-340fc420e375",
+    "question_id": "bf2acef4-1143-48f2-82dc-92b3d1658e28",
+    "observation_point_id": "SPI_04",
+    "is_primary": true
+  },
+  {
+    "id": "82d21f57-6bf5-4d66-beb8-e22437fde205",
+    "question_id": "62fd96f6-8ee9-4d37-bf83-d6cbc3908c7d",
+    "observation_point_id": "SPI_04",
+    "is_primary": true
+  },
+  {
+    "id": "d5c8912e-a821-4034-91c7-4b362a5c7b89",
+    "question_id": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "7d8f2715-d0c8-4122-b304-c8e7bd7c3739",
+    "question_id": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "092b9298-7232-4f5c-9816-4334ece454b2",
+    "question_id": "b3aaa3ad-f813-46b9-96f9-78559e809a76",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "39620627-886e-4c43-9c6a-a4b055cfd245",
+    "question_id": "427dde83-22e9-4531-91eb-73ec596318b1",
+    "observation_point_id": "EMO_04",
+    "is_primary": true
+  },
+  {
+    "id": "8b03e8ae-b9a7-42a5-9d90-2e091264d479",
+    "question_id": "6bb2df3e-e0b0-4ec5-a289-4794605748e8",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "95be0c81-03bb-497f-a7f1-c4ab579032a0",
+    "question_id": "5649b7fa-c53c-4ff5-9cd8-822c7703b8a3",
+    "observation_point_id": "SPA_04",
+    "is_primary": true
+  },
+  {
+    "id": "e85069ed-80c3-420f-a557-2efb88dce480",
+    "question_id": "cda04d1e-db76-4244-83bc-b7bb114878ea",
+    "observation_point_id": "SPI_05",
+    "is_primary": true
+  },
+  {
+    "id": "d8ed8f22-d2ac-4f1d-8ba7-d66446910c45",
+    "question_id": "aa51b44f-9e97-4f06-b3a5-37c3cbdec3bc",
+    "observation_point_id": "SPI_05",
+    "is_primary": true
+  },
+  {
+    "id": "60d4849c-bf75-475e-b1d3-49829bb19877",
+    "question_id": "c8938b2a-dbcf-4be0-9454-7db8e79d7cd3",
+    "observation_point_id": "SPI_05",
+    "is_primary": true
+  },
+  {
+    "id": "c8a4a47c-19a5-4e09-8a62-fd1d5e0af43a",
+    "question_id": "ef3ac1af-49f0-46f3-8133-f80ce0062c7a",
+    "observation_point_id": "SPI_05",
+    "is_primary": true
+  },
+  {
+    "id": "23a3685d-0ab2-403a-933e-cd9153da69fa",
+    "question_id": "64731d64-cfeb-4bb9-ac62-78131f248fb7",
+    "observation_point_id": "GRO_06",
+    "is_primary": true
+  },
+  {
+    "id": "43048f75-2ccf-4060-9ab4-d7381f355fdf",
+    "question_id": "95df6563-b761-4545-a2c2-84e4ebfbad87",
+    "observation_point_id": "SPI_06",
+    "is_primary": true
+  },
+  {
+    "id": "861d7c11-9777-4b5c-bb60-d11936a59b47",
+    "question_id": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+    "observation_point_id": "SPI_01",
+    "is_primary": true
+  },
+  {
+    "id": "511f6493-6597-4f96-a548-7b57b26e8fb5",
+    "question_id": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+    "observation_point_id": "GRO_07",
+    "is_primary": true
+  },
+  {
+    "id": "96af0c88-d74a-4628-a96e-a110d70aa439",
+    "question_id": "ee65f746-eeaa-4b25-9f86-1e8e20b01760",
+    "observation_point_id": "REL_09",
+    "is_primary": true
+  },
+  {
+    "id": "35d4e581-6e37-44bb-a10d-53703a5a57a6",
+    "question_id": "400bf3ce-7d73-44b8-8022-506debc84c88",
+    "observation_point_id": "REL_09",
+    "is_primary": true
+  },
+  {
+    "id": "1be676d0-9d98-44f8-841c-e46439ef602c",
+    "question_id": "a896a232-09a7-45bb-96f6-67b210e4865b",
+    "observation_point_id": "SPI_06",
+    "is_primary": true
+  },
+  {
+    "id": "84220b68-ab9f-4414-96db-37f630dd0807",
+    "question_id": "16a2d15d-41d9-4289-b0a1-c1220fa97957",
+    "observation_point_id": "VAL_03",
+    "is_primary": false
+  },
+  {
+    "id": "4baee132-767e-45b0-bb7a-86f44d255ced",
+    "question_id": "3389a076-56b6-4940-b0af-05eb384e0e14",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "71e00fba-011d-4e48-a6da-2a4ed15ba1af",
+    "question_id": "342820e2-5cf4-4ed5-af38-060cd60115e3",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "95d74465-369a-4a0a-879c-aab6fc2556a2",
+    "question_id": "37e42eec-12c3-4e0c-92b8-a8b2fc9635e0",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "9dbeb04c-fc77-43bc-a9a9-01004b5b302e",
+    "question_id": "3fe126e0-a754-4412-a509-9dde775a1935",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "50ef236e-d43c-45e3-b6c7-fc0fc400f2cd",
+    "question_id": "6f82da52-a793-473e-b2d6-4215a8308a21",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "e6cef6ac-93d3-49d8-ad7f-c4d51afc28b3",
+    "question_id": "77ead590-c071-423d-bd64-662cf0c55326",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "22cf5a51-b63f-4846-a8d1-969f4f5f9d93",
+    "question_id": "84f415ca-406e-4e2d-8891-274b1dd49bae",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "be78ae43-9a36-4a15-b9fa-47e66f4ee4c1",
+    "question_id": "94aaad5e-6c15-4740-8fa0-af3767081b55",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "6b74bb65-96d5-44bc-b1ba-5c787a5e3178",
+    "question_id": "9f97f593-8d09-4449-996c-4d3046ac3f19",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "f90b6190-a873-45df-8c11-c942be9af9f7",
+    "question_id": "a20c1501-69c8-4287-8d66-d998b5a1c366",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "ccf2b154-f461-4db9-afd1-3d54d9676673",
+    "question_id": "a8ef4b55-9cd5-40d6-b26d-cc9bc28fd40b",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "3fbd2bc3-9c62-47cf-b084-66e3883ce540",
+    "question_id": "bb7f2227-69d8-466a-bae4-62d0b6cfa984",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "81ba3295-bfa7-435b-ad7f-97ae88f2581c",
+    "question_id": "c1ce8090-73ba-4f9f-97c1-3e68c1b06f16",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "d6f53e05-4f57-44b2-be94-cd9e41f48361",
+    "question_id": "d57fc751-1880-46fb-b98a-27014714312c",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "d24eb50a-f821-4f32-9415-53ccd6820015",
+    "question_id": "d84784a9-4190-4920-9b82-ac86cae04427",
+    "observation_point_id": "SPA_01",
+    "is_primary": false
+  },
+  {
+    "id": "80af02fa-8299-43dd-8253-76a9ee2e20bf",
+    "question_id": "2ab5a987-39f8-47ee-8e3c-99f76a627710",
+    "observation_point_id": "SPA_02",
+    "is_primary": false
+  },
+  {
+    "id": "feef62e5-2be4-49d9-b9c3-fcc4728ec72a",
+    "question_id": "c2dc0833-5d3c-4b35-bd85-25f17d535668",
+    "observation_point_id": "SPA_02",
+    "is_primary": false
+  },
+  {
+    "id": "36167ad9-8679-47f0-9d63-8ab43de1fda8",
+    "question_id": "2f7629fd-d88e-4ef6-8559-c5e3b2701c05",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "89147a14-9e28-452e-888d-1c144cdfcc4c",
+    "question_id": "4711c3ca-5833-4986-a83e-4f31c508087e",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "e730e6bf-d287-4032-96f6-7d6987b2b7a4",
+    "question_id": "95563aa8-e483-4470-a5c3-6ee24c1d330c",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "453caa90-6477-456e-83b9-841465ca4654",
+    "question_id": "96570995-26f7-4e23-a3f7-b7e6bf1f9910",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "6dbd8b28-757c-4e21-a794-1b51d8707f6a",
+    "question_id": "9cec6fd2-38a1-4497-9065-3b324cd05210",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "a9bec9fd-acf5-4eac-baba-4fa45e7dd862",
+    "question_id": "aee49959-0ba9-43bb-a18c-a42dbf4f89ef",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "0a5b174c-28ba-40ed-a6f4-62ae5df2bbfc",
+    "question_id": "fdd1837d-7daf-474c-8122-269b670ed46a",
+    "observation_point_id": "SPA_05",
+    "is_primary": false
+  },
+  {
+    "id": "31e3b708-dead-48c6-aa62-014f5363c037",
+    "question_id": "e7ed0685-5cb7-4183-b8f2-4ce73f9f84b9",
+    "observation_point_id": "REL_08",
+    "is_primary": false
+  },
+  {
+    "id": "e86fda8f-bc88-4a69-88b6-f78c647d56f5",
+    "question_id": "3c972670-5a2c-40ad-b410-e381e321f7bb",
+    "observation_point_id": "SPI_02",
+    "is_primary": false
+  },
+  {
+    "id": "a34032b6-25fc-4749-b0a8-a96b18838284",
+    "question_id": "5a78c6ad-2f3f-40b6-bdf1-086b01908d44",
+    "observation_point_id": "SPI_02",
+    "is_primary": false
+  },
+  {
+    "id": "43264687-18e8-40c4-b076-69ee85a00149",
+    "question_id": "92d681cf-b5e3-4534-a768-261e8b3b426e",
+    "observation_point_id": "SPI_02",
+    "is_primary": false
+  },
+  {
+    "id": "07eccda7-6142-4595-ae93-e766b1fe33f6",
+    "question_id": "e4d54c27-68c5-4356-8302-434261696cca",
+    "observation_point_id": "SPI_02",
+    "is_primary": false
+  },
+  {
+    "id": "499c00c7-5cb7-4c70-b448-c14d84c6ea78",
+    "question_id": "3f6bdc86-ff81-47f0-bf24-69e5da30912b",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "2825d49c-c45b-4bf6-b54e-e0fd61ac34f5",
+    "question_id": "6157a9a6-a9c1-4488-b8e7-f63dcf666f90",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "c7f01ead-5200-48fc-99a9-7d2d44cd5fc9",
+    "question_id": "6a65c126-30cf-4832-a81e-aacba4e4ad8f",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "27ea68ac-4ff5-4552-b8bb-67c62e8b89dc",
+    "question_id": "94e623b8-c8bb-4a80-b2c9-0db12d643648",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "7c101d84-7d07-4924-9b31-25c778d3d6eb",
+    "question_id": "29391f1e-0cdf-4a3b-b001-8bba58c35bc1",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "5c11906c-cca5-4fef-8073-f9b3ca3350e0",
+    "question_id": "427dde83-22e9-4531-91eb-73ec596318b1",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "649baf7c-1065-4189-98c6-8b69babdd19f",
+    "question_id": "a64b6b10-100c-4b5d-a6f0-6e1e46a1c3e0",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "9ae82514-e9af-4934-9433-82ec613bb3d5",
+    "question_id": "b3aaa3ad-f813-46b9-96f9-78559e809a76",
+    "observation_point_id": "EMO_03",
+    "is_primary": false
+  },
+  {
+    "id": "68d3ca61-0724-4b9e-b473-a5168b70df87",
+    "question_id": "2b5fd475-f3d3-4576-9741-0d3dcfaef5fb",
+    "observation_point_id": "SPI_02",
+    "is_primary": false
+  },
+  {
+    "id": "b248105d-a530-4f06-a574-787012473d29",
+    "question_id": "813ec6ef-1cbc-4dfc-89ad-3788e76ba31d",
+    "observation_point_id": "REL_02",
+    "is_primary": false
+  },
+  {
+    "id": "3754535e-3e56-43d2-8518-6dec4e8c4531",
+    "question_id": "813ec6ef-1cbc-4dfc-89ad-3788e76ba31d",
+    "observation_point_id": "REL_04",
+    "is_primary": false
+  },
+  {
+    "id": "9091c732-4628-45f8-b620-28921121c95a",
+    "question_id": "d67eaf7d-c485-4da3-ae97-0f4bfdbbbee3",
+    "observation_point_id": "REL_12",
+    "is_primary": true
+  },
+  {
+    "id": "3021689f-0e12-48e9-8252-9e439526fe62",
+    "question_id": "a4dc0e54-23f3-435c-bd83-0362ef830fd1",
+    "observation_point_id": "REL_12",
+    "is_primary": true
+  },
+  {
+    "id": "56bbb886-2b45-4f47-88cd-66c456d3095b",
+    "question_id": "262afacd-5690-47bb-8fcb-c48acbc099f5",
+    "observation_point_id": "REL_12",
+    "is_primary": true
+  },
+  {
+    "id": "47514bba-d6a6-47c9-a7db-e0d79f7c426d",
+    "question_id": "262afacd-5690-47bb-8fcb-c48acbc099f5",
+    "observation_point_id": "REL_03",
+    "is_primary": false
+  },
+  {
+    "id": "b17b1c8b-3456-460c-b7bf-a78cf11f5ed0",
+    "question_id": "abc1de3e-b469-4f6e-adfb-bb9610537871",
+    "observation_point_id": "REL_12",
+    "is_primary": true
+  },
+  {
+    "id": "543c068b-d16e-420e-97b7-72eeb5c3c43b",
+    "question_id": "21757085-c9f8-453f-8f58-3fafa91257f6",
+    "observation_point_id": "REL_12",
+    "is_primary": true
+  },
+  {
+    "id": "4350f117-c1ee-4613-9b56-7cab7eb38fa0",
+    "question_id": "806b2bfd-d6fb-4b44-860a-045c8d6d9eb7",
+    "observation_point_id": "REL_03",
+    "is_primary": true
+  },
+  {
+    "id": "4de44524-1a85-4630-bc75-e296becfcff0",
+    "question_id": "806b2bfd-d6fb-4b44-860a-045c8d6d9eb7",
+    "observation_point_id": "GRO_02",
+    "is_primary": false
+  },
+  {
+    "id": "b645d7aa-20bd-4aba-b028-375004448fa5",
+    "question_id": "cd1df162-29dc-4f28-9453-4277669e01a1",
+    "observation_point_id": "SPA_01",
+    "is_primary": true
+  },
+  {
+    "id": "e5c3120a-d503-43af-9f1d-e679c192de1f",
+    "question_id": "cd1df162-29dc-4f28-9453-4277669e01a1",
+    "observation_point_id": "EMO_04",
+    "is_primary": false
+  },
+  {
+    "id": "93e05cdf-ea16-4a0d-bb64-9ae94c07a363",
+    "question_id": "4991fa18-2df8-417e-b1aa-4f3175124520",
+    "observation_point_id": "SPI_04",
+    "is_primary": true
+  },
+  {
+    "id": "da26cf76-f68a-4333-9d27-e8dad3b0b9fe",
+    "question_id": "31099c41-50af-4580-89e5-a0593638fd22",
+    "observation_point_id": "REL_02",
+    "is_primary": true
+  }
+]

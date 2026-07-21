@@ -14,6 +14,7 @@
     "eval:ranking": "npx tsx --conditions=react-server --env-file=.env.local scripts/eval/run-ranking.ts",
     "eval:ranking:score": "npx tsx scripts/eval/run-ranking-score.ts",
     "remap:links": "npx tsx --conditions=react-server --env-file=.env.local scripts/remap-links.ts",
+    "import:season": "npx tsx --conditions=react-server --env-file=.env.local scripts/import-season.ts",
     "check:secrets": "node --env-file=.env.local scripts/check-no-secrets.mjs"
   },
   "dependencies": {
