@@ -1,0 +1,43 @@
+# push 到 main 且改动了迁移文件时，自动把新增迁移应用到生产库（新加坡）。
+# db-push.mjs 只执行账本里没有的迁移、幂等记账；SUPABASE_DB_URL 从仓库 secret 注入。
+# 手动触发：Actions 页 → db-push → Run workflow（workflow_dispatch）。
+name: db-push
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/db-push.mjs'
+      - '.github/workflows/db-push.yml'
+  workflow_dispatch: {}
+
+# 同一时刻只允许一个迁移任务；正在跑的不取消（迁移中途取消危险）。
+concurrency:
+  group: db-push-main
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # 无 postinstall 钩子；--ignore-scripts 防未来有人加构建钩子拖慢/污染本任务。
+      - name: 安装依赖
+        run: npm ci --ignore-scripts
+
+      - name: 应用待迁移
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::缺少仓库 secret SUPABASE_DB_URL（Settings → Secrets and variables → Actions）。"
+            exit 1
+          fi
+          node scripts/db-push.mjs
