@@ -568,6 +568,15 @@ async function main(): Promise<void> {
   if (qErr) throw new Error(`读取 questions 失败：${qErr.message}`)
   const questions = (qData ?? []) as QRow[]
 
+  // --seed-all 运行时防呆：它只该用于空库/迁库首次种入。库中若已有本季行，误用会绕过「保留卡原地
+  // 更新」语义、留下语义错乱（幂等守卫虽能跳过同季重复，但挡不住「本该走差量却用了 seed-all」的误用）。
+  if (seedAll && applyMode && questions.some((q) => q.season === NEW_SEASON)) {
+    console.error(`✗ --seed-all 仅供空库首次种入：库中已存在 season=${NEW_SEASON} 的行，拒绝 --apply。`)
+    console.error('  · 增量换季 → 去掉 --seed-all 走正常差量模式；· 确需重灌 → 先清空本季数据再跑。')
+    console.error('  （去掉 --apply 可用 dry-run 只读预览，不受此拦截。）')
+    process.exit(1)
+  }
+
   const plan = buildPlan(doc, questions, seedAll)
   printReport(doc, plan)
 
