@@ -188,3 +188,20 @@ package.json 新增：`"import:season": "npx tsx --conditions=react-server --env
   > ⚠️ **2026-05 实测修正**：实际远不止「个别分差」——ranking 金标按 questionId 标注，换季后 Part1 题整组换了新 UUID、旧题过季被季度过滤挡出，导致金标**近乎全量失配**（实测金标未召回 131 条=26 已删+45 过季，可见区金标缺口 91.4%，四闸门分母塌到个位数失效）。**这不是排序回归**（当季题漏召回=0，已取证）。判定法：查 score JSON `coverage.goldNotRecalled` 的 questionId 的 season，全是旧季/不存在即预期。**换季后必须按新季重标 ranking 金标**（金标=考卷，走 metric-designer + 产品方拍板），补标前 eval:ranking 闸门不是有效回归信号。详见记忆 `season-import-stales-ranking-gold`。
 - 下个换题季（2026-09）重复本流程：出新 enriched JSON + remap.v4 → 迁移已就位无需再做 → C→D→E(改常量)→G。
 - `观察点审计.md` 与权威文档如需登记本次 v3 结论，等映射定稿后再补一段"2026-05 换季记录"。
+
+---
+
+## 金标补标进度（2026-07-21 · 周末待续）
+
+换季后 `eval:ranking` 四闸门失效 = 金标失配（非排序回归，当季漏召回=0，已取证）。补标方案已由 metric-designer 出、产品方 6 项拍板通过；**自动化 prep 已完成，人工盲标延至周末做**。
+
+**prep 结果（主会话实测）**：旧金标 148 label → 桶A 保留卡沿用 17 / 桶B Part1换ID迁移 33 / 桶C 过季已删归档 95 / 冲突 3；回填进新骨架 29 条（复用率低，因换季替换了大半题库）。
+**待人工盲标 134 行** = 可见区 **52**（必标，恢复 3/4 闸门）+ 隐藏抽样 **82**（仅埋没率，可减可缓）。
+**复核只盯审核清单标注的 ~5 张变体卡**（自动 diff 被 bullet 重排误报，不可信）。
+
+**草稿产物**（暂存 `scripts/eval/results/`，golden/ 未动，未提交）：
+- `ranking-relabel-2026-05-盲标表.md`（周末填 `金标档` 列即可，每行带观察点+清单备注）
+- `ranking-relabel-2026-05-scaffold.json`（机器骨架，回填+待标）
+- `ranking-relabel-2026-05-archive.json`（桶C 过季判例归档）
+
+**周末续做链路**：填盲标表 → 主会话合成 `golden/ranking.v3.json` → `baseline-engineer` 重钉 BASELINE 红线（版本互锁必做）→ 重跑 `eval:ranking:score` 验四闸门恢复。台账 122 有完整记录。
