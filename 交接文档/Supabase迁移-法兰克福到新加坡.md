@@ -73,6 +73,30 @@ psql "$DST_DB_URL" -c "select * from cron.job;"   # 确认定时任务在
 ```
 - 若 `cron` 扩展未启用：新项目 Dashboard → Database → Extensions 开 `pg_cron`，再重跑相关迁移段（或手动 `select cron.schedule(...)`，对照 0018–0022）。
 
+### 步骤 5.5（手动·关键）项目级控制台配置 —— **`db:push` 迁不了的唯一一类，务必手动对齐**
+
+> ⚠️ **真实事故（2026-07-21）**：迁完切了 Zeabur 后，线上点「同意并开始」报「保存同意记录失败」。根因是**新项目默认没开「匿名登录」**——应用靠匿名登录建 user，没 user 就写不了同意记录。`db:push` 只迁数据库 schema/数据/RLS，**Auth / URL / SMTP 这些项目级设置全在控制台、迁不过来**，新建项目是默认值，必须逐项手动对齐旧项目。**下面清单从代码实际用到的能力反推，做完再进步骤 6。**
+
+**Authentication → Sign In / Providers**
+- [ ] **Anonymous sign-ins：开** 🔴 —— 代码 16 处 `signInAnonymously`（匿名试用 + 匿名同意）。不开则同意/试用全坏。
+- [ ] **Email provider：开** 🔴 —— 用了 `signInWithPassword` + `signUp`。
+- [ ] **Allow new users to sign up（允许注册）：开** 🔴 —— 用了 `signUp`；内测准入靠应用内 `beta_allowlist` 挡，不靠此开关。
+- [ ] **Confirm email（邮箱确认）：关** 🔴 —— 本项目**不配 SMTP**（国内收不到邮件），注册流程无「查收邮件确认」门、预期注册即登录。新项目默认**开着**此项，不关则所有注册卡在「等确认」登不进。
+- [ ] OAuth（Google 等）/ Phone OTP / Magic Link：**保持关** —— 代码未用。
+
+**Authentication → URL Configuration**
+- [ ] **Site URL：`https://lingobridge.zeabur.app`** 🔴 —— 新项目默认 localhost，错则邮件链接指向错地方。
+- [ ] **Redirect URLs：加 `https://lingobridge.zeabur.app/**` 一条即可**（本地开发再加 `http://localhost:3000/**`）🔴 —— 白名单只管回跳目标；本项目唯一回跳是 `resetPasswordForEmail` 的 `<域名>/reset-password`，一条通配足够，**不用逐页加**。
+
+**Authentication → SMTP**
+- [ ] **不配自定义 SMTP**（与旧项目一致）—— 国内考量。密码重置改用 `scripts/gen-reset-link.mjs`（service_role `admin.generateLink` 手动生成 recovery 链接，走微信等渠道发），不依赖邮件。
+
+**Database → Extensions（多为迁移自带，核对即可）**
+- [ ] `pg_cron`、`pgcrypto`、`uuid-ossp` 已启用（`gen_random_uuid` / 定时 GC 依赖）——步骤 5 已核 pg_cron。
+
+**Storage**
+- [ ] `avatars` 桶存在且 `public=true`（迁移 0008 带，随 restore 已建）——桶内**文件**不随迁移过来，内测者重传即可。
+
 ### 步骤 6（手动）切 Zeabur 环境变量 → 指向新加坡
 Zeabur 项目 → 环境变量，把这些**从法兰克福换成新加坡新项目的值**：
 - `NEXT_PUBLIC_SUPABASE_URL` → 新 Project URL
@@ -99,8 +123,9 @@ Zeabur 项目 → 环境变量，把这些**从法兰克福换成新加坡新项
 - [ ] 命令：`npm run db:push -- --mark-all-applied`（步骤 3）
 - [ ] 手动/命令：迁头像文件（步骤 4，可能无）
 - [ ] 命令：核对 pg_cron（步骤 5）
+- [ ] **手动：项目级控制台配置（步骤 5.5）—— 匿名登录/邮箱确认关/Site URL/Redirect URL，`db:push` 迁不了、最易漏、已出过事故**
 - [ ] 手动：Zeabur 换环境变量 + 重部署（步骤 6）
-- [ ] 验证：国内实测（步骤 7）
+- [ ] 验证：国内实测（步骤 7）——**首页点「同意并开始」能保存成功（验匿名登录）+ 注册/登录走通（验邮箱确认已关）**
 - [ ] 收尾：留旧项目做回滚，稳定后删（步骤 8）
 
 Claude 能陪你逐步跑、看报错、写头像迁移脚本；但**建项目、连接串、改 Zeabur** 这三处必须你亲手（涉密钥/控制台）。
