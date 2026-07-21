@@ -181,6 +181,7 @@ export interface DBQuestion {
   is_new: boolean
   topic_only: boolean
   parent_card_id: string | null
+  season: string
   created_at: string
 }
 
