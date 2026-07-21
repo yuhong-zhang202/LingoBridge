@@ -19,6 +19,7 @@ export default function HomeMobile({
   question,
   loading,
   error,
+  exhausted,
   textStory,
   submitting,
   canSubmit,
@@ -92,15 +93,19 @@ export default function HomeMobile({
                   <>
                     {!loading && error ? (
                       <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">没取到题，点下面换一题重试</p>
+                    ) : !loading && exhausted ? (
+                      <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">本季真题你都练过啦 · 换季会上新题</p>
                     ) : (
                       <h1 className="w-full text-center text-[20px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
                         {loading ? '换一题中…' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
                       </h1>
                     )}
                     <p className="text-[13px] text-v2-text-muted mt-2">聊聊你的看法</p>
-                    <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-v2-text-muted active:opacity-60">
-                      <RotateCw size={12} />换一题
-                    </button>
+                    {!exhausted && (
+                      <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-v2-text-muted active:opacity-60">
+                        <RotateCw size={12} />换一题
+                      </button>
+                    )}
                   </>
                 )}
               </div>

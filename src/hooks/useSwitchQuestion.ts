@@ -12,6 +12,8 @@ interface UseSwitchQuestionResult {
   question: SwitchQuestion | null
   loading: boolean
   error: string | null
+  /** 抽题池已抽空（当季所有「没练过」的题都取过了）——用于首页展示空态文案，而非空白题卡 */
+  exhausted: boolean
   /** 取下一道题（自动排除已看过的；一轮看完后重置循环） */
   next: () => Promise<void>
 }
@@ -24,11 +26,13 @@ export function useSwitchQuestion(): UseSwitchQuestionResult {
   const [question, setQuestion] = useState<SwitchQuestion | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exhausted, setExhausted] = useState(false)
   const [seenIds, setSeenIds] = useState<string[]>([])
 
   const next = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
+    setExhausted(false)
     try {
       const exclude = seenIds.join(',')
       const url = `/api/questions?mode=switch${exclude ? `&exclude=${encodeURIComponent(exclude)}` : ''}`
@@ -51,6 +55,8 @@ export function useSwitchQuestion(): UseSwitchQuestionResult {
       }
 
       setQuestion(q)
+      // 两次取题（带 exclude + 重置重取）后仍为 null = 当季没练过的题都取光了 → 空态
+      setExhausted(!q)
     } catch (e) {
       setError(e instanceof Error ? e.message : '获取题目失败')
     } finally {
@@ -58,5 +64,5 @@ export function useSwitchQuestion(): UseSwitchQuestionResult {
     }
   }, [seenIds])
 
-  return { question, loading, error, next }
+  return { question, loading, error, exhausted, next }
 }

@@ -38,7 +38,7 @@ export default function HomePage() {
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [typed, setTyped] = useState('')
   const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
-  const { question, loading, error, next } = useSwitchQuestion()
+  const { question, loading, error, exhausted, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
 
@@ -95,6 +95,7 @@ export default function HomePage() {
     question,
     loading,
     error,
+    exhausted,
     textStory,
     submitting,
     canSubmit: computeRichness(textStory).canSubmit,
