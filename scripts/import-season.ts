@@ -25,7 +25,13 @@
  *           【待产品方确认】Part3 子题一律 is_new=false（含新建卡下的 Part3）——沿用「保留卡刷新
  *           Part3」的字段模板并统一应用；Part3 从不单独打「新题」角标，故不随父卡 is_new=true。
  *
- *           运行：npm run import:season [-- --apply]
+ *           【--seed-all 空库全量模式】：迁库/新建空库首次种入时用。此模式下不做「保留卡按旧名
+ *           原地 UPDATE」——空库没有旧行可匹配，保留 Part2 卡会被误判为「查无对应 → 跳过」而丢失。
+ *           故 --seed-all 把保留项（Part1 题 / Part2 卡）一律当新行 INSERT，仅 is_new 仍按 carried_over
+ *           取值（保留=false / 新题=true），角标语义不变。空库全量导入的期望 newSeasonTotal = total_rows。
+ *           非空库请勿用 --seed-all（会绕过旧行匹配、可能产生重复）。
+ *
+ *           运行：npm run import:season [-- --apply] [-- --seed-all]
  *           底层：npx tsx --conditions=react-server --env-file=.env.local scripts/import-season.ts
  * @author   LingoBridge
  * @created  2026-07-21
@@ -232,7 +238,7 @@ function p3Row(title: string, questionText: string, parentCardId: string | null)
 
 // ── 计划核心（不写库，只算 Plan）──────────────────────────────────────────────
 
-function buildPlan(doc: SeedDoc, questions: QRow[]): Plan {
+function buildPlan(doc: SeedDoc, questions: QRow[], seedAll = false): Plan {
   const plan: Plan = {
     cardUpdates: [],
     part3Refreshes: [],
@@ -271,6 +277,13 @@ function buildPlan(doc: SeedDoc, questions: QRow[]): Plan {
       continue
     }
     if (t.carried_over) {
+      if (seedAll) {
+        // 空库全量：无旧行可删/可匹配，保留话题直接按新数据 INSERT（is_new=false 保留「非新题」语义）
+        for (const q of t.questions_with_zh) {
+          plan.p1CarriedInserts.push(p1Row(t.topic, q.en, q.zh, false))
+        }
+        continue
+      }
       const oldRows = p1Rows.filter((q) => q.topic !== null && norm(q.topic) === norm(t.match_topic))
       const renamed = norm(t.topic) !== norm(t.match_topic)
       plan.renameChecks.push({
@@ -303,6 +316,11 @@ function buildPlan(doc: SeedDoc, questions: QRow[]): Plan {
       continue
     }
     if (c.carried_over) {
+      if (seedAll) {
+        // 空库全量：无「现有卡」可原地更新，保留卡当新行 INSERT（is_new=false 保留「非新题」语义）
+        plan.newCards.push({ title: c.title, cardRow: cardRow(c, false), part3: c.part3_questions })
+        continue
+      }
       const matched = p2Rows.filter((q) => q.cue_card_title !== null && norm(q.cue_card_title) === norm(c.match_title))
       const renamed = norm(c.title) !== norm(c.match_title)
       plan.renameChecks.push({
@@ -517,10 +535,14 @@ async function apply(
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const applyMode = args.includes('--apply')
-  const unknown = args.filter((a) => a !== '--apply' && a !== '--dry-run')
+  const seedAll = args.includes('--seed-all')
+  const unknown = args.filter((a) => a !== '--apply' && a !== '--dry-run' && a !== '--seed-all')
   if (unknown.length > 0) {
-    console.error(`未知参数：${unknown.join(', ')}（仅支持 --dry-run(默认) / --apply）`)
+    console.error(`未知参数：${unknown.join(', ')}（仅支持 --dry-run(默认) / --apply / --seed-all）`)
     process.exit(1)
+  }
+  if (seedAll) {
+    console.log('⚙ --seed-all 空库全量模式：保留项一律当新行 INSERT（仅 is_new 按 carried_over 取值），不做旧行匹配/UPDATE。\n')
   }
 
   const missingEnv = (['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const).filter((k) => !process.env[k])
@@ -546,7 +568,7 @@ async function main(): Promise<void> {
   if (qErr) throw new Error(`读取 questions 失败：${qErr.message}`)
   const questions = (qData ?? []) as QRow[]
 
-  const plan = buildPlan(doc, questions)
+  const plan = buildPlan(doc, questions, seedAll)
   printReport(doc, plan)
 
   if (!applyMode) {
