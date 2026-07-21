@@ -92,8 +92,8 @@
 
 ### 5.1 技术栈
 - **前端**：Next.js 14（App Router）+ PWA、Tailwind CSS v3、TypeScript（strict）
-- **部署**：Vercel（移动端 web 为主，max-w-[430px] 居中）
-- **后端/数据**：Supabase（PostgreSQL，project `tvdzkcnnszjynzzvtptk`，区域 eu-central-1）
+- **部署**：Zeabur + 腾讯云香港 VPS（移动端 web 为主，max-w-[430px] 居中）——非 Vercel（大陆访问不稳）
+- **后端/数据**：Supabase（PostgreSQL，project `jzoxnxgbvshiwctwvrwd`，区域 ap-southeast-1 / 新加坡；2026-07 迁自 `tvdzkcnnszjynzzvtptk`/eu-central-1）
 - **依赖**：`@supabase/supabase-js`、`framer-motion`、`lucide-react@^1.14.0`（老版，部分图标缺失，必要时用 emoji）、`next-pwa`、`server-only`、`clsx`、`tailwind-merge`
 
 ### 5.2 目录结构
