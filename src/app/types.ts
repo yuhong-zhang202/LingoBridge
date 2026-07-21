@@ -17,6 +17,8 @@ export interface HomeViewProps {
   question: SwitchQuestion | null
   loading: boolean
   error: string | null
+  /** 抽题池已抽空（当季没练过的题都取完了）——展示空态文案、隐藏「换一题」 */
+  exhausted: boolean
 
   /** 文字输入内容（移动端 StoryTextPanel） */
   textStory: string

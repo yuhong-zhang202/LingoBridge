@@ -60,7 +60,7 @@ LingoBridge 是面向中国雅思口语备考生的 PWA 练习 App（Next.js 14.
 - **GitHub**：`github.com/yuhong-zhang202/LingoBridge`，分支 `feat/home-ielts-toggle`（已最新）
 - **本地运行**：`npm run dev`（端口 3000）。dev server 让用户自己在终端跑，
   不要让 Claude Code 占后台 shell（否则用户看不到日志，踩过坑）。
-- **Supabase**：project `tvdzkcnnszjynzzvtptk`，区域 eu-central-1。
+- **Supabase**：project `jzoxnxgbvshiwctwvrwd`，区域 ap-southeast-1（新加坡）。（2026-07 迁自 `tvdzkcnnszjynzzvtptk`/eu-central-1）
 
 ### AI 供应商分工（重要：成本与 key 隔离）
 

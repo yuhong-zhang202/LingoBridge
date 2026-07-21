@@ -67,8 +67,8 @@ yuhong-zhang202/LingoBridge
 ```
 
 **Supabase**：
-- 项目 ID：`tvdzkcnnszjynzzvtptk`
-- 区域：eu-central-1 (Frankfurt)
+- 项目 ID：`jzoxnxgbvshiwctwvrwd`（2026-07 迁自旧库 `tvdzkcnnszjynzzvtptk`）
+- 区域：ap-southeast-1 (Singapore)（原 eu-central-1 / Frankfurt，已迁，见 交接文档/Supabase迁移-法兰克福到新加坡.md）
 - 数据库：PostgreSQL
 
 ---
@@ -334,7 +334,7 @@ question_id, observation_point_id, is_primary
 
 ### 关键查询
 - **Git 仓**：`yuhong-zhang202/LingoBridge`
-- **Supabase**：`tvdzkcnnszjynzzvtptk.supabase.co`
+- **Supabase**：`jzoxnxgbvshiwctwvrwd.supabase.co`（新加坡；旧 `tvdzkcnnszjynzzvtptk` 2026-07 已迁）
 - **技术疑问**：参考 `/mnt/user-data/outputs/claude-code-prompt-05-*.md` 的模式
 - **设计疑问**：查 Notion「📐 维度设计」或本地 `DESIGN.md`
 

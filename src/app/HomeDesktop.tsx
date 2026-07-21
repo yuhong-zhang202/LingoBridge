@@ -160,6 +160,7 @@ export default function HomeDesktop({
   question,
   loading,
   error,
+  exhausted,
   typed,
   reuseTab,
   writeHref,
@@ -231,14 +232,14 @@ export default function HomeDesktop({
                         <div className="mb-3"><PartTag label={`Part ${question.part}`} /></div>
                       )}
                       <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
-                        {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
+                        {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : exhausted ? '本季真题你都练过啦，换季会上新题' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
                       </h1>
                     </>
                   )}
                   <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
                     {!ieltsMode ? '不用背模板。把发生过的事讲出来，我们帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
                   </p>
-                  {ieltsMode && (
+                  {ieltsMode && !exhausted && (
                     <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
                       <RotateCw size={13} />换一题
                     </button>

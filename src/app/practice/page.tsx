@@ -280,11 +280,15 @@ function PracticeContent(): JSX.Element {
 
   const handleEnd = useCallback(() => {
     setSessionPolishes(polishHistory)
-    // 打卡记录：发起即走，绝不 await —— 用户点了「结束」就该马上看到反馈页，不能为写库等在这里。
-    // 重试（3 次，约 3.2s 内）在后台继续跑，跳转不会中断；全失败则由反馈页弹提示告知用户。
-    startPracticeSessionRecord(questionId || null, isReview)
+    // 只在用户至少说过一轮时才计入练习记录（= 产品定义的「走完完整链路」）。
+    // 0 轮就点结束（抽到题→误入→立即退出）不该被计为「已练」，否则该题会被首页抽题【永久】排除，
+    // 也会误计练习总数 / 复练月额度。打卡「发起即走」不 await —— 点结束就该马上看反馈页；
+    // 重试（3 次，约 3.2s 内）后台跑，全失败由反馈页弹提示。
+    if (userTurnCount >= 1) {
+      startPracticeSessionRecord(questionId || null, isReview)
+    }
     router.push('/feedback')
-  }, [polishHistory, questionId, isReview, router])
+  }, [polishHistory, questionId, isReview, router, userTurnCount])
   // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
   const [endSession] = useAsyncAction(handleEnd)
   const capHint =
