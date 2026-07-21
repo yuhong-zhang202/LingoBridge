@@ -13,6 +13,11 @@ import { getPracticedQuestionIdsServer } from '@/lib/db/practice-sessions-server
 // 题库低频变化，稳定查询走 CDN 缓存挡脚本刷量；随机切换题不缓存（每次须返回不同题）
 const STABLE_CACHE = 'public, s-maxage=3600, stale-while-revalidate=86400'
 
+// exclude 参数来自 URL、用户可控，会被拼进 PostgREST `not.in.(...)` filter 串（见 db/questions.ts）。
+// 虽当前打在公开的 questions 表 + PostgREST 语法层免疫（不吃子查询、跨参数 breakout 被 URL 编码挡死），
+// 但「未净化输入直拼 filter」是坏习惯：进 filter 前一律过 UUID 白名单，非法元素丢弃，从源头掐断注入面。
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url)
   const mode = searchParams.get('mode')
@@ -35,7 +40,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       } catch {
         // 无有效 session（尚未建匿名会话等边缘情况）：静默降级，不做已练排除
       }
-      const excludeIds = Array.from(new Set([...sessionExclude, ...practiced]))
+      // 净化：只保留合法 UUID（非法元素直接丢弃、不报错，保持「降级照常抽题」语义）。
+      // practiced 来自服务端本就是 UUID，不受影响；sessionExclude 里任何畸形值在进 filter 前被剔除。
+      const excludeIds = Array.from(new Set([...sessionExclude, ...practiced])).filter((id) => UUID_RE.test(id))
       const question = await getRandomSwitchQuestion(excludeIds)
       // 随机切换题就是要每次不同，显式 no-store 排除 CDN 缓存
       return NextResponse.json({ question }, { headers: { 'Cache-Control': 'no-store' } })
