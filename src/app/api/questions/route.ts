@@ -7,6 +7,8 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestions, getQuestionsByObservation, getRandomSwitchQuestion } from '@/lib/db/questions'
+import { requireUserAllowAnon } from '@/lib/api-auth'
+import { getPracticedQuestionIdsServer } from '@/lib/db/practice-sessions-server'
 
 // 题库低频变化，稳定查询走 CDN 缓存挡脚本刷量；随机切换题不缓存（每次须返回不同题）
 const STABLE_CACHE = 'public, s-maxage=3600, stale-while-revalidate=86400'
@@ -19,7 +21,21 @@ export async function GET(request: Request): Promise<NextResponse> {
     // /api/questions?mode=switch → 切换池随机题目
     if (mode === 'switch') {
       const excludeRaw = searchParams.get('exclude') ?? ''
-      const excludeIds = excludeRaw ? excludeRaw.split(',') : []
+      const sessionExclude = excludeRaw ? excludeRaw.split(',') : []
+      // 永久排除该用户「已练过」（练习对话完成后点「结束」= 走完完整链路）的题：从 Bearer 反查 userId，
+      // service_role 查其 practice_sessions.question_id。无有效 session 或查询失败时降级为「不排已练」，抽题照常。
+      let practiced: string[] = []
+      try {
+        const { userId } = await requireUserAllowAnon(request)
+        try {
+          practiced = await getPracticedQuestionIdsServer(userId)
+        } catch (e) {
+          logErr('[questions API] 读已练题失败，降级不排除', e)
+        }
+      } catch {
+        // 无有效 session（尚未建匿名会话等边缘情况）：静默降级，不做已练排除
+      }
+      const excludeIds = Array.from(new Set([...sessionExclude, ...practiced]))
       const question = await getRandomSwitchQuestion(excludeIds)
       // 随机切换题就是要每次不同，显式 no-store 排除 CDN 缓存
       return NextResponse.json({ question }, { headers: { 'Cache-Control': 'no-store' } })
