@@ -132,6 +132,7 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
         {!isEmpty && !qb.loading && !qb.error && activeTab === '题目列表' && (
           <QuestionListTab
             mappedQuestions={qb.mappedQuestions}
+            offseasonQuestions={qb.offseasonQuestions}
             totalMapped={qb.totalMapped}
             totalMatched={qb.totalMatched}
             availableParts={qb.availableParts}
