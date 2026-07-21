@@ -1,0 +1,3409 @@
+{
+  "metadata": {
+    "source": "2026年5-8月雅思口语题库合并版(综合版大题库为主基准 + 途鸭题目版/保留题库补充)",
+    "season": "2026-05",
+    "prev_season": "2026-01",
+    "part1_topics": 47,
+    "part1_questions": 286,
+    "part2_cards": 63,
+    "part3_questions": 337,
+    "total_rows": 686,
+    "carried_over": {
+      "part1": 22,
+      "part2": 29
+    },
+    "translation_status": {
+      "part1_questions": "complete",
+      "part2_titles": "complete",
+      "part3_questions": "pending_claude_code"
+    },
+    "review_pending": {
+      "part1": 7,
+      "part2": 19
+    }
+  },
+  "part1": [
+    {
+      "topic": "HOMETOWN",
+      "is_new": false,
+      "questions": [
+        "Have you learned anything about the history of your hometown?",
+        "Did you learn about the culture of your hometown in your childhood?",
+        "Where is your hometown?",
+        "Is that a big city or a small place?",
+        "Do you like your hometown?",
+        "What do you like (most) about your hometown?",
+        "Is there anything you dislike about it?",
+        "How long have you been living there?",
+        "Do you like living there?",
+        "Do you think you will continue living there for a long time?",
+        "What’s your hometown famous for?",
+        "Did you learn about the history of your hometown at school?",
+        "Are there many young people in your hometown?",
+        "Is your hometown a good place for young people to pursue their careers?"
+      ],
+      "observation_point": "SPA_03",
+      "obs_name": "你和所在城市/街区的关系",
+      "topic_zh": "家乡/城市",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you learned anything about the history of your hometown?",
+          "zh": "你了解你家乡的历史吗？"
+        },
+        {
+          "en": "Did you learn about the culture of your hometown in your childhood?",
+          "zh": "你在童年时了解过你家乡的文化吗？"
+        },
+        {
+          "en": "Where is your hometown?",
+          "zh": "你的家乡在哪里？"
+        },
+        {
+          "en": "Is that a big city or a small place?",
+          "zh": "这是大城市还是小地方？"
+        },
+        {
+          "en": "Do you like your hometown?",
+          "zh": "你喜欢你的家乡吗？"
+        },
+        {
+          "en": "What do you like (most) about your hometown?",
+          "zh": "你最喜欢你的家乡的什么？"
+        },
+        {
+          "en": "Is there anything you dislike about it?",
+          "zh": "你不喜欢它吗？"
+        },
+        {
+          "en": "How long have you been living there?",
+          "zh": "你在那里住了多久了？"
+        },
+        {
+          "en": "Do you like living there?",
+          "zh": "你喜欢住在那里吗？"
+        },
+        {
+          "en": "Do you think you will continue living there for a long time?",
+          "zh": "你认为你会在那里住很长时间吗？"
+        },
+        {
+          "en": "What’s your hometown famous for?",
+          "zh": "你的家乡以什么闻名？"
+        },
+        {
+          "en": "Did you learn about the history of your hometown at school?",
+          "zh": "你在学校学过你家乡的历史吗？"
+        },
+        {
+          "en": "Are there many young people in your hometown?",
+          "zh": "你家乡的年轻人多吗？"
+        },
+        {
+          "en": "Is your hometown a good place for young people to pursue their careers?",
+          "zh": "你的家乡是年轻人追求事业的好地方吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "HOMETOWN"
+    },
+    {
+      "topic": "STUDY",
+      "is_new": false,
+      "questions": [
+        "What subjects are you studying?",
+        "Do you like your subject?",
+        "Why did you choose to study that subject?",
+        "Do you think that your subject is popular in your country?",
+        "Do you have any plans for your studies in the next five years?",
+        "What are the benefits of being your age?",
+        "Do you want to change your major?",
+        "Do you prefer to study in the mornings or in the afternoons?",
+        "How much time do you spend on your studies each week?",
+        "What technology do you use when you study?",
+        "What changes would you like to see in your school?",
+        "What do you think is the most important at the moment?",
+        "Do you miss being a student?",
+        "Who helps you the most? And how?"
+      ],
+      "observation_point": "GRO_01",
+      "obs_name": "一项你长期坚持的投入",
+      "topic_zh": "学业",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What subjects are you studying?",
+          "zh": "你学什么专业？"
+        },
+        {
+          "en": "Do you like your subject?",
+          "zh": "你喜欢你的科目吗？"
+        },
+        {
+          "en": "Why did you choose to study that subject?",
+          "zh": "你为什么选择学习这个科目？"
+        },
+        {
+          "en": "Do you think that your subject is popular in your country?",
+          "zh": "你认为你的学科在你们国家很受欢迎吗？"
+        },
+        {
+          "en": "Do you have any plans for your studies in the next five years?",
+          "zh": "你对今后五年学习有什么计划吗？"
+        },
+        {
+          "en": "What are the benefits of being your age?",
+          "zh": "你这个年纪有什么好处？"
+        },
+        {
+          "en": "Do you want to change your major?",
+          "zh": "你想换专业吗？"
+        },
+        {
+          "en": "Do you prefer to study in the mornings or in the afternoons?",
+          "zh": "你更喜欢在上午还是下午学习？"
+        },
+        {
+          "en": "How much time do you spend on your studies each week?",
+          "zh": "你每周花多少时间学习？"
+        },
+        {
+          "en": "What technology do you use when you study?",
+          "zh": "你学习时使用什么技术？"
+        },
+        {
+          "en": "What changes would you like to see in your school?",
+          "zh": "你希望你的学校有什么变化？"
+        },
+        {
+          "en": "What do you think is the most important at the moment?",
+          "zh": "你认为现在最重要的是什么？"
+        },
+        {
+          "en": "Do you miss being a student?",
+          "zh": "你怀念当学生的日子吗？"
+        },
+        {
+          "en": "Who helps you the most? And how?",
+          "zh": "谁最能帮助你？如何帮助你？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "STUDY",
+      "review": "必考Work or studies组按关键词拆分为STUDY/WORK两组,对齐现库结构;两组同挂GRO_01,拆分不影响映射"
+    },
+    {
+      "topic": "WORK",
+      "is_new": false,
+      "questions": [
+        "Are you looking forward to working?",
+        "What work do you do?",
+        "Why did you choose to do that type of work (or that job)?",
+        "Do you like your job?",
+        "What requirements did you need to meet to get your current job?",
+        "Do you have any plans for your work in the next five years?",
+        "Do you want to change to another job?",
+        "What technology do you use at work?"
+      ],
+      "observation_point": "GRO_01",
+      "obs_name": "一项你长期坚持的投入",
+      "topic_zh": "工作",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Are you looking forward to working?",
+          "zh": "你期待工作吗？"
+        },
+        {
+          "en": "What work do you do?",
+          "zh": "你做什么工作？"
+        },
+        {
+          "en": "Why did you choose to do that type of work (or that job)?",
+          "zh": "你为什么选择做那种工作（或那份工作）？"
+        },
+        {
+          "en": "Do you like your job?",
+          "zh": "你喜欢你的工作吗？"
+        },
+        {
+          "en": "What requirements did you need to meet to get your current job?",
+          "zh": "为了得到目前的工作，你需要满足什么要求？"
+        },
+        {
+          "en": "Do you have any plans for your work in the next five years?",
+          "zh": "你对未来五年的工作有什么计划吗？"
+        },
+        {
+          "en": "Do you want to change to another job?",
+          "zh": "你想换一份工作吗？"
+        },
+        {
+          "en": "What technology do you use at work?",
+          "zh": "你在工作中使用什么技术？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "WORK",
+      "review": "同上"
+    },
+    {
+      "topic": "ACCOMMODATION",
+      "is_new": false,
+      "questions": [
+        "Who do you live with?",
+        "Do you live in an apartment or a house?",
+        "What part of your home do you like the most?",
+        "What’s the difference between where you are living now and where you have lived in the past?",
+        "What kind of house or apartment do you want to live in the future?",
+        "What room does your family spend most of the time in?",
+        "What do you usually do in your apartment?",
+        "What kinds of accommodation do you live in?",
+        "Do you plan to live there for a long time?",
+        "Can you describe the place where you live?",
+        "Do you prefer living in a house or an apartment?",
+        "Are the transport facilities to your home very good?",
+        "What’s your favorite room in your apartment or house?",
+        "What makes you feel pleasant in your home?",
+        "How long have you lived there?",
+        "Do you think it is important to live in a comfortable environment?"
+      ],
+      "observation_point": "SPA_01",
+      "obs_name": "你和居住空间的关系",
+      "topic_zh": "住所",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Who do you live with?",
+          "zh": "你和谁住在一起？"
+        },
+        {
+          "en": "Do you live in an apartment or a house?",
+          "zh": "你住在多户公寓还是独栋住宅里？"
+        },
+        {
+          "en": "What part of your home do you like the most?",
+          "zh": "你最喜欢家里的哪一部分？"
+        },
+        {
+          "en": "What’s the difference between where you are living now and where you have lived in the past?",
+          "zh": "你现在住的地方和你过去住的地方有什么不同？"
+        },
+        {
+          "en": "What kind of house or apartment do you want to live in the future?",
+          "zh": "你将来想住什么样的房子或公寓？"
+        },
+        {
+          "en": "What room does your family spend most of the time in?",
+          "zh": "你家人在哪个房间待的时间最长？"
+        },
+        {
+          "en": "What do you usually do in your apartment?",
+          "zh": "你通常在公寓里做什么？"
+        },
+        {
+          "en": "What kinds of accommodation do you live in?",
+          "zh": "你住什么样的房子？"
+        },
+        {
+          "en": "Do you plan to live there for a long time?",
+          "zh": "你打算在那里住很长时间吗？"
+        },
+        {
+          "en": "Can you describe the place where you live?",
+          "zh": "你能描述一下你住的地方吗？"
+        },
+        {
+          "en": "Do you prefer living in a house or an apartment?",
+          "zh": "你喜欢住在房子里还是公寓里？"
+        },
+        {
+          "en": "Are the transport facilities to your home very good?",
+          "zh": "到你家的交通设施很好吗？"
+        },
+        {
+          "en": "What’s your favorite room in your apartment or house?",
+          "zh": "你最喜欢你公寓或房子的哪个房间？"
+        },
+        {
+          "en": "What makes you feel pleasant in your home?",
+          "zh": "是什么让你在家里感觉愉快？"
+        },
+        {
+          "en": "How long have you lived there?",
+          "zh": "你在那里住了多久了？"
+        },
+        {
+          "en": "Do you think it is important to live in a comfortable environment?",
+          "zh": "你认为生活在舒适的环境中重要吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "ACCOMMODATION"
+    },
+    {
+      "topic": "Childhood Activities",
+      "is_new": false,
+      "questions": [
+        "What were your favourite activities when you were a child?",
+        "Did you prefer to do activities alone or with a group of people when you were a child?",
+        "What are your favourite activities?",
+        "Are there any differences between the activities you liked when you were a child and those you like now?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "会反复回到的小习惯",
+      "topic_zh": "童年活动",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What were your favourite activities when you were a child?",
+          "zh": "你小时候最喜欢的活动是什么？"
+        },
+        {
+          "en": "Did you prefer to do activities alone or with a group of people when you were a child?",
+          "zh": "你小时候是喜欢独自活动还是喜欢和一群人一起活动？"
+        },
+        {
+          "en": "What are your favourite activities?",
+          "zh": "你最喜欢的活动是什么？"
+        },
+        {
+          "en": "Are there any differences between the activities you liked when you were a child and those you like now?",
+          "zh": "你小时候喜欢的活动和现在喜欢的活动有什么不同吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Childhood Activities"
+    },
+    {
+      "topic": "Walking",
+      "is_new": false,
+      "questions": [
+        "Do you walk a lot?",
+        "Did you often go outside to have a walk when you were a child?",
+        "Why do people like to walk in parks?",
+        "Where would you like to take a long walk if you had the chance?",
+        "Where did you go for a walk lately?",
+        "Did you go to a faraway place when you were a child?",
+        "Did you often walk outside when you were a child?",
+        "Where would you want to go for a long walk if you have a chance?",
+        "Are there many parks near where you live?",
+        "Do people like to take walks in the parks? Why?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "让你感到放松的事",
+      "topic_zh": "散步",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you walk a lot?",
+          "zh": "你经常步行吗？"
+        },
+        {
+          "en": "Did you often go outside to have a walk when you were a child?",
+          "zh": "你小时候经常出去散步吗？"
+        },
+        {
+          "en": "Why do people like to walk in parks?",
+          "zh": "人们为何喜欢在公园散步？"
+        },
+        {
+          "en": "Where would you like to take a long walk if you had the chance?",
+          "zh": "如果有机会，你想去哪里散个长步？"
+        },
+        {
+          "en": "Where did you go for a walk lately?",
+          "zh": "你最近去哪散步了？"
+        },
+        {
+          "en": "Did you go to a faraway place when you were a child?",
+          "zh": "你小时候去过很远的地方吗？"
+        },
+        {
+          "en": "Did you often walk outside when you were a child?",
+          "zh": "你小时候经常在外面散步吗？"
+        },
+        {
+          "en": "Where would you want to go for a long walk if you have a chance?",
+          "zh": "如果有机会，你想去哪里长距离散步？"
+        },
+        {
+          "en": "Are there many parks near where you live?",
+          "zh": "你住的地方附近有很多公园吗？"
+        },
+        {
+          "en": "Do people like to take walks in the parks? Why?",
+          "zh": "人们喜欢在公园里散步吗？为什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Walking"
+    },
+    {
+      "topic": "Scenery & Views",
+      "is_new": false,
+      "questions": [
+        "Do you look out the window at the scenery when travelling by bus or car?",
+        "Do you prefer the mountains or the sea?",
+        "Do you like to take scenery pictures?",
+        "What are the most beautiful sights you have seen while traveling?",
+        "Do you like taking pictures of different views?",
+        "Do you prefer views in urban areas or rural areas?",
+        "Do you prefer views in your own country or in other countries?",
+        "Have you seen an unforgettable and beautiful view or scenery?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然里让你有感觉的时刻",
+      "topic_zh": "风景",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you look out the window at the scenery when travelling by bus or car?",
+          "zh": "乘坐巴士或汽车时，你会透过车窗欣赏窗外的风景吗？"
+        },
+        {
+          "en": "Do you prefer the mountains or the sea?",
+          "zh": "你更喜欢山还是海？"
+        },
+        {
+          "en": "Do you like to take scenery pictures?",
+          "zh": "你喜欢拍风景照吗？"
+        },
+        {
+          "en": "What are the most beautiful sights you have seen while traveling?",
+          "zh": "旅行中你见过哪些最美丽的风景？"
+        },
+        {
+          "en": "Do you like taking pictures of different views?",
+          "zh": "你喜欢拍摄各种风景吗？"
+        },
+        {
+          "en": "Do you prefer views in urban areas or rural areas?",
+          "zh": "你更喜欢城市景观还是乡村风光？"
+        },
+        {
+          "en": "Do you prefer views in your own country or in other countries?",
+          "zh": "你更喜欢本国的风景还是其他"
+        },
+        {
+          "en": "Have you seen an unforgettable and beautiful view or scenery?",
+          "zh": "你是否见过令人难忘的美景？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Scenery & Views"
+    },
+    {
+      "topic": "Morning Time",
+      "is_new": false,
+      "questions": [
+        "Do you like getting up early in the morning?",
+        "What do you usually do in the morning?",
+        "What did you do in the morning when you were little? Why?",
+        "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+        "Are there any differences between what you do in the morning now and what you did in the past?",
+        "What do you do right after getting up in the morning?",
+        "Is breakfast important?",
+        "What is your morning routine?"
+      ],
+      "observation_point": "EMO_02",
+      "obs_name": "日常的能量节奏",
+      "topic_zh": "早晨时光",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like getting up early in the morning?",
+          "zh": "你是否喜欢清晨早起？"
+        },
+        {
+          "en": "What do you usually do in the morning?",
+          "zh": "你通常早上做什么？"
+        },
+        {
+          "en": "What did you do in the morning when you were little? Why?",
+          "zh": "你小时候早上都做些什么？为什么？"
+        },
+        {
+          "en": "Do you spend your mornings doing the same things on both weekends and weekdays? Why?",
+          "zh": "你是否在周末和工作日的早晨都做同样的事情？为什么？"
+        },
+        {
+          "en": "Are there any differences between what you do in the morning now and what you did in the past?",
+          "zh": "你现在早上做的事和过去有什么不同吗？"
+        },
+        {
+          "en": "What do you do right after getting up in the morning?",
+          "zh": "你早上起床后马上做什么？"
+        },
+        {
+          "en": "Is breakfast important?",
+          "zh": "早餐重要吗？"
+        },
+        {
+          "en": "What is your morning routine?",
+          "zh": "你早上的日常安排是什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Morning Time"
+    },
+    {
+      "topic": "Food",
+      "is_new": false,
+      "questions": [
+        "What is your favourite food?",
+        "What kind of food did you like when you were young?",
+        "Do you eat different foods at different times of the year?",
+        "Has your favourite food changed since you were a child?",
+        "Do you have favorite food?",
+        "Is there any food you don't like?"
+      ],
+      "observation_point": "EMO_08",
+      "obs_name": "你和食物的关系",
+      "topic_zh": "食物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What is your favourite food?",
+          "zh": "你最喜欢的食物是什么？"
+        },
+        {
+          "en": "What kind of food did you like when you were young?",
+          "zh": "你小时候喜欢什么种类的食物？"
+        },
+        {
+          "en": "Do you eat different foods at different times of the year?",
+          "zh": "你是否在一年中不同时间食用不同的食物？"
+        },
+        {
+          "en": "Has your favourite food changed since you were a child?",
+          "zh": "自幼年起，你最喜爱的食物是否有所变化？"
+        },
+        {
+          "en": "Do you have favorite food?",
+          "zh": "你有喜欢的食物吗？"
+        },
+        {
+          "en": "Is there any food you don't like?",
+          "zh": "有什么食物是你不喜欢的吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Food"
+    },
+    {
+      "topic": "Hobby",
+      "is_new": false,
+      "questions": [
+        "Do you have any hobbies?",
+        "Did you have any hobbies when you were a child?",
+        "Do you have a hobby that you've had since childhood?",
+        "Do you have the same hobbies as your family members?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "爱好",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you have any hobbies?",
+          "zh": "你有什么爱好吗？"
+        },
+        {
+          "en": "Did you have any hobbies when you were a child?",
+          "zh": "你小时候有什么爱好吗？"
+        },
+        {
+          "en": "Do you have a hobby that you've had since childhood?",
+          "zh": "你有没有从童年时期就开始的爱好？"
+        },
+        {
+          "en": "Do you have the same hobbies as your family members?",
+          "zh": "你和家人有相同的爱好吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Hobby"
+    },
+    {
+      "topic": "Building",
+      "is_new": false,
+      "questions": [
+        "Do you take photos of buildings?",
+        "Is there a building that you would like to visit?",
+        "Are there tall buildings near your home?",
+        "Do you want to live in a tall building?",
+        "Have you ever seen old buildings in the city?",
+        "Do you think we should preserve old buildings in cities?",
+        "Do you prefer living in an old building or a modern house?",
+        "Are there any old buildings you want to see in the future? Why?"
+      ],
+      "observation_point": "SPA_04",
+      "obs_name": "一个让你印象深刻的建筑/公共空间",
+      "topic_zh": "建筑",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you take photos of buildings?",
+          "zh": "你会给建筑物拍照吗？"
+        },
+        {
+          "en": "Is there a building that you would like to visit?",
+          "zh": "你有想去参观的建筑吗？"
+        },
+        {
+          "en": "Are there tall buildings near your home?",
+          "zh": "你家附近有高楼吗？"
+        },
+        {
+          "en": "Do you want to live in a tall building?",
+          "zh": "你想住在高楼里吗？"
+        },
+        {
+          "en": "Have you ever seen old buildings in the city?",
+          "zh": "你在城市里见过老建筑吗？"
+        },
+        {
+          "en": "Do you think we should preserve old buildings in cities?",
+          "zh": "你认为我们应该保护城市里的老建筑吗？"
+        },
+        {
+          "en": "Do you prefer living in an old building or a modern house?",
+          "zh": "你更喜欢住在老建筑还是现代房子里？"
+        },
+        {
+          "en": "Are there any old buildings you want to see in the future? Why?",
+          "zh": "有什么老建筑是你以后想去看的吗？为什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Building"
+    },
+    {
+      "topic": "Sports Team",
+      "is_new": false,
+      "questions": [
+        "Have you ever been part of a sports team?",
+        "Are team sports popular in your culture?",
+        "Do you like to watch team games? Why?",
+        "What are the differences between team sports and individual sports?",
+        "Do you have a team to support?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "运动队",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever been part of a sports team?",
+          "zh": "你曾经加入过运动队吗？"
+        },
+        {
+          "en": "Are team sports popular in your culture?",
+          "zh": "团队运动在你们的文化中流行吗？"
+        },
+        {
+          "en": "Do you like to watch team games? Why?",
+          "zh": "你喜欢看团队比赛吗？为什么？"
+        },
+        {
+          "en": "What are the differences between team sports and individual sports?",
+          "zh": "团队运动与个人运动有何区别？"
+        },
+        {
+          "en": "Do you have a team to support?",
+          "zh": "你有支持的球队吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Sports Team"
+    },
+    {
+      "topic": "Typing",
+      "is_new": false,
+      "questions": [
+        "Do you type on a desktop or laptop keyboard every day?",
+        "When did you learn how to type on a keyboard?",
+        "How do you improve your typing?",
+        "Do you prefer typing or handwriting?"
+      ],
+      "observation_point": "GRO_02",
+      "obs_name": "一项你学会或正在练的技能",
+      "topic_zh": "打字",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you type on a desktop or laptop keyboard every day?",
+          "zh": "你每天都是用台式机还是笔记本键盘打字？"
+        },
+        {
+          "en": "When did you learn how to type on a keyboard?",
+          "zh": "你是什么时候学会打字的？"
+        },
+        {
+          "en": "How do you improve your typing?",
+          "zh": "如何提高打字速度？"
+        },
+        {
+          "en": "Do you prefer typing or handwriting?",
+          "zh": "你更喜欢打字还是手写？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Typing"
+    },
+    {
+      "topic": "Life Stages",
+      "is_new": false,
+      "questions": [
+        "What did you often do with your friends in your childhood?",
+        "What do you think is the most important at the moment?",
+        "Do you have any plans for the next five years?",
+        "How do people remember each stage of their lives?",
+        "Do you enjoy being the age you are now?"
+      ],
+      "observation_point": "EMO_01",
+      "obs_name": "最近一段时间的整体状态",
+      "topic_zh": "人生阶段",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What did you often do with your friends in your childhood?",
+          "zh": "你小时候经常和朋友一起做什么？"
+        },
+        {
+          "en": "What do you think is the most important at the moment?",
+          "zh": "你认为目前最重要的是什么？"
+        },
+        {
+          "en": "Do you have any plans for the next five years?",
+          "zh": "你对未来五年有什么计划吗？"
+        },
+        {
+          "en": "How do people remember each stage of their lives?",
+          "zh": "人们如何记忆生命中的每个阶段？"
+        },
+        {
+          "en": "Do you enjoy being the age you are now?",
+          "zh": "你喜欢现在的年龄吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Life Stages"
+    },
+    {
+      "topic": "Gifts",
+      "is_new": false,
+      "questions": [
+        "Have you ever sent handmade gifts to others?",
+        "Have you ever received a great gift?",
+        "What do you consider when choosing a gift?",
+        "Do you think you are good at choosing gifts?",
+        "What gift have you received recently?"
+      ],
+      "observation_point": "REL_03",
+      "obs_name": "一个让你舒服的朋友",
+      "topic_zh": "礼物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever sent handmade gifts to others?",
+          "zh": "你有没有送过别人手工礼物？"
+        },
+        {
+          "en": "Have you ever received a great gift?",
+          "zh": "你收到过很棒的礼物吗？"
+        },
+        {
+          "en": "What do you consider when choosing a gift?",
+          "zh": "在挑选礼物时，你会考虑哪些因素？"
+        },
+        {
+          "en": "Do you think you are good at choosing gifts?",
+          "zh": "你觉得自己擅长挑选礼物吗？"
+        },
+        {
+          "en": "What gift have you received recently?",
+          "zh": "你最近收到什么礼物？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Gifts"
+    },
+    {
+      "topic": "Pets and Animals",
+      "is_new": false,
+      "questions": [
+        "What's your favourite animal? Why?",
+        "Where do you prefer to keep your pet, indoors or outdoors?",
+        "Have you ever had a pet before?",
+        "What is the most popular animal in China?",
+        "Do you like animals?",
+        "Did you want to keep a pet when you were young?"
+      ],
+      "observation_point": "REL_07",
+      "obs_name": "和宠物/动物的日常陪伴",
+      "topic_zh": "宠物与动物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What's your favourite animal? Why?",
+          "zh": "你最喜欢的动物是什么？为什么？"
+        },
+        {
+          "en": "Where do you prefer to keep your pet, indoors or outdoors?",
+          "zh": "你更倾向于将宠物饲养在室内还是室外？"
+        },
+        {
+          "en": "Have you ever had a pet before?",
+          "zh": "你以前养过宠物吗？"
+        },
+        {
+          "en": "What is the most popular animal in China?",
+          "zh": "中国最受欢迎的动物是什么？"
+        },
+        {
+          "en": "Do you like animals?",
+          "zh": "你喜欢动物吗？"
+        },
+        {
+          "en": "Did you want to keep a pet when you were young?",
+          "zh": "你小时候想养宠物吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Pets and Animals"
+    },
+    {
+      "topic": "Reading",
+      "is_new": false,
+      "questions": [
+        "Do you like reading?",
+        "Do you prefer to read on paper or on a screen?",
+        "When do you need to read carefully, and when not?",
+        "Do you prefer scanning or detailed reading?",
+        "Have you read any books lately?",
+        "Do you prefer speed reading or thoughtful reading?",
+        "Why do some people like speed reading?"
+      ],
+      "observation_point": "SPI_01",
+      "obs_name": "一个反复回去的作品",
+      "topic_zh": "阅读",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like reading?",
+          "zh": "你喜欢阅读吗？"
+        },
+        {
+          "en": "Do you prefer to read on paper or on a screen?",
+          "zh": "你更喜欢在纸上阅读，还是在屏幕上阅读？"
+        },
+        {
+          "en": "When do you need to read carefully, and when not?",
+          "zh": "什么时候需要仔细阅读，什么时候不需要？"
+        },
+        {
+          "en": "Do you prefer scanning or detailed reading?",
+          "zh": "你更喜欢快速浏览还是仔细阅读？"
+        },
+        {
+          "en": "Have you read any books lately?",
+          "zh": "你最近读过什么书吗？"
+        },
+        {
+          "en": "Do you prefer speed reading or thoughtful reading?",
+          "zh": "你更喜欢快速阅读还是细读？"
+        },
+        {
+          "en": "Why do some people like speed reading?",
+          "zh": "为什么有些人喜欢快速阅读？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Reading"
+    },
+    {
+      "topic": "Day Off",
+      "is_new": false,
+      "questions": [
+        "When was the last time you had a few days off?",
+        "Do you usually spend your days off with your parents or with your friends?",
+        "What would you like to do if you had a day off tomorrow?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "让你感到放松的事",
+      "topic_zh": "休息日",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "When was the last time you had a few days off?",
+          "zh": "你上次休几天假是什么时候？"
+        },
+        {
+          "en": "Do you usually spend your days off with your parents or with your friends?",
+          "zh": "你休息日通常和父母还是朋友一起过？"
+        },
+        {
+          "en": "What would you like to do if you had a day off tomorrow?",
+          "zh": "如果明天放假，你想做什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Day Off"
+    },
+    {
+      "topic": "Keys",
+      "is_new": false,
+      "questions": [
+        "Do you always bring a lot of keys with you?",
+        "Have you ever lost your keys?",
+        "Do you often forget the keys and lock yourself out?",
+        "Do you think it's a good idea to leave your keys with a neighbour?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "会反复回到的小习惯",
+      "topic_zh": "钥匙",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you always bring a lot of keys with you?",
+          "zh": "你总是随身带很多钥匙吗？"
+        },
+        {
+          "en": "Have you ever lost your keys?",
+          "zh": "你丢过钥匙吗？"
+        },
+        {
+          "en": "Do you often forget the keys and lock yourself out?",
+          "zh": "你经常忘带钥匙把自己锁在门外吗？"
+        },
+        {
+          "en": "Do you think it's a good idea to leave your keys with a neighbour?",
+          "zh": "你觉得把钥匙放在邻居那里是个好主意吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Keys"
+    },
+    {
+      "topic": "Dreams",
+      "is_new": false,
+      "questions": [
+        "Can you remember the dreams you had?",
+        "Do you share your dreams with others?",
+        "Do you think dreams have special meanings?",
+        "Do you want to make your dreams come true?",
+        "What was your childhood dream?",
+        "Are you the kind of person who sticks to dreams?",
+        "What is your dream job?",
+        "Do you think you are an ambitious person?"
+      ],
+      "observation_point": "GRO_06",
+      "obs_name": "对自己未来方向的思考",
+      "topic_zh": "梦想",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Can you remember the dreams you had?",
+          "zh": "你能记住你做过的梦吗？"
+        },
+        {
+          "en": "Do you share your dreams with others?",
+          "zh": "你会和别人分享你的梦吗？"
+        },
+        {
+          "en": "Do you think dreams have special meanings?",
+          "zh": "你觉得梦有特殊的含义吗？"
+        },
+        {
+          "en": "Do you want to make your dreams come true?",
+          "zh": "你想实现你的梦想吗？"
+        },
+        {
+          "en": "What was your childhood dream?",
+          "zh": "你小时候的梦想是什么？"
+        },
+        {
+          "en": "Are you the kind of person who sticks to dreams?",
+          "zh": "你是那种会坚持梦想的人吗？"
+        },
+        {
+          "en": "What is your dream job?",
+          "zh": "你理想的工作是什么？"
+        },
+        {
+          "en": "Do you think you are an ambitious person?",
+          "zh": "你觉得自己是个有抱负的人吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Dreams",
+      "review": "Dreams(梦境)与Dream and ambition(抱负)并集;主挂GRO_06(未来方向),梦境题偏娱乐,占比低可接受"
+    },
+    {
+      "topic": "Art",
+      "is_new": false,
+      "questions": [
+        "Do you like art?",
+        "Do you like visiting art galleries?",
+        "Do you want to be an artist?",
+        "Do you like modern art or traditional art?"
+      ],
+      "observation_point": "SPI_04",
+      "obs_name": "一首歌/一件作品带来的纯粹感受",
+      "topic_zh": "艺术",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like art?",
+          "zh": "你喜欢艺术吗？"
+        },
+        {
+          "en": "Do you like visiting art galleries?",
+          "zh": "你喜欢逛美术馆吗？"
+        },
+        {
+          "en": "Do you want to be an artist?",
+          "zh": "你想成为艺术家吗？"
+        },
+        {
+          "en": "Do you like modern art or traditional art?",
+          "zh": "你喜欢现代艺术还是传统艺术？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Art"
+    },
+    {
+      "topic": "Relax",
+      "is_new": false,
+      "questions": [
+        "What would you do to relax?",
+        "Do you think doing sports is a good way to relax?",
+        "Do you think vacation is a good time to relax?",
+        "Do you think students need more relaxing time?"
+      ],
+      "observation_point": "EMO_04",
+      "obs_name": "让你感到放松的事",
+      "topic_zh": "放松",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What would you do to relax?",
+          "zh": "你会做什么来放松？"
+        },
+        {
+          "en": "Do you think doing sports is a good way to relax?",
+          "zh": "你觉得运动是放松的好方法吗？"
+        },
+        {
+          "en": "Do you think vacation is a good time to relax?",
+          "zh": "你觉得假期是放松的好时机吗？"
+        },
+        {
+          "en": "Do you think students need more relaxing time?",
+          "zh": "你觉得学生需要更多放松的时间吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": true,
+      "match_topic": "Having a Break",
+      "review": "由1-4月话题Having a Break更名而来"
+    },
+    {
+      "topic": "Music",
+      "is_new": true,
+      "questions": [
+        "Do you prefer sad or happy music?",
+        "Does happy music make you feel more excited?",
+        "Have you taken any music classes?",
+        "Do you listen to music while doing other things?"
+      ],
+      "observation_point": "SPI_04",
+      "obs_name": "一首歌/一件作品带来的纯粹感受",
+      "topic_zh": "音乐",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you prefer sad or happy music?",
+          "zh": "你更喜欢悲伤的音乐还是快乐的音乐？"
+        },
+        {
+          "en": "Does happy music make you feel more excited?",
+          "zh": "快乐的音乐会让你感到更加兴奋吗？"
+        },
+        {
+          "en": "Have you taken any music classes?",
+          "zh": "你上过音乐课吗？"
+        },
+        {
+          "en": "Do you listen to music while doing other things?",
+          "zh": "你在做其他事情时会听音乐吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Social Media",
+      "is_new": true,
+      "questions": [
+        "Have you ever posted anything on social media?",
+        "When did you start using social media?",
+        "Do you think you spend too much time on social media?",
+        "Do your friends use social media?",
+        "What do people often do on social media?"
+      ],
+      "observation_point": "SPI_06",
+      "obs_name": "你在数字世界里的栖居",
+      "topic_zh": "社交媒体",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever posted anything on social media?",
+          "zh": "你曾在社交媒体上发布过内容吗？"
+        },
+        {
+          "en": "When did you start using social media?",
+          "zh": "你是什么时候开始使用社交媒体的？"
+        },
+        {
+          "en": "Do you think you spend too much time on social media?",
+          "zh": "你认为自己在社交媒体上花费的时间过多吗？"
+        },
+        {
+          "en": "Do your friends use social media?",
+          "zh": "你的朋友使用社交媒体吗？"
+        },
+        {
+          "en": "What do people often do on social media?",
+          "zh": "人们在社交媒体上通常会做些什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Teachers",
+      "is_new": true,
+      "questions": [
+        "Do you have a favorite teacher?",
+        "Do you want to be a teacher in the future?",
+        "Do you have a teacher from your past that you still remember?",
+        "Are you still in touch with your primary school teachers?",
+        "In what way has your favourite teacher helped you?",
+        "Do you like your primary school teachers more than your high school teachers?",
+        "Do you remember one of your teachers?",
+        "What kinds of teacher do you prefer?",
+        "Do you think teachers are different now than the past?"
+      ],
+      "observation_point": "REL_12",
+      "obs_name": "一个让你印象深刻的人",
+      "topic_zh": "老师",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you have a favorite teacher?",
+          "zh": "你有最喜欢的老师吗？"
+        },
+        {
+          "en": "Do you want to be a teacher in the future?",
+          "zh": "你将来想成为一名教师吗？"
+        },
+        {
+          "en": "Do you have a teacher from your past that you still remember?",
+          "zh": "你还记得过去有哪位老师吗？"
+        },
+        {
+          "en": "Are you still in touch with your primary school teachers?",
+          "zh": "你还在和你的小学老师保持联系吗？"
+        },
+        {
+          "en": "In what way has your favourite teacher helped you?",
+          "zh": "你最喜欢的老师在哪些方面帮助了你？"
+        },
+        {
+          "en": "Do you like your primary school teachers more than your high school teachers?",
+          "zh": "比起高中老师，你更喜欢小学老师吗？"
+        },
+        {
+          "en": "Do you remember one of your teachers?",
+          "zh": "你还记得你的某位老师吗？"
+        },
+        {
+          "en": "What kinds of teacher do you prefer?",
+          "zh": "你更喜欢哪种老师？"
+        },
+        {
+          "en": "Do you think teachers are different now than the past?",
+          "zh": "你觉得现在的老师和过去不一样吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Mirrors",
+      "is_new": true,
+      "questions": [
+        "Do you like looking at yourself in the mirror? How often?",
+        "Have you ever bought mirrors?",
+        "Do you usually take a mirror with you?",
+        "Would you use mirrors to decorate your room?"
+      ],
+      "observation_point": "EMO_13",
+      "obs_name": "你和外表/形象的关系",
+      "topic_zh": "镜子",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like looking at yourself in the mirror? How often?",
+          "zh": "你喜欢照镜子吗？多久照一次？"
+        },
+        {
+          "en": "Have you ever bought mirrors?",
+          "zh": "你买过镜子吗？"
+        },
+        {
+          "en": "Do you usually take a mirror with you?",
+          "zh": "你通常会随身携带一面镜子吗？"
+        },
+        {
+          "en": "Would you use mirrors to decorate your room?",
+          "zh": "你会用镜子来装饰你的房间吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Tidiness",
+      "is_new": true,
+      "questions": [
+        "Do you like to keep things tidy?",
+        "Did you use to keep your room tidy as a child?",
+        "How do you keep your work or study space tidy?",
+        "Do you think that it is necessary to be tidy?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "会反复回到的小习惯",
+      "topic_zh": "整洁",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like to keep things tidy?",
+          "zh": "你喜欢保持物品整洁吗？"
+        },
+        {
+          "en": "Did you use to keep your room tidy as a child?",
+          "zh": "你小时候会保持房间整洁吗？"
+        },
+        {
+          "en": "How do you keep your work or study space tidy?",
+          "zh": "你是如何保持工作或学习空间整洁的？"
+        },
+        {
+          "en": "Do you think that it is necessary to be tidy?",
+          "zh": "你认为保持整洁有必要吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Websites",
+      "is_new": true,
+      "questions": [
+        "What kinds of websites do you often visit?",
+        "What is your favourite website?",
+        "Are there any changes to the websites you often visit?",
+        "What kinds of websites are popular in your country?",
+        "Do you prefer getting information from websites or books?",
+        "Would you like to have your own website?",
+        "What have you learned from websites that help with your life or studies?"
+      ],
+      "observation_point": "SPI_06",
+      "obs_name": "你在数字世界里的栖居",
+      "topic_zh": "网站",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What kinds of websites do you often visit?",
+          "zh": "你经常访问哪些类型的网站？"
+        },
+        {
+          "en": "What is your favourite website?",
+          "zh": "你最喜欢的网站是什么？"
+        },
+        {
+          "en": "Are there any changes to the websites you often visit?",
+          "zh": "你经常访问的网站是否有变化？"
+        },
+        {
+          "en": "What kinds of websites are popular in your country?",
+          "zh": "在你们国家，哪些类型的网站比较受欢迎？"
+        },
+        {
+          "en": "Do you prefer getting information from websites or books?",
+          "zh": "你更喜欢从网站还是书籍中获取信息？"
+        },
+        {
+          "en": "Would you like to have your own website?",
+          "zh": "你想拥有自己的网站吗？"
+        },
+        {
+          "en": "What have you learned from websites that help with your life or studies?",
+          "zh": "从那些帮助你改善生活或学习的网站中，你学到了什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Watch",
+      "is_new": true,
+      "questions": [
+        "Do you wear a watch?",
+        "Have you ever got a watch as a gift?",
+        "Why do some people wear expensive watches?",
+        "Do you think it is important to wear a watch? Why?"
+      ],
+      "observation_point": "SPI_05",
+      "obs_name": "一件对你特别的物品",
+      "topic_zh": "手表",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you wear a watch?",
+          "zh": "你戴手表吗？"
+        },
+        {
+          "en": "Have you ever got a watch as a gift?",
+          "zh": "你有没有收到过手表作为礼物？"
+        },
+        {
+          "en": "Why do some people wear expensive watches?",
+          "zh": "为什么有些人会佩戴昂贵的手表？"
+        },
+        {
+          "en": "Do you think it is important to wear a watch? Why?",
+          "zh": "你认为戴手表重要吗？为什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Shopping",
+      "is_new": true,
+      "questions": [
+        "Do you like shopping?",
+        "How often do you go shopping?",
+        "Do you prefer online shopping or in-store shopping?",
+        "Have you ever returned anything you bought online?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "购物",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like shopping?",
+          "zh": "你喜欢购物吗？"
+        },
+        {
+          "en": "How often do you go shopping?",
+          "zh": "你多久去一次购物？"
+        },
+        {
+          "en": "Do you prefer online shopping or in-store shopping?",
+          "zh": "你更喜欢在线购物还是实体店购物？"
+        },
+        {
+          "en": "Have you ever returned anything you bought online?",
+          "zh": "你有没有在网上购买过商品后退过货？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Cars",
+      "is_new": true,
+      "questions": [
+        "Did you enjoy traveling by car when you were a kid?",
+        "What types of cars do you like?",
+        "Do you prefer to be a driver or a passenger?",
+        "What do you usually do when there is a traffic jam?",
+        "Do you think car colours are important?",
+        "Will you buy an expensive car in the future?"
+      ],
+      "observation_point": "SPA_02",
+      "obs_name": "日常移动/通勤",
+      "topic_zh": "汽车",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Did you enjoy traveling by car when you were a kid?",
+          "zh": "你小时候喜欢坐车旅行吗？"
+        },
+        {
+          "en": "What types of cars do you like?",
+          "zh": "你喜欢什么类型的汽车？"
+        },
+        {
+          "en": "Do you prefer to be a driver or a passenger?",
+          "zh": "你是更喜欢当司机还是乘客？"
+        },
+        {
+          "en": "What do you usually do when there is a traffic jam?",
+          "zh": "遇到交通堵塞时，你通常会怎么做？"
+        },
+        {
+          "en": "Do you think car colours are important?",
+          "zh": "你认为汽车颜色很重要吗？"
+        },
+        {
+          "en": "Will you buy an expensive car in the future?",
+          "zh": "将来你会买一辆昂贵的汽车吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Public Gardens and Parks",
+      "is_new": true,
+      "questions": [
+        "Did you like going to parks as a child?",
+        "Do you still like going to parks now?",
+        "Would you like to see more parks in your city?",
+        "Are there any parks you want to go to in the future?",
+        "Would you prefer to play in a personal garden or public garden?",
+        "How are the parks today different from those you visited as a kid?",
+        "What do you like to do when visiting a park?",
+        "Would you like to play in a public garden or park?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然里让你有感觉的时刻",
+      "topic_zh": "公园与公共花园",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Did you like going to parks as a child?",
+          "zh": "你小时候喜欢去公园吗？"
+        },
+        {
+          "en": "Do you still like going to parks now?",
+          "zh": "你现在还喜欢去公园吗？"
+        },
+        {
+          "en": "Would you like to see more parks in your city?",
+          "zh": "你想在你的城市看到更多的公园吗？"
+        },
+        {
+          "en": "Are there any parks you want to go to in the future?",
+          "zh": "你未来想去哪些公园？"
+        },
+        {
+          "en": "Would you prefer to play in a personal garden or public garden?",
+          "zh": "你更喜欢在私人花园还是公"
+        },
+        {
+          "en": "How are the parks today different from those you visited as a kid?",
+          "zh": "如今的公园与你小时候参观过的公园有何不同？"
+        },
+        {
+          "en": "What do you like to do when visiting a park?",
+          "zh": "参观公园时，你喜欢做什么？"
+        },
+        {
+          "en": "Would you like to play in a public garden or park?",
+          "zh": "你想在公共花园或公园里玩耍吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Science",
+      "is_new": true,
+      "questions": [
+        "Do you like science?",
+        "When did you start to learn about science?",
+        "Which science subject is interesting to you?",
+        "What kinds of interesting things have you done with science?",
+        "Do you like watching science TV programs?",
+        "Do Chinese people often visit science museums?"
+      ],
+      "observation_point": "GRO_02",
+      "obs_name": "一项你学会或正在练的技能",
+      "topic_zh": "科学",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like science?",
+          "zh": "你喜欢科学吗？"
+        },
+        {
+          "en": "When did you start to learn about science?",
+          "zh": "你是什么时候开始学习科学的？"
+        },
+        {
+          "en": "Which science subject is interesting to you?",
+          "zh": "哪门科学科目对你来说更有趣？"
+        },
+        {
+          "en": "What kinds of interesting things have you done with science?",
+          "zh": "你在科学领域做过哪些有趣的事情？"
+        },
+        {
+          "en": "Do you like watching science TV programs?",
+          "zh": "你喜欢看科学类电视节目吗？"
+        },
+        {
+          "en": "Do Chinese people often visit science museums?",
+          "zh": "中国人经常参观科学博物馆吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null,
+      "review": "知识兴趣类无专属点位,归GRO_02(学习技能)"
+    },
+    {
+      "topic": "Outer Space and Stars",
+      "is_new": true,
+      "questions": [
+        "Have you ever learnt about outer space and stars?",
+        "Do you like science fiction movies? Why?",
+        "Do you want to know more about outer space?",
+        "Do you want to go into outer space in the future?"
+      ],
+      "observation_point": "SPA_07",
+      "obs_name": "自然里让你有感觉的时刻",
+      "topic_zh": "外太空与星空",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever learnt about outer space and stars?",
+          "zh": "你曾经了解过外太空和星球吗？"
+        },
+        {
+          "en": "Do you like science fiction movies? Why?",
+          "zh": "你喜欢科幻电影吗？为什么？"
+        },
+        {
+          "en": "Do you want to know more about outer space?",
+          "zh": "你想了解更多关于外太空的知识吗？"
+        },
+        {
+          "en": "Do you want to go into outer space in the future?",
+          "zh": "你未来想进入外太空吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null,
+      "review": "看星空归自然时刻SPA_07(prompt月亮例句背书)"
+    },
+    {
+      "topic": "Singing",
+      "is_new": true,
+      "questions": [
+        "Do you like singing? Why?",
+        "Have you ever learnt how to sing?",
+        "Who do you want to sing for?",
+        "Do you think singing can bring happiness to people?",
+        "Do you like listening to others singing?",
+        "Have you ever taken a singing class?"
+      ],
+      "observation_point": "SPI_04",
+      "obs_name": "一首歌/一件作品带来的纯粹感受",
+      "topic_zh": "唱歌",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like singing? Why?",
+          "zh": "你喜欢唱歌吗？为什么？"
+        },
+        {
+          "en": "Have you ever learnt how to sing?",
+          "zh": "你学过唱歌吗？"
+        },
+        {
+          "en": "Who do you want to sing for?",
+          "zh": "你想为谁唱歌？"
+        },
+        {
+          "en": "Do you think singing can bring happiness to people?",
+          "zh": "你认为唱歌能给人带来快乐吗？"
+        },
+        {
+          "en": "Do you like listening to others singing?",
+          "zh": "你喜欢听别人唱歌吗？"
+        },
+        {
+          "en": "Have you ever taken a singing class?",
+          "zh": "你上过声乐课吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Clothing",
+      "is_new": true,
+      "questions": [
+        "What kind of clothes do you like to wear?",
+        "Do you prefer to wear comfortable and casual clothes or smart clothes?",
+        "Do you like wearing T-shirts?",
+        "Do you spend a lot of time choosing clothes?",
+        "Do you wear clothes of different styles on weekdays and weekends?",
+        "What colour clothes do you like?"
+      ],
+      "observation_point": "EMO_13",
+      "obs_name": "你和外表/形象的关系",
+      "topic_zh": "衣服",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What kind of clothes do you like to wear?",
+          "zh": "你喜欢穿什么样的衣服？"
+        },
+        {
+          "en": "Do you prefer to wear comfortable and casual clothes or smart clothes?",
+          "zh": "你更喜欢穿舒适休闲的衣服，还是正式得体的衣服？"
+        },
+        {
+          "en": "Do you like wearing T-shirts?",
+          "zh": "你喜欢穿 T 恤吗？"
+        },
+        {
+          "en": "Do you spend a lot of time choosing clothes?",
+          "zh": "你花很多时间挑选衣服吗？"
+        },
+        {
+          "en": "Do you wear clothes of different styles on weekdays and weekends?",
+          "zh": "你在工作日和周末会穿不同风格的衣服吗？"
+        },
+        {
+          "en": "What colour clothes do you like?",
+          "zh": "你喜欢什么颜色的衣服？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Jokes & Comedies",
+      "is_new": true,
+      "questions": [
+        "Are you good at telling jokes?",
+        "Do your friends like to tell jokes?",
+        "Do you like to watch comedies?",
+        "Have you ever watched a live show?",
+        "Are comedy shows popular in your country?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "笑话与喜剧",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Are you good at telling jokes?",
+          "zh": "你擅长讲笑话吗？"
+        },
+        {
+          "en": "Do your friends like to tell jokes?",
+          "zh": "你的朋友喜欢讲笑话吗？"
+        },
+        {
+          "en": "Do you like to watch comedies?",
+          "zh": "你喜欢看喜剧片吗？"
+        },
+        {
+          "en": "Have you ever watched a live show?",
+          "zh": "你看过现场表演吗？"
+        },
+        {
+          "en": "Are comedy shows popular in your country?",
+          "zh": "喜剧节目在你们国家受欢迎吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null,
+      "review": "幽默类无专属点位,归EMO_05充电"
+    },
+    {
+      "topic": "Headphones",
+      "is_new": true,
+      "questions": [
+        "Do you use headphones?",
+        "What type of headphones do you use?",
+        "When would you use headphones?",
+        "In what conditions would you not use headphones?",
+        "Is wearing headphones comfortable?"
+      ],
+      "observation_point": "SPI_06",
+      "obs_name": "你在数字世界里的栖居",
+      "topic_zh": "耳机",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you use headphones?",
+          "zh": "你使用耳机吗？"
+        },
+        {
+          "en": "What type of headphones do you use?",
+          "zh": "你使用哪种类型的耳机？"
+        },
+        {
+          "en": "When would you use headphones?",
+          "zh": "你什么时候会使用耳机？"
+        },
+        {
+          "en": "In what conditions would you not use headphones?",
+          "zh": "在什么情况下你不会使用耳机？"
+        },
+        {
+          "en": "Is wearing headphones comfortable?",
+          "zh": "戴耳机舒服吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "News",
+      "is_new": true,
+      "questions": [
+        "Are you interested in news?",
+        "How do you usually find news?",
+        "How do your friends get news?",
+        "Have you read the news this morning?",
+        "Do you often talk with your friends about the news?"
+      ],
+      "observation_point": "SPI_06",
+      "obs_name": "你在数字世界里的栖居",
+      "topic_zh": "新闻",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Are you interested in news?",
+          "zh": "你对新闻感兴趣吗？"
+        },
+        {
+          "en": "How do you usually find news?",
+          "zh": "你通常怎么获取新闻？"
+        },
+        {
+          "en": "How do your friends get news?",
+          "zh": "你的朋友怎么获取新闻？"
+        },
+        {
+          "en": "Have you read the news this morning?",
+          "zh": "你今天早上看新闻了吗？"
+        },
+        {
+          "en": "Do you often talk with your friends about the news?",
+          "zh": "你经常和朋友聊新闻吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Pen & Pencil",
+      "is_new": true,
+      "questions": [
+        "Do you usually use a pen or a pencil?",
+        "What do you think if someone gives you a pen or pencil as a present?",
+        "When was the last time you bought a pen or pencil?",
+        "Which do you use more often? Pen or pencil?"
+      ],
+      "observation_point": "EMO_06",
+      "obs_name": "会反复回到的小习惯",
+      "topic_zh": "笔",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you usually use a pen or a pencil?",
+          "zh": "你通常用钢笔还是铅笔？"
+        },
+        {
+          "en": "What do you think if someone gives you a pen or pencil as a present?",
+          "zh": "如果有人送你钢笔或铅笔作礼物，你怎么看？"
+        },
+        {
+          "en": "When was the last time you bought a pen or pencil?",
+          "zh": "你上次买笔是什么时候？"
+        },
+        {
+          "en": "Which do you use more often? Pen or pencil?",
+          "zh": "你更常用哪种？钢笔还是铅笔？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Exciting Activities",
+      "is_new": true,
+      "questions": [
+        "Have you ever tried any exciting activities?",
+        "What exciting activities did you do when you were a child?",
+        "Has anything exciting happened to you recently?",
+        "Would you like to try scuba diving and bungee jumping?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "刺激的活动",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Have you ever tried any exciting activities?",
+          "zh": "你尝试过什么刺激的活动吗？"
+        },
+        {
+          "en": "What exciting activities did you do when you were a child?",
+          "zh": "你小时候做过什么刺激的活动？"
+        },
+        {
+          "en": "Has anything exciting happened to you recently?",
+          "zh": "你最近有什么令人兴奋的事发生吗？"
+        },
+        {
+          "en": "Would you like to try scuba diving and bungee jumping?",
+          "zh": "你想尝试潜水和蹦极吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Sports Programs",
+      "is_new": true,
+      "questions": [
+        "Do you like watching sports programs on TV?",
+        "Do you like to watch live sports games?",
+        "Who do you like to watch sports games with?",
+        "What kinds of games do you expect to watch in the future?",
+        "Do you prefer to watch sports games alone or with a group of friends?",
+        "Have you ever watched a sports game in a stadium?"
+      ],
+      "observation_point": "EMO_05",
+      "obs_name": "让你感到充电的事",
+      "topic_zh": "体育节目",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like watching sports programs on TV?",
+          "zh": "你喜欢在电视上看体育节目吗？"
+        },
+        {
+          "en": "Do you like to watch live sports games?",
+          "zh": "你喜欢看体育赛事直播吗？"
+        },
+        {
+          "en": "Who do you like to watch sports games with?",
+          "zh": "你喜欢和谁一起看体育比赛？"
+        },
+        {
+          "en": "What kinds of games do you expect to watch in the future?",
+          "zh": "你以后想看哪种比赛？"
+        },
+        {
+          "en": "Do you prefer to watch sports games alone or with a group of friends?",
+          "zh": "你更喜欢一个人看体育比赛还是和一群朋友一起看？"
+        },
+        {
+          "en": "Have you ever watched a sports game in a stadium?",
+          "zh": "你在体育场里看过体育比赛吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Evening Time",
+      "is_new": true,
+      "questions": [
+        "Do you like the morning or evening?",
+        "What do you usually do in the evening?",
+        "What did you do in the evening when you were little? Why?",
+        "Are there any differences between what you do in the evening now and what you did in the past?",
+        "Do you spend your evenings doing the same things on both weekends and weekdays? Why?",
+        "What do you hate doing in the evening?"
+      ],
+      "observation_point": "EMO_02",
+      "obs_name": "日常的能量节奏",
+      "topic_zh": "晚间时光",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you like the morning or evening?",
+          "zh": "你喜欢早晨还是晚上？"
+        },
+        {
+          "en": "What do you usually do in the evening?",
+          "zh": "你晚上通常做什么？"
+        },
+        {
+          "en": "What did you do in the evening when you were little? Why?",
+          "zh": "你小时候晚上做什么？为什么？"
+        },
+        {
+          "en": "Are there any differences between what you do in the evening now and what you did in the past?",
+          "zh": "你现在晚上做的事和过去有什么不同吗？"
+        },
+        {
+          "en": "Do you spend your evenings doing the same things on both weekends and weekdays? Why?",
+          "zh": "你周末和工作日的晚上做的事一样吗？为什么？"
+        },
+        {
+          "en": "What do you hate doing in the evening?",
+          "zh": "你晚上最讨厌做什么？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Films / Cinemas",
+      "is_new": true,
+      "questions": [
+        "What films do you like?",
+        "Did you often watch films when you were a child?",
+        "Did you ever go to the cinema alone as a child?",
+        "Do you often go to the cinema with your friends?",
+        "Do you think going to the cinema is a good way to spend time with friends?",
+        "How often do you watch films?",
+        "Do you prefer to watch films at home or in the cinema?"
+      ],
+      "observation_point": "SPI_01",
+      "obs_name": "一个反复回去的作品",
+      "topic_zh": "电影与影院",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What films do you like?",
+          "zh": "你喜欢什么电影？"
+        },
+        {
+          "en": "Did you often watch films when you were a child?",
+          "zh": "你小时候经常看电影吗？"
+        },
+        {
+          "en": "Did you ever go to the cinema alone as a child?",
+          "zh": "你小时候一个人去过电影院吗？"
+        },
+        {
+          "en": "Do you often go to the cinema with your friends?",
+          "zh": "你经常和朋友一起去电影院吗？"
+        },
+        {
+          "en": "Do you think going to the cinema is a good way to spend time with friends?",
+          "zh": "你觉得去电影院是和朋友消磨时间的好方式吗？"
+        },
+        {
+          "en": "How often do you watch films?",
+          "zh": "你多久看一次电影？"
+        },
+        {
+          "en": "Do you prefer to watch films at home or in the cinema?",
+          "zh": "你更喜欢在家还是在电影院看电影？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Travelling",
+      "is_new": true,
+      "questions": [
+        "Do you look out the window at the scenery when travelling by bus or car?",
+        "Do you take photos of the scenery outside the car window?",
+        "Do you prefer the mountains or the sea?"
+      ],
+      "observation_point": "SPA_05",
+      "obs_name": "你是什么样的旅行者",
+      "topic_zh": "旅行",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Do you look out the window at the scenery when travelling by bus or car?",
+          "zh": "乘坐巴士或汽车时，你会透过车窗欣赏窗外的风景吗？"
+        },
+        {
+          "en": "Do you take photos of the scenery outside the car window?",
+          "zh": "你会给车窗外的风景拍照吗？"
+        },
+        {
+          "en": "Do you prefer the mountains or the sea?",
+          "zh": "你更喜欢山还是海？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Daily Routine",
+      "is_new": true,
+      "questions": [
+        "What is your daily study routine?",
+        "Have you ever changed your routine?",
+        "Do you think it is important to have a daily routine for your study?",
+        "What part of your day do you like best?",
+        "Do you often go to bed late or early?"
+      ],
+      "observation_point": "EMO_02",
+      "obs_name": "日常的能量节奏",
+      "topic_zh": "日常作息",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "What is your daily study routine?",
+          "zh": "你的日常学习习惯是什么？"
+        },
+        {
+          "en": "Have you ever changed your routine?",
+          "zh": "你改变过你的日常吗？"
+        },
+        {
+          "en": "Do you think it is important to have a daily routine for your study?",
+          "zh": "你认为制定每日学习计划很重要吗？"
+        },
+        {
+          "en": "What part of your day do you like best?",
+          "zh": "你一天中最喜欢的时段是什么？"
+        },
+        {
+          "en": "Do you often go to bed late or early?",
+          "zh": "你经常睡得早或晚吗？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    },
+    {
+      "topic": "Fix Things",
+      "is_new": true,
+      "questions": [
+        "Can you fix things?",
+        "Did anybody teach you how to fix things when you were a child?",
+        "Do you think it is necessary for people to learn to fix things?",
+        "What do you do when a thing is broken and cannot be fixed?"
+      ],
+      "observation_point": "GRO_02",
+      "obs_name": "一项你学会或正在练的技能",
+      "topic_zh": "修理东西",
+      "topic_only": false,
+      "questions_with_zh": [
+        {
+          "en": "Can you fix things?",
+          "zh": "你会修东西吗？"
+        },
+        {
+          "en": "Did anybody teach you how to fix things when you were a child?",
+          "zh": "你小时候有人教过你怎么修东西吗？"
+        },
+        {
+          "en": "Do you think it is necessary for people to learn to fix things?",
+          "zh": "你觉得人们有必要学会修东西吗？"
+        },
+        {
+          "en": "What do you do when a thing is broken and cannot be fixed?",
+          "zh": "当东西坏了又修不好时，你会怎么做？"
+        }
+      ],
+      "season": "2026-05",
+      "carried_over": false,
+      "match_topic": null
+    }
+  ],
+  "part2": [
+    {
+      "title": "A Perfect Job",
+      "is_new": false,
+      "cue_text": "Describe your perfect job You should say: What it is Where you heard about it from What you need to learn to get the job And explain why you think it is your perfect job",
+      "part3_questions": [
+        "What jobs do children want to do when they grow up?",
+        "What should people consider when choosing jobs?",
+        "Is salary the main reason people choose a certain job?",
+        "Do people's ideal jobs change as they grow up?",
+        "What kind of job can be called a 'dream job'?",
+        "What kind of jobs are the most popular in your country?"
+      ],
+      "observation_point": "GRO_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一份理想的工作",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Perfect Job"
+    },
+    {
+      "title": "A Famous Person",
+      "is_new": false,
+      "cue_text": "Describe a famous person you would like to meet You should say: Who he/she is How you knew him/her How/where you would like to meet him/her And explain why you would like to meet him/her",
+      "part3_questions": [
+        "What are the advantages and disadvantages of being a famous child?",
+        "What can today's children do to become famous?",
+        "What can children do with their fame?",
+        "Do people become famous because of their talent?",
+        "Is it easy to become famous in your country?",
+        "Do you want to be a famous person?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一位你想见的名人",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Famous Person"
+    },
+    {
+      "title": "An Occasion When Mobile Phone Was Not Allowed",
+      "is_new": false,
+      "cue_text": "Describe an occasion when you were not allowed to use You should say: When it was Where it was Why you were not allowed to use your mobile phone And how you felt about it",
+      "part3_questions": [
+        "How do young and old people use mobile phones differently?",
+        "What positive and negative impact do mobile phones have on friendship?",
+        "Is it a waste of time to take pictures with mobile phones?",
+        "Do you think it is necessary to have laws on the use of mobile phones?",
+        "What are examples of good and poor phone manners?",
+        "How does the internet benefit people?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "不能用手机的场合",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Occasion When Mobile Phone Was Not Allowed"
+    },
+    {
+      "title": "A Time You Were Proud",
+      "is_new": false,
+      "cue_text": "Describe a time when you felt proud of a family member You should say: When it happened Who the person is What the person did And explain why you felt proud of him/her",
+      "part3_questions": [
+        "When would parents feel proud of their children?",
+        "Should parents reward children? Why and how?",
+        "Is it good to reward children too often? Why?",
+        "Do rewards help a child become better?",
+        "What do you think about children working hard just for grades?"
+      ],
+      "observation_point": "REL_02",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "让你骄傲的一次经历",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Time You Were Proud",
+      "review": "题干分歧:综合版沿用\"为家人骄傲的经历\",途鸭改为人物卡\"令你骄傲的家人\";按主基准取综合版"
+    },
+    {
+      "title": "An Occasion When People Were Smiling",
+      "is_new": false,
+      "cue_text": "Describe an occasion when many people were smiling You should say: When it happened Who you were with What happened And explain why most people were smiling",
+      "part3_questions": [
+        "Do you think people who like to smile are more friendly?",
+        "Why do most people smile in photographs?",
+        "Do women smile more than men? Why?",
+        "Do people smile more when they are younger or older?",
+        "Is smiling important in your culture?",
+        "Are there any occasions when people need to pretend to smile?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "人们微笑的场合",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Occasion When People Were Smiling"
+    },
+    {
+      "title": "Giving Advice",
+      "is_new": false,
+      "cue_text": "Describe a time when you gave advice to others You should say: When it was To whom you gave the advice What the advice was And explain why you gave the advice",
+      "part3_questions": [
+        "Should people prepare before giving advice?",
+        "Is it good to ask advice from strangers online?",
+        "What are the personalities of people whose job is to give advice to others?",
+        "What are the problems if you ask too many people for advice?",
+        "Why do some people think it is better to ask for advice from friends than from parents?",
+        "When would old people ask young people for advice?"
+      ],
+      "observation_point": "REL_09",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "给别人建议的一次经历",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "Giving Advice"
+    },
+    {
+      "title": "A Story",
+      "is_new": false,
+      "cue_text": "Describe a story (e.g. a fairy tale, etc.) you have read You should say: What it is about When you read it Whether you liked it And explain what you have learned from it",
+      "part3_questions": [
+        "Why do most children like listening to stories before bedtime?",
+        "Is a good storyline important for a movie?",
+        "Do you think films with many celebrities are more likely to be popular?",
+        "What films are popular in China right now?"
+      ],
+      "observation_point": "SPI_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个故事",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Story"
+    },
+    {
+      "title": "An App",
+      "is_new": false,
+      "cue_text": "Describe a program or app on your computer or phone You should say: What it is When/how you use it Where you found it And explain how you feel about it",
+      "part3_questions": [
+        "What are the differences between old and young people when using apps?",
+        "Why do some people not like using apps?",
+        "What apps are popular in your country? Why?",
+        "Should parents limit their children using computer programs and computer games?",
+        "Do you think young people rely more and more on these programs?",
+        "What do you think about some countries banning children from using social media?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个手机应用",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An App"
+    },
+    {
+      "title": "A Friend Who Loves Drawing",
+      "is_new": false,
+      "cue_text": "Describe a friend of yours who loves drawing/painting You should say: How you knew him/her What he/she is like How often he/she draws And explain why you think he/she likes drawing",
+      "part3_questions": [
+        "What is the right age for a child to learn drawing?",
+        "Why do most children draw more often than adults do?",
+        "Why do some people visit galleries or museums instead of viewing artworks online?",
+        "Do you think galleries and museums should be free of charge?",
+        "How do artworks inspire people?",
+        "What are the differences between reading a book and visiting a museum?"
+      ],
+      "observation_point": "REL_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个喜欢画画的朋友",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Child Who Loves To Draw",
+      "review": "题干变体:孩子→朋友(综合版为准);人物从孩子变朋友,主挂已定REL_03"
+    },
+    {
+      "title": "An Organized Person",
+      "is_new": false,
+      "cue_text": "Describe a person who makes plans a lot You should say: Who he/she is How you knew him/her What plans he/she makes And explain how you feel about this person",
+      "part3_questions": [
+        "Do you think it's important to plan ahead?",
+        "Do you think children should plan their future careers?",
+        "Should children ask their teachers or parents for advice when making plans?",
+        "What activities do we need to plan ahead?",
+        "Is making study plans popular among young people?",
+        "Do you think choosing a college major is closely related to a future career?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个善于计划的人",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Organized Person"
+    },
+    {
+      "title": "A Piece of Technology",
+      "is_new": false,
+      "cue_text": "Describe a piece of technology (not a phone) that you You should say: What it is How much it costs How you knew it And explain why you would like to own it",
+      "part3_questions": [
+        "What are the differences between the technology of the past and that of today?",
+        "What technology do young people like to use?",
+        "What are the differences between online and face-to-face communication?",
+        "Do you think technology has changed the way people communicate?",
+        "What negative effects does technology have on people's relationships?",
+        "What are the differences between making friends in real life and online?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件科技产品",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Piece of Technology"
+    },
+    {
+      "title": "A Foreign Country",
+      "is_new": false,
+      "cue_text": "Describe a foreign country you would like to stay or work for a short period of time. You should say: which country it is where you got to know this country what you will do there And explain why you will stay or work there just for a short period of time.",
+      "part3_questions": [
+        "What short-term jobs do young people do in other countries?",
+        "What challenges do young people face when working abroad?",
+        "What are the benefits of working for an international company?",
+        "What personal skills are required to work in an international company?",
+        "What kind of work can young people do in foreign countries?",
+        "Why are some people unwilling to work in other countries?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一个你想去的外国",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Foreign Country",
+      "review": "题干分歧:综合版改为\"国外短期工作\",现库+途鸭均为\"短期停留\",2比1维持现题干;P3取综合版"
+    },
+    {
+      "title": "An Important Old Thing in Family",
+      "is_new": false,
+      "cue_text": "Describe something important that has been kept in your You should say: What it is When your family had it How your family got it And explain why it is important to your family",
+      "part3_questions": [
+        "What things do families keep for a long time?",
+        "What's the difference between things valued by people in the past and today?",
+        "What kinds of things are kept in museums?",
+        "What's the influence of technology on museums?",
+        "What are the benefits of technology for learning history?",
+        "Why do people visit museums?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "家里保存的一件重要旧物",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Important Old Thing in Family"
+    },
+    {
+      "title": "A Place Where You Enjoy Shopping",
+      "is_new": false,
+      "cue_text": "Describe a place where you enjoy shopping You should say: What its name is Where it is How often you visit it And what you usually buy there",
+      "part3_questions": [
+        "Why do people buy things they don't need?",
+        "Do you think it's a waste of time to go shopping?",
+        "Why are some people keen on shopping?",
+        "What kind of people like shopping?",
+        "Where do people like to shop in your country?",
+        "Do you think women like shopping more than men?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个你喜欢购物的地方",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Shopping Mall",
+      "review": "题干变体:购物中心→喜欢购物的地方,更名"
+    },
+    {
+      "title": "A Trip",
+      "is_new": false,
+      "cue_text": "Describe a bicycle/motorcycle/car trip you would like to go You should say: Who you would like to go with Where you wold like to go When you would like to go And explain why you would like to go by bicycle/motorcycle/car",
+      "part3_questions": [
+        "Which form of vehicle is more popular in your country, bikes, cars or motorcycles?",
+        "Do you think air pollution comes mostly from mobile vehicles?",
+        "Do you think people need to change the way of transportation drastically to protect the environment?",
+        "How are the transportation systems in urban areas and rural areas different?",
+        "Why do more people own and drive private cars now?",
+        "What do you think of the future of electric cars?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一次旅行",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Trip"
+    },
+    {
+      "title": "A Person Who Protects the Nature",
+      "is_new": false,
+      "cue_text": "Describe a person who encouraged you to protect the You should say: Who he/she is How he/she encouraged you What he/she encouraged you to do And explain how you feel about this person",
+      "part3_questions": [
+        "How can parents teach their children to protect nature?",
+        "Should schools teach children to get close to nature?",
+        "Do you think there should be laws to protect nature?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个鼓励你保护自然的人",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Person Who Protects the Nature"
+    },
+    {
+      "title": "A Person Who Solved a Problem",
+      "is_new": false,
+      "cue_text": "Describe a person who solved a problem in a smart way You should say: Who this person is What the problem was How he/she solved it And explain why you think he/she did it in a smart way",
+      "part3_questions": [
+        "Do you think children are born smart or they learn to become smart?",
+        "How do children become smart at school?",
+        "Why are some people well-rounded and others only good at one thing?",
+        "Why does modern society need talents of all kinds?",
+        "Do you think smart children are happier than other children?",
+        "Is it important for schools to identify and develop each student's talents?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个聪明解决问题的人",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Person Who Solved a Problem"
+    },
+    {
+      "title": "A Person Who Learned a Skill",
+      "is_new": false,
+      "cue_text": "Describe one of your friends who learned something You should say: Who he/she is What he/she learned Why he/she learned this And explain whether it would be easier to learn from a teacher",
+      "part3_questions": [
+        "Is it necessary to keep learning after graduating from school?",
+        "Should teachers make learning in their classes fun?",
+        "Do you think there are too many lessons for students to learn?",
+        "Is it better to focus on a few subjects or to learn many subjects?",
+        "Do you think enterprises should provide training for their employees?",
+        "Do you think it is good for older adults to continue learning?"
+      ],
+      "observation_point": "REL_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个自学技能的朋友",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Person Who Learned a Skill"
+    },
+    {
+      "title": "A Music Event",
+      "is_new": false,
+      "cue_text": "Describe a music event that you didn't enjoy You should say: What it was Who you went with Why you decided to go there And explain why you didn't enjoy it",
+      "part3_questions": [
+        "What kind of music events do people like today?",
+        "Do you think children should receive some musical education?",
+        "What are the differences between old and young people's music preferences?",
+        "What kind of music events are there in your country?",
+        "Why do many people like listening to music while doing sports?",
+        "What are the differences between listening to music at home and at a live concert?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一次音乐活动",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Music Event"
+    },
+    {
+      "title": "A Movie You Watched Recently",
+      "is_new": false,
+      "cue_text": "Describe a movie you watched and enjoyed recently You should say: When and where you watched it Who you watched it with What it was about And explain why you watched this movie",
+      "part3_questions": [
+        "What kinds of movies do you think are successful in your country?",
+        "What are the factors that make a successful movie?",
+        "Do Chinese people prefer to watch domestic movies or foreign movies?",
+        "Do you think only well-known directors can create the best movies?",
+        "Do you think successful movies should have well-known actors or actresses in leading roles?",
+        "Why do people prefer to watch movies in the cinema?"
+      ],
+      "observation_point": "SPI_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "最近看的一部电影",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Movie You Watched Recently"
+    },
+    {
+      "title": "An Interesting Building",
+      "is_new": false,
+      "cue_text": "Describe an interesting building You should say: Where it is What it looks like What function it has And explain why you think it is interesting",
+      "part3_questions": [
+        "What types of buildings are popular in your country?",
+        "Is it worth spending a lot of money on the exterior appearance of a building?",
+        "Is it more important for a building to look good on the outside or on the inside?",
+        "Why do people like to visit historical sites?",
+        "Do you think it's reasonable to charge an entry fee for visiting interesting buildings?",
+        "Is it better to live in a new building or an old one?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一座有趣的建筑",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Interesting Building"
+    },
+    {
+      "title": "A Time You Needed To Use Your Imagination",
+      "is_new": false,
+      "cue_text": "Describe a time you needed to use your imagination You should say: When it was Why you needed to use imagination How difficult or easy it was And explain how you felt about it",
+      "part3_questions": [
+        "Do you think adults can have lots of imagination?",
+        "Do you think imagination is essential for scientists?",
+        "What kinds of jobs need imagination?",
+        "What subjects are helpful for children's imagination?",
+        "What games help develop children's imagination?",
+        "How important is imagination to children?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "需要想象力的一次经历",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Time You Needed To Use Your Imagination"
+    },
+    {
+      "title": "A Helpful Person",
+      "is_new": false,
+      "cue_text": "Describe a person who often helps others You should say: Who this person is How often he/she helps others How/why he/she helps others And how you feel about this person",
+      "part3_questions": [
+        "Should children help their parents with household chores?",
+        "What kind of help do people need when looking for a new job?",
+        "Who should people ask for help, colleagues or family members?",
+        "What can children do to help their parents?",
+        "Do you think schools should teach children to do household chores?",
+        "Why are employees reluctant to ask their managers for help?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个经常帮助别人的人",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Helpful Person"
+    },
+    {
+      "title": "An Item That Cost More Than Expected",
+      "is_new": false,
+      "cue_text": "Describe an item on which you spent more than expected You should say: What it is How much you spent on it Why you bought it And explain why you think you spent more than expected",
+      "part3_questions": [
+        "Do you often buy more than you expected?",
+        "What do you think young people spend most of their money on?",
+        "Do you think it is important to save money? Why?",
+        "Do people buy things they don't need?",
+        "Do you think it is the rich people's responsibility to donate money to people in need?",
+        "What kind of things are people happy to pay a high price for?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一件花费超出预期的物品",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Expensive Item",
+      "review": "题干变体:昂贵物品→花费超预期的物品,更名"
+    },
+    {
+      "title": "A Time When You Encouraged Someone",
+      "is_new": false,
+      "cue_text": "Describe a time when you encouraged someone to do You should say: Who he or she is What you encouraged him/her to do How he/she reacted And explain why you encouraged him/her to do it",
+      "part3_questions": [
+        "How can leaders encourage their employees?",
+        "When should parents encourage their children?",
+        "What kind of encouragement should parents give?",
+        "Do you think some people are better than others at persuading?",
+        "Should children do everything their parents ask them to do?",
+        "How can employers encourage their staff?"
+      ],
+      "observation_point": "REL_09",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你鼓励别人的一次经历",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Time When You Encouraged Someone"
+    },
+    {
+      "title": "A Relaxing Place",
+      "is_new": false,
+      "cue_text": "Describe your favorite place in your house where you can relax You should say: Where it is What it is like What you enjoy doing there And explain why you feel relaxed at this place",
+      "part3_questions": [
+        "Why is it difficult for some people to relax?",
+        "What are the benefits of doing exercise?",
+        "Do people in your country exercise after work?",
+        "What is the place where people spend most of their time at home?",
+        "Do you think there should be classes for training young people and children how to relax?",
+        "Which is more important,mental relaxation or physical relaxation?"
+      ],
+      "observation_point": "SPA_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你家里最喜欢的地方",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Relaxing Place"
+    },
+    {
+      "title": "A Disappointing Movie",
+      "is_new": false,
+      "cue_text": "Describe a movie that you watched recently and you felt disappointed about. You should say: what it was about when it was why you decided to watch it and explain why you felt disappointed about it.",
+      "part3_questions": [
+        "Do you believe movie reviews?",
+        "What are the difficult types of films in your country?",
+        "Are historical films popular in your country? Why?",
+        "Do you think films with famous actors or actresses are more likely to become successful films?",
+        "Should the director pay a lot of money to famous actors?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一部令人失望的电影",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "A Disappointing Movie"
+    },
+    {
+      "title": "Something You Can't Live Without",
+      "is_new": false,
+      "cue_text": "Describe something that you can't live without(not a computer/phone) you should say: What it is What you do with it How it helps you in your life And explain why you can't live without it",
+      "part3_questions": [
+        "Why are children attracted to new things, such as electronics?",
+        "Why do some grown-ups hate to throw out old things, such as clothes?",
+        "Is the way people buy things affected? How?",
+        "What do you think influences people to buy new things?",
+        "Why do all children like toys?",
+        "Do you think it is good for a child to always take his or her favourite toy with them?"
+      ],
+      "observation_point": "SPI_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": null,
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "Something You Can't Live Without"
+    },
+    {
+      "title": "An Important Decision",
+      "is_new": false,
+      "cue_text": "Describe an important decision that you made You should say: What the decision was How you made your decision What the results of the decision were And explain why it was important",
+      "part3_questions": [
+        "Do you think children sometimes have to make important decisions?",
+        "What important decisions do teenagers need to make after graduation?",
+        "Who can children turn to for help when making a decision?",
+        "Do you think advertisements can influence our decisions when shopping?",
+        "Do you think the influence of advertising is good?",
+        "How do people usually make important decisions?"
+      ],
+      "observation_point": "GRO_07",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个重要的决定",
+      "season": "2026-05",
+      "carried_over": true,
+      "match_title": "An Important Decision",
+      "review": "综合版误标为新题,实为现库老卡,按保留处理"
+    },
+    {
+      "title": "A Tall Building You Like or Dislike",
+      "is_new": true,
+      "cue_text": "Describe a tall building you like or dislike You should say: What it is used for Where it is What it looks like And explain why you like/dislike it",
+      "part3_questions": [
+        "Are there many tall buildings in your country?",
+        "What are the differences between those tall buildings in your country?",
+        "Why are different places laid out and designed differently?",
+        "What are the advantages of living in tall buildings?",
+        "Why do some people like to remodel and decorate their homes themselves?",
+        "What kind of interior design style do most people like?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一座你喜欢或不喜欢的高楼",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "An Interesting Video",
+      "is_new": true,
+      "cue_text": "Describe an interesting video You should say: When and where you watched it What it is about Why you watched it And explain how you feel about it",
+      "part3_questions": [
+        "What kind of videos do people in your country like to watch?",
+        "Which is more helpful, watching videos or reading books?",
+        "What skills can people learn from watching videos?",
+        "Are there any differences between the videos that young people and old people like to watch?",
+        "Are there any differences between the videos that young men and young women like to watch?",
+        "What makes a video go viral online?"
+      ],
+      "observation_point": "SPI_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个有趣的视频",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "参照Something Interesting on Social Media先例挂SPI_06"
+    },
+    {
+      "title": "A Boring Place",
+      "is_new": true,
+      "cue_text": "Describe a boring place You should say: Where it is Who you went there with What you did there And explain why you think it is a boring place",
+      "part3_questions": [
+        "Why do most children think education is boring?",
+        "Why aren't young people willing to listen to the experiences of older people?",
+        "What can people do when they feel bored?",
+        "Why are some teachers' classes boring? Are there any solutions?",
+        "Why do some young people feel bored when talking with old people?",
+        "Do most people think news about celebrities is boring?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个你去过的无聊地方",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "Your Favourite City",
+      "is_new": true,
+      "cue_text": "Describe your favorite city that you have visited You should say: Where it is How you knew it When you visited it And explain why it is your favourite city",
+      "part3_questions": [
+        "Which is more suitable for young people, urban life or rural life, and which is more suitable for old people?",
+        "How do people choose a city to travel to?",
+        "Do you think a tourist city is also a good place to live? Why?",
+        "Do most people prefer to travel in a modern city or a historical city?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你去过的最喜欢的城市",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "到访(非居住)城市按远行SPA_06"
+    },
+    {
+      "title": "A Time You Got Up Early",
+      "is_new": true,
+      "cue_text": "Describe a time when you got up early You should say: When it was What you did Why you got up early And how you felt about it",
+      "part3_questions": [
+        "Do you know anyone who likes to get up early?",
+        "Why do people get up early?",
+        "What kinds of occasions need people to arrive early?",
+        "Why do some people like to stay up late?",
+        "Is it good to arrive early in any situation?",
+        "What kind of people like getting up early?"
+      ],
+      "observation_point": "EMO_02",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次早起的经历",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person Who Grows Plants",
+      "is_new": true,
+      "cue_text": "Describe a person who loves to grow plants (e.g. vegetables, flowers) at home or in the garden You should say: Who this person is What plants he/she grows How he/she grows the plants And explain why he/she loves growing plants",
+      "part3_questions": [
+        "What are the advantages of growing vegetables or flowers at home?",
+        "Do many people grow vegetables or flowers at home in your country?",
+        "Is it easy to grow plants at home?",
+        "Why do people like to grow plants?",
+        "Why do some people prefer to grow their own fruits and vegetables instead of buying them from the market?",
+        "Do you think students should learn to grow plant?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个喜欢种植物的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A New Law You Would Like To Introduce",
+      "is_new": true,
+      "cue_text": "Describe a new law you would like to introduce in your country You should say: What law it is What changes this law brings Whether this new law will be popular How you came up with the new law And explain how you feel about this new law",
+      "part3_questions": [
+        "What rules should students follow at school?",
+        "Do people in your country usually obey the law?",
+        "What kinds of behavior are considered as good behavior?",
+        "Do you think children can learn about the law outside of school?",
+        "What are the benefits for people to obey rules?",
+        "How can parents teach children to obey rules?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一条你想颁布的新法律",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "观点类,不可萃取"
+    },
+    {
+      "title": "A Childhood Friend",
+      "is_new": true,
+      "cue_text": "Describe a friend from your childhood You should say: Who he/she is Where and how you met each other What you often did together And explain what made you like him/her",
+      "part3_questions": [
+        "Do you still keep in touch with your friends from childhood? Why or why not?",
+        "How important is childhood friendship to children?",
+        "What do you think of communicating via social media?",
+        "Do you think online communication through social media will replace face-to-face communication?",
+        "What's the difference between having younger friends and older friends?",
+        "Has technology changed people's friendships? How?"
+      ],
+      "observation_point": "REL_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "你的发小",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person Who Wants a Medical Career",
+      "is_new": true,
+      "cue_text": "Describe a person you know who would like to choose a career in the medical field (e.g. a doctor, a nurse) You should say: When you knew him/her When he/she started to think about that What he/she would like to do And explain why he/she would like to choose this career",
+      "part3_questions": [
+        "Do you think being a doctor is easy or difficult?",
+        "Do you think learning biology is interesting for children?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个想从事医疗行业的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person With a Successful Business",
+      "is_new": true,
+      "cue_text": "Describe a person you know who has a successful business You should say: Who this person is How you got to know him/her Why and how he/she started the business What business he/she does And explain why you think the business is successful",
+      "part3_questions": [
+        "Why do some people start their own business?",
+        "Should governments provide financial support to start-ups?",
+        "Do most people prefer shopping at big stores or small stores?",
+        "What makes a business successful?",
+        "What makes a business fail?",
+        "Is it easy to set up a new business in your country?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个拥有成功事业的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Plan You Changed Recently",
+      "is_new": true,
+      "cue_text": "Describe a plan that you had to change recently You should say: When this happened What made you change the plan What the new plan was And how you felt about the change",
+      "part3_questions": [
+        "Do people often change their plans?",
+        "Would you tell others if you change your plan?",
+        "Why do you think parents still make plans for their children nowadays?",
+        "How does technology help people make plans?",
+        "What kind of plans do people often make?",
+        "Do you think people like the process of making plans more, or the moment of carrying them out?"
+      ],
+      "observation_point": "GRO_07",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个你近期改变的计划",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "改计划=一次决定,归GRO_07"
+    },
+    {
+      "title": "A Time You Worked in a Group",
+      "is_new": true,
+      "cue_text": "Describe a time when you worked in a group You should say: What you did Who you worked with What problems you faced And explain why you worked in the group",
+      "part3_questions": [
+        "Why do some people prefer to work by themselves?",
+        "What should a leader do to make team members want to follow him or her?",
+        "Should students learn to do group work?",
+        "What group tasks are there in schools?",
+        "What advantages are there for students experiencing teamwork at school?",
+        "How can you tell if a person is a good leader?"
+      ],
+      "observation_point": "GRO_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次团队合作的经历",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Live Sports Event",
+      "is_new": true,
+      "cue_text": "Describe a live sports event you watched and liked You should say: What it was When and where you watched it Who you watched it with And explain why you liked it",
+      "part3_questions": [
+        "Why do some people like to watch sports events?",
+        "Where do people normally watch sports events?",
+        "What are the advantages of watching sports events online?",
+        "What sports matches are suitable for children to attend?",
+        "Why do some people spend a lot going to other countries to watch sports events?",
+        "What sports games are popular in your country?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一场你喜欢的现场体育赛事",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "现场体验类,与A Music Event(v2)一致定topic_only"
+    },
+    {
+      "title": "A Food for Special Occasions",
+      "is_new": true,
+      "cue_text": "Describe a food that people eat on special occasions/events You should say: What it is What the special event/occasion is How it is cooked/made And explain why people eat it on that special occasion/event",
+      "part3_questions": [
+        "Why are there special foods on special occasions or events?",
+        "What are the differences between everyday food and festival food?",
+        "Are there any differences between the food people eat today and the food people ate in the past?",
+        "Do people today prefer eating at home or in a restaurant?"
+      ],
+      "observation_point": "EMO_08",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "特别场合吃的食物",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person Good at Learning Languages",
+      "is_new": true,
+      "cue_text": "Describe a person who is good at learning and speaking new languages You should say: How you got to know him/her How he/she learns a new language What languages he/she can speak And explain how you feel about him/her",
+      "part3_questions": [
+        "Are there many people who can speak foreign languages in your country?",
+        "Does speaking other languages help at work?",
+        "Do people learn any languages other than English?",
+        "Why is it easier for children to learn new things than for adults?",
+        "How do people learn new things?",
+        "What is the most important thing for learning a language well?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个擅长学语言的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person Who Works in a Successful Company",
+      "is_new": true,
+      "cue_text": "Describe a person who works in a successful company You should say: Who he/she is What he/she does in the company What business the company does And explain why you think it is a successful company",
+      "part3_questions": [
+        "Do you think governments should provide financial support to companies?",
+        "Do you think companies should donate money to help society?",
+        "Do you think customer satisfaction is important for a company?"
+      ],
+      "observation_point": "REL_12",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个在成功公司工作的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Technological Problem You Had",
+      "is_new": true,
+      "cue_text": "Describe a challenging technological problem you faced You should say: What the problem was When and where you faced it How challenging it was And explain how you solved it",
+      "part3_questions": [
+        "What are the advantages and disadvantages of AI?",
+        "Do you think people today should learn about AI technology?",
+        "Should children learn to use AI?",
+        "How can AI help in our lives?",
+        "Do you think students are overly reliant on AI?",
+        "What can teachers do to stop students relying too much on AI?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一次遇到的科技难题",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "流水账类比停电,topic_only"
+    },
+    {
+      "title": "An Advertisement With a Famous Person",
+      "is_new": true,
+      "cue_text": "Describe an advertisement with a famous person in it You should say: Who the person is Where you can see it What the advertisement is about And explain how you feel about the advertisement",
+      "part3_questions": [
+        "What are the advantages and disadvantages of advertisements?",
+        "Why are many advertisements endorsed by celebrities? How useful are they?",
+        "What is the most important factor in an advertisement?",
+        "Why are some advertisements boring?",
+        "Is advertising important for a company? Why?",
+        "Which is more effective, online advertising or offline advertising?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一个名人出演的广告",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "媒体观点类,不可萃取"
+    },
+    {
+      "title": "A Place You Would Recommend",
+      "is_new": true,
+      "cue_text": "Describe a place you have travelled to that you would like to recommend to others You should say: What it is Where it is What you saw and did there And explain why you would like to recommend it to others",
+      "part3_questions": [
+        "Where do people in your country often go for holidays?",
+        "What is the ideal length for a holiday?",
+        "How do people usually plan holidays?",
+        "Is it important to plan a holiday ahead?",
+        "Why do many countries try to attract people to visit?",
+        "How do people decide when to travel?"
+      ],
+      "observation_point": "SPA_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个你推荐的旅行地",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A TV or Online Program You Watched Recently",
+      "is_new": true,
+      "cue_text": "Describe a TV show/online program you have watched recently You should say: What it is What it is about How often you watch it And explain how you feel about it",
+      "part3_questions": [
+        "What are the differences between the TV programs young people like to watch and those old people like to watch?",
+        "What makes a popular TV or online program?",
+        "What kinds of TV or online programs are popular in your country?"
+      ],
+      "observation_point": "SPI_02",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "最近看的电视/网络节目",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Broken Electronic Device",
+      "is_new": true,
+      "cue_text": "Describe a time when you had a problem with using an electronic device You should say: When it happened Where it happened What the problem was And explain how you solved the problem at last",
+      "part3_questions": [
+        "Why are people keen on buying new electronic devices?",
+        "What impact do electronic devices have on people?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一件坏掉的电子设备",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "类比A Time You Broke Something(v2 topic_only)"
+    },
+    {
+      "title": "A Home You Like To Visit But Not Live In",
+      "is_new": true,
+      "cue_text": "Describe a home that you like to visit but do not want to live in You should say: Where it is What it is like Why you like to visit it And explain why you would not like to live there",
+      "part3_questions": [
+        "Do Chinese people like to visit others' homes?",
+        "What do Chinese people do when they visit others?",
+        "What kind of place do people in your country like to live in?",
+        "What's the difference between homes in cities and those in the countryside?",
+        "What kind of gifts do people usually bring when they visit others?",
+        "How often do you visit your relatives or friends?"
+      ],
+      "observation_point": "SPA_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "喜欢拜访但不想住的家",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Story or Book With Animals",
+      "is_new": true,
+      "cue_text": "Describe a story/book with animals in it You should say: What animals are in it What the story/book is about Why you read the story/book And explain what you think of this story/book",
+      "part3_questions": [
+        "Should schools teach children about animals?",
+        "Some people think pets should not be kept in cities. What do you think?",
+        "Many people regard pets as members of their family. What do you think?",
+        "Do many people keep pets in your country?",
+        "What are the advantages of keeping a pet?",
+        "Why do people always tell children stories with animals?"
+      ],
+      "observation_point": "SPI_01",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个包含动物的故事或书",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Time Someone Helped You Solve a Problem",
+      "is_new": true,
+      "cue_text": "Describe a time when a person did something to help you solve a problem You should say: Who the person is What the problem was How he/she helped you And explain how you felt about the experience",
+      "part3_questions": [
+        "How important is it for schools to help children become smarter?"
+      ],
+      "observation_point": "REL_10",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次别人帮你解决问题的经历",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Law on Environmental Protection",
+      "is_new": true,
+      "cue_text": "Describe a law on environmental protection You should say: What it is How you first learned about it Who benefits from it And explain how you feel about this law",
+      "part3_questions": [
+        "What kinds of rules do schools in China have?",
+        "Do you think school rules are important?",
+        "Are children unhappy with the school rules?",
+        "What are the rules people should obey at work?",
+        "What is the purpose of punishment?",
+        "How can parents and teachers help children understand and follow rules?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一条环保法律",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "观点类;注意与\"想颁布的环保法律\"是两张不同的卡"
+    },
+    {
+      "title": "A Message That Got No Reply",
+      "is_new": true,
+      "cue_text": "Describe a time when you sent a message or an email to someone but received no reply for a long time You should say: Who you sent it to What the message/email was about Whether you finally received the reply And explain how you felt about the experience",
+      "part3_questions": [
+        "In what situations do people spend a long time responding to others' messages?",
+        "In what situations do people not respond to messages right away?",
+        "What would you do if you haven't received a reply after sending out a message?",
+        "Why do some people prefer sending a message instead of making a call?",
+        "How do you show your respect in your message?",
+        "Why do some people feel angry when others don't reply to their message?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一条久未收到回复的消息",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复)"
+    },
+    {
+      "title": "A Long-term Goal",
+      "is_new": true,
+      "cue_text": "Describe a long-term goal/ambition you would like to achieve You should say: How long you have had this goal/ambition What it is How you will achieve it And explain why you set it",
+      "part3_questions": [
+        "Why should children have ambitions?",
+        "What do you think of people going after high positions?",
+        "Why are some young people keen on being fans of superstars?",
+        "Is it good for a person to be ambitious?",
+        "Do you think it is necessary to be ambitious when working in a team in a company?",
+        "Should parents support their children in pursuing their ambitions?"
+      ],
+      "observation_point": "GRO_06",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个长期目标/抱负",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Person Who Met Difficulties But Succeeded",
+      "is_new": true,
+      "cue_text": "Describe a person who met difficulties but succeeded You should say: Who this person is What difficulties he met How he overcame the difficulties And explain how you feel about him",
+      "part3_questions": [
+        "In your country, what industry is it easier to be successful in?",
+        "What's the difference between ordinary people and successful people?",
+        "What are the factors leading to people's success?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一个历经困难终获成功的人",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "A Time You Changed an Important Opinion",
+      "is_new": true,
+      "cue_text": "Describe a time when you changed an important opinion of yours You should say: When you changed your opinion What the original opinion was Why you changed it And explain how you felt about the experience",
+      "part3_questions": [
+        "When do most children begin to have their own opinions?",
+        "Whose opinions are more important to children, their parents' or teachers'?",
+        "Do children communicate more with teachers or with parents?",
+        "Who do young people like to share opinions with?"
+      ],
+      "observation_point": "GRO_05",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次改变重要想法的经历",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "An Environmental Law You Would Like To Introduce",
+      "is_new": true,
+      "cue_text": "Describe an environmental law you would like your country to introduce You should say: What law it should be Why people should follow the law Whether the law will be popular And explain how you feel about this law",
+      "part3_questions": [
+        "How does technology affect the law?",
+        "What kinds of rules do schools in China have?",
+        "Will there be a law that is universally accepted?",
+        "What environmental laws does your country already have?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一条你想颁布的环保法律",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "观点类"
+    },
+    {
+      "title": "A Happy Event You Organized",
+      "is_new": true,
+      "cue_text": "Describe a time when you organized a happy event successfully You should say: What the event was How you prepared for it Who helped you to organize it And explain why you think it was a successful event",
+      "part3_questions": [
+        "How can parents help children to be organized?",
+        "On what occasions do people need to be organized?",
+        "Does everything need to be well prepared?",
+        "Do people need others' help when organizing things?",
+        "How would you feel when you were not well prepared for something?",
+        "Do you prefer to prepare and organize an activity or just take part in an activity"
+      ],
+      "observation_point": "GRO_03",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一次你成功组织的快乐活动",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    },
+    {
+      "title": "Stuck in a Traffic Jam",
+      "is_new": true,
+      "cue_text": "Describe a time when you were stuck in a traffic jam for a very long time You should say: When it happened Where you were stuck What you did while waiting And explain how you felt in the traffic jam",
+      "part3_questions": [
+        "How can we solve the traffic jam problem?",
+        "Do you think developing public transport can solve traffic jam problems?",
+        "Do you think the high ways will help reduce traffic jams?",
+        "What are good ways to manage traffic?",
+        "Do you like to use public transport?",
+        "Would you rather be in a car or a bus in a traffic jam?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "一次堵车经历",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "流水账,topic_only"
+    },
+    {
+      "title": "A Place You Would Like To Visit in Free Time",
+      "is_new": true,
+      "cue_text": "Describe a place you would like to visit in your free time You should say: Where it is What you will do there How long you will stay there And explain why you would like to visit it",
+      "part3_questions": [
+        "Why do you think some people choose not to travel abroad?",
+        "Do you think a gap period in life is important?"
+      ],
+      "observation_point": null,
+      "topic_only": true,
+      "value_note": "",
+      "title_zh": "有空想去旅游的地方",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null,
+      "review": "假想旅行,类比A Trip(v2 topic_only)"
+    },
+    {
+      "title": "A Special Cake You Received",
+      "is_new": true,
+      "cue_text": "Describe a special cake you received from others You should say: When it happened Where it happened Who you got the cake from And explain why it's a special cake",
+      "part3_questions": [
+        "What are the differences between special food in China and other countries?",
+        "Is there any food in your country that is eaten at special times or on special occasions?",
+        "Why are some people willing to spend a lot of money on meals on special days?",
+        "Do you think it's good to communicate when eating with your family?",
+        "In your country, do people nowadays cook at home as frequently as people did in the past?",
+        "What do you think of people using their mobile phones during a meal?"
+      ],
+      "observation_point": "REL_04",
+      "topic_only": false,
+      "value_note": "",
+      "title_zh": "一个收到的特殊蛋糕",
+      "season": "2026-05",
+      "carried_over": false,
+      "match_title": null
+    }
+  ]
+}
