@@ -1,0 +1,492 @@
+[
+  {
+    "id": "5bb4b0ba-d544-428c-9882-8f00dc0dbc0d",
+    "code": "REL_01",
+    "dimension_id": "relationship",
+    "name": "和家人的日常相处模式",
+    "layer": "rhythm",
+    "mapped_question_count": 1,
+    "rich_threshold": 2,
+    "sort_order": 1
+  },
+  {
+    "id": "851b9ac1-712b-4846-bfeb-9b8873b69f36",
+    "code": "GRO_01",
+    "dimension_id": "growth",
+    "name": "一项你长期坚持的投入",
+    "layer": "rhythm",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 1
+  },
+  {
+    "id": "5988b4e6-1c20-46f0-97b6-1746cfdc1afe",
+    "code": "EMO_01",
+    "dimension_id": "emotion",
+    "name": "最近一段时间的整体状态",
+    "layer": "state",
+    "mapped_question_count": 0,
+    "rich_threshold": 1,
+    "sort_order": 1
+  },
+  {
+    "id": "2e1f482d-6b35-48c4-84d2-a7c78b06df52",
+    "code": "SPI_01",
+    "dimension_id": "spirit",
+    "name": "一个反复回去的作品",
+    "layer": "rhythm",
+    "mapped_question_count": 5,
+    "rich_threshold": 3,
+    "sort_order": 1
+  },
+  {
+    "id": "833b8f25-1a54-448a-8e68-ab20e52fcedd",
+    "code": "VAL_01",
+    "dimension_id": "value",
+    "name": "公平感与正义",
+    "layer": "fluctuation",
+    "mapped_question_count": 0,
+    "rich_threshold": 1,
+    "sort_order": 1
+  },
+  {
+    "id": "321d6ab4-a520-46e6-a2f8-c63b858853c2",
+    "code": "SPA_01",
+    "dimension_id": "space",
+    "name": "你和居住空间的关系",
+    "layer": "rhythm",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 1
+  },
+  {
+    "id": "2dc1c9d7-72be-45c5-b1bd-888b97dcb850",
+    "code": "GRO_02",
+    "dimension_id": "growth",
+    "name": "一项你学会或正在练的技能",
+    "layer": "rhythm",
+    "mapped_question_count": 5,
+    "rich_threshold": 3,
+    "sort_order": 2
+  },
+  {
+    "id": "e475b4ce-04fb-4375-b42f-4830c8f2bbdd",
+    "code": "SPI_02",
+    "dimension_id": "spirit",
+    "name": "一个在特定时期陪着你的作品",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 2
+  },
+  {
+    "id": "c34cead2-3488-4142-9d17-c7f3fa2fa99c",
+    "code": "EMO_02",
+    "dimension_id": "emotion",
+    "name": "日常的能量节奏",
+    "layer": "state",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 2
+  },
+  {
+    "id": "c9ca34c4-6000-46fd-9d4a-be3a20159cc1",
+    "code": "SPA_02",
+    "dimension_id": "space",
+    "name": "日常移动 / 通勤",
+    "layer": "rhythm",
+    "mapped_question_count": 2,
+    "rich_threshold": 2,
+    "sort_order": 2
+  },
+  {
+    "id": "c24ebac1-1078-40e6-8127-4afdaddb5755",
+    "code": "VAL_02",
+    "dimension_id": "value",
+    "name": "诚实与信任",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 2
+  },
+  {
+    "id": "90c106c9-9fc3-47c3-b824-e515b7268e47",
+    "code": "REL_02",
+    "dimension_id": "relationship",
+    "name": "一次和家人之间的具体事件",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 2
+  },
+  {
+    "id": "796a4f2f-bdde-46d2-8f6b-d4bb0be789b7",
+    "code": "SPA_03",
+    "dimension_id": "space",
+    "name": "你和所在城市/街区的关系",
+    "layer": "rhythm",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 3
+  },
+  {
+    "id": "546458cf-2871-47ad-8bba-d8dbcdbfc48f",
+    "code": "GRO_03",
+    "dimension_id": "growth",
+    "name": "一次靠死磕做成的事",
+    "layer": "fluctuation",
+    "mapped_question_count": 5,
+    "rich_threshold": 3,
+    "sort_order": 3
+  },
+  {
+    "id": "f12a1630-8de5-4e01-b3c3-61478bd7c969",
+    "code": "EMO_03",
+    "dimension_id": "emotion",
+    "name": "一个人时怎么度过时间",
+    "layer": "rhythm",
+    "mapped_question_count": 2,
+    "rich_threshold": 2,
+    "sort_order": 3
+  },
+  {
+    "id": "bf5ddbcf-a873-454e-8588-c4d1095629dc",
+    "code": "REL_03",
+    "dimension_id": "relationship",
+    "name": "一个让你舒服的朋友",
+    "layer": "rhythm",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 3
+  },
+  {
+    "id": "786e23ab-e0c1-4d39-b63f-58ae8ac52bcb",
+    "code": "SPI_03",
+    "dimension_id": "spirit",
+    "name": "一个改变了你某种看法的作品",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 3
+  },
+  {
+    "id": "5e51d960-029c-47cd-b710-bb95489fcbc9",
+    "code": "VAL_03",
+    "dimension_id": "value",
+    "name": "坚持原则",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 3
+  },
+  {
+    "id": "e197cce3-9fa8-46d4-a0bb-51c334fb5ce6",
+    "code": "REL_04",
+    "dimension_id": "relationship",
+    "name": "一次和朋友的具体共度",
+    "layer": "fluctuation",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 4
+  },
+  {
+    "id": "cca9bf84-5434-49b5-bcc6-9c5b0187dc26",
+    "code": "SPI_04",
+    "dimension_id": "spirit",
+    "name": "一首歌 / 一件作品带来的纯粹感受",
+    "layer": "mixed",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 4
+  },
+  {
+    "id": "3037646a-689a-46f8-ad4f-237bf8ea91b7",
+    "code": "GRO_04",
+    "dimension_id": "growth",
+    "name": "一次失败带来的复盘",
+    "layer": "fluctuation",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 4
+  },
+  {
+    "id": "0ff42977-99e8-40d6-8ce9-539b77d507d8",
+    "code": "SPA_04",
+    "dimension_id": "space",
+    "name": "一个让你印象深刻的建筑/公共空间",
+    "layer": "fluctuation",
+    "mapped_question_count": 6,
+    "rich_threshold": 3,
+    "sort_order": 4
+  },
+  {
+    "id": "d6bd8f70-9915-4e77-b6ee-4a8b4114f44f",
+    "code": "EMO_04",
+    "dimension_id": "emotion",
+    "name": "让你感到放松的事",
+    "layer": "rhythm",
+    "mapped_question_count": 1,
+    "rich_threshold": 2,
+    "sort_order": 4
+  },
+  {
+    "id": "7269ae39-90d4-4b55-8ec4-42eaa127838e",
+    "code": "SPA_05",
+    "dimension_id": "space",
+    "name": "你是什么样的旅行者",
+    "layer": "rhythm",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 5
+  },
+  {
+    "id": "dfa0e10e-45cc-4747-85df-cca815ebeb87",
+    "code": "SPI_05",
+    "dimension_id": "spirit",
+    "name": "一件对你特别的物品",
+    "layer": "mixed",
+    "mapped_question_count": 5,
+    "rich_threshold": 3,
+    "sort_order": 5
+  },
+  {
+    "id": "bc17a285-110b-47e2-a9e5-d29738984983",
+    "code": "EMO_05",
+    "dimension_id": "emotion",
+    "name": "让你感到充电的事",
+    "layer": "rhythm",
+    "mapped_question_count": 0,
+    "rich_threshold": 2,
+    "sort_order": 5
+  },
+  {
+    "id": "a9e6c330-2c6b-4526-93fd-86958af8ec33",
+    "code": "GRO_05",
+    "dimension_id": "growth",
+    "name": "一次想法的转变",
+    "layer": "fluctuation",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 5
+  },
+  {
+    "id": "d0a02588-f20d-4ffa-bba3-3815754e4ee6",
+    "code": "REL_05",
+    "dimension_id": "relationship",
+    "name": "一段亲密关系里的人或事",
+    "layer": "mixed",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 5
+  },
+  {
+    "id": "6116743f-e864-4184-9226-d8e03e8dcd31",
+    "code": "SPA_06",
+    "dimension_id": "space",
+    "name": "一次具体的远行",
+    "layer": "fluctuation",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 6
+  },
+  {
+    "id": "dba84242-c678-409f-a3b0-e04a93bdde93",
+    "code": "REL_06",
+    "dimension_id": "relationship",
+    "name": "一个让你印象深刻的陌生人",
+    "layer": "fluctuation",
+    "mapped_question_count": 4,
+    "rich_threshold": 2,
+    "sort_order": 6
+  },
+  {
+    "id": "58035d50-3811-44e3-b67c-c2f287c0a945",
+    "code": "EMO_06",
+    "dimension_id": "emotion",
+    "name": "会反复回到的小习惯",
+    "layer": "rhythm",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 6
+  },
+  {
+    "id": "45ece4e8-00cd-4a4a-b7d2-2bbc9a5b5629",
+    "code": "SPI_06",
+    "dimension_id": "spirit",
+    "name": "你在数字世界里的栖居",
+    "layer": "rhythm",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 6
+  },
+  {
+    "id": "ebe17d94-a8c9-4854-a9ea-854be213e8df",
+    "code": "GRO_06",
+    "dimension_id": "growth",
+    "name": "对自己未来方向的思考",
+    "layer": "non_event",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 6
+  },
+  {
+    "id": "7d9e7512-b6ea-4840-8f8f-b9fe85d14c91",
+    "code": "GRO_07",
+    "dimension_id": "growth",
+    "name": "一次重要的选择/决定",
+    "layer": "fluctuation",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 7
+  },
+  {
+    "id": "f34b78ef-66e0-49cf-81fd-3808c9f2e29f",
+    "code": "EMO_07",
+    "dimension_id": "emotion",
+    "name": "应对压力时的惯常反应",
+    "layer": "rhythm",
+    "mapped_question_count": 0,
+    "rich_threshold": 2,
+    "sort_order": 7
+  },
+  {
+    "id": "a47f6339-1e8e-4157-a4f3-c92ddb2e089a",
+    "code": "REL_07",
+    "dimension_id": "relationship",
+    "name": "和宠物/动物的日常陪伴",
+    "layer": "rhythm",
+    "mapped_question_count": 1,
+    "rich_threshold": 2,
+    "sort_order": 7
+  },
+  {
+    "id": "8c587f0e-32fb-4c97-8fec-09029b6d95c6",
+    "code": "SPA_07",
+    "dimension_id": "space",
+    "name": "自然里让你有感觉的时刻",
+    "layer": "mixed",
+    "mapped_question_count": 5,
+    "rich_threshold": 3,
+    "sort_order": 7
+  },
+  {
+    "id": "103b1673-f4c4-4c67-ab00-08b393e9cc17",
+    "code": "REL_08",
+    "dimension_id": "relationship",
+    "name": "一次和宠物/动物的特殊互动",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 8
+  },
+  {
+    "id": "082d126f-3185-4947-aee5-203f8aca46a9",
+    "code": "EMO_08",
+    "dimension_id": "emotion",
+    "name": "你和食物的关系",
+    "layer": "rhythm",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 8
+  },
+  {
+    "id": "3cc28ee7-bc2a-45e2-b8f8-db5a47eba473",
+    "code": "SPA_08",
+    "dimension_id": "space",
+    "name": "园艺/种植",
+    "layer": "fluctuation",
+    "mapped_question_count": 0,
+    "rich_threshold": 1,
+    "sort_order": 8
+  },
+  {
+    "id": "51d145fe-2c07-4090-8fbf-1eba718443f3",
+    "code": "EMO_09",
+    "dimension_id": "emotion",
+    "name": "一次让你压力大的具体经历",
+    "layer": "fluctuation",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 9
+  },
+  {
+    "id": "2426414b-4451-45c0-9d82-680766c8aa73",
+    "code": "REL_09",
+    "dimension_id": "relationship",
+    "name": "一次你帮助别人的经历",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 9
+  },
+  {
+    "id": "6e00e0d8-f276-4b75-a707-864150d74862",
+    "code": "EMO_10",
+    "dimension_id": "emotion",
+    "name": "一次明显的情绪波动",
+    "layer": "fluctuation",
+    "mapped_question_count": 1,
+    "rich_threshold": 1,
+    "sort_order": 10
+  },
+  {
+    "id": "47231e72-8751-4d38-a556-66147c7db882",
+    "code": "REL_10",
+    "dimension_id": "relationship",
+    "name": "一次被别人帮助的经历",
+    "layer": "fluctuation",
+    "mapped_question_count": 2,
+    "rich_threshold": 1,
+    "sort_order": 10
+  },
+  {
+    "id": "1d74078e-631e-4aa9-90f4-4e07c74432f2",
+    "code": "REL_11",
+    "dimension_id": "relationship",
+    "name": "一次关系摩擦或冲突",
+    "layer": "fluctuation",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 11
+  },
+  {
+    "id": "aa143cf3-2afc-44d9-ba9b-b4a224f39814",
+    "code": "EMO_11",
+    "dimension_id": "emotion",
+    "name": "会让你失眠的事",
+    "layer": "fluctuation",
+    "mapped_question_count": 0,
+    "rich_threshold": 1,
+    "sort_order": 11
+  },
+  {
+    "id": "3559f467-4a70-41c0-a0ee-607ed0f7f355",
+    "code": "EMO_12",
+    "dimension_id": "emotion",
+    "name": "难以启齿/不会跟人说的事",
+    "layer": "fluctuation",
+    "mapped_question_count": 0,
+    "rich_threshold": 1,
+    "sort_order": 12
+  },
+  {
+    "id": "db786dba-4fee-426d-a5a5-030cfcf170fb",
+    "code": "REL_12",
+    "dimension_id": "relationship",
+    "name": "一个让你印象深刻的人",
+    "layer": "rhythm",
+    "mapped_question_count": 0,
+    "rich_threshold": 2,
+    "sort_order": 12
+  },
+  {
+    "id": "131b2500-292b-4dc7-8df2-046d6a0d628b",
+    "code": "EMO_13",
+    "dimension_id": "emotion",
+    "name": "你和外表/形象的关系",
+    "layer": "fluctuation",
+    "mapped_question_count": 3,
+    "rich_threshold": 2,
+    "sort_order": 13
+  }
+]
