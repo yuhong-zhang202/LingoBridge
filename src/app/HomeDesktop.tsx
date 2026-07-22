@@ -161,6 +161,7 @@ export default function HomeDesktop({
   loading,
   error,
   exhausted,
+  startingRec,
   typed,
   reuseTab,
   writeHref,
@@ -245,7 +246,7 @@ export default function HomeDesktop({
                     </button>
                   )}
                   <div className="mt-9 flex items-center gap-5 flex-wrap">
-                    <GradientButton onClick={onStartRecording} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                    <GradientButton onClick={onStartRecording} loading={startingRec} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                       <Mic2 size={18} />开始录音
                     </GradientButton>
                     {/* 保留 <Link>（而非改 button）：右键「在新标签打开」/ 中键 / ctrl+click / 悬停预览 /

@@ -57,6 +57,7 @@ export default function GradientButton({ children, onClick, disabled, loading = 
     <button
       onClick={loading ? undefined : onClick}
       disabled={disabled || loading}
+      aria-busy={loading}
       style={GRADIENT_BORDER_STYLE}
       className={classes}
     >

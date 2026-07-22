@@ -11,6 +11,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { mutate } from 'swr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
@@ -24,6 +25,7 @@ import { apiFetch } from '@/lib/api-client'
 
 function AnalysisContent() {
   const router     = useRouter()
+  const { navigate } = useNav()
   const params     = useSearchParams()
   const questionId = params.get('questionId') ?? ''
   const storyId    = params.get('storyId') ?? ''
@@ -165,7 +167,8 @@ function AnalysisContent() {
     onSelectLevel: (lv) => { setLevelMenuOpen(false); if (lv !== level) changeLevel(lv) },
     onTogglePhrase: (key) => setOpenPhrase(key),
     onToggleSave: toggleSave,
-    onStartPractice: () => router.push(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
+    // navigate：点「开始练习」瞬间即亮顶部条，练习页初始化对话（AI 调用）期间有跳转反馈。
+    onStartPractice: () => navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
     onReviewCards: () => router.push('/review'),
     onBack: () => router.push(backTarget.href),
     onExit: () => router.push('/'),

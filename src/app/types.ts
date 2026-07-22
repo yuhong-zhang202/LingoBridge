@@ -26,6 +26,8 @@ export interface HomeViewProps {
   submitting: boolean
   /** 当前文本是否达到可提交丰富度（computeRichness 结果，外壳预算） */
   canSubmit: boolean
+  /** 「开始录音」进行中：额度核对 + 麦克风权限探测期间为 true，驱动 CTA 转圈禁用 */
+  startingRec: boolean
 
   /** 桌面 Hero 标题第二行打字机逐字文本 */
   typed: string

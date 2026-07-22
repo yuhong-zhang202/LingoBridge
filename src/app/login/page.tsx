@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import Orb from '@/components/Orb'
 import FeedbackPopup from '@/components/FeedbackPopup'
+import GradientButton from '@/components/GradientButton'
 import {
   registerWithPassword,
   loginWithPassword,
@@ -163,13 +164,15 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          {/* GradientButton（升级自原裸 btn-gradient）：loading 时自带 spinner + 禁用 + aria-busy，
+              提交注册/登录期间转圈，读屏也能听到「处理中」。 */}
+          <GradientButton
             onClick={() => void handleSubmit()}
-            disabled={submitting}
-            className="btn-gradient w-full h-[50px] mt-4 disabled:opacity-50"
+            loading={submitting}
+            className="w-full h-[50px] mt-4 flex items-center justify-center rounded-full text-[14px] font-semibold"
           >
             {submitting ? '处理中…' : (mode === 'register' ? '创建账号' : '登录')}
-          </button>
+          </GradientButton>
 
           <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
             继续即表示同意我们的
@@ -219,13 +222,13 @@ export default function LoginPage() {
               >
                 关闭
               </button>
-              <button
+              <GradientButton
                 onClick={() => void handleSendReset()}
-                disabled={resetting}
-                className="btn-gradient flex-1 h-[48px] disabled:opacity-50"
+                loading={resetting}
+                className="flex-1 h-[48px] flex items-center justify-center rounded-full text-[14px] font-semibold"
               >
                 {resetting ? '发送中…' : '发送重置链接'}
-              </button>
+              </GradientButton>
             </div>
           </div>
         </div>

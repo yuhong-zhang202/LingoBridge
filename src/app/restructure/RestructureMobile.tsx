@@ -130,7 +130,7 @@ export default function RestructureMobile({
               )}
               <GradientButton
                 onClick={onMatch}
-                disabled={isSaving}
+                loading={isSaving}
                 className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[14px] font-medium mb-3"
               >
                 {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}

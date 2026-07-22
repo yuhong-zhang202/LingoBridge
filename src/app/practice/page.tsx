@@ -17,6 +17,7 @@ import { type JSX, useState, useRef, useEffect, useCallback, Suspense } from 're
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import { setSessionPolishes } from '@/lib/storage'
 import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
@@ -49,6 +50,7 @@ function useIsDesktop(): boolean {
 
 function PracticeContent(): JSX.Element {
   const router = useRouter()
+  const { navigate } = useNav()
   const params = useSearchParams()
   const questionId = params.get('questionId') ?? ''
   const storyId = params.get('storyId') ?? ''
@@ -287,8 +289,9 @@ function PracticeContent(): JSX.Element {
     if (userTurnCount >= 1) {
       startPracticeSessionRecord(questionId || null, isReview)
     }
-    router.push('/feedback')
-  }, [polishHistory, questionId, isReview, router, userTurnCount])
+    // navigate：点「结束」瞬间即亮顶部条（反馈页需生成总结、非瞬时），避免用户以为结束按钮没反应重复点。
+    navigate('/feedback')
+  }, [polishHistory, questionId, isReview, navigate, userTurnCount])
   // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
   const [endSession] = useAsyncAction(handleEnd)
   const capHint =

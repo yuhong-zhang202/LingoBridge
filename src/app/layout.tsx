@@ -4,6 +4,7 @@ import './globals.css'
 import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
 import StandaloneZoomFix from '@/components/StandaloneZoomFix'
+import { NavProvider, NavProgress } from '@/components/NavProgress'
 import { SELF_HEAL_CHUNK_SCRIPT } from './self-heal-chunk'
 
 // 自托管 Plus Jakarta Sans（woff2 取自 @fontsource/plus-jakarta-sans，见 fonts/README.md），
@@ -58,15 +59,20 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: SELF_HEAL_CHUNK_SCRIPT }} />
       </head>
       <body className="bg-bg-page">
-        <div className="h-dvh w-full flex justify-center bg-bg-page overflow-hidden">
-          <div
-            id="app-root-container"
-            className="relative w-full max-w-[430px] lg:max-w-none h-dvh bg-bg-page overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            {children}
+        {/* NavProvider 全站单例：暴露 navigate()/isNavigating；NavProgress 顶部进度条与 children 同级、
+            由 useTransition 在点击瞬间点亮（参照 SwUpdatePrompt 的 body 内挂法）。 */}
+        <NavProvider>
+          <NavProgress />
+          <div className="h-dvh w-full flex justify-center bg-bg-page overflow-hidden">
+            <div
+              id="app-root-container"
+              className="relative w-full max-w-[430px] lg:max-w-none h-dvh bg-bg-page overflow-y-auto"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {children}
+            </div>
           </div>
-        </div>
+        </NavProvider>
         <SwUpdatePrompt />
         <UpdateBanner />
         {/* 修 iOS standalone 输入框自动放大残留（真机取证:登录框15px→scale=1.066） */}
