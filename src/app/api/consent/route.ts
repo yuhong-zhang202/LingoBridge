@@ -37,9 +37,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (error) throw error
     const t2 = performance.now()
 
+    const authMs = Math.round(t1 - t0)
+    const insertMs = Math.round(t2 - t1)
+    // 性能埋点（fire-and-forget，绝不 await/不阻塞同意响应）：把验签/插库耗时落 perf_samples，
+    // 供事后直接 SQL 查「冷 vs 热」分布，免手动 DevTools 截图。写失败仅告警、不影响同意。
+    void getSupabaseServer()
+      .from('perf_samples')
+      .insert([
+        { label: 'consent', phase: 'auth', ms: authMs, meta: { is_anonymous: isAnonymous } },
+        { label: 'consent', phase: 'insert', ms: insertMs, meta: { is_anonymous: isAnonymous } },
+      ])
+      .then(({ error: perfErr }) => { if (perfErr) logErr('[perf] consent 埋点写入失败', perfErr) })
+
     return NextResponse.json(
       { ok: true },
-      { headers: { 'Server-Timing': `auth;dur=${Math.round(t1 - t0)}, insert;dur=${Math.round(t2 - t1)}` } },
+      { headers: { 'Server-Timing': `auth;dur=${authMs}, insert;dur=${insertMs}` } },
     )
   } catch (e) {
     const authRes = authErrorResponse(e)
