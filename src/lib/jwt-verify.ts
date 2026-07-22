@@ -40,9 +40,15 @@ export async function verifyAccessToken(token: string): Promise<SupabaseJwtPaylo
   const { payload } = await jwtVerify(token, JWKS, {
     issuer: AUTH_BASE,
     audience: 'authenticated',
+    // 显式锁 ES256：纵深防御——即使未来 jose 行为变更/配置漂移，也杜绝 alg 切换（HS256 拿公钥当 HMAC 密钥）绕过。
+    algorithms: ['ES256'],
   })
   if (typeof payload.sub !== 'string' || payload.sub === '') {
     throw new Error('access token 缺 sub')
+  }
+  // 强制 exp 存在：jose 对「无 exp」的 token 不因缺失而拒，去掉「依赖上游恒发 exp」的隐含假设。
+  if (typeof payload.exp !== 'number') {
+    throw new Error('access token 缺 exp')
   }
   return payload as SupabaseJwtPayload
 }
