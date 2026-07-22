@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import type { AppError } from '@/types/errors'
 import { env } from '@/lib/env-server'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { verifyAccessToken } from '@/lib/jwt-verify'
 import { logErr } from '@/lib/log'
 
 /** 带 HTTP 状态的鉴权错误：authErrorResponse 据此映射响应；其余异常仍交回各路由原有 500 分支。 */
@@ -84,9 +85,15 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
   const auth = req.headers.get('authorization') ?? ''
   const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : ''
   if (!token) throw authError(401, 'UNAUTHORIZED', '未授权')
-  const { data, error } = await getSupabaseServer().auth.getUser(token)
-  if (error || !data.user) throw authError(401, 'UNAUTHORIZED', '未授权', error)
-  const user = { id: data.user.id, email: data.user.email ?? null, isAnonymous: data.user.is_anonymous ?? false }
+  // 本地验签（非对称 ES256 + JWKS），不再调 auth.getUser(token)——省每个登录后接口一次 香港→新加坡
+  // GoTrue 往返。安全边界（不查即时吊销、靠 token 1h 过期 + 白名单兜底）见 jwt-verify.ts 顶注。
+  let payload
+  try {
+    payload = await verifyAccessToken(token)
+  } catch (e) {
+    throw authError(401, 'UNAUTHORIZED', '未授权', e)
+  }
+  const user = { id: payload.sub, email: payload.email ?? null, isAnonymous: payload.is_anonymous ?? false }
   await assertAllowlisted(user.email, user.isAnonymous)
   return user
 }
