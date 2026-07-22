@@ -15,6 +15,7 @@ import { extractCorpus } from '@/services/extraction'
 import { rankQuestions } from '@/services/ranking'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
+import { CURRENT_SEASON } from '@/lib/constants'
 
 const mockExtract  = extractCorpus as jest.MockedFunction<typeof extractCorpus>
 const mockRank     = rankQuestions as jest.MockedFunction<typeof rankQuestions>
@@ -37,6 +38,7 @@ function makeQ(id: string, part: 1 | 2 | 3) {
     topic_only: false,
     topic: '',
     parent_card_id: null,
+    season: CURRENT_SEASON,
     created_at: '2026-01-01T00:00:00Z',
     observation_points: [],
     isPrimaryMatch: false,
