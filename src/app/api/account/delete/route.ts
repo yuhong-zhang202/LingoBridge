@@ -19,6 +19,15 @@ export async function POST(req: Request): Promise<NextResponse> {
     const { userId } = await requireUser(req)
     const admin = getSupabaseServer()
 
+    // 1.2) 令牌吊销：删号后该用户手里的 access token 靠本地验签仍会通过（最长活到 exp）。先插吊销名单，
+    //      使其 ≤60s 内失效（api-auth 验签后查 revoked_users）。幂等；失败不阻断删号（token 仍受 exp 限），仅告警。
+    {
+      const { error: revErr } = await admin
+        .from('revoked_users')
+        .upsert({ user_id: userId, reason: 'account_deleted' }, { onConflict: 'user_id', ignoreDuplicates: true })
+      if (revErr) logErr('[account/delete] 写吊销名单失败（不阻断删号）', revErr)
+    }
+
     // 1.5) 取邮箱 —— 【必须在 admin.deleteUser 之前】，账号删掉后再也取不到。
     // 两处下游依赖它：① consent_audit 的加盐邮箱哈希；② beta_allowlist 按邮箱删残留行。
     // 取不到用户（已被删/id 失效）不算错：当作匿名/无邮箱处理，后续两步各自跳过，不阻断删号。
