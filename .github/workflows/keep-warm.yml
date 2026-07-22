@@ -1,0 +1,26 @@
+# 定时 ping 一个会触达 Supabase 的接口，保持 Zeabur 服务与「Zeabur→Supabase」连接池温热，
+# 避免闲置后首个请求（点同意 / 开始录音 / 额度检查等）因冷连接重新 TLS 握手而慢几秒。
+# ⚠️ GitHub 定时任务可能被延迟数分钟、且仓库 60 天无提交会自动停用；要更稳（5 分钟准点）
+#    可另外用 cron-job.org / UptimeRobot（免费）打同一个 URL，二者不冲突。
+name: keep-warm
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 预热 app + Supabase 连接池
+        run: |
+          # mode=switch 会走 Zeabur→Supabase REST，与同意插库同一个 Supabase 主机、共享连接池
+          curl -fsS -o /dev/null -w 'switch:  %{http_code}  %{time_total}s\n' \
+            'https://lingobridge.zeabur.app/api/questions?mode=switch' || true
+          curl -fsS -o /dev/null -w 'version: %{http_code}  %{time_total}s\n' \
+            'https://lingobridge.zeabur.app/api/version' || true

@@ -17,9 +17,13 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { BETA_PRIVACY_VERSION, CONSENT_SCOPE_SNAPSHOT } from '@/lib/privacy-copy'
 
 export async function POST(req: Request): Promise<NextResponse> {
+  // 性能取证：把「验 token」与「插库」两段耗时经 Server-Timing 头暴露到浏览器 DevTools。
+  // 用于定位同意慢在哪一段（getUser vs 插库/冷连接）；轻量、可长期保留作性能观测。
+  const t0 = performance.now()
   try {
     // 鉴权：放行匿名与注册用户，拿 uid + isAnonymous（缺/无效 token 抛 ApiAuthError(401)）
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    const t1 = performance.now()
 
     // 本轮只落「内测总体同意」（beta_general）。benchmark 型二次同意仅靠表列预留，本端点不处理。
     // consent_version / scope_snapshot 均取服务端权威值，客户端 body 一律忽略（防伪造）。
@@ -31,8 +35,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       is_anonymous: isAnonymous,
     })
     if (error) throw error
+    const t2 = performance.now()
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json(
+      { ok: true },
+      { headers: { 'Server-Timing': `auth;dur=${Math.round(t1 - t0)}, insert;dur=${Math.round(t2 - t1)}` } },
+    )
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
