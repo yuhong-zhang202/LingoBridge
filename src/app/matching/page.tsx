@@ -10,6 +10,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import { saveExtraction } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
@@ -21,6 +22,7 @@ import type { FunnelResult, PartTab, MatchingViewProps } from './types'
 
 function MatchingContent() {
   const router = useRouter()
+  const { navigate } = useNav()
   const params = useSearchParams()
   const corpusId = params.get('corpusId') ?? ''
   const [result, setResult] = useState<FunnelResult | null>(null)
@@ -195,7 +197,8 @@ function MatchingContent() {
     onSelect: (id) => setSelectedId(id),
     onToggleExpanded: () => setExpanded(v => !v),
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
-    onPractice: (id) => router.push(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`),
+    // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
+    onPractice: (id) => navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`),
     onRetry: () => void retry(),
     onBack: () => router.push(`/restructure?corpusId=${corpusId}`),
     onExit: () => router.push('/'),

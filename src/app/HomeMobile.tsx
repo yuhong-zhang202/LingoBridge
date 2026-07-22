@@ -11,6 +11,7 @@ import { Mic2, RotateCw, ChevronLeft } from 'lucide-react'
 import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import StoryTextPanel from '@/components/StoryTextPanel'
+import GradientButton from '@/components/GradientButton'
 import type { HomeViewProps } from './types'
 
 export default function HomeMobile({
@@ -23,6 +24,7 @@ export default function HomeMobile({
   textStory,
   submitting,
   canSubmit,
+  startingRec,
   onSetShowTextInput,
   onSelectMyStory,
   onSelectIelts,
@@ -114,10 +116,16 @@ export default function HomeMobile({
             <div className={`w-full ${showTextInput ? 'mt-0' : 'mt-4'}`}>
               {!showTextInput && (
                 <>
-                  <button onClick={onStartRecording} className="btn-gradient mx-auto w-[280px] h-[50px]">
+                  {/* GradientButton（升级自原裸 btn-gradient）：loading 时自带 spinner + 禁用 + aria-busy，
+                      「开始录音」额度核对/麦克风探测期间转圈，消除「点了没反应」。皮肤与桌面 CTA 统一。 */}
+                  <GradientButton
+                    onClick={onStartRecording}
+                    loading={startingRec}
+                    className="mx-auto flex items-center justify-center gap-2 w-[280px] h-[50px] rounded-full text-[14px] font-semibold"
+                  >
                     <Mic2 size={16} className="text-v2-text-secondary" />
                     开始录音
-                  </button>
+                  </GradientButton>
                   <button onClick={() => onSetShowTextInput(true)} className="w-full text-center text-[13px] text-v2-text-muted mt-3 cursor-pointer">
                     或用文字输入
                   </button>

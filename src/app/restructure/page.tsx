@@ -15,6 +15,7 @@ import { upsertMatch } from '@/lib/db/matches'
 import { getSupabase } from '@/lib/supabase'
 import { apiFetch } from '@/lib/api-client'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import RestructureMobile from './RestructureMobile'
@@ -32,6 +33,7 @@ function isStructuredHandoff(v: unknown): v is StructuredHandoff {
 
 function RestructureContent() {
   const router   = useRouter()
+  const { navigate } = useNav()
   const params   = useSearchParams()
   const qid      = params.get('qid')
   // corpusId 存在 = 返回态（从 matching / analysis「返回上一步」进来）：忽略 handoff，改从 DB 水合真实语料。
@@ -162,18 +164,20 @@ function RestructureContent() {
         storyId = corpus.id
       }
       await updateCorpusCleaned(storyId, aiText)
+      // navigate（非 router.push）：保存完成到目标页（分析/匹配均为 AI 环节、非瞬时）跳转期间亮顶部条，
+      // 与按钮「保存中…」spinner 接力，全程有反馈。
       if (qid) {
         // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转（upsertMatch 本幂等）
         await upsertMatch(storyId, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
-        router.push(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
+        navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
       } else {
-        router.push(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配
+        navigate(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配
       }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
       setIsSaving(false)
     }
-  }, [rawStory, aiText, qid, corpusId, router])
+  }, [rawStory, aiText, qid, corpusId, router, navigate])
 
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline

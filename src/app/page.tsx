@@ -11,7 +11,8 @@
  */
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import Toast from '@/components/Toast'
 import FirstUseConsent from '@/components/FirstUseConsent'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
@@ -28,7 +29,7 @@ import type { HomeViewProps } from './types'
 const HERO_LINE2 = '个性化雅思语料'
 
 export default function HomePage() {
-  const router = useRouter()
+  const { navigate } = useNav()
   const [showTextInput, setShowTextInput] = useState(false)
   const [textStory, setTextStory] = useState('')
   const [ieltsMode, setIeltsMode] = useState(false)
@@ -62,18 +63,21 @@ export default function HomePage() {
     return () => window.clearTimeout(timer)
   }, [ieltsMode])
 
-  // 点「开始录音」先核额度、再探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）
+  // 点「开始录音」先核额度、再探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）。
+  // checkBlocked / getUserMedia 都是异步慢操作，此前 fire-and-forget 无反馈 → 用户以为按钮坏了。
   async function handleStartRecording() {
     if (await storyQuota.checkBlocked()) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
-      router.push(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')
+      navigate(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')
     } catch (err) {
       const name = (err as DOMException)?.name
       setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
     }
   }
+  // 额度核对 + 麦克风探测期间按钮转圈（GradientButton loading）；跳转瞬间接力顶部进度条。
+  const [startRecording, startingRec] = useAsyncAction(handleStartRecording)
 
   /** 「文本输入」入口：打开面板前同样核额度；关闭面板不核（无消耗动作） */
   async function handleSetShowTextInput(v: boolean): Promise<void> {
@@ -86,7 +90,7 @@ export default function HomePage() {
   const writeHref = ieltsMode && question ? `/write?qid=${question.id}` : '/write'
   async function handleOpenWrite(): Promise<void> {
     if (await storyQuota.checkBlocked()) return
-    router.push(writeHref)
+    navigate(writeHref)
   }
 
   const viewProps: HomeViewProps = {
@@ -99,6 +103,7 @@ export default function HomePage() {
     textStory,
     submitting,
     canSubmit: computeRichness(textStory).canSubmit,
+    startingRec,
     typed,
     reuseTab,
     writeHref,
@@ -106,7 +111,7 @@ export default function HomePage() {
     onSelectMyStory: () => setIeltsMode(false),
     onSelectIelts: () => { if (!ieltsMode) { setIeltsMode(true); void next() } },
     onNext: () => void next(),
-    onStartRecording: () => void handleStartRecording(),
+    onStartRecording: () => void startRecording(),
     onOpenWrite: () => void handleOpenWrite(),
     onChangeTextStory: setTextStory,
     onSubmitStory: submit,
