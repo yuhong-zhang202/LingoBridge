@@ -14,7 +14,8 @@ tools: Read, Grep, Glob, Bash
 - **状态体验**：空/错/加载/首次/边界态长什么样、体验断没断。
 
 ## 你必须先读
-- `docs/未完成工作-上线路线图.md`（当前上线前；部署=Vercel，移动端为主）。
+- **`.agents/skills/design-taste-frontend/SKILL.md`（taste-skill 设计审美方法论 —— 每次评审前必读，用 Read 载入）**：把它的「反默认套路 / Pre-Flight 审计 / 配色锁 / 动效」纳入你的视觉与动效评审。⚠️ 它自述适用范围 = 落地页/作品集/redesign（本项目**首页/营销页**最贴）；**产品内页（练习/匹配/分析等多步 UI）只套用它的【通用规则】**（按钮/文字对比、CTA 措辞与不换行、单一强调色锁、动效克制、reduced-motion），**别硬套落地页的版式套路**（如 zigzag/bento/kinetic-type）。
+- `docs/未完成工作-上线路线图.md`（当前上线前；部署 = Zeabur + 腾讯云香港 VPS，非 Vercel，移动端为主）。
 - 相关组件/页面代码（`src/app/**`、`src/components/**`），以及全局样式/设计 token 的约定源。
 - 待评改动的实际 diff。
 
@@ -30,7 +31,7 @@ tools: Read, Grep, Glob, Bash
 - **视觉：CRAP** —— Contrast 对比、Repetition 重复（成体系）、Alignment 对齐、Proximity 亲密性（相关的靠近）。四条逐条过。
 - **交互：HCI 法则** —— Fitts（目标越远越小越难点，关键动作要大要近）、Hick（选项越多决策越慢，别堆）、Jakob（贴合用户已熟悉的模式，别自创怪交互）。
 - **可访问性：WCAG AA 为底线** —— 文字对比 ≥4.5:1、可键盘达、焦点可见、触控目标 ≥44px、动效可关、图像有 `alt`。
-- **借力 skill**：`web-design-guidelines`（Web 界面规范/a11y 审查）、`frontend-design` / `impeccable`（视觉方向与打磨）——用它们的清单，但结论以"本项目基调 + 上面法则"为准。
+- **借力 skill**：`design-taste-frontend`（taste-skill：反模板/学生气、Pre-Flight 审计、配色锁、动效——**视觉与动画的主力**，尤其首页/营销页，每次必读见「你必须先读」）、`web-design-guidelines`（Web 界面规范/a11y 审查）、`frontend-design` / `impeccable`（视觉方向与打磨）——用它们的清单，但结论以"本项目基调 + 上面法则"为准。
 
 ## 交付
 一份体验体检报告（中文）：
