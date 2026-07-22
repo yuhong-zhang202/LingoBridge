@@ -54,6 +54,14 @@ export default function RootLayout({
   return (
     <html lang="zh" className={jakarta.variable}>
       <head>
+        {/* 预连 Supabase：浏览器提前建好 DNS+TCP+TLS，省掉客户端直连 Supabase（注册/登录/会话读取）
+            首次调用的握手时延。仅助「浏览器→Supabase」，不影响服务端插库。 */}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        )}
         {/* chunk 加载失败自愈：同步内联、在 React/框架 chunk 之前执行，兜住 error.tsx 挂载前的资源 404。
             内含 sessionStorage 一次性闸防死循环，详见 self-heal-chunk.ts。 */}
         <script dangerouslySetInnerHTML={{ __html: SELF_HEAL_CHUNK_SCRIPT }} />
