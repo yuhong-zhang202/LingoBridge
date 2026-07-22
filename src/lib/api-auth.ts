@@ -80,6 +80,41 @@ async function assertAllowlisted(email: string | null, isAnonymous: boolean): Pr
   if (!emails.has(e)) throw authError(403, 'NOT_ALLOWLISTED', '该邮箱不在内测名单')
 }
 
+// ── 令牌吊销名单 ──────────────────────────────────────────────────────────────
+// 本地验签(jwt-verify)不查即时吊销，封号/删号后用户手里的 access token 靠验签仍会通过、最长活到 exp(默认1h)。
+// 本层补「≤60s 吊销」：验签通过后再查 sub 是否在 revoked_users（60s 进程内缓存，几乎零开销）。
+
+/** 吊销名单缓存 TTL：60 秒。副作用——封号/删号最多 60 秒后对所有实例生效（与白名单删人同一量级）。 */
+const REVOKED_TTL_MS = 60_000
+
+/** 进程内吊销名单快照 */
+let revokedCache: { at: number; ids: Set<string> } | null = null
+
+/**
+ * 读吊销名单快照（60 秒进程内缓存）。service_role 读 revoked_users（该表 RLS 无 policy，仅 service_role 可读）。
+ * fail-open：读表失败时返回空集（不吊销任何人）——瞬时 DB 故障不该让全站 401，与 loadAllowlist 同语义；
+ * 吊销名单是兜底安全网，短暂失效窗口可接受（token 本身仍受 exp 限）。
+ */
+async function loadRevoked(): Promise<Set<string>> {
+  const now = Date.now()
+  if (revokedCache && now - revokedCache.at < REVOKED_TTL_MS) return revokedCache.ids
+  try {
+    const { data, error } = await getSupabaseServer().from('revoked_users').select('user_id')
+    if (error) throw error
+    const ids = new Set(((data as Array<{ user_id: string }> | null) ?? []).map((r) => r.user_id))
+    revokedCache = { at: now, ids }
+    return ids
+  } catch (e) {
+    logErr('[revoked] load failed, fail-open', e)
+    return new Set<string>()
+  }
+}
+
+/** 该 userId 是否已被吊销（封号/删号）。 */
+async function isRevoked(userId: string): Promise<boolean> {
+  return (await loadRevoked()).has(userId)
+}
+
 /** 从 Authorization: Bearer 头取 token 并反查用户（token 缺失/无效抛 401）。内部复用，不导出。 */
 async function authUser(req: Request): Promise<{ id: string; email: string | null; isAnonymous: boolean }> {
   const auth = req.headers.get('authorization') ?? ''
@@ -94,6 +129,8 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
     throw authError(401, 'UNAUTHORIZED', '未授权', e)
   }
   const user = { id: payload.sub, email: payload.email ?? null, isAnonymous: payload.is_anonymous ?? false }
+  // 即时吊销兜底：验签只证 token 未伪造/未过期，查不到「封号/删号」；这里补查吊销名单（≤60s 生效）。
+  if (await isRevoked(user.id)) throw authError(401, 'UNAUTHORIZED', '会话已失效')
   await assertAllowlisted(user.email, user.isAnonymous)
   return user
 }
