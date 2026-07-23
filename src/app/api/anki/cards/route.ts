@@ -6,7 +6,7 @@
  *           - PATCH { questionId, editedAnswer }  存编辑 → 写 edited_answer（part3 亦可，用户自填）。
  *
  *           为什么 POST 而非 GET 存对子：有副作用（扣额度 + 入队付费 AI 生成），与 phrases/matching 同口径。
- *           鉴权：requireUserAllowAnon（匿名亦可试用，按 isAnonymous 区分额度）；同意闸 + 计次在入队【之前】
+ *           鉴权：requireUser（注册专属：Anki 卡是跨天 SRS 资产、档位依赖用户目标分，匿名不适用）；同意闸 + 计次在入队【之前】
  *           硬前置（enqueue.ts 顶注：同意/计次归「用户发起请求」的端点，与 phrases「requireConsent +
  *           bumpDailyUsage 前置、再调 AI」同范式）。越权防护：assertCorpusOwner 校验语料归属。
  * @author   LingoBridge
@@ -18,9 +18,9 @@ import { getQuestionById } from '@/lib/db/questions'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
 import { getCardCorpusBinding, upsertEditedAnswer } from '@/lib/db/anki-cards-server'
-import { requireUser, requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
-import { ANON_ANKI_LIMIT, REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
+import { REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
 
 /** 取 body 里的字符串字段并去空白；非字符串/缺省一律回退空串（下游按空串统一 400）。 */
 function str(v: unknown): string {
@@ -30,7 +30,7 @@ function str(v: unknown): string {
 /** POST：存对子/绑语料。 */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    const { userId } = await requireUser(req)
     // 同意闸硬前置：存对子会令 drain 把用户中文语料发往千问生成卡背。未捕获当前版本同意 → 403，绝不入队。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -55,12 +55,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '该题已存过对子，换语料请用换语料入口', code: 'ANKI_ALREADY_BOUND' }, { status: 409 })
     }
 
-    // 服务端硬防线：计次在入队（→ 付费 AI）之前。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断 → 429（不带 code）。
+    // 服务端硬防线：计次在入队（→ 付费 AI）之前。注册专属功能，超熔断 → 429。
     const dailyCount = await bumpDailyUsageServer(userId, 'anki')
-    if (isAnonymous ? dailyCount > ANON_ANKI_LIMIT : dailyCount > REG_ANKI_DAILY_LIMIT) {
-      return isAnonymous
-        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
-        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+    if (dailyCount > REG_ANKI_DAILY_LIMIT) {
+      return NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
 
     // 原子 upsert 卡行（绑 corpus_id、不动 SRS 进度）+ 入队生成任务（同题已有未完成任务则不重复入队）。

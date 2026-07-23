@@ -9,19 +9,17 @@
  *           为什么换语料要清 generated_answer + 重排队：换语料 = 新语料源，旧 generated_answer 必错配。
  *           §11 拍板「换语料 = 自动重生成」（与「禁手动重生成按钮」不矛盾）。清空 + 重排队的 job 处理细节
  *           见 anki-cards-server.ts（在途任务快照 corpus_id、部分唯一索引令裸 enqueue 无法可靠重排队）。
- *           PUT 走同意闸 + 计次（会触发付费 AI 重生成）；DELETE 无 AI 副作用 → 仅鉴权。
+ *           PUT 走同意闸（换语料不计配额——产品方拍板；仍触发付费 AI 重生成，故保留同意闸）；DELETE 仅鉴权。
  * @author   LingoBridge
  * @created  2026-07-23
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
-import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
 import { rebindCorpusForSwap, unbindCorpus } from '@/lib/db/anki-cards-server'
-import { requireUser, requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
-import { ANON_ANKI_LIMIT, REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
 
 /** 取 body 里的字符串字段并去空白；非字符串/缺省一律回退空串。 */
 function str(v: unknown): string {
@@ -31,7 +29,7 @@ function str(v: unknown): string {
 /** PUT：换语料（清 generated_answer + 重排队生成）。 */
 export async function PUT(req: Request): Promise<NextResponse> {
   try {
-    const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    const { userId } = await requireUser(req)
     // 同意闸硬前置：重生成会令 drain 把新语料发往千问。未捕获当前版本同意 → 403，绝不重排队。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -47,14 +45,7 @@ export async function PUT(req: Request): Promise<NextResponse> {
     const q = await getQuestionById(questionId)
     if (!q) return NextResponse.json({ error: '题目不存在' }, { status: 404 })
 
-    // 计次在重排队（→ 付费 AI）之前。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断 → 429（不带 code）。
-    const dailyCount = await bumpDailyUsageServer(userId, 'anki')
-    if (isAnonymous ? dailyCount > ANON_ANKI_LIMIT : dailyCount > REG_ANKI_DAILY_LIMIT) {
-      return isAnonymous
-        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
-        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
-    }
-
+    // 换语料不计配额（产品方拍板 2026-07-23）；同意闸已前置。
     // §11 红线：清空旧 generated_answer + 改指新语料 + 把在途任务改指新语料。随后 enqueue：
     // 若已有 active 任务（已被上面改指新语料）则 do-nothing；若无则由 enqueue 新入队。
     await rebindCorpusForSwap(userId, questionId, corpusId)
