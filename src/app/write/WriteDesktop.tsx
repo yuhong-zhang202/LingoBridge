@@ -96,7 +96,7 @@ export default function WriteDesktop({
               loading={submitting}
               className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
-              开始匹配题目 →
+              语料梳理 →
             </GradientButton>
           </div>
           <p className="text-[12px] text-v2-text-muted">⌘/Ctrl + Enter 提交 · Esc 退出</p>
