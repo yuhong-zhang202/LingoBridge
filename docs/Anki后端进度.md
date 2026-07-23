@@ -13,9 +13,20 @@
 
 → **方案 §6 端点全齐**（POST/PUT/DELETE/GET/PATCH/review/drain + pregen）。prompt 与探针同源守卫（漂移即测试红）。均未真调 DashScope。
 
-## 🔵 审计中（产品方要求：后端 code 审核）
-- **security-auditor**：越权/RLS、drain 密钥、service_role 绕 RLS 的应用层过滤、question_analyses 公开可读面、被遗忘权。
-- **code-health-auditor**：流水线耦合、错误处理、可测性、技术债。
+## 🔵 审计完成（2026-07-23）——两份均无 🔴 阻断
+安全侧越权/RLS/drain 密钥/被遗忘权/注入/同意闸**逐条核过挡住**；架构鉴权范式扎实、边界清晰。🟡 上线前处理清单：
+
+| # | 来源 | 问题 | 需要什么 | 修法 |
+|---|---|---|---|---|
+| A | security | **匿名绕过**：`requireUser` 不拦匿名会话→"注册专属"未被代码强制 + 匿名**绕内测邮箱白名单**（影响不止 Anki）+ 每匿名会话新 50 额度=成本放大 | 确认 Supabase 匿名登录开关 | Anki 端点显式拒匿名（`isAnonymous→401`）；白名单绕过需全站层面处理 |
+| B | security | **换语料 PUT 无限流**：拍板"不计配额"=单账号可脚本无限烧 AI 费（0031 索引只挡在途重复、job done 即可再入队） | 产品方定：加不加防滥用限流(≠配额) | 换语料走宽松日限/冷却（如 200/天 或 N 分钟冷却） |
+| C | code-health | **换/删语料无事务**：§11 红线是多条独立 DML，中间失败→旧答案复活 / 卡背永久空白（与 enqueue 落 RPC 求原子性的理由自相矛盾） | 直接修（正确性红线） | 收敛成 plpgsql RPC 一个事务 |
+| D | code-health | **processing 孤儿无回收**：容器重启/超时杀 drain→任务永卡 processing、永不重试、卡背空白（崩溃恢复真空） | 部署侧确认 Zeabur 容器超时行为 | claim 加 visibility-timeout 回收超时 processing |
+| E | both 🟢 | 卡态 SQL/JS 双算 + 空串处理不一致；切点散落三处；drain 回填 `.eq('id',card_id)` 建议加 `user_id` 防御纵深；魔数记账 | 直接修/记账 | 对齐 + 集中常量 + 加 user_id 过滤 |
+
+**可测性缺口（code-health 列 8 条行为级）**：换语料原子红线、删语料不复活、enqueue 幂等、懒物化 upsert 不覆盖、get_anki_cards 排序分组、drain 状态机、孤儿恢复、backKind 边界——关键不变式几乎全裸奔，仅 anki-answer.test.ts 覆盖生成器。
+
+**被遗忘权注**：anki 两表靠 FK cascade 兜底删号，当前安全，但建议加进删号路由显式清单防未来 FK 漂移。
 
 ## ⏳ 待办
 ### 🔴 唯一剩的后端块：band 落地
