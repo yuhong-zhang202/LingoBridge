@@ -63,7 +63,7 @@ export default function StoryTextPanel({
           <button
             disabled={!canSubmit || submitting}
             onClick={onSubmit}
-            aria-label="开始匹配题目"
+            aria-label="语料梳理"
             className={canSubmit && !submitting ? 'btn-gradient-circle w-[42px] h-[42px]' : 'flex items-center justify-center w-[42px] h-[42px] rounded-full bg-bg-muted cursor-not-allowed'}
           >
             {submitting ? <Loader2 size={18} className="text-v2-text-muted animate-spin" /> : <ArrowRight size={18} className={canSubmit ? 'text-brand-primary-dark' : 'text-v2-text-muted'} />}
