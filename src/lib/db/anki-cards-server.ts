@@ -1,0 +1,182 @@
+/**
+ * @module   db/anki-cards-server
+ * @desc     【仅服务端】Anki 题卡写路径的 DB 帮手 —— 存对子冲突判定、换/删语料（清 generated_answer + 处理
+ *           在途生成任务）、SRS 复习懒物化 upsert、存编辑。均经 service_role 直连（绕 RLS），故调用方须先
+ *           requireUser 反查 userId 并以之为 (user_id) 过滤，越权防护落在应用层（与 corpus-server 同范式）。
+ *
+ *   为什么换/删语料要显式动 anki_generation_jobs（方案 §11 正确性红线）：
+ *     - anki_generation_jobs 在【入队时快照 corpus_id】（drain 按 job.corpus_id 取语料生成），且
+ *       0031 的部分唯一索引 anki_gen_jobs_active_uidx 令「同题已有 pending/processing 任务时」再入队
+ *       do-nothing。故换语料若只调 enqueue，旧任务仍指向旧语料、新语料永不生效；删语料若不清任务，
+ *       在途任务会把旧语料答案回填、令「已清空的 generated_answer」复活。
+ *     - 因此换语料 = 把在途任务 corpus_id 改指新语料；删语料 = 撤掉在途任务。二者都先把卡行的
+ *       generated_answer 清空（§11 红线）。
+ *     - ⚠️ 残留窗口：任务已被 drain 领取（status='processing'、语料快照已在 worker 内存里）时，本处对
+ *       DB 的改动拦不住那一次在途生成 —— 属极窄竞态（换/删恰好撞上生成的秒级窗口），交由 red-team /
+ *       drain 侧（任务版本号 / 取消令牌）后续收口，不在本轮端点内解决。
+ * @author   LingoBridge
+ * @created  2026-07-23
+ */
+import 'server-only'
+import { getSupabaseServer } from '@/lib/supabase-server'
+import { nextBox, nextDue } from '@/lib/srs'
+
+/** 存对子冲突判定所需的当前绑定态。 */
+export interface CardCorpusBinding {
+  /** 卡行是否已存在（懒物化下可能从未落库）。 */
+  exists: boolean
+  /** 已绑定的语料 id；null = 卡行不存在或未绑语料（真相源/分析卡态）。 */
+  corpusId: string | null
+}
+
+/**
+ * 读某用户某题当前的卡行绑定态，供存对子端点判 409（已绑非空语料 = 重复存对子）。
+ * @param  userId      requireUser 反查出的当前用户 id
+ * @param  questionId  目标题目 id
+ * @returns            { exists, corpusId }
+ * @throws             Error —— 查询出错
+ * @sideEffect         service_role 读 anki_cards（绕 RLS，须显式按 user_id 过滤）
+ */
+export async function getCardCorpusBinding(userId: string, questionId: string): Promise<CardCorpusBinding> {
+  const { data, error } = await getSupabaseServer()
+    .from('anki_cards')
+    .select('corpus_id')
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .maybeSingle()
+  if (error) throw new Error(`读取卡行绑定失败：${error.message}`)
+  if (data === null) return { exists: false, corpusId: null }
+  return { exists: true, corpusId: (data as { corpus_id: string | null }).corpus_id }
+}
+
+/**
+ * 换语料前置处理（方案 §11）：把卡行 generated_answer 清空 + corpus_id 改指新语料，并把该题在途
+ * （pending/processing）生成任务的 corpus_id 一并改指新语料 —— 令随后的 enqueue「同题已有 active 任务
+ * 则 do-nothing」时，那条 active 任务已指向新语料、drain 会用新语料重生成。调用方随后仍须调 enqueue
+ * （若无 active 任务、上面 update 命中 0 行，则由 enqueue 插入一条新任务）。
+ * @param  userId       当前用户 id
+ * @param  questionId   目标题目 id
+ * @param  newCorpusId  新语料 id
+ * @throws              Error —— 更新出错（part3 卡设非空 corpus_id 会被 0030 触发器拒绝）
+ * @sideEffect          service_role 更新 anki_cards + anki_generation_jobs（绕 RLS）
+ */
+export async function rebindCorpusForSwap(userId: string, questionId: string, newCorpusId: string): Promise<void> {
+  const supabase = getSupabaseServer()
+  const now = new Date().toISOString()
+  // 卡行：清空旧答案（§11 红线）+ 指向新语料。命中 0 行（卡行尚不存在）无妨，enqueue 会懒物化插入。
+  const { error: cardErr } = await supabase
+    .from('anki_cards')
+    .update({ corpus_id: newCorpusId, generated_answer: null, updated_at: now })
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+  if (cardErr) throw new Error(`换语料更新卡行失败：${cardErr.message}`)
+  // 在途任务：改指新语料（不动 status/attempts —— 那是 drain 的状态机职责）。仅覆盖 pending/processing。
+  const { error: jobErr } = await supabase
+    .from('anki_generation_jobs')
+    .update({ corpus_id: newCorpusId, updated_at: now })
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .in('status', ['pending', 'processing'])
+  if (jobErr) throw new Error(`换语料改指在途任务失败：${jobErr.message}`)
+}
+
+/**
+ * 删对子 / unbind（方案 §6 回退分析 / §11 清 generated_answer）：卡行 corpus_id 置 null + 清空
+ * generated_answer（卡退化为「分析卡」/真相源），保留 SRS 进度（box/due_at/last_reviewed_at 不动）。
+ * 同时撤掉该题在途生成任务，防在途任务把旧语料答案回填、令已清空的 generated_answer 复活。
+ * @param  userId      当前用户 id
+ * @param  questionId  目标题目 id
+ * @throws             Error —— 更新/删除出错
+ * @sideEffect         service_role 更新 anki_cards + 删 anki_generation_jobs 在途行（绕 RLS）
+ */
+export async function unbindCorpus(userId: string, questionId: string): Promise<void> {
+  const supabase = getSupabaseServer()
+  const now = new Date().toISOString()
+  const { error: cardErr } = await supabase
+    .from('anki_cards')
+    .update({ corpus_id: null, generated_answer: null, updated_at: now })
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+  if (cardErr) throw new Error(`删语料更新卡行失败：${cardErr.message}`)
+  // 撤在途任务（pending/processing）：删除即释放 0031 的 active 部分唯一索引占位，卡不再被重生成。
+  const { error: jobErr } = await supabase
+    .from('anki_generation_jobs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .in('status', ['pending', 'processing'])
+  if (jobErr) throw new Error(`删语料撤在途任务失败：${jobErr.message}`)
+}
+
+/** SRS 复习后的新状态（回给端点做响应/前端更新卡叠）。 */
+export interface ReviewResult {
+  box: number
+  dueAt: string
+}
+
+/**
+ * SRS 复习懒物化（方案 §11）：卡行可能从未落库（默认卡）→ 走 upsert on conflict (user_id, question_id)。
+ * 新行按默认卡初值（box 1、corpus_id null）建、再套本次 review 结果；已有行只更新 SRS 字段
+ * （box/due_at/last_reviewed_at），不碰 corpus_id/generated_answer/edited_answer。
+ *
+ * 【读后写非原子】先读当前 box 再算 nextBox：单用户点自己的卡、并发极低，可接受；不记住时 nextBox 恒回
+ * box1（与当前值无关），记住时才依赖当前 box +1 封顶。
+ * @param  userId      当前用户 id
+ * @param  questionId  目标题目 id
+ * @param  remembered  是否记住（右滑=true 升一格 / 左滑=false 回 box1）
+ * @returns            { box, dueAt } 复习后的新盒子与下次到期
+ * @throws             Error —— 读或 upsert 出错
+ * @sideEffect         service_role upsert anki_cards（绕 RLS）
+ */
+export async function upsertReview(userId: string, questionId: string, remembered: boolean): Promise<ReviewResult> {
+  const supabase = getSupabaseServer()
+  const { data: existing, error: readErr } = await supabase
+    .from('anki_cards')
+    .select('box')
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .maybeSingle()
+  if (readErr) throw new Error(`读取卡行盒子失败：${readErr.message}`)
+  const currentBox = (existing as { box: number } | null)?.box ?? 1
+  const newBox = nextBox(currentBox, remembered)
+  const now = new Date()
+  const due = nextDue(newBox, now)
+  // upsert 负载只含 SRS 字段：insert 时 corpus_id/generated_answer/edited_answer 取表默认（null），
+  // 部分冲突时只更新这几列 —— 不覆盖已绑语料/已生成/已编辑内容。
+  const { error: upErr } = await supabase
+    .from('anki_cards')
+    .upsert(
+      {
+        user_id: userId,
+        question_id: questionId,
+        box: newBox,
+        due_at: due.toISOString(),
+        last_reviewed_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      },
+      { onConflict: 'user_id,question_id' },
+    )
+  if (upErr) throw new Error(`复习更新失败：${upErr.message}`)
+  return { box: newBox, dueAt: due.toISOString() }
+}
+
+/**
+ * 存编辑（方案 §1）：把用户手填/改写的背面存进 edited_answer（优先级高于 generated_answer，展示层决定）。
+ * part3 卡也允许（part3 无生成答案、用户自填 edited_answer）—— edited_answer 不受 0030 part3 触发器约束。
+ * 卡行可能尚未落库（如 part3 从未复习过）→ 同样走 upsert on conflict 懒物化。
+ * @param  userId        当前用户 id
+ * @param  questionId    目标题目 id
+ * @param  editedAnswer  用户编辑后的背面文本
+ * @throws               Error —— upsert 出错
+ * @sideEffect           service_role upsert anki_cards（绕 RLS）
+ */
+export async function upsertEditedAnswer(userId: string, questionId: string, editedAnswer: string): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await getSupabaseServer()
+    .from('anki_cards')
+    .upsert(
+      { user_id: userId, question_id: questionId, edited_answer: editedAnswer, updated_at: now },
+      { onConflict: 'user_id,question_id' },
+    )
+  if (error) throw new Error(`存编辑失败：${error.message}`)
+}

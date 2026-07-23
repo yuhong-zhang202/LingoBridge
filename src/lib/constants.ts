@@ -131,6 +131,8 @@ export const ANON_MATCHING_LIMIT = 5
 export const ANON_ANALYSIS_LIMIT = 20
 /** 匿名每日：phrases 换词组次数（同一题可换不同水平档，按 analysis 同量给）*/
 export const ANON_PHRASES_LIMIT = 20
+/** 匿名每日：anki 存/换对子次数（每次触发一次卡背生成入队；匿名只能建 1 条语料，给 5 次绑/换余量）*/
+export const ANON_ANKI_LIMIT = 5
 
 // 注册用户熔断上限：正常使用永远碰不到，仅防脚本滥用（触发返回 429，不走配额弹层）
 export const REG_PRACTICE_DAILY_LIMIT = 200
@@ -145,6 +147,8 @@ export const REG_ANALYSIS_DAILY_LIMIT = 200
 export const REG_PHRASES_DAILY_LIMIT = 150
 /** 注册每日：restructure 文字整理（与 transcribe 对齐 200——两者一一配对，且走最便宜的 qwen-flash，压太低会误伤真实用户）*/
 export const REG_RESTRUCTURE_DAILY_LIMIT = 200
+/** 注册每日：anki 存/换对子（每次触发一次卡背生成入队，单条 part2 长文约与 matching 单跳同量级，取 50）*/
+export const REG_ANKI_DAILY_LIMIT = 50
 
 // ── 失败归因（api_usage_logs.metadata.error_kind）──
 // 背景：并非所有 status='error' 都是系统故障。用户录了一段没人声的音频（EMPTY_TRANSCRIPT）属于
