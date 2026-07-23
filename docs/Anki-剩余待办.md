@@ -33,12 +33,14 @@
 ## 🔧 生成实施线（fix-engineer）
 - ✅ **生成器 `anki-answer.ts` 重写**（本轮）：整段→逐点 JSON `[{idx,en,noMaterial}]`、去 tier、callLLMJson。**留空出口验证通过**（薄素材"补完整/对比"点 6/6 正确留空、完整语料仅 2/20 偏保守误留、21字编造被 40字门槛挡）。
 - ✅ 砍 band（删 target-band.ts、`TIER_SPLIT`/`DEFAULT_TARGET_BAND` @deprecated、drain 去 band/tier）· 类型加 `example?` · prompt 同源守卫重写 · drain 回填存 `JSON.stringify`。
-- [ ] **卡背存储读取渲染**：`get_anki_cards` RPC + 前端把 `generated_answer`(JSON) 解析成点数组渲染（本轮只管写、没管读）。
-- [ ] **part3 例句静态化**：`generatePart3Analysis` 每点补 `example`，随 pregen 静态存；part3 恒 null 不变式不动。
+- ✅ **后端读取契约**（0036）：`is_answered` 去 generated_answer 项（避"全留空"假阳 + 根除在途竞态假阳）；`backKind` 点数组语义、与 SQL 解耦。⚠️ **0036 真 PG 未跑**（上线前真库验证）。
+- ✅ **part3 例句静态化**：pregen 每点补 example（`PART3_EXAMPLE_SYSTEM` 同源探针 + 守卫）、不变式不动。⚠️ **未对真 DashScope 复验**（maxTokens512 下裸数组稳定性，沿用探针推断）。
+- [ ] **前端渲染**：FlashCard 把 `generated_answer`(JSON) 解析成点数组渲染 + 空点态"这点还没讲到"——**依赖 ux 卡片设计**。
 - [ ] **PATCH 编辑粒度**（逐点 vs 整体，待 ux 定）· **成本重估**（本轮探针 ~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
 
 ### ⚠️ 本轮暴露的风险（待处理）
-- [ ] **extractJson 双发 JSON（高·先处理）**：qwen 对 part2 富语料 ~28% 概率把 JSON 输出两遍，共享 `llm.ts:236` extractJson 贪切（`indexOf{`→`lastIndexOf}`）会拼成非法 JSON → 首 attempt 解析失败、靠 callLLMJson 2 轮重试兜、极端判死信。**修法：Anki 侧局部兜（平衡括号取首值，不碰共享 llm.ts 避免全站回归）**；共享 extractJson 是全站潜在问题（ranking/analysis 也用 callLLMJson）→ 建议单独评估。
+- ✅ **extractJson 双发兜底（Anki 侧）**：`anki-json.ts` 平衡括号取首个 JSON、本地 `callAnkiLLMJson` 不碰共享 llm.ts；单测 8+3 全过。代价：与 llm.ts transport/retry 一份**受控重复**（记账）。
+- [ ] **共享 extractJson 全站评估**：双发贪切是全站潜在问题（ranking/analysis 同用 callLLMJson）→ 单独评估是否根治（`response_format: json_object` / 改 extractJson，需全站回归）。
 - [ ] **误留空假阴率**（金标量化）：留空偏保守、有素材却留空（B2 的"和别处不同"点）——留空比编造安全，但精度代价需金标量化"该生成却留空"率。
 - [ ] **"讲清重点"句超 22 词**（H6✗，本轮 29/34/23/26）：要不要严守 ≤22（prompt 加压/后处理），red-team/产品方定。
 - [ ] `threshold-probe.mjs` 第三份旧 SYSTEM（无留空出口）已与 example-probe 不同源、注释过时 → 同步或标废弃。
