@@ -16,13 +16,16 @@
 ## 🔵 审计完成（2026-07-23）——两份均无 🔴 阻断
 安全侧越权/RLS/drain 密钥/被遗忘权/注入/同意闸**逐条核过挡住**；架构鉴权范式扎实、边界清晰。🟡 上线前处理清单：
 
-| # | 来源 | 问题 | 需要什么 | 修法 |
-|---|---|---|---|---|
-| A | security | **匿名绕过**：`requireUser` 不拦匿名会话→"注册专属"未被代码强制 + 匿名**绕内测邮箱白名单**（影响不止 Anki）+ 每匿名会话新 50 额度=成本放大 | 确认 Supabase 匿名登录开关 | Anki 端点显式拒匿名（`isAnonymous→401`）；白名单绕过需全站层面处理 |
-| B | security | **换语料 PUT 无限流**：拍板"不计配额"=单账号可脚本无限烧 AI 费（0031 索引只挡在途重复、job done 即可再入队） | 产品方定：加不加防滥用限流(≠配额) | 换语料走宽松日限/冷却（如 200/天 或 N 分钟冷却） |
-| C | code-health | **换/删语料无事务**：§11 红线是多条独立 DML，中间失败→旧答案复活 / 卡背永久空白（与 enqueue 落 RPC 求原子性的理由自相矛盾） | 直接修（正确性红线） | 收敛成 plpgsql RPC 一个事务 |
-| D | code-health | **processing 孤儿无回收**：容器重启/超时杀 drain→任务永卡 processing、永不重试、卡背空白（崩溃恢复真空） | 部署侧确认 Zeabur 容器超时行为 | claim 加 visibility-timeout 回收超时 processing |
-| E | both 🟢 | 卡态 SQL/JS 双算 + 空串处理不一致；切点散落三处；drain 回填 `.eq('id',card_id)` 建议加 `user_id` 防御纵深；魔数记账 | 直接修/记账 | 对齐 + 集中常量 + 加 user_id 过滤 |
+| # | 来源 | 问题 | 状态 |
+|---|---|---|---|
+| A | security | 匿名绕过（"注册专属"未强制 + 绕白名单 + 成本放大） | ✅ **已修**（commit：requireRegistered，Anki 全端点拒匿名）。**全站白名单绕过 → 🌐 全站遗留，Anki 收尾后补** |
+| B | security | 换语料 PUT 无限流 = 可脚本无限烧 AI 费 | ✅ **已修**（独立 kind=anki_swap 限流 200/天，产品方已同意加） |
+| C | code-health | 换/删语料无事务→中间失败数据不一致 | ✅ **已修**（0035 事务 RPC；⚠️ 未经真 PG，上线前必真跑） |
+| D | code-health | processing 孤儿无回收 | ✅ **已修**（claim 加 visibility-timeout）；🟠 **15 分钟阈值待部署侧确认 Zeabur 超时** |
+| E | both 🟢 | 空串不一致 / 切点散落 / drain user_id 防御纵深 / 魔数 | ✅ **已修**（空串 nullif 对齐、常量集中、user_id 过滤；魔数记账） |
+
+**修复批未经真 PG 的红线（上线前硬门）**：0035 swap/unbind 事务原子性（含 part3 触发器拒→整事务回滚）、孤儿回收、drain consent 撤回不外发——本地无就绪库，仅 mock 测试 + 静态推演，**上线前必须真实 PG 走一遍**。
+**孤儿回收双跑风险**：claim 单条 UPDATE 立即提交、AI 调用期不持锁，慢 worker（真超 15min）会被另一 worker 重领→重复生成（多花一次钱、答案覆盖但不致错）。阈值定高些可缓解，待部署侧拍。
 
 **可测性缺口（code-health 列 8 条行为级）**：换语料原子红线、删语料不复活、enqueue 幂等、懒物化 upsert 不覆盖、get_anki_cards 排序分组、drain 状态机、孤儿恢复、backKind 边界——关键不变式几乎全裸奔，仅 anki-answer.test.ts 覆盖生成器。
 
