@@ -35,12 +35,13 @@ const FEATURES: { Icon: LucideIcon; img?: string; tint: 'primary' | 'accent'; ti
   { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
 ]
 
-// dot 为步骤号圆圈底色：承载白字，故用达标的 strong/dark/accent-dark（非全局品牌橙绿）
+// 步骤号圆圈：白底 + 深灰编号(v2-text-secondary，与「点击说话」等渐变描边元素同色)，外环官方品牌渐变描边（橙→绿，DESIGN.md §渐变规范），
+// 全站统一 GRADIENT_BORDER_STYLE 常量（background-clip 技巧、单层即可），禁止自编渐变色值。
 const MATCH_STEPS = [
-  { n: 1, dot: 'bg-brand-primary-strong', title: '语料输入',             desc: '录音或文字均可。可选择"分享故事"或"讨论雅思题目"两种模式。想不到经历时，直接选题讨论，用中文口述思路即可。' },
-  { n: 2, dot: 'bg-brand-primary-dark',   title: '匹配 Part 1 / Part 2', desc: '基于核心内容，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。' },
-  { n: 3, dot: 'bg-brand-accent-dark',    title: '切换语料侧重点',        desc: '核心角度没有对应题目时，调整表达侧重，尝试匹配其他 Part 1、2 真题，扩大覆盖范围。' },
-  { n: 4, dot: 'bg-brand-accent-dark',    title: '对话延伸 Part 3',       desc: '与 Leo 练习对话时，话题自然延伸至 Part 3，完成三部分全覆盖。' },
+  { n: 1, title: '语料输入',             desc: '录音或文字均可。可选择"分享故事"或"讨论雅思题目"两种模式。想不到经历时，直接选题讨论，用中文口述思路即可。' },
+  { n: 2, title: '匹配 Part 1 / Part 2', desc: '基于核心内容，优先匹配可直接作答的 Part 1、2 真题，命中即推荐。' },
+  { n: 3, title: '切换语料侧重点',        desc: '核心角度没有对应题目时，调整表达侧重，尝试匹配其他 Part 1、2 真题，扩大覆盖范围。' },
+  { n: 4, title: '对话延伸 Part 3',       desc: '与 Leo 练习对话时，话题自然延伸至 Part 3，完成三部分全覆盖。' },
 ] as const
 
 // 模块四：Leo 对话示意（占位对话）+ 右侧三点说明
@@ -50,11 +51,11 @@ const LEO_DIALOGUE = [
   { from: 'leo',  text: 'Got it — what does that "unwinding" feel like in your body?' },
 ] as const
 
-// dot：与模块三步骤圆圈同款（圆形实心填充 + 白色编号 1/2/3，strong/dark/accent-dark）
+// 与模块三步骤圆圈同款：白底 + 深灰编号 1/2/3 + 官方 GRADIENT_BORDER_STYLE 渐变描边（橙→绿）
 const RESTRUCTURE_POINTS = [
-  { dot: 'bg-brand-primary-strong', title: '句子不满意？点「优化反馈」',   desc: '看看更地道的说法，简单记忆之后自己再重新表达一遍，形成「输入-输出」的循环，而不是照读答案。' },
-  { dot: 'bg-brand-primary-dark',   title: '读错的单词，点一下就能收藏',   desc: '发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。' },
-  { dot: 'bg-brand-accent-dark',    title: '练完会有一叠反馈卡片',         desc: '都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。' },
+  { title: '句子不满意？点「优化反馈」',   desc: '看看更地道的说法，简单记忆之后自己再重新表达一遍，形成「输入-输出」的循环，而不是照读答案。' },
+  { title: '读错的单词，点一下就能收藏',   desc: '发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。' },
+  { title: '练完会有一叠反馈卡片',         desc: '都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。' },
 ] as const
 
 const tintClass = (t: 'primary' | 'accent'): string =>
@@ -329,9 +330,9 @@ export default function HomeDesktop({
 
                 {/* 右：三步说明 + 六维度提示 */}
                 <div className="flex flex-col gap-7">
-                  {MATCH_STEPS.map(({ n, dot, title, desc }, i) => (
+                  {MATCH_STEPS.map(({ n, title, desc }, i) => (
                     <Reveal key={n} delay={i * 0.08} className="flex gap-4">
-                      <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[14px] font-bold ${dot}`}>{n}</div>
+                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[14px] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>{n}</div>
                       <div>
                         <h4 className="text-[15.5px] font-semibold text-v2-text-primary">{title}</h4>
                         <p className="mt-1.5 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
@@ -390,10 +391,10 @@ export default function HomeDesktop({
 
                 {/* 右：三点说明 */}
                 <div className="flex flex-col gap-6">
-                  {RESTRUCTURE_POINTS.map(({ dot, title, desc }, i) => (
+                  {RESTRUCTURE_POINTS.map(({ title, desc }, i) => (
                     <Reveal key={title} delay={i * 0.08} className="flex gap-3.5">
-                      {/* 与模块三步骤圆圈同款：30px 圆形实心填充 + 白色编号 */}
-                      <div className={`w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-white text-[14px] font-bold ${dot}`}>
+                      {/* 与模块三步骤圆圈同款：30px 白底 + 深灰编号 + 官方 GRADIENT_BORDER_STYLE 渐变描边 */}
+                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[14px] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>
                         {i + 1}
                       </div>
                       <div>
