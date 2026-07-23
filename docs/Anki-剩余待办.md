@@ -30,15 +30,18 @@
 - [ ] **建正式金标**：分点式维度（忠料事实层/强度层 · 对点 · 口语 · 中式；part3 换 论据贴合/常识不离谱）+ **空点处置正确率**。规模约 210 条判定、~2–2.5 人日（比整段省，砍了档位判定）。
 - [ ] **双人盲判基线**：产品方本人 + 考官 agent（走"agent 初判 + 人审 + 优化 agent"那条路线）。⚠️ **整段盲判 round1 作废**（形态变了）；要针对分点式例句重建。
 
-## 🔧 生成实施线（fix-engineer，形态/存储拍板后）
-- [ ] **生成器 `anki-answer.ts` 重写**：整段 → 逐点 JSON；含**可支撑性判断 + 没料留空**（留空兜底落地）。
-- [ ] **卡背存储契约**：`generated_answer` 单 text → 点数组 JSON（波及 0030 / `get_anki_cards` RPC / `PATCH editedAnswer` 端点）。
-- [ ] **砍 band 落地**：`TIER_SPLIT`/`bandToTier`/`resolveTargetBand`/`DEFAULT_TARGET_BAND` 从卡背关键路径移除（不分档；顺手解掉"band 落地被注册流程阻塞"死结）。
-- [ ] **prompt 同源守卫重写**：整段 SYSTEM 作废、逐点例句 prompt 上锚点 + 漂移测试；清理 C 档惰性段。
-- [ ] **part3 例句静态化**：`generatePart3Analysis`/`PART3_SYSTEM_PROMPT` 每点补 `example` 字段，随 pregen 静态存 `question_analyses`；**part3 恒 null 不变式不动**（好消息）。
-- [ ] `AnalysisFocusPoint` 类型 `{title,desc}` → `{title,desc,example?}`（part1/2 example 走 per-user 生成、part3 走静态，字段同名来源不同，注释写清）。
-- [ ] **成本按分点式重估**（多短句 vs 整段；part3 净增生成量）。
-- [ ] 例句**中式词打磨**（`empty-headed walk` 这类，考官点名）。
+## 🔧 生成实施线（fix-engineer）
+- ✅ **生成器 `anki-answer.ts` 重写**（本轮）：整段→逐点 JSON `[{idx,en,noMaterial}]`、去 tier、callLLMJson。**留空出口验证通过**（薄素材"补完整/对比"点 6/6 正确留空、完整语料仅 2/20 偏保守误留、21字编造被 40字门槛挡）。
+- ✅ 砍 band（删 target-band.ts、`TIER_SPLIT`/`DEFAULT_TARGET_BAND` @deprecated、drain 去 band/tier）· 类型加 `example?` · prompt 同源守卫重写 · drain 回填存 `JSON.stringify`。
+- [ ] **卡背存储读取渲染**：`get_anki_cards` RPC + 前端把 `generated_answer`(JSON) 解析成点数组渲染（本轮只管写、没管读）。
+- [ ] **part3 例句静态化**：`generatePart3Analysis` 每点补 `example`，随 pregen 静态存；part3 恒 null 不变式不动。
+- [ ] **PATCH 编辑粒度**（逐点 vs 整体，待 ux 定）· **成本重估**（本轮探针 ~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
+
+### ⚠️ 本轮暴露的风险（待处理）
+- [ ] **extractJson 双发 JSON（高·先处理）**：qwen 对 part2 富语料 ~28% 概率把 JSON 输出两遍，共享 `llm.ts:236` extractJson 贪切（`indexOf{`→`lastIndexOf}`）会拼成非法 JSON → 首 attempt 解析失败、靠 callLLMJson 2 轮重试兜、极端判死信。**修法：Anki 侧局部兜（平衡括号取首值，不碰共享 llm.ts 避免全站回归）**；共享 extractJson 是全站潜在问题（ranking/analysis 也用 callLLMJson）→ 建议单独评估。
+- [ ] **误留空假阴率**（金标量化）：留空偏保守、有素材却留空（B2 的"和别处不同"点）——留空比编造安全，但精度代价需金标量化"该生成却留空"率。
+- [ ] **"讲清重点"句超 22 词**（H6✗，本轮 29/34/23/26）：要不要严守 ≤22（prompt 加压/后处理），red-team/产品方定。
+- [ ] `threshold-probe.mjs` 第三份旧 SYSTEM（无留空出口）已与 example-probe 不同源、注释过时 → 同步或标废弃。
 
 ## 🚧 语料门槛线（阈值拍板后）
 - [ ] 实施门槛：客户端主拦（文字/语音两入口共用预检）+ restructure 服务端兜底 + corpus 服务端兜底，**一个常量 `MIN_CORPUS_CHARS` 同源**；**独立字数闸、不碰 usable 判定**（usable 是故意放行薄素材的，改它会误伤+跑偏）。
