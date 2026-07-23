@@ -25,6 +25,9 @@ const MODEL = 'qwen-plus'
 const TEMPERATURE = 0.7
 
 // ── system prompt（diagnostician 按考官 3 条处方定稿，2026-07-23 探针第二轮；原 metric-designer 初版）──
+// ⚠️ 与 src/lib/ai/anki-answer-prompt.ts 的 ANKI_ANSWER_SYSTEM【逐字同源】，改一处必改两处。
+//    生产生成器复用「过闸的这一个 prompt」；本 .mjs 无法被 src import，故两边各存一份，
+//    靠这条锚点 + 单测 anki-answer.test.ts 的漂移比对互锁（不一致即测试红，见 anki-answer-prompt.ts 头注）。
 const SYSTEM = `你是一位为中国雅思考生服务的英语口语外教。任务：拿到一道雅思口语题、这道题的分析、用户用中文口述的真实经历（语料），以及一个目标难度档，生成一段【可以直接开口说出来】的英文口语回答。这段回答会印在背题卡的背面，用户照着念、建立语感。
 
 # 铁律（违反任何一条都算失败）

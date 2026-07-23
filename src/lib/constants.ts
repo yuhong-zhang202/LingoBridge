@@ -36,6 +36,16 @@ export const MODEL_EXTRACTION  = 'qwen-plus'
 export const MODEL_ANALYSIS    = 'qwen-plus'    // 侧重点分析（flash 跟不住固定 3 点约束，回退 qwen-plus）
 export const MODEL_RESTRUCTURE = 'qwen-flash'
 export const MODEL_PRONOUNCE   = 'qwen-plus'    // 发音音标 + 怎么念提示
+export const MODEL_ANKI         = 'qwen-plus'    // Anki 卡背生成（与探针 scripts/anki-probe/generate.mjs 同模型）
+
+// ── Anki 卡背生成流水线（drain 后台处理器）参数 ──
+// 单次 drain 从队列领取的任务上限：领取即串行执行、限制单次并发量级（方案 §2「全局限并发」的粗粒度实现）。
+export const ANKI_DRAIN_BATCH = 5
+// 全局并发上限：同一批领取的任务按【卡主 user_id 分桶】，桶间最多并发这么多个、桶内串行（按 user 串行）。
+export const ANKI_DRAIN_CONCURRENCY = 3
+// 失败重试指数退避：next_attempt_at = now + min(BASE × 2^(attempts-1), MAX)。
+export const ANKI_DRAIN_BACKOFF_BASE_MS = 60_000       // 首次失败退避 1 分钟
+export const ANKI_DRAIN_BACKOFF_MAX_MS = 3_600_000     // 封顶 1 小时
 
 // ── 相关性排名两条线、三档语义（调参时改这里，不要散落硬编码）
 //

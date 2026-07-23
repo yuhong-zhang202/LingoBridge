@@ -28,6 +28,17 @@ export const env = {
   // 管理员邮箱白名单（英文逗号分隔）—— 仅服务端读取，用于成本看板等敏感接口鉴权，切勿加 NEXT_PUBLIC_
   adminEmails: process.env.ADMIN_EMAILS ?? '',
 
+  /**
+   * Anki 卡背生成 drain 端点的共享密钥（服务端专用，切勿加 NEXT_PUBLIC_）。
+   *
+   * drain 是内部 / cron 触发的后台端点：领取队列任务 → 把用户中文语料外发千问生成卡背。
+   * 它没有用户 session、绝不能裸奔——任何人打到这个 URL 都会烧 AI 费、外发他人语料。
+   * 故 drain 在做任何领取动作前，先用固定时间比较校验请求头 x-anki-drain-secret == 本值，
+   * 不匹配（含本值未配 = 空串）一律 401。空串走「fail closed」：未配密钥时端点整体不可用，
+   * 宁可让部署方立刻发现漏配，也不要静默敞开一个能外发用户数据的后门（对齐 consentHashSalt 的做响哲学）。
+   */
+  ankiDrainSecret: process.env.ANKI_DRAIN_SECRET ?? '',
+
   // 原始输出留证总开关（=1 开、其它/未设=关，默认关）。开启时 lib/raw-log.ts 把每次 LLM 调用的
   // 完整 prompt + 原始输出、每次 ASR 的转写原文入库（llm_raw_logs / asr_raw_logs，见 migration 0020），
   // 供离线复盘「模型是否把 score/reason 贴错 id」。含用户原文，靠表 RLS（service_role 唯一入口）+
