@@ -1,6 +1,8 @@
 /**
  * @module   api/anki/cards
- * @desc     Anki 题卡写路径（对子/编辑）：
+ * @desc     Anki 题卡读 + 写路径：
+ *           - GET   ?scope=&part=            列表读取 → 当季该 part 的卡（无卡回默认卡、part2 带 part3 成组、
+ *             已排序，见 0034 get_anki_cards）。无副作用、仅鉴权。
  *           - POST  { questionId, corpusId }  存对子/绑语料 → upsert 卡行(绑 corpus_id、generated_answer 先 null)
  *             + 入队生成；已绑非空语料 → 409（一题一语料，重复存对子）。
  *           - PATCH { questionId, editedAnswer }  存编辑 → 写 edited_answer（part3 亦可，用户自填）。
@@ -18,6 +20,7 @@ import { getQuestionById } from '@/lib/db/questions'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
 import { getCardCorpusBinding, upsertEditedAnswer } from '@/lib/db/anki-cards-server'
+import { listAnkiCards, type AnkiListScope } from '@/lib/anki/list'
 import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
@@ -25,6 +28,36 @@ import { REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
 /** 取 body 里的字符串字段并去空白；非字符串/缺省一律回退空串（下游按空串统一 400）。 */
 function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
+}
+
+/** GET：列出当季某 part 的 Anki 卡。scope 缺省 all、part 缺省 1；非法值 400。 */
+export async function GET(req: Request): Promise<NextResponse> {
+  try {
+    const { userId } = await requireUser(req)
+    const { searchParams } = new URL(req.url)
+
+    // scope ∈ {all, answered}，缺省 all。
+    const scopeRaw = searchParams.get('scope') ?? 'all'
+    if (scopeRaw !== 'all' && scopeRaw !== 'answered') {
+      return NextResponse.json({ error: 'scope 仅支持 all / answered' }, { status: 400 })
+    }
+    const scope: AnkiListScope = scopeRaw
+
+    // part ∈ {1, 2}，缺省 1（part3 不作独立入口、随 part2 成组）。
+    const partRaw = searchParams.get('part') ?? '1'
+    if (partRaw !== '1' && partRaw !== '2') {
+      return NextResponse.json({ error: 'part 仅支持 1 / 2' }, { status: 400 })
+    }
+    const part: 1 | 2 = partRaw === '2' ? 2 : 1
+
+    const cards = await listAnkiCards(userId, part, scope)
+    return NextResponse.json({ cards })
+  } catch (e) {
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
+    logErr('[anki cards GET]', e)
+    return NextResponse.json({ error: '读取题卡失败' }, { status: 500 })
+  }
 }
 
 /** POST：存对子/绑语料。 */

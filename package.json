@@ -15,6 +15,7 @@
     "eval:ranking:score": "npx tsx scripts/eval/run-ranking-score.ts",
     "remap:links": "npx tsx --conditions=react-server --env-file=.env.local scripts/remap-links.ts",
     "import:season": "npx tsx --conditions=react-server --env-file=.env.local scripts/import-season.ts",
+    "pregen:analyses": "npx tsx --conditions=react-server --env-file=.env.local scripts/pregen-analyses.ts",
     "db:push": "node --env-file=.env.local scripts/db-push.mjs",
     "check:secrets": "node --env-file=.env.local scripts/check-no-secrets.mjs",
     "seed:reference": "node --env-file=.env.local scripts/seed-reference.mjs"
