@@ -305,6 +305,13 @@ export interface PracticeMessage {
 export interface AnalysisFocusPoint {
   title: string
   desc: string
+  /**
+   * 该侧重点的英文示范例句（可选）。⚠️ 来源分两类：
+   * · part3：无用户语料，例句是「通用示范论据句」，随 focusPoints 一起 pregen 静态存在此字段（方案 §10）。
+   * · part1/2：例句是【基于用户中文语料 per-user 生成】的、忠料的，走 Anki 生成器（anki-answer.ts）→
+   *   落 anki_cards.generated_answer（每用户各不同），【不落本字段】。故 part1/2 的 focusPoint 此字段恒空。
+   */
+  example?: string
 }
 export interface AnalysisPhrase {
   text: string       // 英文词组本身

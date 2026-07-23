@@ -9,8 +9,8 @@
  *   鉴权（red-team §12）：本端点没有用户 session、外发用户中文语料给千问，绝不能裸奔。请求头
  *   x-anki-drain-secret 必须等于 env.ankiDrainSecret（固定时间比较），不匹配 / 密钥未配一律 401（fail closed）。
  *
- *   档位（red-team §12）：按【卡主 job.user_id】取 band → bandToTier，绝不用调用者的 band
- *   （drain 根本没有调用者身份，见 resolveTargetBand）。
+ *   不分档（v0.3 砍 band）：分点式短例句统一「自然达标口语」一个目标、不再按用户 band 定档，
+ *   故本处理器不再取 band / tier（原 resolveTargetBand / bandToTier 已随生成器分点式重写移除）。
  *
  *   限流（方案 §2）：单次最多领 ANKI_DRAIN_BATCH 条；领到的任务按卡主 user_id 分桶，桶间限并发
  *   ANKI_DRAIN_CONCURRENCY、桶内串行（= 按 user 串行 + 全局限并发）。领取本身用 0033 的
@@ -25,8 +25,7 @@ import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { hasRecordedConsent } from '@/lib/consent-server'
-import { generateAnkiAnswer, bandToTier, formatAnalysisText } from '@/lib/ai/anki-answer'
-import { resolveTargetBand } from '@/lib/anki/target-band'
+import { generateAnkiAnswer } from '@/lib/ai/anki-answer'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import type { LLMUsage } from '@/lib/llm'
 import {
@@ -157,14 +156,23 @@ async function processJob(job: ClaimedJob): Promise<void> {
       return
     }
 
-    const tier = bandToTier(await resolveTargetBand(job.user_id))
-    const analysisText = formatAnalysisText(question.question_text, analysisRow.analysis)
+    // 分点式逐点例句要按 focusPoints 生成；缺侧重点（分析未就绪/结构异常）→ 可重试。
+    const focusPoints = (analysisRow.analysis.focusPoints ?? []).map((p) => ({
+      title: p.title ?? '',
+      desc: p.desc ?? '',
+    }))
+    if (focusPoints.length === 0) {
+      await failJob(job, 'retryable', 'ANALYSIS_NOT_READY', t0)
+      return
+    }
 
     let realUsage: LLMUsage | null = null
-    const answer = await generateAnkiAnswer(
-      { part: question.part, analysis: analysisText, corpus, tier },
+    const points = await generateAnkiAnswer(
+      { part: question.part, questionText: question.question_text, focusPoints, corpus },
       (u) => { realUsage = u },
     )
+    // generated_answer（text 列不变）本轮存点数组的 JSON 字符串；读取渲染下一轮改。
+    const answer = JSON.stringify(points)
 
     // 回填卡背：优先按 card_id（懒物化已回填），否则按 (user_id, question_id)。
     // belt-and-suspenders：按 card_id 回填也附带 .eq('user_id')——card_id 本就唯一，加这条只为防御纵深
@@ -180,9 +188,11 @@ async function processJob(job: ClaimedJob): Promise<void> {
     await markDone(job.id)
 
     // 记账：优先真实 usage，模型没吐则按输入规模粗估（绝不把 undefined 当 0，对齐 phrases）。
+    // 输入规模按 题面 + 侧重点文本 + 语料 估；分点式输出短（每点 ≤22 词），completion 估值随点数。
+    const focusChars = focusPoints.reduce((n, p) => n + p.title.length + p.desc.length, 0)
     const usage: LLMUsage = realUsage ?? {
-      promptTokens: Math.round((analysisText.length + corpus.length) * 0.3 + 500),
-      completionTokens: question.part === 1 ? 200 : 500,
+      promptTokens: Math.round((question.question_text.length + focusChars + corpus.length) * 0.3 + 500),
+      completionTokens: question.part === 1 ? 120 : 200,
     }
     await logApiUsage({
       service: 'qwen_plus',
@@ -197,7 +207,6 @@ async function processJob(job: ClaimedJob): Promise<void> {
       metadata: {
         phase: 'anki_answer',
         part: question.part,
-        tier,
         prompt_tokens: usage.promptTokens,
         completion_tokens: usage.completionTokens,
         cost_source: realUsage ? 'actual' : 'estimate',

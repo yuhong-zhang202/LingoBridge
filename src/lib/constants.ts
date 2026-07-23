@@ -156,15 +156,17 @@ export const REG_ANKI_DAILY_LIMIT = 50
  */
 export const REG_ANKI_SWAP_DAILY_LIMIT = 200
 
-// ── Anki 档位切点（金标回填前均为初值，方案 §11 冻结门；集中于此便于一处调参）──
+// ── Anki 档位切点（⚠️ 已废弃：v0.3 砍 band，不分档）──
 /**
- * ⚠️ 初值，金标盲判基线回填前不冻结（方案 §11 冻结门）。切点具体值「先跑基线再定、不预设」。
- * 目标综合分 T → 达标口语下限 S = T − 0.5 → 档位。单一切点划在 T 6.0 / 6.5 之间：
- *   T ≤ 6.0 → A 档（范本 band 5.0–5.5）；T ≥ 6.5 → B 档（默认档，主流 6.5 目标用户落此）。
- * 取两线中点 6.25 作阈值即可让 6.0→A、6.5→B。bandToTier 唯一切点（anki-answer.ts 从此 import）。
+ * @deprecated v0.3 分点式拍板「不分档、砍 band 落地」（方案-Anki卡背-分点式-v0.3 §2.1）。
+ *   短例句不再按用户目标分调地道度，统一「自然达标口语」一个目标。bandToTier / resolveTargetBand /
+ *   target-band.ts 已随生成器分点式重写移除，本常量【不再被任何生成路径消费】。保留仅为进度文档
+ *   （docs/Anki后端进度.md）留痕；如后续确认无外部引用可直接删。
  */
 export const TIER_SPLIT = 6.25
-/** 默认目标综合分：band 持久化落地前的兜底，对应默认 B 档（方案 §7）。target-band.ts 从此 import。 */
+/**
+ * @deprecated 同 TIER_SPLIT：v0.3 砍 band 后不再被消费（原 target-band.ts 的默认档兜底，该文件已删）。
+ */
 export const DEFAULT_TARGET_BAND = 6.5
 
 // ── 失败归因（api_usage_logs.metadata.error_kind）──
