@@ -7,9 +7,10 @@
  *   纯服务端服务函数，契约对齐 services/analysis.ts 的 generatePhrases：只负责「调模型 + 上抛真实用量」，
  *   同意闸 / 计次 / 记账的编排由调用方（drain 端点）负责。
  *
- *   为什么走 callLLMJson 而非裸 fetch：分点式输出是【JSON 点数组】不是纯文本，正好落 callLLMJson 的范式
- *   （JSON 解析 + 校验 + 重试 + 真实 usage 上抛）。输出用 {"points":[...]} 对象包一层——callLLMJson 的
- *   extractJson 只切 {…}、不认顶层裸数组，故不能直接要裸数组。
+ *   为什么走本地 callAnkiLLMJson（anki-json.ts）而非共享 callLLMJson：分点式输出是【JSON 点数组】，
+ *   但 qwen 对富语料约 28% 概率把 JSON【双发】（紧凑+美化拼接），共享 llm.ts 的 extractJson 贪切会拼成
+ *   非法 JSON。本地 caller 改用平衡括号取首个完整值兜双发（见 anki-json.ts 头），绝不改全站 llm.ts。
+ *   输出仍用 {"points":[...]} 对象包一层（历史契约，validate 认对象），平衡括号解析对象/数组皆可。
  *
  *   prompt 同源：SYSTEM / user 模板全部 import 自 anki-answer-prompt.ts（唯一真相源，与探针
  *   example-probe.mjs 的 SYSTEM_STORIED 逐字互锁）；本文件绝不内联任何 prompt 文本。
@@ -19,7 +20,8 @@
 import 'server-only'
 import { env } from '@/lib/env-server'
 import { MODEL_ANKI } from '@/lib/constants'
-import { callLLMJson, type LLMUsage } from '@/lib/llm'
+import type { LLMUsage } from '@/lib/llm'
+import { callAnkiLLMJson } from '@/lib/ai/anki-json'
 import { ANKI_ANSWER_SYSTEM, ankiAnswerUserPrompt } from '@/lib/ai/anki-answer-prompt'
 
 /**
@@ -33,7 +35,7 @@ export interface AnkiAnswerPoint {
   noMaterial: boolean
 }
 
-/** callLLMJson 的对象包裹（extractJson 只认 {…}，故给点数组包一层 points）。 */
+/** 对象包裹（历史契约：给点数组包一层 points；平衡括号解析对象/数组皆可，包裹只为与探针输出契约一致）。 */
 interface AnkiAnswerEnvelope {
   points: AnkiAnswerPoint[]
 }
@@ -90,11 +92,10 @@ export async function generateAnkiAnswer(
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   const user = ankiAnswerUserPrompt(input.part, input.questionText, input.focusPoints, input.corpus)
-  const result = await callLLMJson<AnkiAnswerEnvelope>({
+  const result = await callAnkiLLMJson<AnkiAnswerEnvelope>({
     label: '[AnkiAnswer]',
     onUsage,
     call: {
-      provider: 'dashscope',
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
       apiKey: env.dashscopeApiKey,
       model: MODEL_ANKI,

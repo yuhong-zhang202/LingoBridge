@@ -32,6 +32,8 @@
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
+import { callAnkiLLMJson } from '@/lib/ai/anki-json'
+import { PART3_EXAMPLE_SYSTEM, part3ExampleUserPrompt } from '@/lib/ai/part3-example-prompt'
 import { CURRENT_SEASON, MODEL_ANALYSIS } from '@/lib/constants'
 import { generateAnalysis } from '@/services/analysis'
 import type { QuestionAnalysis } from '@/lib/types'
@@ -92,12 +94,69 @@ Part 3 和 Part 1/2 不同：它考的是【就一个话题展开观点、给理
 只能输出合法 JSON，前后不得有任何说明文字或 markdown 代码块。
 字符串值内部禁止出现英文双引号 " ，如需引用一律改用中文引号「」。`
 
+// ── Part3 例句（通用示范论据句）静态化（方案 §8/§10）───────────────────────────
+// part3 无用户语料，例句是「这个论点可以怎么用一句话论证」的通用范例；随 focusPoints 一起 pregen 静态存进
+// focusPoint.example，不进 anki_cards、不走 drain（part3 恒 null 不变式不动）。prompt 与探针 SYSTEM_PART3
+// 逐字同源（见 src/lib/ai/part3-example-prompt.ts 头，有漂移测试互锁）。
+// ⚠ 对齐探针 example-probe part3 的采样参数：qwen-plus / temp 0.7 / maxTokens 512。
+const PART3_EXAMPLE_TEMPERATURE = 0.7
+const PART3_EXAMPLE_MAX_TOKENS = 512
+
+/** part3 例句单点（模型返回裸数组 [{idx,en}]，逐点对齐 focusPoints）。 */
+interface Part3ExamplePoint {
+  idx: number
+  en: string
+}
+
+/** part3 例句点的运行时守卫：idx 数字、en 字符串。 */
+function isPart3ExamplePoint(v: unknown): v is Part3ExamplePoint {
+  if (typeof v !== 'object' || v === null) return false
+  const p = v as { idx?: unknown; en?: unknown }
+  return typeof p.idx === 'number' && typeof p.en === 'string'
+}
+
 /**
- * Part3 独立分析生成（不复用 generateAnalysis，见模块头 §12）。产出 QuestionAnalysis 结构。
+ * 为 part3 的每个 focusPoint 生成一句通用示范论据句。走 callAnkiLLMJson（平衡括号解析裸数组、兜双发 JSON）；
+ * 不走共享 callLLMJson —— 那的 extractJson 只切 {…}、不认 SYSTEM_PART3 契约要求的裸数组。
+ * @param questionText part3 英文题面
+ * @param focusPoints  该题 focusPoints（title/desc）
+ * @returns            逐点对齐的例句数组；缺失/空串留 null（part3 理论上每点都有，防御性兜空）
+ * @throws             LLM 调用失败 / 用尽重试
+ * @sideEffect         调 qwen-plus（付费）
+ */
+async function generatePart3Examples(
+  questionText: string,
+  focusPoints: { title: string; desc: string }[],
+): Promise<(string | null)[]> {
+  const user = part3ExampleUserPrompt(questionText, focusPoints)
+  const points = await callAnkiLLMJson<Part3ExamplePoint[]>({
+    label: '[Part3Example]',
+    call: {
+      endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+      apiKey: env.dashscopeApiKey,
+      model: MODEL_ANALYSIS,
+      temperature: PART3_EXAMPLE_TEMPERATURE,
+      maxTokens: PART3_EXAMPLE_MAX_TOKENS,
+      messages: [
+        { role: 'system', content: PART3_EXAMPLE_SYSTEM },
+        { role: 'user', content: user },
+      ],
+    },
+    validate: (v): v is Part3ExamplePoint[] => Array.isArray(v) && v.every(isPart3ExamplePoint),
+  })
+  return focusPoints.map((_, i) => {
+    const en = points.find((p) => p.idx === i)?.en.trim()
+    return en ? en : null
+  })
+}
+
+/**
+ * Part3 独立分析生成（不复用 generateAnalysis，见模块头 §12）。产出 QuestionAnalysis 结构，
+ * 并为每个 focusPoint 补一句通用示范论据句（方案 §10：随分析静态预生成、存进 focusPoint.example）。
  * @param input  { en, zh } —— Part3 题面英文 + 中文（静态分析、无用户故事）
- * @returns      QuestionAnalysis
+ * @returns      QuestionAnalysis（focusPoints 已带 example）
  * @throws       Error —— 未配置 key 或 LLM 调用失败
- * @sideEffect   调 qwen-plus（付费）
+ * @sideEffect   调 qwen-plus（付费）两次：分析 + 例句
  */
 async function generatePart3Analysis(input: { en: string; zh: string | null }): Promise<QuestionAnalysis> {
   if (!env.dashscopeApiKey) {
@@ -105,7 +164,7 @@ async function generatePart3Analysis(input: { en: string; zh: string | null }): 
   }
   const userMsg = `Part 3\n英文题目：${input.en}\n中文：${input.zh ?? ''}`
   // 超时预算参照 services/analysis.ts：静态题面无用户故事、输入短，55s 基线足够宽。
-  return callLLMJson<QuestionAnalysis>({
+  const analysis = await callLLMJson<QuestionAnalysis>({
     label: '[Part3Analysis]',
     call: {
       provider: 'dashscope',
@@ -124,6 +183,15 @@ async function generatePart3Analysis(input: { en: string; zh: string | null }): 
       Array.isArray((v as { focusPoints?: unknown }).focusPoints) &&
       Array.isArray((v as { phrases?: unknown }).phrases),
   })
+  // 第二次调用：为每个 focusPoint 补例句，逐点写进 focusPoint.example（缺失则不写、保持可选空）。
+  const examples = await generatePart3Examples(input.en, analysis.focusPoints)
+  return {
+    ...analysis,
+    focusPoints: analysis.focusPoints.map((p, i) => {
+      const ex = examples[i]
+      return ex ? { ...p, example: ex } : p
+    }),
+  }
 }
 
 /** 按 part 分发到对应分析框架（Part1/2 复用 generateAnalysis，Part3 走独立框架）。 */

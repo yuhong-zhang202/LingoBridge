@@ -1,6 +1,6 @@
 /**
  * @module   ai/anki-answer.test
- * @desc     分点式卡背生成器单测：生成器契约（mock callLLMJson 不真调 DashScope）——传对 SYSTEM /
+ * @desc     分点式卡背生成器单测：生成器契约（mock callAnkiLLMJson 不真调 DashScope）——传对 SYSTEM /
  *           maxTokens / temperature，按 idx 升序对齐、清洗破折号、留空点 en=null 原样保留、回填 usage、
  *           validate 守卫接受合法点数组 / 拒非法；以及【同源漂移守卫】——读探针 example-probe.mjs 原文
  *           抽出其 SYSTEM_STORIED，断言与生产 ANKI_ANSWER_SYSTEM 逐字相等（改一处漏改另一处即红）。
@@ -11,11 +11,11 @@ jest.mock('server-only', () => ({}))
 jest.mock('@/lib/env-server', () => ({
   env: { dashscopeApiKey: 'test-key', dashscopeBaseUrl: 'https://example.invalid/v1' },
 }))
-jest.mock('@/lib/llm', () => ({ callLLMJson: jest.fn() }))
+jest.mock('@/lib/ai/anki-json', () => ({ callAnkiLLMJson: jest.fn() }))
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { callLLMJson } from '@/lib/llm'
+import { callAnkiLLMJson } from '@/lib/ai/anki-json'
 import {
   generateAnkiAnswer,
   ANKI_MAX_TOKENS,
@@ -25,7 +25,7 @@ import {
 } from '@/lib/ai/anki-answer'
 import { ANKI_ANSWER_SYSTEM } from '@/lib/ai/anki-answer-prompt'
 
-/** 被生成器传给 callLLMJson 的 opts 里，本测关心的形状。 */
+/** 被生成器传给 callAnkiLLMJson 的 opts 里，本测关心的形状。 */
 interface CapturedOpts {
   call: {
     model: string
@@ -37,7 +37,7 @@ interface CapturedOpts {
   validate: (v: unknown) => boolean
 }
 
-const mockCall = callLLMJson as unknown as jest.Mock
+const mockCall = callAnkiLLMJson as unknown as jest.Mock
 
 const baseInput: AnkiAnswerInput = {
   part: 2,
@@ -65,7 +65,7 @@ beforeEach(() => {
   mockCall.mockReset()
 })
 
-describe('generateAnkiAnswer（mock callLLMJson，不真调 DashScope）', () => {
+describe('generateAnkiAnswer（mock callAnkiLLMJson，不真调 DashScope）', () => {
   it('传对 SYSTEM / maxTokens / temperature / model', async () => {
     const getOpts = armMock([{ idx: 0, en: 'ok one', noMaterial: false }])
     await generateAnkiAnswer(baseInput)

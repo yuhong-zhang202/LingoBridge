@@ -9,8 +9,17 @@
  *
  *   背面内容判定（backKind，供展示层选渲染）：
  *     - 'edited'    ：用户编辑覆盖（editedAnswer 非空）——优先级最高，part3 用户自填也走这条；
- *     - 'generated' ：有语料且已生成卡背（corpusId 非空 且 generatedAnswer 非空）；
- *     - 'analysis'  ：其余（无语料 / part3 / 生成尚未回填）——背面走该题静态分析。
+ *     - 'generated' ：有语料 且 已生成【可渲染】的分点式卡背（corpusId 非空 且 generatedAnswer 解析成点数组、
+ *                     至少一个非留空点 en 非空）；
+ *     - 'analysis'  ：其余（无语料 / part3 / 生成尚未回填 / 生成了但点数组全留空或空数组）——背面走静态分析。
+ *
+ *   ⚠️ v0.3 分点式：generatedAnswer 从「整段 text」改为「点数组 JSON 字符串」[{idx,en,noMaterial}]（drain 存
+ *      JSON.stringify(AnkiAnswerPoint[])）。故【不能简单判非空】——即便所有点都留空（en=null），JSON 串
+ *      "[{...}]" 仍非空，简单判非空会把「生成了但全留空」误判为有卡背。正确判据 = 解析出的点数组里至少
+ *      一个点 en 是非空字符串（见 hasGeneratedContent）。空数组 / 全留空 / 非法 JSON / 旧整段文本 一律
+ *      回落 analysis（保守、安全，宁可显示静态分析也不渲染一个空卡背）。
+ *      与 SQL 侧 is_answered 的对齐见 0036 迁移头：is_answered 是「是否已回答」（corpus 绑定或 edited 即算，
+ *      不看生成内容），backKind 是「渲染哪种背面」（需要真有可渲染的生成内容），两者语义不同、互不矛盾。
  * @author   LingoBridge
  * @created  2026-07-23
  */
@@ -74,10 +83,35 @@ interface RawCardRow {
   is_answered: boolean
 }
 
-/** 背面判定：编辑覆盖 > 有语料且已生成 > 分析兜底。 */
+/**
+ * 判定 generated_answer 是否有【可渲染的分点式卡背内容】。
+ * generated_answer 现在是点数组 JSON 字符串（drain 存 JSON.stringify(AnkiAnswerPoint[])，形如
+ * [{"idx":0,"en":"...","noMaterial":false},{"idx":1,"en":null,"noMaterial":true}]）。
+ * 有内容 = 能解析成数组 且 至少一个点 en 是非空字符串（= 非留空点）。
+ * null / '' / 空数组 / 全留空 / 非法 JSON / 旧整段纯文本（JSON.parse 抛错）→ 一律 false（回落 analysis）。
+ * @param raw  generated_answer 原始值
+ * @returns    是否有可渲染的生成内容
+ */
+function hasGeneratedContent(raw: string | null): boolean {
+  if (raw === null || raw === '') return false
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return false // 非法 JSON / 旧整段文本 → 保守回落 analysis
+  }
+  if (!Array.isArray(parsed)) return false
+  return parsed.some((p) => {
+    if (typeof p !== 'object' || p === null) return false
+    const en = (p as { en?: unknown }).en
+    return typeof en === 'string' && en.trim() !== ''
+  })
+}
+
+/** 背面判定：编辑覆盖 > 有语料且已生成【可渲染】卡背 > 分析兜底（见模块头 v0.3 分点式说明）。 */
 function backKindOf(row: RawCardRow): AnkiBackKind {
   if (row.edited_answer !== null && row.edited_answer !== '') return 'edited'
-  if (row.corpus_id !== null && row.generated_answer !== null && row.generated_answer !== '') return 'generated'
+  if (row.corpus_id !== null && hasGeneratedContent(row.generated_answer)) return 'generated'
   return 'analysis'
 }
 
