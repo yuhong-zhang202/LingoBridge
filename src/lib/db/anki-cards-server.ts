@@ -9,9 +9,11 @@
  *       0031 的部分唯一索引 anki_gen_jobs_active_uidx 令「同题已有 pending/processing 任务时」再入队
  *       do-nothing。故换语料若只调 enqueue，旧任务仍指向旧语料、新语料永不生效；删语料若不清任务，
  *       在途任务会把旧语料答案回填、令「已清空的 generated_answer」复活。
- *     - 因此换语料 = 把在途任务 corpus_id 改指新语料；删语料 = 撤掉在途任务。二者都先把卡行的
- *       generated_answer 清空（§11 红线）。
- *     - ⚠️ 残留窗口：任务已被 drain 领取（status='processing'、语料快照已在 worker 内存里）时，本处对
+ *     - 因此换语料 = 清空卡背 + 改指新语料 + 把在途任务改指新语料 + 兜底入队；删语料 = 清空卡背 +
+ *       撤掉在途任务。这几步【必须在一个事务里原子完成】：多条独立 app 层 DML 中间失败会留下
+ *       「卡背已清空、任务却指向旧语料/未撤」的半成品，正是 §11 要防的旧答案复活 / 卡背永久空白。
+ *       故收敛为 0035 的 plpgsql RPC（swap_anki_corpus / unbind_anki_corpus，单事务），本层只做薄封装。
+ *     - ⚠️ 残留窗口：任务已被 drain 领取（status='processing'、语料快照已在 worker 内存里）时，RPC 对
  *       DB 的改动拦不住那一次在途生成 —— 属极窄竞态（换/删恰好撞上生成的秒级窗口），交由 red-team /
  *       drain 侧（任务版本号 / 取消令牌）后续收口，不在本轮端点内解决。
  * @author   LingoBridge
@@ -50,62 +52,42 @@ export async function getCardCorpusBinding(userId: string, questionId: string): 
 }
 
 /**
- * 换语料前置处理（方案 §11）：把卡行 generated_answer 清空 + corpus_id 改指新语料，并把该题在途
- * （pending/processing）生成任务的 corpus_id 一并改指新语料 —— 令随后的 enqueue「同题已有 active 任务
- * 则 do-nothing」时，那条 active 任务已指向新语料、drain 会用新语料重生成。调用方随后仍须调 enqueue
- * （若无 active 任务、上面 update 命中 0 行，则由 enqueue 插入一条新任务）。
+ * 换语料（方案 §11 自动重生成红线）——【单事务原子】：清空卡背 + 卡行改指新语料（懒物化下卡行不存在则
+ * 物化插入）+ 在途任务改指新语料 + 兜底入队（同题已有 active 任务则 do-nothing）。这四步全部收敛进 0035
+ * 的 swap_anki_corpus RPC，故本函数不再分多条 app 层 DML（旧实现 rebind + 单独 enqueue 非原子，中间失败
+ * 会留下「卡背已清空、任务却指旧语料」的半成品）。RPC 内含入队，调用方【无需】再调 enqueueAnkiGeneration。
  * @param  userId       当前用户 id
  * @param  questionId   目标题目 id
  * @param  newCorpusId  新语料 id
- * @throws              Error —— 更新出错（part3 卡设非空 corpus_id 会被 0030 触发器拒绝）
- * @sideEffect          service_role 更新 anki_cards + anki_generation_jobs（绕 RLS）
+ * @returns             卡行 id（供调用方回填/展示）
+ * @throws              Error —— RPC 出错（part3 卡设非空 corpus_id 会被 0030 触发器拒绝，整事务回滚）
+ * @sideEffect          service_role 调 swap_anki_corpus：原子 upsert anki_cards + 改/插 anki_generation_jobs（绕 RLS）
  */
-export async function rebindCorpusForSwap(userId: string, questionId: string, newCorpusId: string): Promise<void> {
-  const supabase = getSupabaseServer()
-  const now = new Date().toISOString()
-  // 卡行：清空旧答案（§11 红线）+ 指向新语料。命中 0 行（卡行尚不存在）无妨，enqueue 会懒物化插入。
-  const { error: cardErr } = await supabase
-    .from('anki_cards')
-    .update({ corpus_id: newCorpusId, generated_answer: null, updated_at: now })
-    .eq('user_id', userId)
-    .eq('question_id', questionId)
-  if (cardErr) throw new Error(`换语料更新卡行失败：${cardErr.message}`)
-  // 在途任务：改指新语料（不动 status/attempts —— 那是 drain 的状态机职责）。仅覆盖 pending/processing。
-  const { error: jobErr } = await supabase
-    .from('anki_generation_jobs')
-    .update({ corpus_id: newCorpusId, updated_at: now })
-    .eq('user_id', userId)
-    .eq('question_id', questionId)
-    .in('status', ['pending', 'processing'])
-  if (jobErr) throw new Error(`换语料改指在途任务失败：${jobErr.message}`)
+export async function swapAnkiCorpus(userId: string, questionId: string, newCorpusId: string): Promise<string> {
+  const { data, error } = await getSupabaseServer().rpc('swap_anki_corpus', {
+    p_user_id: userId,
+    p_question_id: questionId,
+    p_corpus_id: newCorpusId,
+  })
+  if (error) throw new Error(`换语料失败：${error.message}`)
+  return data as string
 }
 
 /**
- * 删对子 / unbind（方案 §6 回退分析 / §11 清 generated_answer）：卡行 corpus_id 置 null + 清空
- * generated_answer（卡退化为「分析卡」/真相源），保留 SRS 进度（box/due_at/last_reviewed_at 不动）。
- * 同时撤掉该题在途生成任务，防在途任务把旧语料答案回填、令已清空的 generated_answer 复活。
+ * 删对子 / unbind（方案 §6 回退分析 / §11 清 generated_answer）——【单事务原子】：卡行 corpus_id 置 null +
+ * 清空 generated_answer（卡退化为「分析卡」/真相源，保留 SRS 进度）+ 撤掉在途生成任务（防旧语料答案回填令
+ * 已清空的背面复活）。两步收敛进 0035 的 unbind_anki_corpus RPC，杜绝「卡背已清空、任务未撤」的半成品。
  * @param  userId      当前用户 id
  * @param  questionId  目标题目 id
- * @throws             Error —— 更新/删除出错
- * @sideEffect         service_role 更新 anki_cards + 删 anki_generation_jobs 在途行（绕 RLS）
+ * @throws             Error —— RPC 出错
+ * @sideEffect         service_role 调 unbind_anki_corpus：原子更新 anki_cards + 删 anki_generation_jobs 在途行（绕 RLS）
  */
 export async function unbindCorpus(userId: string, questionId: string): Promise<void> {
-  const supabase = getSupabaseServer()
-  const now = new Date().toISOString()
-  const { error: cardErr } = await supabase
-    .from('anki_cards')
-    .update({ corpus_id: null, generated_answer: null, updated_at: now })
-    .eq('user_id', userId)
-    .eq('question_id', questionId)
-  if (cardErr) throw new Error(`删语料更新卡行失败：${cardErr.message}`)
-  // 撤在途任务（pending/processing）：删除即释放 0031 的 active 部分唯一索引占位，卡不再被重生成。
-  const { error: jobErr } = await supabase
-    .from('anki_generation_jobs')
-    .delete()
-    .eq('user_id', userId)
-    .eq('question_id', questionId)
-    .in('status', ['pending', 'processing'])
-  if (jobErr) throw new Error(`删语料撤在途任务失败：${jobErr.message}`)
+  const { error } = await getSupabaseServer().rpc('unbind_anki_corpus', {
+    p_user_id: userId,
+    p_question_id: questionId,
+  })
+  if (error) throw new Error(`删语料失败：${error.message}`)
 }
 
 /** SRS 复习后的新状态（回给端点做响应/前端更新卡叠）。 */

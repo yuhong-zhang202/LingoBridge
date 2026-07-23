@@ -147,6 +147,25 @@ export const REG_PHRASES_DAILY_LIMIT = 150
 export const REG_RESTRUCTURE_DAILY_LIMIT = 200
 /** 注册每日：anki 存对子（注册专属；换语料不计配额；单条 part2 长文约与 matching 单跳同量级，取 50）*/
 export const REG_ANKI_DAILY_LIMIT = 50
+/**
+ * 注册每日：anki 换语料（PUT /anki/cards/corpus）的【防脚本滥用】上限——与「用户每日配额」是两回事。
+ * 产品方拍板「换语料不计配额」（不扣用户额度、正常改稿反复换随便用），但换语料同样触发付费 AI 重生成，
+ * 零闸门时单账号可脚本无限烧 AI 费。故这里加一道【独立、宽松、高阈值】的熔断：走独立 kind='anki_swap'
+ * 计次（与 'anki' 存对子额度互不相干），仅拦住机器级滥用。正常用户一天换几十次都碰不到 200；超限返 429。
+ * 与「换语料不计配额」不矛盾——那说的是不扣【存对子的 50 额度】，本值是防滥用护栏、非用户可感配额。
+ */
+export const REG_ANKI_SWAP_DAILY_LIMIT = 200
+
+// ── Anki 档位切点（金标回填前均为初值，方案 §11 冻结门；集中于此便于一处调参）──
+/**
+ * ⚠️ 初值，金标盲判基线回填前不冻结（方案 §11 冻结门）。切点具体值「先跑基线再定、不预设」。
+ * 目标综合分 T → 达标口语下限 S = T − 0.5 → 档位。单一切点划在 T 6.0 / 6.5 之间：
+ *   T ≤ 6.0 → A 档（范本 band 5.0–5.5）；T ≥ 6.5 → B 档（默认档，主流 6.5 目标用户落此）。
+ * 取两线中点 6.25 作阈值即可让 6.0→A、6.5→B。bandToTier 唯一切点（anki-answer.ts 从此 import）。
+ */
+export const TIER_SPLIT = 6.25
+/** 默认目标综合分：band 持久化落地前的兜底，对应默认 B 档（方案 §7）。target-band.ts 从此 import。 */
+export const DEFAULT_TARGET_BAND = 6.5
 
 // ── 失败归因（api_usage_logs.metadata.error_kind）──
 // 背景：并非所有 status='error' 都是系统故障。用户录了一段没人声的音频（EMPTY_TRANSCRIPT）属于

@@ -21,7 +21,7 @@ import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
 import { getCardCorpusBinding, upsertEditedAnswer } from '@/lib/db/anki-cards-server'
 import { listAnkiCards, type AnkiListScope } from '@/lib/anki/list'
-import { requireUser, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireRegistered, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
 
@@ -33,7 +33,7 @@ function str(v: unknown): string {
 /** GET：列出当季某 part 的 Anki 卡。scope 缺省 all、part 缺省 1；非法值 400。 */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireUser(req)
+    const { userId } = await requireRegistered(req)
     const { searchParams } = new URL(req.url)
 
     // scope ∈ {all, answered}，缺省 all。
@@ -63,7 +63,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 /** POST：存对子/绑语料。 */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireUser(req)
+    const { userId } = await requireRegistered(req)
     // 同意闸硬前置：存对子会令 drain 把用户中文语料发往千问生成卡背。未捕获当前版本同意 → 403，绝不入队。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -108,7 +108,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 /** PATCH：存编辑（写 edited_answer；part3 亦可）。无 AI 副作用 → 仅鉴权，不走同意/计次。 */
 export async function PATCH(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireUser(req)
+    const { userId } = await requireRegistered(req)
     const body = (await req.json().catch(() => ({}))) as { questionId?: unknown; editedAnswer?: unknown }
     const questionId = str(body.questionId)
     // editedAnswer 允许为空串（清空用户编辑，回退到 generated_answer 展示）；仅要求是字符串。

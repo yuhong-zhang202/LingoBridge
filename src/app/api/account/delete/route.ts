@@ -64,7 +64,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     // corpus_match_snapshots（0019）对 corpus 有 on delete cascade，但这批表按「防御性显式删」处理（不单赌 cascade），须排在 corpus 之前先删；
     // flow_events（0018）埋点，无原文但 GDPR 完整性须删，无跨表依赖、位置随意。
     // consent_records（0022）同意记录：删号=撤回同意（决策5），本表硬删（决策4）；user_id 无外键、无跨表依赖，位置随意。
-    for (const table of ['corpus_match_snapshots', 'flow_events', 'consent_records', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
+    // anki_generation_jobs（0031）/ anki_cards（0030）：两表本靠 profiles 的 on delete cascade 兜底，但按同款「防御性
+    //   显式删、不单赌 cascade」纳入枚举防未来 FK 漂移。顺序：先删 jobs（其 card_id → anki_cards on delete cascade）再删 cards。
+    for (const table of ['corpus_match_snapshots', 'flow_events', 'consent_records', 'anki_generation_jobs', 'anki_cards', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
       const { error } = await admin.from(table).delete().eq('user_id', userId)
       if (error) throw error
     }

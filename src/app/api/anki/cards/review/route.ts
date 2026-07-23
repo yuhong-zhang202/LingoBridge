@@ -13,12 +13,12 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { upsertReview } from '@/lib/db/anki-cards-server'
-import { requireUser, authErrorResponse } from '@/lib/api-auth'
+import { requireRegistered, authErrorResponse } from '@/lib/api-auth'
 
 /** POST：SRS 复习。 */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireUser(req)
+    const { userId } = await requireRegistered(req)
     const body = (await req.json().catch(() => ({}))) as { questionId?: unknown; remembered?: unknown }
     const questionId = typeof body.questionId === 'string' ? body.questionId.trim() : ''
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })

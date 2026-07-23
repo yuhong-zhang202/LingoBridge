@@ -161,6 +161,22 @@ export async function requireUserAllowAnon(req: Request): Promise<{ userId: stri
 }
 
 /**
+ * 「注册专属」端点鉴权：在 requireUser 基础上【显式拒绝匿名会话】。
+ * 为什么单独一个 helper 而非改 requireUser：requireUser 目前对匿名放行是【全站默认】，别的付费接口
+ * 靠它保留「未注册免费试用一遍」（匿名放行 + 服务端额度约束）。Anki 卡是跨天 SRS 资产、档位依赖用户
+ * 目标分，产品方拍板「注册专属」，故只在 Anki 端点用本 helper 强制拒匿名，绝不改动全站 requireUser 行为。
+ * @param req  进入的请求（读 Authorization 头）
+ * @returns    { userId } 当前【注册】用户 id
+ * @throws     ApiAuthError(401) —— 缺 token / token 无效 / 匿名会话（注册专属，匿名不适用）
+ * @sideEffect 调 authUser 校验 token 并读 is_anonymous（service_role client）
+ */
+export async function requireRegistered(req: Request): Promise<{ userId: string }> {
+  const user = await authUser(req)
+  if (user.isAnonymous) throw authError(401, 'REGISTRATION_REQUIRED', '该功能仅限注册用户')
+  return { userId: user.id }
+}
+
+/**
  * 校验某 corpus（语料 / 故事）归属于 userId，杜绝越权读写他人私密日记。
  * @param userId    requireUser 反查出的当前用户 id
  * @param corpusId  待访问的 corpus id

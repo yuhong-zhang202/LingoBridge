@@ -167,11 +167,13 @@ async function processJob(job: ClaimedJob): Promise<void> {
     )
 
     // 回填卡背：优先按 card_id（懒物化已回填），否则按 (user_id, question_id)。
+    // belt-and-suspenders：按 card_id 回填也附带 .eq('user_id')——card_id 本就唯一，加这条只为防御纵深
+    // （万一 job.card_id 被写脏也绝不会把答案写到别人的卡上），与按 (user_id, question_id) 分支同口径。
     const cardUpdate = supabase
       .from('anki_cards')
       .update({ generated_answer: answer, updated_at: new Date().toISOString() })
     const { error: cardErr } = job.card_id
-      ? await cardUpdate.eq('id', job.card_id)
+      ? await cardUpdate.eq('id', job.card_id).eq('user_id', job.user_id)
       : await cardUpdate.eq('user_id', job.user_id).eq('question_id', job.question_id)
     if (cardErr) throw cardErr
 

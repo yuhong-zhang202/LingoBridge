@@ -16,7 +16,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { MODEL_ANKI } from '@/lib/constants'
+import { MODEL_ANKI, TIER_SPLIT } from '@/lib/constants'
 import type { LLMUsage } from '@/lib/llm'
 import {
   ANKI_ANSWER_SYSTEM,
@@ -27,17 +27,11 @@ import {
 
 export type { AnkiTier } from '@/lib/ai/anki-answer-prompt'
 
-/**
- * ⚠️ 初值，金标盲判基线回填前不冻结（方案 §11 冻结门）。切点具体值「先跑基线再定、不预设」。
- *
- * 目标综合分 T → 达标口语下限 S = T − 0.5 → 档位。单一切点划在 T 6.0 / 6.5 之间：
- *   T ≤ 6.0 → A 档（范本 band 5.0–5.5）；T ≥ 6.5 → B 档（默认档，主流 6.5 目标用户落此）。
- * 取两线中点 6.25 作阈值即可让 6.0→A、6.5→B。此常量是唯一切点，调参只改这一处（方案 §7）。
- */
-export const TIER_SPLIT = 6.25
+// TIER_SPLIT 已集中到 constants.ts（金标冻结时一处改）；此处 re-export 保持既有引用点（含单测）不变。
+export { TIER_SPLIT } from '@/lib/constants'
 
 /**
- * 目标综合分 → 档位。切点隔离在 TIER_SPLIT 单一常量（见其注释：初值、未冻结）。
+ * 目标综合分 → 档位。切点隔离在 TIER_SPLIT 单一常量（constants.ts，见其注释：初值、未冻结）。
  * @param band  卡主的目标综合分（IELTS 总分，如 6.0 / 6.5）
  * @returns     'A'（band < 切点）或 'B'（band ≥ 切点）
  */

@@ -15,9 +15,10 @@
  * @created  2026-07-23
  */
 import 'server-only'
+import { DEFAULT_TARGET_BAND } from '@/lib/constants'
 
-/** 默认目标综合分：无持久化 band 时的兜底，对应默认 B 档（方案 §7）。 */
-export const DEFAULT_TARGET_BAND = 6.5
+// DEFAULT_TARGET_BAND 已集中到 constants.ts（金标冻结时一处改）；re-export 保持既有引用点不变。
+export { DEFAULT_TARGET_BAND } from '@/lib/constants'
 
 /**
  * 取某卡主用户的目标综合分。
