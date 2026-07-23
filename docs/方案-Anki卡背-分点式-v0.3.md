@@ -52,8 +52,26 @@
 3. **prompt 同源守卫**：整段 prompt 整个重写、建新同源锚点；清理 C 档惰性段。
 4. **成本按新形态跑真数重估**（多短句 vs 整段，别外推）。
 
-## 7. 待办 / 待拍
-- 🔴 **part3 形态待设计**：part3 = 观点追问、结构是「论点 + 论据说明（中文）+ 论据例句」，与 part1/2 的"经历叙述"不同。**关键约束**：part3 无用户语料（corpus_id 恒 null）→ **论据例句来源未定**（通用示范句？免语料忠料 or 别的）。→ metric-designer 补设计中。
-- 🔴 **例句探针 go/no-go**（下一步）：复用 4 条输入按新形态逐点生成 ~20 句，重点验忠料事实层（"背景"点会不会硬补时间地点）+ 对点 + 口语。过则进 fix-engineer 重写。
-- 🟡 待定（技术，交 fix-engineer/后续）：卡背存储 JSON vs 新表、edited_answer 编辑粒度、忠料硬闸阈值（基线后）。
+## 8. part3 形态（metric-designer 补设计，2026-07-24）
+- **结构**：part3 也是 3 点（立场 / 理由 / 延伸），有现成 `generatePart3Analysis`（pregen 的 `PART3_SYSTEM_PROMPT`）产出 focusPoints，可复用当标题+中文解释（免审）。
+- **例句来源 = 通用示范论据句**（generic exemplar）：part3 无用户语料，例句是"这个论点可以怎么用一句话论证/举例"的**范例**，**不基于用户语料**。
+- **金标维度与 part1/2 不同**：part3 例句**不审"忠料事实层"**（无语料真相源），改审 **①论据贴合论点 ②常识不离谱（不编虚假数据/荒谬断言）③口语化 ④无中式**。
+- ⚠️ **part3 净增 AI 生成量**：整段时代 part3 从不生成（generated_answer 恒 null），现在要生成论据例句 → 成本重估必须把 part3 卡数算进去。
+
+## 9. 数据结构（拍板契约）
+`anki_cards.generated_answer`：整段 string → **JSON 数组 `[{idx, en}]`**，与 focusPoints 一一对齐；渲染时前端拼 `focusPoints[idx].title/desc`（免审）+ `en[idx]`（需审）。**标题+解释与例句物理分离 = 金标只审 en[]**。
+
+## 10. part3 存储：静态化、不破不变式（metric-designer 补设计修正）
+part3 例句 = **通用示范论据句**（不基于用户语料），故**随 focusPoints 一起预生成、静态存入 `question_analyses.analysis`**（focusPoint 从 `{title,desc}` 扩为 `{title,desc,example?}`）——**不进 `anki_cards.generated_answer`、不走 drain、不 per-user**。
+- ✅ 于是 part3 的「`corpus_id`/`generated_answer` 恒 null」不变式（0030 触发器）**原封不动、无需松绑、无需回 red-team**（撤销早先"要松绑"的判断）。
+- part3 卡背整体纯静态；天然无 band（pregen 时没有 per-user 目标分输入）→ 进一步佐证 band 落地对卡背全不需要。
+- part3 focusPoints 已有现成框架（`pregen-analyses.ts` 的 `generatePart3Analysis`/`PART3_SYSTEM_PROMPT` 产出 立场/理由/延伸 3 点），只需每点补一句英文 `example`。
+- ⚠️ part3 是**净增 AI 生成量**（整段时代 part3 从不生成），但走 pregen 静态生成、不走 drain；成本重估要把 part3 题数算进。
+
+## 11. 待办 / 待拍
+- 🔴 **例句探针 go/no-go**（进行中）：part1/2 按忠料+"空点笼统不编"策略、part3 按论据/常识策略逐点生成，**故意挑"薄素材点"压测会不会为填格子编造**（这是唯一必须先证的假设）。过则进 fix-engineer 重写。
+- 🟠 **空点处置**（待拍，可由探针数据定）：某侧重点语料无素材时——(a) 生成语料范围内的**笼统句**（倾向，探针用此策略验）/ (b) **留空**标"这点还没讲到"。探针若显示"要求笼统仍会编"，再考虑 (b)。
+- 🟠 **忠料泛化容忍线**（金标阶段定）："last weekend"语料没明说但属无害泛指时间，算不算编造？双人标注时定一条判据线。
+- 🟡 待定（技术/UX）：edited_answer 逐点编辑 vs 整体、卡背存储 JSON 列 vs 新表、忠料硬闸阈值（基线后）。
 - 🟡 换语料自动重生成在点数组语境下确认同样适用。
+- **人工投入估**（metric-designer）：完整金标 ~210 条判定、双人盲判约 0.5–1 天；比整段省（砍掉档位判定）。
