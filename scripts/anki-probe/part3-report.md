@@ -14,19 +14,19 @@
 **题面**：Why do you think some people find it difficult to say sorry?
 
 **run1**：
-  - **[0] 表明立场**（16词｜H1✓ H3✗ H5✓ H6✓）
-    > I think it’s mostly about how people see themselves—apologizing can feel like admitting weakness.
-  - **[1] 讲清理由**（20词｜H1✓ H3✓ H5✓ H6✓）
-    > For example, someone raised to believe ‘never show doubt’ might stay silent even when they’re clearly in the wrong.
-  - **[2] 延伸展开**（23词｜H1✓ H3✗ H5✓ H6✗）
-    > Still, I’ve noticed that younger people often say sorry more easily—it’s less about pride and more about keeping things smooth.
+  - **[0] 表明立场**（12词｜H1✓ H3✓ H5✓ H6✓）
+    > I think it's often because apologizing feels like admitting weakness or failure.
+  - **[1] 讲清理由**（22词｜H1✓ H3✓ H5✓ H6✓）
+    > For example, someone who’s used to being in control might worry that saying sorry will make others lose respect for them.
+  - **[2] 延伸展开**（26词｜H1✓ H3✗ H5✓ H6✗）
+    > That said, I've noticed people raised in more collectivist cultures sometimes find it easier—apologizing there can feel like protecting group harmony, not showing personal flaw.
 **run2**：
-  - **[0] 表明立场**（13词｜H1✓ H3✓ H5✓ H6✓）
-    > I think it’s mostly because apologizing feels like admitting weakness or failure.
-  - **[1] 讲清理由**（20词｜H1✓ H3✓ H5✓ H6✓）
-    > For example, someone might stay silent after hurting a friend’s feelings, fearing they’ll lose respect or seem unreliable.
-  - **[2] 延伸展开**（19词｜H1✓ H3✗ H5✓ H6✓）
-    > But actually, people who apologize easily often gain more trust over time—even if it feels uncomfortable at first.
+  - **[0] 表明立场**（12词｜H1✓ H3✓ H5✓ H6✓）
+    > I think it's often because apologizing feels like admitting weakness or failure.
+  - **[1] 讲清理由**（23词｜H1✓ H3✗ H5✓ H6✗）
+    > Someone who grew up hearing 'don't back down' might panic at the thought of saying sorry—even when they're clearly in the wrong.
+  - **[2] 延伸展开**（22词｜H1✓ H3✓ H5✓ H6✓）
+    > Still, a sincere apology can actually build trust, so maybe we should see it less as surrender and more as emotional courage.
 
 **P-cause 判分**（考官填）：论据贴合 ☐　站得住 ☐　无作文腔 ☐　无假统计 ☐　口语 ☐　中式 ☐
 
@@ -36,19 +36,19 @@
 **题面**：Is it better to live in a big city or in the countryside?
 
 **run1**：
-  - **[0] 表明立场**（13词｜H1✓ H3✓ H5✓ H6✓）
-    > I’d personally choose the countryside for a quieter, more relaxed daily life.
-  - **[1] 讲清理由**（21词｜H1✓ H3✗ H5✓ H6✓）
-    > Big cities offer way more job options—like someone switching from teaching to digital marketing just by taking a local course.
-  - **[2] 延伸展开**（20词｜H1✓ H3✓ H5✓ H6✓）
-    > Even though cities have better hospitals, many people now work remotely and actually prefer fresh air over constant traffic noise.
+  - **[0] 表明立场**（12词｜H1✓ H3✓ H5✓ H6✓）
+    > I personally prefer the countryside because it feels calmer and less overwhelming.
+  - **[1] 讲清理由**（18词｜H1✓ H3✓ H5✓ H6✓）
+    > City life means constant noise and crowds, so someone who values quiet mornings might struggle to relax there.
+  - **[2] 延伸展开**（19词｜H1✓ H3✗ H5✓ H6✓）
+    > That said, big cities offer way more job options—imagine a young designer needing creative studios and clients nearby.
 **run2**：
   - **[0] 表明立场**（12词｜H1✓ H3✓ H5✓ H6✓）
-    > I’d personally choose the countryside for a calmer, more relaxed lifestyle.
-  - **[1] 讲清理由**（22词｜H1✓ H3✗ H5✓ H6✓）
-    > Big cities offer way more job options—like if you’re in tech or design, you’ll find way more openings there.
-  - **[2] 延伸展开**（16词｜H1✓ H3✓ H5✓ H6✓）
-    > Still, even if cities are exciting, rural areas give kids more space to play safely outdoors.
+    > I personally prefer the countryside because it feels calmer and less overwhelming.
+  - **[1] 讲清理由**（19词｜H1✓ H3✓ H5✓ H6✓）
+    > City life means constant noise and crowds, so someone who needs quiet time to recharge might really struggle there.
+  - **[2] 延伸展开**（23词｜H1✓ H3✗ H5✓ H6✗）
+    > That said, big cities offer way more job options—imagine a young designer needing creative networks and internships only found in urban areas.
 
 **P-compare 判分**（考官填）：论据贴合 ☐　站得住 ☐　无作文腔 ☐　无假统计 ☐　口语 ☐　中式 ☐
 
@@ -58,19 +58,19 @@
 **题面**：How do you think the way people communicate will change in the future?
 
 **run1**：
-  - **[0] 表明立场**（13词｜H1✓ H3✓ H5✓ H6✓）
-    > I believe communication will become faster and more visual, relying less on text.
-  - **[1] 讲清理由**（15词｜H1✓ H3✓ H5✓ H6✓）
-    > For example, people already send voice notes or short videos instead of typing long messages.
-  - **[2] 延伸展开**（19词｜H1✓ H3✗ H5✓ H6✓）
-    > Still, face-to-face talks won’t disappear—some things just feel more real when you’re in the same room.
+  - **[0] 表明立场**（24词｜H1✓ H3✓ H5✓ H6✗）
+    > I think communication will become much more visual and instant, relying less on text and more on things like video calls and AR overlays.
+  - **[1] 讲清理由**（25词｜H1✓ H3✗ H5✓ H6✗）
+    > For example, imagine someone fixing a broken appliance—they could just point their phone camera at it and get real-time animated instructions overlaid on screen.
+  - **[2] 延伸展开**（24词｜H1✓ H3✓ H5✓ H6✗）
+    > That said, older adults or people in low-connectivity areas might still prefer voice calls or even face-to-face chats, so text won’t disappear completely.
 **run2**：
-  - **[0] 表明立场**（9词｜H1✓ H3✓ H5✓ H6✓）
-    > I believe communication will become faster and more visual.
-  - **[1] 讲清理由**（16词｜H1✓ H3✓ H5✓ H6✓）
-    > People already send voice notes instead of typing long messages, so that trend will only grow.
-  - **[2] 延伸展开**（13词｜H1✓ H3✓ H5✓ H6✓）
-    > Even if tech gets smarter, face-to-face talks still feel more honest and warm.
+  - **[0] 表明立场**（24词｜H1✓ H3✓ H5✓ H6✗）
+    > I think communication will become faster and more visual, relying less on text and more on things like video calls or even AR overlays.
+  - **[1] 讲清理由**（24词｜H1✓ H3✗ H5✓ H6✗）
+    > For example, imagine someone explaining a repair step — showing it live through smart glasses is clearer than typing instructions or even a phone call.
+  - **[2] 延伸展开**（21词｜H1✓ H3✓ H5✓ H6✓）
+    > That said, some people might still prefer quiet, low-pressure ways like messaging, especially when they need time to think before replying.
 
 **P-future 判分**（考官填）：论据贴合 ☐　站得住 ☐　无作文腔 ☐　无假统计 ☐　口语 ☐　中式 ☐
 
@@ -80,19 +80,19 @@
 **题面**：What are the advantages and disadvantages of working from home?
 
 **run1**：
-  - **[0] 表明立场**（17词｜H1✓ H3✓ H5✓ H6✓）
-    > I think working from home is mostly beneficial, especially for people with young kids or long commutes.
-  - **[1] 讲清理由**（27词｜H1✓ H3✗ H5✓ H6✗）
-    > It saves a lot of time—like, I used to spend two hours daily on the subway, and now I use that time to exercise or rest.
-  - **[2] 延伸展开**（17词｜H1✓ H3✓ H5✓ H6✓）
-    > Still, some jobs really need face-to-face teamwork, so it’s not ideal for every role or person.
+  - **[0] 表明立场**（18词｜H1✓ H3✓ H5✓ H6✓）
+    > I think working from home is generally more beneficial, especially for people with long commutes or caregiving responsibilities.
+  - **[1] 讲清理由**（26词｜H1✓ H3✗ H5✓ H6✗）
+    > It saves a lot of time—imagine someone who used to spend two hours daily on transport, now using that time for rest or family instead.
+  - **[2] 延伸展开**（18词｜H1✓ H3✓ H5✓ H6✓）
+    > Still, some people miss office interaction, so jobs needing frequent brainstorming or mentoring might suffer without face-to-face contact.
 **run2**：
   - **[0] 表明立场**（17词｜H1✓ H3✓ H5✓ H6✓）
-    > I think working from home is mostly beneficial, especially for people with young kids or long commutes.
-  - **[1] 讲清理由**（18词｜H1✓ H3✗ H5✓ H6✓）
-    > It saves a lot of time—imagine skipping two hours of traffic just to sit at your desk.
-  - **[2] 延伸展开**（15词｜H1✓ H3✓ H5✓ H6✓）
-    > Still, some folks miss office banter and find it harder to switch off after work.
+    > I think working from home is generally more beneficial than harmful, especially for people with family responsibilities.
+  - **[1] 讲清理由**（27词｜H1✓ H3✗ H5✓ H6✗）
+    > It saves a lot of commuting time—imagine someone who used to spend an hour each way suddenly gaining two extra hours daily for rest or hobbies.
+  - **[2] 延伸展开**（21词｜H1✓ H3✓ H5✓ H6✓）
+    > Still, it can blur the line between work and personal life, so some people struggle to switch off after logging out.
 
 **P-tradeoff 判分**（考官填）：论据贴合 ☐　站得住 ☐　无作文腔 ☐　无假统计 ☐　口语 ☐　中式 ☐
 
