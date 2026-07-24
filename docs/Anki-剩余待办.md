@@ -80,7 +80,9 @@
 ## 🛡️ 审计 / 验证（上线前硬门）
 - ✅ **真库 schema 已应用（2026-07-25）**：0030–0039 全部经 `npm run db:push` 应用到**新加坡生产库**（LingoBridge_CN / project jzoxnxgbvshiwctwvrwd / ap-southeast-1 / 端口 5432 session pooler / ref+region 双核对）。连库重跑对象核对**七列全 true**（三张表 + corpus.summary + get_anki_cards 返 corpus_summary + is_answered 含 nullif〔0036 修复保留〕+ swap 清 edited_answer）。
   - ⚠️ **0039 apply 时曾报 `cannot change return type`**（RETURNS TABLE 增列 = 改返回类型，create or replace 不允许）→ 已加 `drop function if exists ... (uuid,text,smallint,text)` 再建（无自定义 GRANT、非 security definer，默认 PUBLIC EXECUTE 重建后自动恢复）；补跑成功。
-  - [ ] **写路径验证仍待做**（schema 在库了、但换/删语料事务原子性/孤儿回收/drain 状态机未跑真数据）：无独立 staging → 用一次性测试用户 + 跑完清理，需产品方点头。
+  - ✅ **写路径验证 = 通过（2026-07-25）**：`scripts/anki-smoke/anki-write-smoke.mjs`（一次性测试用户 `anki-smoke-*@smoke.invalid` + 跑完自清、零 AI 调用）在新加坡生产库跑，**31 项断言全过、0 失败**：懒物化 upsert 幂等 / swap 换语料原子清 generated+edited 不动 SRS / unbind 清 generated+撤 job 保留 SRS / 删 corpus FK set null 无悬挂 / drain 状态机（pending→processing、attempts+1、done 可重入队、**孤儿>15min 重领**、新鲜不误抢）。跑完独立扫零残留。
+    - 过程修的三个坑：① auth.users 最小插入列风险 → 改按 information_schema 实际列**动态插入**（跨 GoTrue 自适应）；② 生产库内测白名单触发器（0023）挡非白名单邮箱 → setup 临时插 beta_allowlist、cleanup 按 email sentinel 删回；③ **qa 版 `check()` 把 expected 误传进 pass 位 → 断言空过（30 个 ✓ 未真比对、1 个假阴）**，改成 expected===actual 自算 pass 后才是真验证（验证纪律：盯输出「期望=实际却✗」抓到）。
+    - ⚠️ **未覆盖**：drain 的 processing→done 真回填、consent 闸、退避重试（都需真调千问、脚本刻意退化为状态机层）——留内测真实使用观察。
 - 🟡 **red-team 复审分点式 v0.3 = 有条件放行（2026-07-25）**：方向站得住（整段分档不稳属实、留空压编造方向对），无"刷分"；但"改善"建立在**无填过判定台账的招牌数字 + 非生产口径的阈值曲线**上，不能结"已验证到位"的案——与"金标后移、内测看真数据"一致。分诊（均已逐条核实、未直接采信）：
   - ✅ **必修·洞1 part3 例句破折号已修**：part3 pregen 复用同源 `cleanEn`（anki-answer.ts 导出、破折号→逗号），不抄第二份 regex。tsc/jest 过。⚠️ 仅代码路径+cleanEn 单测证明；真正确认破折号不入库需一次带 `--commit` 的 part3 pregen 实跑抽验（随换季导入触发）。
   - ✅ **洞2 长度/idx 守卫已加**：validate 折入 `coversAllIdx`（从 `input.focusPoints.length` 取期望点数），短/缺/重/越界 → 触发既有重问；重试耗尽抛错、**短数组不落库**（渲染侧 focusPoints 驱动本就不错位，此守卫是"宁可重生成也别误显空点态"的硬化）。
