@@ -35,8 +35,8 @@
 - ✅ 砍 band（删 target-band.ts、`TIER_SPLIT`/`DEFAULT_TARGET_BAND` @deprecated、drain 去 band/tier）· 类型加 `example?` · prompt 同源守卫重写 · drain 回填存 `JSON.stringify`。
 - ✅ **后端读取契约**（0036）：`is_answered` 去 generated_answer 项（避"全留空"假阳 + 根除在途竞态假阳）；`backKind` 点数组语义、与 SQL 解耦。⚠️ **0036 真 PG 未跑**（上线前真库验证）。
 - ✅ **part3 例句静态化**：pregen 每点补 example（`PART3_EXAMPLE_SYSTEM` 同源探针 + 守卫）、不变式不动。⚠️ **未对真 DashScope 复验**（maxTokens512 下裸数组稳定性，沿用探针推断）。
-- [ ] **前端渲染**（ux 方案已出，待产品方挑布局 → fix 实施）：推荐 **A 标签脊柱(part1/2) + B 台阶卡(part3) + desc 默认折叠 + 空点虚线钩子 + 逐点行内编辑**；desc 折叠(轻盈杠杆)需真机真语料验。⚠️ 现有 FlashCard 2 个 a11y 硬伤(无 `prefers-reduced-motion`、翻面不可键盘)题卡必须补。
-- [ ] **PATCH 编辑粒度**：ux 推荐**逐点行内编辑**（贴点数组模型/反一大坨/和补料钩子同构），待产品方确认 · **成本重估**（~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
+- 🔵 **前端渲染实施中**（产品方 2026-07-24 拍板 **A 脊柱(part1/2) + B 台阶(part3)、逐点行内编辑**）：FlashCard 点数组渲染 + 空点虚线钩子 + 逐点行内编辑(PATCH `{idx,en}`) + 补 2 a11y 硬伤(reduced-motion/翻面键盘)。**desc 折叠收多狠留真机调**。素材库入口(平级双卡)/筛选/分组下批。
+- ✅ **编辑粒度 = 逐点行内**（拍板）· [ ] **成本重估**（~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
 
 ### ⚠️ 本轮暴露的风险（待处理）
 - ✅ **extractJson 双发兜底（Anki 侧）**：`anki-json.ts` 平衡括号取首个 JSON、本地 `callAnkiLLMJson` 不碰共享 llm.ts；单测 8+3 全过。代价：与 llm.ts transport/retry 一份**受控重复**（记账）。
