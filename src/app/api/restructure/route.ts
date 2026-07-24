@@ -13,7 +13,8 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpAnonRestructureTodayServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
-import { ANON_RESTRUCTURE_LIMIT, REG_RESTRUCTURE_DAILY_LIMIT } from '@/lib/constants'
+import { ANON_RESTRUCTURE_LIMIT, REG_RESTRUCTURE_DAILY_LIMIT, MIN_CORPUS_CHARS } from '@/lib/constants'
+import { isTooShortForCorpus } from '@/lib/utils'
 
 // 输入上限：整理是按字数估算 token 计费的付费调用，限长防止单请求刷高 token 成本
 const MAX_RAW_TEXT_LENGTH = 3000
@@ -31,6 +32,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {
       return NextResponse.json({ error: 'rawText 不能为空' }, { status: 400 })
+    }
+    // 源头门槛兜底：深链绕过客户端预检时，在 AI 整理 / usable 判定之前挡下薄素材，省整理钱。
+    // 与 usable 无关（那是 LLM 质量判断、故意放行薄素材）；这是独立字数闸。
+    if (isTooShortForCorpus(rawText)) {
+      return NextResponse.json({ error: `内容太少，请至少写满 ${MIN_CORPUS_CHARS} 字`, code: 'CORPUS_TOO_SHORT' }, { status: 400 })
     }
     if (rawText.length > MAX_RAW_TEXT_LENGTH) {
       return NextResponse.json({ error: '内容过长，请分段提交（上限 3000 字）' }, { status: 400 })

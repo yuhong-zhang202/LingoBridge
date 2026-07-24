@@ -166,7 +166,8 @@ describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径�
   test('restructure POST → 记 qwen_flash 一条（带 user_id + is_anonymous 归属）', async () => {
     const req = new Request('http://localhost/api/restructure', {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
-      body: JSON.stringify({ rawText: '呃我周末就是去公园走了走' }),
+      // 需满足 MIN_CORPUS_CHARS(40) 有效字符门槛，否则先被 400 拦下、到不了记账断言
+      body: JSON.stringify({ rawText: '呃我周末就是一个人去公园散步，走了很久，看到很多人在放风筝，我坐在长椅上晒太阳，心里觉得特别放松' }),
     })
     const res = await restructurePost(req)
     expect(res.status).toBe(200)
@@ -272,7 +273,8 @@ describe('失败可诊断性守卫 · AI 调用抛错时失败记账带 phase、
     ;(restructureText as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
     const req = new Request('http://localhost/api/restructure', {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
-      body: JSON.stringify({ rawText: '呃我周末就是去公园走了走' }),
+      // 需满足 MIN_CORPUS_CHARS(40) 有效字符门槛，否则先被 400 拦下、到不了记账断言
+      body: JSON.stringify({ rawText: '呃我周末就是一个人去公园散步，走了很久，看到很多人在放风筝，我坐在长椅上晒太阳，心里觉得特别放松' }),
     })
     const res = await restructurePost(req)
     expect(res.status).toBe(500)

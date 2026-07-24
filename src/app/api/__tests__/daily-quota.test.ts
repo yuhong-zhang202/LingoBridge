@@ -139,7 +139,8 @@ function restructureReq(): Request {
   return new Request('http://localhost/api/restructure', {
     method: 'POST',
     headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
-    body: JSON.stringify({ rawText: '上周末 去公园 走走 挺放松的' }),
+    // 需满足 MIN_CORPUS_CHARS(40) 有效字符门槛，否则先被 400 拦下、到不了配额熔断断言
+    body: JSON.stringify({ rawText: '上周末我一个人去公园散步，走了很久，看到很多人在放风筝，我坐在长椅上晒太阳，心里觉得特别放松平静' }),
   })
 }
 

@@ -14,7 +14,7 @@
  */
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { isGarbageInput, GARBAGE_TOAST_MSG } from '@/lib/utils'
+import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
@@ -53,6 +53,11 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
       // 第一层：即时预检，不调 API
       if (isGarbageInput(text)) {
         setToastMsg(GARBAGE_TOAST_MSG)
+        return
+      }
+      // 源头门槛（薄素材防线）：真实但有效字数不足 → 拦下、原文保留续写，引导补充维度（区别于上面的「不像经历」）
+      if (isTooShortForCorpus(text)) {
+        setToastMsg(TOO_SHORT_TOAST_MSG)
         return
       }
       // 文字路径的流程起点：开启一次新 flow_id，串起 整理→建语料（经 X-Flow-Id 头透传，不进 URL）

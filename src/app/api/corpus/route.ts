@@ -13,7 +13,8 @@ import { requireConsent } from '@/lib/consent-server'
 import { logEvent } from '@/lib/events'
 import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
-import { ANON_CORPUS_LIMIT } from '@/lib/constants'
+import { ANON_CORPUS_LIMIT, MIN_CORPUS_CHARS } from '@/lib/constants'
+import { isTooShortForCorpus } from '@/lib/utils'
 import type { CorpusSource } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -28,6 +29,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : ''
     if (!rawText) {
       return NextResponse.json({ error: 'rawText 不能为空' }, { status: 400 })
+    }
+    // 源头门槛兜底（唯一入库收口）：POST 只用于【新建】，故此处拦下薄素材不会误伤旧短语料
+    // （编辑 / 重匹配走 updateCorpusCleaned、天然跳过本端点）。防一切绕过客户端预检与 restructure 的直灌。
+    if (isTooShortForCorpus(rawText)) {
+      return NextResponse.json({ error: `内容太少，请至少写满 ${MIN_CORPUS_CHARS} 字`, code: 'CORPUS_TOO_SHORT' }, { status: 400 })
     }
 
     // 额度服务端强制：超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹配额提示。

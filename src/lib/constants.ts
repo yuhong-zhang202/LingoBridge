@@ -110,6 +110,16 @@ export const RANKING_TIE_MAX  = 8
  */
 export const RANKING_ALGO_VERSION = 'v1-2026-07-17'
 
+// ── 语料最小字数门槛（Anki 双防线·源头：防薄素材语料诱发例句编造）──
+/**
+ * 建【新】语料的最小【有效字符】门槛：剔标点/空格/换行后的「中文汉字 + 英文单词字符」数须 ≥ 此值。
+ * 阈值 40 由产品方 2026-07-24 拍板（中间档探针：门槛只「逃灾难区 21→40」、残余编造靠留空，非单调）。
+ * 三处同源消费：客户端预检（文字 useStorySubmit / 语音 recording 两入口）+ /api/restructure 兜底 + /api/corpus 入库兜底。
+ * ⚠️ 独立字数闸，绝不碰 restructure 的 usable 判定（usable 故意放行薄素材、是 LLM 质量判断，改它会误伤 + 跑偏成 AI 判断力改动）。
+ * 只拦【新建】；编辑 / 重匹配旧语料走 updateCorpusCleaned、天然跳过 POST /corpus，旧短语料既往不咎。
+ */
+export const MIN_CORPUS_CHARS = 40
+
 // ── 匿名试用额度（未注册用户免费体验一遍；控 AI 成本 + 促注册转化）
 /** 匿名用户可建语料条数（体验一条完整链路即到上限，引导注册） */
 export const ANON_CORPUS_LIMIT = 1
