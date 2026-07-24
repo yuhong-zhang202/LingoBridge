@@ -61,10 +61,9 @@
 - [ ] `threshold-probe.mjs` 第三份旧 SYSTEM（无留空出口）已与 example-probe 不同源、注释过时 → 同步或标废弃。
 
 ## 🚧 语料门槛线（阈值拍板后）
-- [ ] 实施门槛：客户端主拦（文字/语音两入口共用预检）+ restructure 服务端兜底 + corpus 服务端兜底，**一个常量 `MIN_CORPUS_CHARS` 同源**；**独立字数闸、不碰 usable 判定**（usable 是故意放行薄素材的，改它会误伤+跑偏）。
-- [ ] **只拦新建**（编辑旧语料走 updateCorpusCleaned、天然跳过，旧数据既往不咎）。
-- [ ] **文案**：区分现有 GARBAGE_TOAST（判"不像经历"）——门槛是"真实但太少"，引导补充 + 点名维度（是什么/做了什么/后来感觉）。
-- [ ] 观察项（非阻塞）：口水话 rawText 过门槛但 cleanedText 薄 → 上线后看要不要在 cleanedText 落库补判一次。
+- ✅ **门槛实施完成**（`MIN_CORPUS_CHARS=40`）：文字/语音两入口主拦 + restructure/corpus 服务端兜底、`countEffectiveCorpusChars`（剔标点数汉字+英文词）；独立字数闸不碰 usable；只拦新建（编辑走 updateCorpusCleaned 跳过）；文案 `TOO_SHORT_TOAST` 与 GARBAGE 区分。tsc/单测/api 全绿（连带修 3 个既有测试 fixture）。**全站语料输入改动**（matching 也吃，product-logic 评估过不误伤）。
+- ⚠️ **待产品方真机验**：TOO_SHORT toast 可读性（~30字 vs 3.5s 自动消失、两行排版）——必要时缩文案/调 duration。
+- 🟡 观察项（非阻塞）：口水话 rawText 过门槛但 cleanedText 薄 → 上线后看要不要在 cleanedText 落库补判一次 · 服务端"上限先于配额"顺序未改（现状省钱目的已达成，若要严格排序需产品方点头）。
 
 ## 🎨 UI / 前端线（ux-reviewer 出方案 → 实施）
 - [ ] 分点式卡片呈现设计：点数组渲染、**空点态"这点你的语料还没讲到"**（兼引导补料钩子）、翻面、编辑态。
