@@ -71,9 +71,28 @@ function isAnkiAnswerPoint(v: unknown): v is AnkiAnswerPoint {
   )
 }
 
-/** 顽固破折号兜底清洗（同 coachReply 实测：qwen 爱用破折号、prompt 压不住），只清非空 en。 */
-function cleanEn(en: string): string {
+/**
+ * 顽固破折号兜底清洗（同 coachReply 实测：qwen 爱用破折号、prompt 压不住），只清非空 en。
+ * ⚠️ 唯一真相源：part3 例句 pregen（scripts/pregen-analyses.ts）import 复用本函数，别再抄一份 regex——
+ *    part3 例句是静态落库、展示给所有用户，破折号（H3 硬规则违规）会原样烤进卡面，必须同源清洗。
+ */
+export function cleanEn(en: string): string {
   return en.replace(/\s*[—–]\s*/g, ', ').trim()
+}
+
+/**
+ * 点数组必须恰好覆盖 focusPoints 的 0..expectedCount-1 每个 idx（各一次、不多不少、无重复）。
+ * 折进 validate 闭包：模型静默少吐一个点（非 noMaterial、是整条缺席）时判不通过、触发既有重问机制，
+ * 而非落一个短数组（短数组会被渲染侧降级成「这点你还没讲到」空点态，对明明讲了这点的用户是误导）。
+ */
+function coversAllIdx(points: AnkiAnswerPoint[], expectedCount: number): boolean {
+  if (points.length !== expectedCount) return false
+  const seen = new Set<number>()
+  for (const p of points) {
+    if (p.idx < 0 || p.idx >= expectedCount || seen.has(p.idx)) return false
+    seen.add(p.idx)
+  }
+  return true
 }
 
 /**
@@ -92,6 +111,8 @@ export async function generateAnkiAnswer(
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
   const user = ankiAnswerUserPrompt(input.part, input.questionText, input.focusPoints, input.corpus)
+  // 该次输入的点数（part1=2 / part2=3），从 focusPoints 长度取，不硬编码；validate 据此校验 idx 全覆盖。
+  const expectedCount = input.focusPoints.length
   const result = await callAnkiLLMJson<AnkiAnswerEnvelope>({
     label: '[AnkiAnswer]',
     onUsage,
@@ -106,10 +127,13 @@ export async function generateAnkiAnswer(
         { role: 'user', content: user },
       ],
     },
-    validate: (v): v is AnkiAnswerEnvelope =>
-      typeof v === 'object' && v !== null &&
-      Array.isArray((v as { points?: unknown }).points) &&
-      (v as { points: unknown[] }).points.every(isAnkiAnswerPoint),
+    validate: (v): v is AnkiAnswerEnvelope => {
+      if (typeof v !== 'object' || v === null) return false
+      const points = (v as { points?: unknown }).points
+      if (!Array.isArray(points) || !points.every(isAnkiAnswerPoint)) return false
+      // 形状 OK 后再校验 idx 覆盖：不满足则整条判失败、触发 callAnkiLLMJson 既有重问/重试。
+      return coversAllIdx(points, expectedCount)
+    },
   })
   // 逐点对齐：按 idx 升序，清洗非空 en 的破折号（留空点 en 保持 null）。
   return [...result.points]

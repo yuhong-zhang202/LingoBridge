@@ -33,6 +33,7 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { env } from '@/lib/env-server'
 import { callLLMJson } from '@/lib/llm'
 import { callAnkiLLMJson } from '@/lib/ai/anki-json'
+import { cleanEn } from '@/lib/ai/anki-answer'
 import { PART3_EXAMPLE_SYSTEM, part3ExampleUserPrompt } from '@/lib/ai/part3-example-prompt'
 import { CURRENT_SEASON, MODEL_ANALYSIS } from '@/lib/constants'
 import { generateAnalysis } from '@/services/analysis'
@@ -145,8 +146,12 @@ async function generatePart3Examples(
     validate: (v): v is Part3ExamplePoint[] => Array.isArray(v) && v.every(isPart3ExamplePoint),
   })
   return focusPoints.map((_, i) => {
-    const en = points.find((p) => p.idx === i)?.en.trim()
-    return en ? en : null
+    // 复用 part1/2 生成器的同源 cleanEn（破折号→逗号）：part3 例句静态落库、展示给所有用户，
+    // 不清洗会把 H3 硬规则违规的破折号原样烤进卡面。保持「找不到该 idx → null」语义不变，只在有值时清洗。
+    const raw = points.find((p) => p.idx === i)?.en
+    if (raw === undefined) return null
+    const cleaned = cleanEn(raw)
+    return cleaned ? cleaned : null
   })
 }
 

@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { callAnkiLLMJson } from '@/lib/ai/anki-json'
 import {
   generateAnkiAnswer,
+  cleanEn,
   ANKI_MAX_TOKENS,
   ANKI_TEMPERATURE,
   type AnkiAnswerPoint,
@@ -109,17 +110,55 @@ describe('generateAnkiAnswer（mock callAnkiLLMJson，不真调 DashScope）', (
     expect(reported).toEqual({ promptTokens: 120, completionTokens: 30 })
   })
 
-  it('validate 守卫：接受合法点数组（含留空 null），拒非法', async () => {
+  it('validate 守卫：接受形状合法的点数组，拒形状非法', async () => {
+    // baseInput 有 3 个 focusPoints → expectedCount=3；下面合法用例都给满 3 点覆盖 idx 0/1/2。
     const getOpts = armMock([{ idx: 0, en: 'ok', noMaterial: false }])
     await generateAnkiAnswer(baseInput)
     const { validate } = getOpts()!
-    expect(validate({ points: [{ idx: 0, en: 'hi', noMaterial: false }, { idx: 1, en: null, noMaterial: true }] })).toBe(true)
-    expect(validate({ points: [] })).toBe(true)
-    expect(validate({ points: [{ idx: 0, en: 'hi' }] })).toBe(false)          // 缺 noMaterial
-    expect(validate({ points: [{ idx: '0', en: 'hi', noMaterial: false }] })).toBe(false) // idx 非数字
-    expect(validate({ points: [{ idx: 0, en: 5, noMaterial: false }] })).toBe(false)      // en 非字符串/非 null
+    const full = [
+      { idx: 0, en: 'hi', noMaterial: false },
+      { idx: 1, en: null, noMaterial: true },
+      { idx: 2, en: 'there', noMaterial: false },
+    ]
+    expect(validate({ points: full })).toBe(true)
+    expect(validate({ points: [{ idx: 0, en: 'hi' }, { idx: 1, en: 'a', noMaterial: false }, { idx: 2, en: 'b', noMaterial: false }] })).toBe(false) // 缺 noMaterial
+    expect(validate({ points: [{ idx: '0', en: 'hi', noMaterial: false }, { idx: 1, en: 'a', noMaterial: false }, { idx: 2, en: 'b', noMaterial: false }] })).toBe(false) // idx 非数字
+    expect(validate({ points: [{ idx: 0, en: 5, noMaterial: false }, { idx: 1, en: 'a', noMaterial: false }, { idx: 2, en: 'b', noMaterial: false }] })).toBe(false) // en 非字符串/非 null
     expect(validate({})).toBe(false)                                          // 无 points
     expect(validate(null)).toBe(false)
+  })
+
+  it('validate 守卫（洞2）：点数组必须恰好覆盖 0..expectedCount-1 每个 idx，缺/多/重/越界皆拒', async () => {
+    // baseInput = part2 / 3 个 focusPoints → expectedCount=3。
+    const getOpts = armMock([{ idx: 0, en: 'ok', noMaterial: false }])
+    await generateAnkiAnswer(baseInput)
+    const { validate } = getOpts()!
+    const pt = (idx: number) => ({ idx, en: 'x', noMaterial: false })
+    expect(validate({ points: [pt(0), pt(1), pt(2)] })).toBe(true)   // 恰好全覆盖
+    expect(validate({ points: [pt(0), pt(1)] })).toBe(false)         // 少一点（模型静默漏吐）
+    expect(validate({ points: [] })).toBe(false)                     // 整条缺席
+    expect(validate({ points: [pt(0), pt(1), pt(1)] })).toBe(false)  // idx 重复（漏了 2、重了 1）
+    expect(validate({ points: [pt(0), pt(1), pt(2), pt(3)] })).toBe(false) // 多一点/越界
+    expect(validate({ points: [pt(0), pt(1), pt(3)] })).toBe(false)  // idx 越界（3 超出 0..2）
+  })
+
+  it('validate 守卫（洞2）：part1 expectedCount=2', async () => {
+    const getOpts = armMock([{ idx: 0, en: 'hi there friend', noMaterial: false }])
+    await generateAnkiAnswer({ ...baseInput, part: 1, focusPoints: baseInput.focusPoints.slice(0, 2) })
+    const { validate } = getOpts()!
+    const pt = (idx: number) => ({ idx, en: 'x', noMaterial: false })
+    expect(validate({ points: [pt(0), pt(1)] })).toBe(true)
+    expect(validate({ points: [pt(0)] })).toBe(false)               // 少一点
+    expect(validate({ points: [pt(0), pt(1), pt(2)] })).toBe(false) // 多一点
+  })
+})
+
+describe('cleanEn（导出·唯一真相源，part3 例句 pregen 复用同一函数）', () => {
+  it('破折号（em/en dash）替换成逗号并 trim；无破折号则仅 trim', () => {
+    expect(cleanEn('I go to a park — near my place.')).toBe('I go to a park, near my place.')
+    expect(cleanEn('before – after')).toBe('before, after')
+    expect(cleanEn('  plain text  ')).toBe('plain text')
+    expect(cleanEn('a — b – c')).toBe('a, b, c')
   })
 })
 

@@ -3,14 +3,15 @@
 -- Desc      : get_anki_cards RPC 增补返回 corpus_summary（语料一句话概括，见 0038）。
 --             Anki 题卡正面在题干下方展示这句概括，给用户一句「这题你打算讲哪段经历」的上下文。
 --
---   与 0034 的唯一差异：RETURNS TABLE 增 corpus_summary text；主行取 cor.summary，
---   part3 子行恒无语料 → null。其余排序 / scope / 越权过滤 / 成组逻辑与 0034 完全一致，
---   本迁移仅叠加一列，不改任何既有语义。
---
---   越权无虞：corpus 仍按 c.user_id = p_user_id 过滤后 join（继承 0034），概括随该用户自己的卡返回。
---   幂等：create or replace function，可安全重跑。
+--   ⚠️ 基线是 0036（保留其 is_answered 修正），不是 0034：本迁移在 0036 函数体上仅叠加
+--      corpus_summary 一列（RETURNS TABLE 增 corpus_summary text；主行取 cor.summary，part3 子行
+--      恒无语料 → null）。is_answered 两处判据【必须与 0036 逐字一致】——即「卡行存在 且
+--      (有绑语料 OR nullif(edited_answer,'') 非空)、不看 generated_answer」；曾误拿 0034 为基线
+--      把 generated_answer 加回、丢了 nullif，已订正。改动此函数时先对齐 0036 的 is_answered，勿回退。
+--   其余排序 / scope / 越权过滤 / 成组逻辑与 0036 一致。越权无虞：corpus 仍按 c.user_id = p_user_id
+--   过滤后 join，概括随该用户自己的卡返回。幂等：create or replace function，可安全重跑。
 -- Created   : 2026-07-24
--- Note      : 本迁移须在 Supabase SQL Editor 手动执行——仓库无 CLI，DDL 不走 REST 通道。
+-- Note      : 用 `npm run db:push` 应用（scripts/db-push.mjs 直连 PG、幂等、记 _schema_migrations）。
 -- -----------------------------------------------------------------------------
 
 create or replace function public.get_anki_cards(
@@ -65,10 +66,11 @@ as $$
       case m.match_level when 'chosen' then 0 when 'high' then 1
                          when 'mid' then 2 when 'low' then 3 else 4 end as a_match_rank,
       m.created_at                                                    as a_match_time,
+      -- 已回答判定（v0.3 分点式修正，保留 0036 语义）：卡行存在 且 (有绑语料 OR 用户编辑非空)。
+      -- 【不看 generated_answer】—— 分点式 JSON 全留空也非空串，且 generated 非空⟹corpus 非空（冗余）。
       (c.question_id is not null
         and (c.corpus_id is not null
-             or c.generated_answer is not null
-             or c.edited_answer is not null))                         as is_answered
+             or nullif(c.edited_answer, '') is not null))             as is_answered
     from public.questions q
     left join public.anki_cards c
       on c.question_id = q.id and c.user_id = p_user_id
@@ -102,8 +104,8 @@ as $$
       pr.a_match_rank, pr.a_match_time,
       pr.q_created        as parent_created,
       pr.q_id             as parent_anchor_qid,
-      -- part3 恒无语料/不后台生成（0030 不变式）→ 已回答仅看 edited_answer。
-      (c.question_id is not null and c.edited_answer is not null)     as is_answered
+      -- part3 恒无语料/不后台生成（0030 不变式）→ 已回答仅看 edited_answer（空串视同无内容），不变。
+      (c.question_id is not null and nullif(c.edited_answer, '') is not null) as is_answered
     from prim_f pr
     join public.questions p3
       on p3.parent_card_id = pr.q_id and p3.part = 3 and p3.season = p_season
