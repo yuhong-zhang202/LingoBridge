@@ -78,6 +78,9 @@
 - [ ] a11y（`prefers-reduced-motion`、手势外留按钮+键盘、44px 命中区、aria-label）。
 
 ## 🛡️ 审计 / 验证（上线前硬门）
+- ✅ **真库 schema 已应用（2026-07-25）**：0030–0039 全部经 `npm run db:push` 应用到**新加坡生产库**（LingoBridge_CN / project jzoxnxgbvshiwctwvrwd / ap-southeast-1 / 端口 5432 session pooler / ref+region 双核对）。连库重跑对象核对**七列全 true**（三张表 + corpus.summary + get_anki_cards 返 corpus_summary + is_answered 含 nullif〔0036 修复保留〕+ swap 清 edited_answer）。
+  - ⚠️ **0039 apply 时曾报 `cannot change return type`**（RETURNS TABLE 增列 = 改返回类型，create or replace 不允许）→ 已加 `drop function if exists ... (uuid,text,smallint,text)` 再建（无自定义 GRANT、非 security definer，默认 PUBLIC EXECUTE 重建后自动恢复）；补跑成功。
+  - [ ] **写路径验证仍待做**（schema 在库了、但换/删语料事务原子性/孤儿回收/drain 状态机未跑真数据）：无独立 staging → 用一次性测试用户 + 跑完清理，需产品方点头。
 - 🟡 **red-team 复审分点式 v0.3 = 有条件放行（2026-07-25）**：方向站得住（整段分档不稳属实、留空压编造方向对），无"刷分"；但"改善"建立在**无填过判定台账的招牌数字 + 非生产口径的阈值曲线**上，不能结"已验证到位"的案——与"金标后移、内测看真数据"一致。分诊（均已逐条核实、未直接采信）：
   - ✅ **必修·洞1 part3 例句破折号已修**：part3 pregen 复用同源 `cleanEn`（anki-answer.ts 导出、破折号→逗号），不抄第二份 regex。tsc/jest 过。⚠️ 仅代码路径+cleanEn 单测证明；真正确认破折号不入库需一次带 `--commit` 的 part3 pregen 实跑抽验（随换季导入触发）。
   - ✅ **洞2 长度/idx 守卫已加**：validate 折入 `coversAllIdx`（从 `input.focusPoints.length` 取期望点数），短/缺/重/越界 → 触发既有重问；重试耗尽抛错、**短数组不落库**（渲染侧 focusPoints 驱动本就不错位，此守卫是"宁可重生成也别误显空点态"的硬化）。

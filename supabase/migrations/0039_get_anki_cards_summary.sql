@@ -14,6 +14,11 @@
 -- Note      : 用 `npm run db:push` 应用（scripts/db-push.mjs 直连 PG、幂等、记 _schema_migrations）。
 -- -----------------------------------------------------------------------------
 
+-- 本迁移给 RETURNS TABLE 增列 corpus_summary = 改返回类型；Postgres 不允许 create or replace 改返回
+-- 类型，必须先 DROP 再建（0036 只改函数体、签名不变故可 replace，0039 不行）。函数无自定义 GRANT、
+-- 非 security definer，默认 PUBLIC EXECUTE，重建后自动恢复，无授权丢失。签名 = 0034/0036 的 (uuid,text,smallint,text)。
+drop function if exists public.get_anki_cards(uuid, text, smallint, text);
+
 create or replace function public.get_anki_cards(
   p_user_id uuid,
   p_season  text,
