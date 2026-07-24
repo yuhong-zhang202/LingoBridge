@@ -26,7 +26,7 @@
 ---
 
 ## 📋 金标线（AI 质量验证）
-- [ ] **part3 专项例句探针**：3–4 道不同追问类型（观点/原因/比较/推测），验作文腔 + 编假统计（part1/2 已验，part3 只跑过 2 条）。
+- ✅ **part3 专项探针（4 题型）过关 GO**：24 句零作文腔/假统计/中式/编造。**2 条 prompt 微调待并入 part3 例句 prompt**：① 比较/权衡类"理由"格须论证本方立场、让步移"延伸"格（P-compare 立场乡村却理由替城市说话、自相矛盾）；② 禁"第一人称具体亲历轶事"（`I used to spend two hours on subway` 写死人设不可移植）、留"第一人称观点/观察"（I believe/I've noticed），优先 hypothetical(imagine…)/泛化(someone who…)。〔考官自评：比较类那条松紧可由产品方定〕
 - [ ] **建正式金标**：分点式维度（忠料事实层/强度层 · 对点 · 口语 · 中式；part3 换 论据贴合/常识不离谱）+ **空点处置正确率**。规模约 210 条判定、~2–2.5 人日（比整段省，砍了档位判定）。
 - [ ] **双人盲判基线**：产品方本人 + 考官 agent（走"agent 初判 + 人审 + 优化 agent"那条路线）。⚠️ **整段盲判 round1 作废**（形态变了）；要针对分点式例句重建。
 
@@ -35,8 +35,8 @@
 - ✅ 砍 band（删 target-band.ts、`TIER_SPLIT`/`DEFAULT_TARGET_BAND` @deprecated、drain 去 band/tier）· 类型加 `example?` · prompt 同源守卫重写 · drain 回填存 `JSON.stringify`。
 - ✅ **后端读取契约**（0036）：`is_answered` 去 generated_answer 项（避"全留空"假阳 + 根除在途竞态假阳）；`backKind` 点数组语义、与 SQL 解耦。⚠️ **0036 真 PG 未跑**（上线前真库验证）。
 - ✅ **part3 例句静态化**：pregen 每点补 example（`PART3_EXAMPLE_SYSTEM` 同源探针 + 守卫）、不变式不动。⚠️ **未对真 DashScope 复验**（maxTokens512 下裸数组稳定性，沿用探针推断）。
-- [ ] **前端渲染**：FlashCard 把 `generated_answer`(JSON) 解析成点数组渲染 + 空点态"这点还没讲到"——**依赖 ux 卡片设计**。
-- [ ] **PATCH 编辑粒度**（逐点 vs 整体，待 ux 定）· **成本重估**（本轮探针 ~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
+- [ ] **前端渲染**（ux 方案已出，待产品方挑布局 → fix 实施）：推荐 **A 标签脊柱(part1/2) + B 台阶卡(part3) + desc 默认折叠 + 空点虚线钩子 + 逐点行内编辑**；desc 折叠(轻盈杠杆)需真机真语料验。⚠️ 现有 FlashCard 2 个 a11y 硬伤(无 `prefers-reduced-motion`、翻面不可键盘)题卡必须补。
+- [ ] **PATCH 编辑粒度**：ux 推荐**逐点行内编辑**（贴点数组模型/反一大坨/和补料钩子同构），待产品方确认 · **成本重估**（~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
 
 ### ⚠️ 本轮暴露的风险（待处理）
 - ✅ **extractJson 双发兜底（Anki 侧）**：`anki-json.ts` 平衡括号取首个 JSON、本地 `callAnkiLLMJson` 不碰共享 llm.ts；单测 8+3 全过。代价：与 llm.ts transport/retry 一份**受控重复**（记账）。
