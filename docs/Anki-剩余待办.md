@@ -36,7 +36,7 @@
 ---
 
 ## 📋 金标线（AI 质量验证）
-- ✅ **part3 专项探针（4 题型）过关 GO**：24 句零作文腔/假统计/中式/编造。**2 条 prompt 微调待并入 part3 例句 prompt**：① 比较/权衡类"理由"格须论证本方立场、让步移"延伸"格（P-compare 立场乡村却理由替城市说话、自相矛盾）；② 禁"第一人称具体亲历轶事"（`I used to spend two hours on subway` 写死人设不可移植）、留"第一人称观点/观察"（I believe/I've noticed），优先 hypothetical(imagine…)/泛化(someone who…)。〔考官自评：比较类那条松紧可由产品方定〕
+- ✅ **part3 专项探针（4 题型）GO + 2 条 prompt 微调已并入并探针验收**：微调（① 比较/权衡类"理由"撑本方立场、让步移"延伸"；② 禁第一人称具体亲历、留 I think/I've noticed 观点观察、举例用 imagine/someone who）已改进三处同源 prompt + 守卫测试；重跑探针 **2 问题都收、作文腔0/假统计0**。〔轻量守卫过；正式深判随人工金标后移优化阶段〕
 - 🅿️ **正式人工金标 + 双人盲判 → 暂缓、后移「后续更新优化阶段」**（产品方 2026-07-24）。理由：探针（整段2轮+例句+中间档+part3多题型）已充分验证；title/desc 免审、双防线管住编造、忠料实测守得住 → 当前阶段人工金标边际价值低、~2-2.5 人日不划算，内测先上看真实数据再决定是否建回归金标。
 - ✅ **轻量回归守卫（替代，近零成本）**：现有探针 `example-probe`/`threshold-probe`/`part3-probe` = 现成冒烟工具；改 prompt（尤其 part3 2 条微调）时**重跑探针 + 机器预筛**（忠料对语料/作文腔/假统计正则）抓明显退化，不用人工盲判。符合"绿灯≠改对、要能抓错"。
 - ⚠️ **red-team 复审分点式时**：回归守卫答复是"探针冒烟 + 双防线 + 机器预筛"、非人工金标——心里有数。
@@ -49,7 +49,7 @@
 - ✅ **前端卡背渲染代码完成**：`QuestionFlashCard`(A 脊柱 part1/2 + B 台阶 part3)、空点态钩子、逐点行内编辑(PATCH `{idx,en}` 走 edited_answer 稀疏覆盖)、a11y(reduced-motion/翻面键盘/44px/ul-li/inert)。tsc+27测试绿。
   - ⚠️ **待产品方真机验**（项目 UI bug 全来自真机）：desc 折叠松紧(`DESC_CLAMP_LINES` 常量)、A/B 排版、空点框、编辑写库往返(**PATCH read-modify-write 未真 PG 验**)、翻面/滑动手感、reduced-motion。
   - ⚠️ **待产品方确认**：① part2 正面 cue **整块显示**（现库题面是平铺文本，启发式拆 bullet 实测 126 条 part2 里 28% 错切/篡改题面，故降级不伪造 bullet；要真 bullet 需数据层给题面加结构化字段、另排）；② reduced-motion 现为"即时切"非 ux 说的"淡入"，真机开减少动效看可接受否。
-  - **本批 range 外（记账）**：FlashCard 词组卡同样 2 个 a11y 硬伤(非本批、单排) · `swap_anki_corpus` 清 generated 但不清 edited_answer（旧逐点覆盖会盖新语料生成，交 red-team 评估）· 空点态暂不支持 inline 手填（PATCH 已支持任意 idx、仅 UI 未开口，后续 tweak）。
+  - **本批 range 外（记账）**：FlashCard 词组卡同样 2 个 a11y 硬伤(非本批、单排) · ✅ `swap_anki_corpus` 换语料一并清 edited_answer（0037，⚠️ 动 §11 红线、待上线前 red-team+真库验证）· 空点态暂不支持 inline 手填（PATCH 已支持任意 idx、仅 UI 未开口，后续 tweak）。
   - 素材库入口(平级双卡)/筛选/分组 **下批**。
 - ✅ **编辑粒度 = 逐点行内**（拍板）· [ ] **成本重估**（~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
 
