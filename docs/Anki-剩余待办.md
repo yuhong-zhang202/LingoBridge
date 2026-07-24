@@ -67,6 +67,7 @@
 ## 🌐 全站遗留（Anki 收尾后补，产品方已定）
 - [ ] **匿名绕内测白名单**（全站安全、非 Anki 独有；Anki 端点已代码层拒匿名）。
 - [ ] **16 个既有失败测试**（jose ESM，非 Anki，但 base 已红，内测前宜修）。
+- [ ] **`ielts-examiner.md` 并入 main**：现只在 anki 分支 worktree，会话从别的分支启动就加载不了 → 只能靠"general-purpose 读 .md 载入考官角色"的 fallback（**每次靠任务里那句"读 .md"，漏一次就退化成真通用 agent**）。它是通用工具（判英文口语 band，非 Anki 专用）→ 小 PR 并入 main，之后所有分支/会话可按类型 `@ielts-examiner` 直接用，去掉这层隐患。[产品方 2026-07-24：等 Anki 忙完一起并]
 
 ---
 
