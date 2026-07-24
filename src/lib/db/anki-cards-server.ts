@@ -22,6 +22,7 @@
 import 'server-only'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { nextBox, nextDue } from '@/lib/srs'
+import { parseEditOverrides, applyEditOverride, serializeEditOverrides } from '@/lib/anki/answer-points'
 
 /** 存对子冲突判定所需的当前绑定态。 */
 export interface CardCorpusBinding {
@@ -143,21 +144,38 @@ export async function upsertReview(userId: string, questionId: string, remembere
 }
 
 /**
- * 存编辑（方案 §1）：把用户手填/改写的背面存进 edited_answer（优先级高于 generated_answer，展示层决定）。
- * part3 卡也允许（part3 无生成答案、用户自填 edited_answer）—— edited_answer 不受 0030 part3 触发器约束。
- * 卡行可能尚未落库（如 part3 从未复习过）→ 同样走 upsert on conflict 懒物化。
- * @param  userId        当前用户 id
- * @param  questionId    目标题目 id
- * @param  editedAnswer  用户编辑后的背面文本
- * @throws               Error —— upsert 出错
- * @sideEffect           service_role upsert anki_cards（绕 RLS）
+ * 逐点存编辑（方案 §1 · 分点式 v0.3）：把用户对第 idx 点行内改写的英文例句写进 edited_answer 的「稀疏覆盖数组」
+ * [{idx,en}]（answer-points 定义、渲染层同源合并；不写回 generated_answer，保 AI 生成为纯真源、可逐点回退）。
+ *   - en 去空白后非空 → 置/改该点覆盖；空串 → 清该点覆盖（回退到生成/示范/空点态）；
+ *   - 全部覆盖被清空 → edited_answer 存空串（令 list.ts backKind 回落 generated/analysis，不再判 'edited'）。
+ * part1/2/3 统一走本路径：part3 无 generated_answer，覆盖直接叠在静态示范例句上；edited_answer 不受 0030
+ * part3 触发器约束。卡行可能尚未落库（懒物化）→ 走 read-modify-write + upsert on conflict。
+ *
+ * 【读后写非原子】先读当前 edited_answer 再合并覆盖：单用户改自己的卡、并发极低，可接受（与 upsertReview
+ * 同口径记账）；极端并发下后写覆盖前写，属可容忍的编辑丢失，非数据损坏。
+ * @param  userId      当前用户 id
+ * @param  questionId  目标题目 id
+ * @param  idx         被编辑的点序号（对齐 focusPoints 顺序，≥0）
+ * @param  en          该点覆盖英文（空串 = 清除该点覆盖）
+ * @throws             Error —— 读或 upsert 出错
+ * @sideEffect         service_role 读+upsert anki_cards（绕 RLS）
  */
-export async function upsertEditedAnswer(userId: string, questionId: string, editedAnswer: string): Promise<void> {
+export async function patchEditedPoint(userId: string, questionId: string, idx: number, en: string): Promise<void> {
+  const supabase = getSupabaseServer()
+  const { data: existing, error: readErr } = await supabase
+    .from('anki_cards')
+    .select('edited_answer')
+    .eq('user_id', userId)
+    .eq('question_id', questionId)
+    .maybeSingle()
+  if (readErr) throw new Error(`读取卡背编辑失败：${readErr.message}`)
+  const current = (existing as { edited_answer: string | null } | null)?.edited_answer ?? null
+  const merged = applyEditOverride(parseEditOverrides(current), idx, en)
   const now = new Date().toISOString()
-  const { error } = await getSupabaseServer()
+  const { error } = await supabase
     .from('anki_cards')
     .upsert(
-      { user_id: userId, question_id: questionId, edited_answer: editedAnswer, updated_at: now },
+      { user_id: userId, question_id: questionId, edited_answer: serializeEditOverrides(merged), updated_at: now },
       { onConflict: 'user_id,question_id' },
     )
   if (error) throw new Error(`存编辑失败：${error.message}`)

@@ -5,7 +5,8 @@
  *             已排序，见 0034 get_anki_cards）。无副作用、仅鉴权。
  *           - POST  { questionId, corpusId }  存对子/绑语料 → upsert 卡行(绑 corpus_id、generated_answer 先 null)
  *             + 入队生成；已绑非空语料 → 409（一题一语料，重复存对子）。
- *           - PATCH { questionId, editedAnswer }  存编辑 → 写 edited_answer（part3 亦可，用户自填）。
+ *           - PATCH { questionId, idx, en }  逐点存编辑 → 把第 idx 点的英文例句改写并入 edited_answer 稀疏
+ *             覆盖数组（分点式 v0.3；en 空串 = 清该点覆盖回退生成/示范；part3 亦可，用户自填）。
  *
  *           为什么 POST 而非 GET 存对子：有副作用（扣额度 + 入队付费 AI 生成），与 phrases/matching 同口径。
  *           鉴权：requireUser（注册专属：Anki 卡是跨天 SRS 资产、档位依赖用户目标分，匿名不适用）；同意闸 + 计次在入队【之前】
@@ -19,7 +20,7 @@ import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
-import { getCardCorpusBinding, upsertEditedAnswer } from '@/lib/db/anki-cards-server'
+import { getCardCorpusBinding, patchEditedPoint } from '@/lib/db/anki-cards-server'
 import { listAnkiCards, type AnkiListScope } from '@/lib/anki/list'
 import { requireRegistered, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
@@ -105,18 +106,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 }
 
-/** PATCH：存编辑（写 edited_answer；part3 亦可）。无 AI 副作用 → 仅鉴权，不走同意/计次。 */
+/** PATCH：逐点存编辑（改 edited_answer 稀疏覆盖；part3 亦可）。无 AI 副作用 → 仅鉴权，不走同意/计次。 */
 export async function PATCH(req: Request): Promise<NextResponse> {
   try {
     const { userId } = await requireRegistered(req)
-    const body = (await req.json().catch(() => ({}))) as { questionId?: unknown; editedAnswer?: unknown }
+    const body = (await req.json().catch(() => ({}))) as { questionId?: unknown; idx?: unknown; en?: unknown }
     const questionId = str(body.questionId)
-    // editedAnswer 允许为空串（清空用户编辑，回退到 generated_answer 展示）；仅要求是字符串。
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
-    if (typeof body.editedAnswer !== 'string') {
-      return NextResponse.json({ error: '缺少 editedAnswer' }, { status: 400 })
+    // idx 须为非负整数（对齐 focusPoints 顺序）；越界的 idx 交由渲染层忽略（存了也不会被合并渲染）。
+    if (typeof body.idx !== 'number' || !Number.isInteger(body.idx) || body.idx < 0) {
+      return NextResponse.json({ error: 'idx 必须为非负整数' }, { status: 400 })
     }
-    await upsertEditedAnswer(userId, questionId, body.editedAnswer)
+    // en 允许为空串（清该点覆盖、回退到生成/示范/空点态）；仅要求是字符串。
+    if (typeof body.en !== 'string') {
+      return NextResponse.json({ error: '缺少 en' }, { status: 400 })
+    }
+    await patchEditedPoint(userId, questionId, body.idx, body.en)
     return NextResponse.json({ ok: true })
   } catch (e) {
     const authRes = authErrorResponse(e)
