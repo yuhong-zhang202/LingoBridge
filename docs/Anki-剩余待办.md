@@ -36,7 +36,11 @@
 - ✅ 砍 band（删 target-band.ts、`TIER_SPLIT`/`DEFAULT_TARGET_BAND` @deprecated、drain 去 band/tier）· 类型加 `example?` · prompt 同源守卫重写 · drain 回填存 `JSON.stringify`。
 - ✅ **后端读取契约**（0036）：`is_answered` 去 generated_answer 项（避"全留空"假阳 + 根除在途竞态假阳）；`backKind` 点数组语义、与 SQL 解耦。⚠️ **0036 真 PG 未跑**（上线前真库验证）。
 - ✅ **part3 例句静态化**：pregen 每点补 example（`PART3_EXAMPLE_SYSTEM` 同源探针 + 守卫）、不变式不动。⚠️ **未对真 DashScope 复验**（maxTokens512 下裸数组稳定性，沿用探针推断）。
-- 🔵 **前端渲染实施中**（产品方 2026-07-24 拍板 **A 脊柱(part1/2) + B 台阶(part3)、逐点行内编辑**）：FlashCard 点数组渲染 + 空点虚线钩子 + 逐点行内编辑(PATCH `{idx,en}`) + 补 2 a11y 硬伤(reduced-motion/翻面键盘)。**desc 折叠收多狠留真机调**。素材库入口(平级双卡)/筛选/分组下批。
+- ✅ **前端卡背渲染代码完成**：`QuestionFlashCard`(A 脊柱 part1/2 + B 台阶 part3)、空点态钩子、逐点行内编辑(PATCH `{idx,en}` 走 edited_answer 稀疏覆盖)、a11y(reduced-motion/翻面键盘/44px/ul-li/inert)。tsc+27测试绿。
+  - ⚠️ **待产品方真机验**（项目 UI bug 全来自真机）：desc 折叠松紧(`DESC_CLAMP_LINES` 常量)、A/B 排版、空点框、编辑写库往返(**PATCH read-modify-write 未真 PG 验**)、翻面/滑动手感、reduced-motion。
+  - ⚠️ **待产品方确认**：① part2 正面 cue **整块显示**（现库题面是平铺文本，启发式拆 bullet 实测 126 条 part2 里 28% 错切/篡改题面，故降级不伪造 bullet；要真 bullet 需数据层给题面加结构化字段、另排）；② reduced-motion 现为"即时切"非 ux 说的"淡入"，真机开减少动效看可接受否。
+  - **本批 range 外（记账）**：FlashCard 词组卡同样 2 个 a11y 硬伤(非本批、单排) · `swap_anki_corpus` 清 generated 但不清 edited_answer（旧逐点覆盖会盖新语料生成，交 red-team 评估）· 空点态暂不支持 inline 手填（PATCH 已支持任意 idx、仅 UI 未开口，后续 tweak）。
+  - 素材库入口(平级双卡)/筛选/分组 **下批**。
 - ✅ **编辑粒度 = 逐点行内**（拍板）· [ ] **成本重估**（~19k/18任务）· 例句**中式词打磨**（`empty-headed walk`）。
 
 ### ⚠️ 本轮暴露的风险（待处理）
