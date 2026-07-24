@@ -12,6 +12,7 @@ import { Search, Trash2 } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import Card from '@/components/Card'
+import Tag from '@/components/Tag'
 import Skeleton from '@/components/Skeleton'
 import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
@@ -25,10 +26,13 @@ import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
-import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
+import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import type { LibraryViewProps } from './types'
 
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
+
+// 题卡叠卡柔光投影：与移动端（LibraryMobile）SOFT_SM 同值。桌面叠卡静态、不迁移动端浮动动效，故只取此一个常量、不散写内联。
+const DECK_SHADOW = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 const TAB_IDS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
 /** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
@@ -43,7 +47,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh }: LibraryViewProps) {
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -52,6 +56,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
   const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
 
   const totalCount = stories.length + cards.length + wordsCount + pronCount
+  // 题卡复习入口：有当季题卡才导向刷题；空态仍显示大卡、改导题库（不给死胡同），与移动端 Hero 同范式
+  const ankiHasCards = ankiSeasonCount > 0
   // 匿名判定（与 settings/profile 同范式）：仅用于决定是否展示登录软引导卡。
   // 读取失败一律按「非匿名」降级 —— 宁可少打扰一次，也不给已登录用户误显引导。
   const [isAnon, setIsAnon] = useState(false)
@@ -125,15 +131,77 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {/* 登录软引导：仅匿名且已攒下东西时出现。totalCount === 0 不放——
             没有素材可保存时谈「永久保存」只是噪音。titleAs 保持默认 'p'：本页已有 h1（ManageHeader）。 */}
         {isAnon && totalCount > 0 && (
-          <LoginPrompt
-            className="mb-4"
-            title={`你已经攒下 ${totalCount} 条素材`}
-            subtitle="现在只存在这台设备上。注册后永久保存，换手机也能接着用。"
-          />
+          <LoginPrompt variant="slim" className="mb-4" />
         )}
 
+        {/* 题卡复习入口（hub 区第一张卡）—— 桌面照移动端「题卡 Hero」范式放大：全宽横向三段式（叠卡 / 文案预览 / CTA）。
+            叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。有卡→/anki/review，空态→/question-bank。 */}
+        <Link
+          href={ankiHasCards ? '/anki/review' : '/question-bank'}
+          aria-label={ankiHasCards
+            ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
+            : '题卡复习，还没有题卡，去题库把想练的题存起来'}
+          className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
+        >
+          <Card variant="gradient" className="px-[26px] py-[22px] flex items-center gap-7 active:scale-[0.99] transition-transform mb-4">
+            {/* 左段·叠卡视觉（两张背卡错位旋转 + 一张正面卡显 Part N + 分隔线 + 题面 3 行截断） */}
+            <div className="relative w-[96px] h-[120px] flex-shrink-0" aria-hidden="true">
+              <div
+                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
+                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(-3px,3px) rotate(-9deg)' }}
+              />
+              <div
+                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
+                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(4px,1px) rotate(5deg)' }}
+              />
+              <div
+                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
+                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'rotate(-2deg)' }}
+              >
+                <span className="text-[10px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                <div className="w-[26px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
+                <span
+                  className="text-[10px] leading-tight text-v2-text-secondary text-center break-words"
+                  style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                >
+                  {ankiSample?.text ?? '把想练的题存成题卡'}
+                </span>
+              </div>
+            </div>
+
+            {/* 中段·文案 + 题面预览 */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题卡复习</h2>
+                <Tag label="当季·新" variant="green" />
+              </div>
+              {ankiHasCards ? (
+                <p className="text-[13px] text-v2-text-secondary mt-1.5">
+                  当季 {ankiSeasonCount} 道 · 待复习 <span className="text-brand-primary-dark font-bold text-[16px]">{ankiDueCount}</span> 张
+                </p>
+              ) : (
+                <p className="text-[13px] text-v2-text-secondary mt-1.5">还没有题卡 · 去题库把想练的题存起来</p>
+              )}
+
+              {/* 题面预览块（仅有题卡且有样本时显示） */}
+              {ankiHasCards && ankiSample && (
+                <div className="bg-bg-page rounded-[14px] px-[14px] py-[11px] mt-3">
+                  <p className="text-[12px] text-v2-text-muted mb-[3px]">最近想练的一题</p>
+                  <p className="text-[13px] text-v2-text-primary font-medium truncate">{ankiSample.text}</p>
+                </div>
+              )}
+            </div>
+
+            {/* 右段·CTA */}
+            <span className="inline-flex items-center gap-[3px] rounded-full px-6 py-3 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
+              <span className="text-v2-text-secondary">{ankiHasCards ? '开始刷题卡' : '去题库'}</span>
+              <span className="text-brand-primary-dark">›</span>
+            </span>
+          </Card>
+        </Link>
+
         {/* 今日复习 hero —— 复用 /review 入口 */}
-        <Link href="/review" className="block">
+        <Link href="/review" className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2">
           <Card variant="gradient" className="px-[22px] py-[18px] flex items-center gap-5 active:scale-[0.99] transition-transform">
             <div className="flex-1 min-w-0">
               <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>

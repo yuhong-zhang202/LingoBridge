@@ -12,8 +12,10 @@ import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
 import { getDueCount } from '@/lib/db/phrase-cards'
+import { fetchAnkiCards } from '@/lib/anki/cards-client'
 import { formatRelativeTime } from '@/lib/utils'
 import type { MyStory, CollectedCard, DimensionLabel } from '@/lib/types'
+import type { AnkiHeroSample } from './types'
 import LibraryMobile from './LibraryMobile'
 import LibraryDesktop from './LibraryDesktop'
 
@@ -33,6 +35,14 @@ export default function LibraryPage() {
   const [dueCount, setDueCount]     = useState(0)
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
+
+  // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2
+  // 两份列表后本地派生：道数 = part1+part2 主题（part3 是子题、不单列入口，排除）；待复习张数 = due_at 已到期。
+  // ⚠️ 语义待产品方确认：「当季 N 道」是否含 part3、「待复习 M 张」是否= due_at<=now（默认卡 due_at 回 now
+  //   即视为待复习）；且这是两次全量列表拉取（无轻量计数接口），后续若需要可加计数 RPC。见交付说明。
+  const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
+  const [ankiDueCount, setAnkiDueCount]       = useState(0)
+  const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
 
   // 三类收藏：SWR 单源（各自首拉顺带触发一次幂等迁移）
   const { phrases, isLoading: phrasesLoading } = useSavedPhrases()
@@ -89,6 +99,25 @@ export default function LibraryPage() {
       .then(setDueCount)
       .catch(e => console.warn('[LibraryPage] 获取待复习数失败', e))
 
+    // 题卡 Hero 数据：拉当季 part1 + part2 列表 → 本地派生道数/待复习张数/一句题面样本。
+    // 失败静默降级为空态（Hero 仍显示，导题库），不阻塞素材库其余模块。
+    void (async () => {
+      try {
+        const [p1, p2] = await Promise.all([
+          fetchAnkiCards(1, 'all'),
+          fetchAnkiCards(2, 'all'),
+        ])
+        const mains = [...p1, ...p2].filter(c => c.part !== 3) // part3 是子题、不单列入口
+        const now = Date.now()
+        setAnkiSeasonCount(mains.length)
+        setAnkiDueCount(mains.filter(c => new Date(c.dueAt).getTime() <= now).length)
+        const first = mains[0]
+        setAnkiSample(first ? { part: first.part, text: first.questionText } : null)
+      } catch (e) {
+        console.warn('[LibraryPage] 获取题卡概况失败，Hero 走空态', e)
+      }
+    })()
+
     // 我的语料：Supabase 异步读
     fetchStories()
       .then(setStories)
@@ -112,7 +141,7 @@ export default function LibraryPage() {
   }, [fetchStories])
 
   // 收藏卡与语料任一未就绪都算加载中，避免收藏 tab 先闪空态再填充
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh }
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample }
 
   return (
     <>

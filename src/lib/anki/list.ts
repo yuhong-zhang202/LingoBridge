@@ -47,6 +47,8 @@ export interface AnkiCard {
   cueCardTitleZh: string | null
   season: string
   corpusId: string | null
+  /** 语料一句话概括（corpus.summary）；无语料 / 旧语料 / part3 为 null，正面据此降级不渲染。 */
+  corpusSummary: string | null
   generatedAnswer: string | null
   editedAnswer: string | null
   analysis: QuestionAnalysis | null
@@ -73,6 +75,7 @@ interface RawCardRow {
   cue_card_title_zh: string | null
   season: string
   corpus_id: string | null
+  corpus_summary: string | null
   generated_answer: string | null
   edited_answer: string | null
   analysis: QuestionAnalysis | null
@@ -128,6 +131,7 @@ function mapRow(row: RawCardRow): AnkiCard {
     cueCardTitleZh: row.cue_card_title_zh,
     season: row.season,
     corpusId: row.corpus_id,
+    corpusSummary: row.corpus_summary,
     generatedAnswer: row.generated_answer,
     editedAnswer: row.edited_answer,
     analysis: row.analysis,

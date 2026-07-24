@@ -23,12 +23,14 @@ import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import type { RestructureViewProps } from './types'
 
-/** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText } */
-interface StructuredHandoff { rawText: string; cleanedText: string }
+/** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText, summary? }。summary 为可选（旧 handoff 无此键）。 */
+interface StructuredHandoff { rawText: string; cleanedText: string; summary?: string }
 function isStructuredHandoff(v: unknown): v is StructuredHandoff {
-  return typeof v === 'object' && v !== null
-    && typeof (v as Record<string, unknown>).rawText === 'string'
-    && typeof (v as Record<string, unknown>).cleanedText === 'string'
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as Record<string, unknown>
+  return typeof o.rawText === 'string'
+    && typeof o.cleanedText === 'string'
+    && (o.summary === undefined || typeof o.summary === 'string')
 }
 
 function RestructureContent() {
@@ -42,16 +44,16 @@ function RestructureContent() {
   // 首程 handoff（仅无 corpusId 时读取；返回态置 null 不消费 sessionStorage）：
   // 新版结构化 handoff 携 { rawText, cleanedText }：直接进已整理态、跳过首次整理调用；
   // 旧版纯字符串 handoff（网络/非 402 错误兜底）仍原样读出，走自行整理。都无则回退 rawText / MOCK。
-  const [handoff] = useState<{ rawStory: string; cleanedText: string | null } | null>(() => {
+  const [handoff] = useState<{ rawStory: string; cleanedText: string | null; summary: string | null } | null>(() => {
     if (corpusId) return null   // 返回态：不读 handoff，等下方 effect 从 DB 水合
     const h = params.get('h')
     if (h) {
       const j = takeHandoffJson(h, isStructuredHandoff)
-      if (j) return { rawStory: j.rawText, cleanedText: j.cleanedText }
+      if (j) return { rawStory: j.rawText, cleanedText: j.cleanedText, summary: j.summary ?? null }
       const s = takeHandoff(h)   // 未通过校验时未消费，此处原样读出旧版纯文本
-      if (s !== null) return { rawStory: s, cleanedText: null }
+      if (s !== null) return { rawStory: s, cleanedText: null, summary: null }
     }
-    return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null }
+    return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null, summary: null }
   })
   // rawStory 现为 state：返回态由 getCorpusById 异步水合；首程同步取自 handoff。
   const [rawStory,   setRawStory]   = useState(handoff?.rawStory ?? '')
@@ -60,6 +62,9 @@ function RestructureContent() {
   const [aiText,     setAiText]     = useState(handoff?.cleanedText ?? '')
   // AI 产出的原始整理文本基准；aiText 与它不一致 = 用户编辑过（未保存）
   const [aiBaseline, setAiBaseline] = useState(handoff?.cleanedText ?? '')
+  // 一句话概括（整理时同源产出）：随整理结果一并从 handoff/API 带入，保存时写进 corpus.summary。
+  // 用户不可编辑概括、编辑正文也不重算它（用户改的是正文措辞，核心「讲的啥」不变）。null = 本轮未产出概括（旧兜底路径），保存时不写 summary 列。
+  const [summary,    setSummary]    = useState<string | null>(handoff?.summary ?? null)
   const [isEditing, setIsEditing] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [usable,    setUsable]    = useState<boolean | null>(handoff?.cleanedText != null ? true : null)
@@ -95,11 +100,12 @@ function RestructureContent() {
       // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不卡在「整理失败」。
       if (res.status === 403) { if (!signal?.aborted) router.push('/'); return }
       if (!res.ok) throw new Error('整理失败')
-      const data = (await res.json()) as { cleanedText: string; usable: boolean }
+      const data = (await res.json()) as { cleanedText: string; usable: boolean; summary?: string }
       if (signal?.aborted) return
       setAiText(data.cleanedText)
       setAiBaseline(data.cleanedText)
       setUsable(data.usable ?? true)
+      setSummary(typeof data.summary === 'string' ? data.summary : null)
     } catch (e) {
       if (signal?.aborted) return          // 中断不算错误，忽略
       setError(e instanceof Error ? e.message : '整理失败，请重试')
@@ -163,7 +169,8 @@ function RestructureContent() {
         const { corpus } = (await res.json()) as { corpus: { id: string } }
         storyId = corpus.id
       }
-      await updateCorpusCleaned(storyId, aiText)
+      // summary 非空才随本次保存写入；null（旧兜底路径/返回态未重算）→ 不传，不覆盖 DB 已有概括。
+      await updateCorpusCleaned(storyId, aiText, summary ?? undefined)
       // navigate（非 router.push）：保存完成到目标页（分析/匹配均为 AI 环节、非瞬时）跳转期间亮顶部条，
       // 与按钮「保存中…」spinner 接力，全程有反馈。
       if (qid) {
@@ -177,7 +184,7 @@ function RestructureContent() {
       setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
       setIsSaving(false)
     }
-  }, [rawStory, aiText, qid, corpusId, router, navigate])
+  }, [rawStory, aiText, summary, qid, corpusId, router, navigate])
 
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline

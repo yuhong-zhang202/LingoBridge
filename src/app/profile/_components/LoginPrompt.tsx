@@ -7,6 +7,7 @@
 'use client'
 import { type JSX } from 'react'
 import { useRouter } from 'next/navigation'
+import { CloudOff } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ interface LoginPromptProps {
   title?: string
   subtitle?: string
   titleAs?: 'p' | 'h1'
+  variant?: 'card' | 'slim'
 }
 
 /**
@@ -32,6 +34,9 @@ interface LoginPromptProps {
  *                   此时页面自身的 h1（ManageHeader）不会被渲染，不传就整页零 heading，读屏用户
  *                   的标题跳转会落空。在 /profile 里本卡只是页面的一个区块、页面另有 h1，必须保持
  *                   'p'，否则出现两个 h1。字号样式与标签无关，两种取值视觉逐像素一致。
+ * @param variant    'card'（默认）= 现有居中大卡，用于 /profile 与试用墙；'slim' = 横向细长条，
+ *                   用于素材库软引导（体量压缩到一行）。slim 忽略 title/subtitle/titleAs，
+ *                   用固定短文案，不服务试用墙整页场景故无需 h1 逻辑。
  * @sideEffect       点击按钮跳转 /login
  */
 export default function LoginPrompt({
@@ -39,9 +44,28 @@ export default function LoginPrompt({
   title = '注册后保存你的故事与练习进度',
   subtitle = '注册后自动保存，一条都不会丢',
   titleAs = 'p',
+  variant = 'card',
 }: LoginPromptProps): JSX.Element {
   const router = useRouter()
   const TitleTag = titleAs
+
+  // slim 变体：素材库软引导，压成一行朴素文字（无卡片/无描边/无底色），只是一条提示信息。
+  // 文案固定为一句短语（忽略传入的 title/subtitle 长文案，保证一行不溢出）。
+  // 「注册」措辞纪律同下方 card 分支注释（承诺只在注册＝升级匿名账号路径成立）。
+  if (variant === 'slim') {
+    return (
+      <p className={cn('flex items-center gap-2 text-[13px] text-v2-text-muted', className)}>
+        <CloudOff size={15} className="flex-shrink-0" aria-hidden />
+        <span className="flex-1 min-w-0">只存在这台设备上，注册后永久保存不丢失</span>
+        <button
+          onClick={() => router.push('/login')}
+          className="flex-shrink-0 font-medium text-brand-primary-dark rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
+        >
+          注册 ›
+        </button>
+      </p>
+    )
+  }
 
   return (
     <div

@@ -81,13 +81,13 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
           return
         }
         if (res.ok) {
-          const data = (await res.json()) as { cleanedText: string; usable: boolean }
+          const data = (await res.json()) as { cleanedText: string; usable: boolean; summary?: string }
           if (!data.usable) {
             setToastMsg(GARBAGE_TOAST_MSG)
             return
           }
-          // usable：把整理结果一并带走，restructure 页免二次整理调用
-          router.push(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText })}${qidParam}`)
+          // usable：把整理结果（含一句话概括 summary）一并带走，restructure 页免二次整理调用、保存时写进 corpus.summary
+          router.push(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText, summary: data.summary ?? '' })}${qidParam}`)
           return
         }
         // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理

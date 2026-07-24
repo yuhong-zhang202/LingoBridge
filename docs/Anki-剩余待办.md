@@ -65,6 +65,12 @@
 - ⚠️ **待产品方真机验**：TOO_SHORT toast 可读性（~30字 vs 3.5s 自动消失、两行排版）——必要时缩文案/调 duration。
 - 🟡 观察项（非阻塞）：口水话 rawText 过门槛但 cleanedText 薄 → 上线后看要不要在 cleanedText 落库补判一次 · 服务端"上限先于配额"顺序未改（现状省钱目的已达成，若要严格排序需产品方点头）。
 
+## 📝 语料一句话概括线（2026-07-24 实施，全站受益）
+- ✅ **链路完成**：整理语料时 AI 顺手多产一句 `summary`（≤20字，"这条语料讲的啥"）→ 存 `corpus.summary`（0038 新列）→ `get_anki_cards` 返 `corpus_summary`（0039）→ `AnkiCard.corpusSummary` → 题卡正面题干+"想想你会怎么答？"下方展示（次级样式 `text-v2-text-muted`，空/旧语料整行不渲染）。不碰 restructure 额度/门槛/usable，只加一个输出字段。**tsc + 本批测试绿；真实语料 6 条探针：概括全部 ≤15字、贴合核心、usable=false 正确返回空串**。
+- ⚠️ **两迁移真库未跑**（本地无库）：`0038_corpus_summary`（ADD COLUMN）+ `0039_get_anki_cards_summary`（RPC 增列）——**上线前须在 Supabase SQL Editor 手动执行**（与 0036/0037 同批真库验证时一并跑）。
+- [ ] **旧语料 summary 回填脚本**（本批不做，上线前批量补）：给 0038 之前建的、summary 为空的 corpus 逐条跑一次 restructure 的概括产出并回填（仅 `usable`/有 cleaned_text 的行）。回填前前端已按空降级（整行不渲染），不阻塞上线，但补齐后旧卡正面才有概括。可复用 `scripts/anki-probe/` 探针范式 + service_role 批量 update。
+- ⚠️ **待产品方真机验**：正面概括那行的样式松紧 / "你的语料 · xxx" 文案前缀是否保留 / 与题干的视觉主次（不能抢题干主角）。
+
 ## 🎨 UI / 前端线（ux-reviewer 出方案 → 实施）
 - [ ] 分点式卡片呈现设计：点数组渲染、**空点态"这点你的语料还没讲到"**（兼引导补料钩子）、翻面、编辑态。
 - [ ] FlashCard 卡背点数组渲染（part1/2/3 一套）。

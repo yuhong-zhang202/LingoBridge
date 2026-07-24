@@ -11,6 +11,7 @@ import { Search, X, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
+import Tag from '@/components/Tag'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
@@ -36,7 +37,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory }: LibraryViewProps) {
+export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, ankiSeasonCount, ankiDueCount, ankiSample }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -57,6 +58,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   const matchedTotal = stories.reduce((sum, s) => sum + (s.matchedCount ?? 0), 0)
   const latestCard = cards[0]
+  // 题卡 Hero：有当季题卡才导向刷题；空态仍显示 Hero，改导题库（不给死胡同）
+  const ankiHasCards = ankiSeasonCount > 0
 
   return (
     <div
@@ -164,14 +167,101 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {/* 1.5) 登录软引导：仅匿名且已攒下东西时出现。totalCount === 0 不放——
                 没有素材可保存时谈「永久保存」只是噪音。titleAs 保持默认 'p'：本页已有 h1（素材积累）。 */}
             {isAnon && totalCount > 0 && (
-              <LoginPrompt
-                className="animate-fade-up mb-4"
-                title={`你已经攒下 ${totalCount} 条素材`}
-                subtitle="现在只存在这台设备上。注册后永久保存，换手机也能接着用。"
-              />
+              <LoginPrompt variant="slim" className="animate-fade-up mb-4" />
             )}
 
-            {/* 2) 复习闪卡 Hero */}
+            {/* 2) 题卡 Hero（题卡首位·重点）—— 复用词组闪卡 Hero 的手写范式与常量
+                （GRADIENT_BORDER_STYLE / SOFT / SOFT_SM / lib-deck-float / lib-hero-pulse），整体放大一档。
+                reduced-motion 由 globals.css 全局关停（同词组 Hero，不逐元素处理）。
+                TODO(桌面)：移动优先，桌面 hub（LibraryDesktop）暂未补题卡入口，待产品方看过位置后再做。 */}
+            <Link
+              href={ankiHasCards ? '/anki/review' : '/question-bank'}
+              aria-label={ankiHasCards
+                ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
+                : '题卡复习，还没有题卡，去题库把想练的题存起来'}
+              className="block animate-fade-up"
+              style={{ animationDelay: '0.06s' }}
+            >
+              <div
+                className="rounded-[18px] p-[20px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
+                style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 16 }}
+              >
+                {/* 右上暖光（轻柔脉动，同词组 Hero） */}
+                <div
+                  className="absolute w-[130px] h-[130px] rounded-full blur-[24px] pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(248,168,118,0.18), transparent 70%)',
+                    top: -30, right: -30,
+                    animation: 'lib-hero-pulse 3s ease-in-out infinite',
+                  }}
+                  aria-hidden="true"
+                />
+
+                {/* 题卡叠卡（放大 84×104，上下浮动）；正面显 Part N + 题面首行 */}
+                <div
+                  className="relative w-[84px] h-[104px] flex-shrink-0"
+                  style={{ animation: 'lib-deck-float 4s ease-in-out infinite' }}
+                  aria-hidden="true"
+                >
+                  <div
+                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
+                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(-3px,3px) rotate(-9deg)' }}
+                  />
+                  <div
+                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
+                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(4px,1px) rotate(5deg)' }}
+                  />
+                  <div
+                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
+                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'rotate(-2deg)' }}
+                  >
+                    <span className="text-[9px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                    <div className="w-[24px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
+                    <span
+                      className="text-[8.5px] leading-tight text-v2-text-secondary text-center break-words"
+                      style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                    >
+                      {ankiSample?.text ?? '把想练的题存成题卡'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 右侧文字 */}
+                <div className="flex-1 min-w-0 relative z-[1]">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题卡复习</h2>
+                    <Tag label="当季·新" variant="green" />
+                  </div>
+                  {ankiHasCards ? (
+                    <p className="text-[13px] text-v2-text-secondary mt-[5px]">
+                      当季 {ankiSeasonCount} 道 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张
+                    </p>
+                  ) : (
+                    <p className="text-[13px] text-v2-text-secondary mt-[5px]">
+                      还没有题卡 · 去题库把想练的题存起来
+                    </p>
+                  )}
+
+                  {/* 题面预览块（复用收藏卡微预览范式）——有题卡且有样本才显示 */}
+                  {ankiHasCards && ankiSample && (
+                    <div className="bg-bg-page rounded-[14px] px-[13px] py-[11px] mt-[10px]">
+                      <p className="text-[12px] text-v2-text-muted mb-[3px]">最近想练的一题</p>
+                      <p className="text-[12px] text-v2-text-primary font-medium truncate">{ankiSample.text}</p>
+                    </div>
+                  )}
+
+                  <div
+                    className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
+                    style={GRADIENT_BORDER_STYLE}
+                  >
+                    <span className="text-v2-text-secondary">{ankiHasCards ? '开始刷题卡' : '去题库'}</span>
+                    <span className="text-brand-primary-dark">›</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* 3) 复习闪卡 Hero */}
             <Link href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>
               <div
                 className="rounded-[16px] p-[18px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
@@ -232,7 +322,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </div>
             </Link>
 
-            {/* 3) 收藏卡片 */}
+            {/* 4) 收藏卡片 */}
             <button
               type="button"
               onClick={() => goView('cards')}
@@ -286,7 +376,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </div>
             </button>
 
-            {/* 4) 词组 + 发音 2-up */}
+            {/* 5) 词组 + 发音 2-up */}
             <div className="grid grid-cols-2 gap-[13px] animate-fade-up" style={{ animationDelay: '0.26s', marginBottom: 20 }}>
               <button
                 type="button"
@@ -329,7 +419,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </button>
             </div>
 
-            {/* 5) 我的语料 */}
+            {/* 6) 我的语料 */}
             <button
               type="button"
               onClick={() => goView('stories')}

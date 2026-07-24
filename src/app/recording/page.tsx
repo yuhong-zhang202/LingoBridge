@@ -131,14 +131,14 @@ function RecordingContent(): JSX.Element {
           return
         }
         if (checkRes.ok) {
-          const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean }
+          const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean; summary?: string }
           if (!checkData.usable) {
             setToastMsg(GARBAGE_TOAST_MSG)
             setTranscribing(false)
             return
           }
           if (ac.signal.aborted) return          // 已跳页则不再导航
-          router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText })}${qid ? `&qid=${qid}` : ''}`)
+          router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText, summary: checkData.summary ?? '' })}${qid ? `&qid=${qid}` : ''}`)
           return
         }
         // 其他非 402 错误：落到 try 外的放行分支，restructure 页兜底自行整理

@@ -72,7 +72,7 @@ export default function AnkiReviewPage(): JSX.Element {
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
       {/* 顶栏：关闭 + 进度 */}
-      <div className="relative z-10 lg:max-w-[640px] lg:w-full lg:mx-auto">
+      <div className="relative z-10 lg:max-w-[760px] lg:w-full lg:mx-auto">
         <div className="flex items-center justify-between h-[52px] px-5">
           <button onClick={close} aria-label="关闭复习" className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
             <X size={15} className="text-v2-text-muted" />
@@ -93,7 +93,7 @@ export default function AnkiReviewPage(): JSX.Element {
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-7 pb-10 relative z-10 flex flex-col lg:max-w-[640px] lg:w-full lg:mx-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 lg:px-8 py-6 relative z-10 flex flex-col lg:max-w-[760px] lg:w-full lg:mx-auto">
         {loading ? (
           <div className="flex-1 flex items-center justify-center"><EmptyState title="加载中…" orbSize={100} /></div>
         ) : error ? (

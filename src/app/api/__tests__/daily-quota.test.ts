@@ -161,7 +161,7 @@ beforeEach(() => {
   mockMatchByStory.mockResolvedValue(makeResult())
   ;(generateAnalysis as jest.Mock).mockResolvedValue({ structureLabel: 's', focusPoints: [], phrases: [] })
   ;(generatePhrases as jest.Mock).mockResolvedValue([])
-  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true })
+  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true, summary: '一句话概括' })
   mockBumpAnonRestructure.mockResolvedValue(1)
   mockBumpDaily.mockResolvedValue(1)
 
@@ -384,7 +384,7 @@ function beforeEachRefresh(): void {
   mockLogApiUsage.mockResolvedValue(undefined)
   ;(generateAnalysis as jest.Mock).mockResolvedValue({ structureLabel: 's', focusPoints: [], phrases: [] })
   ;(generatePhrases as jest.Mock).mockResolvedValue([])
-  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true })
+  mockRestructure.mockResolvedValue({ cleanedText: CLEANED, usable: true, summary: '一句话概括' })
   mockBumpAnonRestructure.mockResolvedValue(1)
   mockBumpDaily.mockResolvedValue(1)
 }

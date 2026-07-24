@@ -144,6 +144,8 @@ export interface Corpus {
   source: CorpusSource
   rawText: string
   cleanedText: string | null
+  /** 一句话概括（≤20 字，整理时 AI 顺手产；旧语料为 null，前端按空降级）。 */
+  summary: string | null
   audioUrl: string | null
   status: CorpusStatus
   createdAt: string   // ISO 时间字符串

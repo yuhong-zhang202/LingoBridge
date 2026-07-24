@@ -28,6 +28,7 @@ function rawRow(over: Partial<Record<string, unknown>>): Record<string, unknown>
     cue_card_title_zh: null,
     season: '2026-05',
     corpus_id: null,
+    corpus_summary: null,
     generated_answer: null,
     edited_answer: null,
     analysis: null,

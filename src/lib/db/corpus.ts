@@ -58,6 +58,7 @@ export interface CorpusRow {
   source: CorpusSource
   raw_text: string
   cleaned_text: string | null
+  summary: string | null
   audio_url: string | null
   status: CorpusStatus
   created_at: string
@@ -71,6 +72,8 @@ export function mapCorpusRow(row: CorpusRow): Corpus {
     source: row.source,
     rawText: row.raw_text,
     cleanedText: row.cleaned_text,
+    // 旧行 / 未 select summary 的旧代码路径可能无该键 → 兜底 null（前端按空降级）
+    summary: row.summary ?? null,
     audioUrl: row.audio_url,
     status: row.status,
     createdAt: row.created_at,
@@ -225,17 +228,24 @@ export async function deleteCorpus(id: string): Promise<void> {
 }
 
 /**
- * 写回整理后的短文，状态从 draft 推进到 restructured
+ * 写回整理后的短文，状态从 draft 推进到 restructured；可一并写入一句话概括 summary。
  * @param  id           corpus UUID
  * @param  cleanedText  千问整理后的中文短文
+ * @param  summary      一句话概括（整理时同源产出）；传 undefined 时不触碰 summary 列
+ *                      （返回态重存不覆盖已有概括，也不把它清成 null）。空串照写（视为「无概括」）。
  * @returns             更新后的 Corpus 实体
  */
-export async function updateCorpusCleaned(id: string, cleanedText: string): Promise<Corpus> {
+export async function updateCorpusCleaned(id: string, cleanedText: string, summary?: string): Promise<Corpus> {
   await ensureSession()
   const supabase = getSupabase()
+  const patch: { cleaned_text: string; status: CorpusStatus; summary?: string } = {
+    cleaned_text: cleanedText,
+    status: 'restructured',
+  }
+  if (summary !== undefined) patch.summary = summary
   const { data, error } = await supabase
     .from('corpus')
-    .update({ cleaned_text: cleanedText, status: 'restructured' })
+    .update(patch)
     .eq('id', id)
     .select()
     .single()
