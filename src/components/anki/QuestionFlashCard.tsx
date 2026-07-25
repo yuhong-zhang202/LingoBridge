@@ -26,6 +26,7 @@
 'use client'
 import { type JSX, type CSSProperties, useState, useRef, useEffect, useCallback } from 'react'
 import { RotateCw, ArrowLeft, ArrowRight, Volume2, ChevronRight } from 'lucide-react'
+import Tag from '@/components/Tag'
 import { BRAND_GRADIENT_VERTICAL, BRAND_GRADIENT_SOFT } from '@/lib/constants'
 import { deriveEffectivePoints, splitCueCard, type EffectivePoint } from '@/lib/anki/answer-points'
 import type { AnkiCard } from '@/lib/anki/list'
@@ -150,7 +151,8 @@ function CardFront({ card }: { card: AnkiCard }): JSX.Element {
   // 语料一句话概括：给用户一句「这题你打算讲哪段经历」的上下文；空 / 旧语料降级——整行不渲染。
   const summary = card.corpusSummary?.trim()
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center">
+    <div className="relative flex-1 flex flex-col items-center justify-center text-center">
+      <Tag variant="gray" label={`Part ${card.part}`} className="absolute top-0 left-0" />
       <p className="text-[19px] lg:text-[26px] font-semibold text-v2-text-primary leading-[1.5]" lang="en">{heading}</p>
       <p className="text-[13px] lg:text-[15px] text-brand-accent mt-5 lg:mt-7">想想你会怎么答？</p>
       {summary && (

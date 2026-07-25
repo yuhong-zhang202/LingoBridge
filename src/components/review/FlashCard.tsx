@@ -66,7 +66,7 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
           <Volume2 size={16} className="text-v2-text-muted" />
         </button>
       )}
-      <div className="px-[22px] pt-[18px] pb-[18px] min-h-[420px] lg:min-h-[460px] flex flex-col">
+      <div className="px-[22px] pt-[18px] pb-[18px] min-h-[420px] lg:min-h-[400px] flex flex-col">
         {card.group && (
           <Tag variant="green" label={card.group} className="self-start" />
         )}
