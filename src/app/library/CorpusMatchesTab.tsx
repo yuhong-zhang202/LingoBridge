@@ -4,20 +4,26 @@
  *           挂载即拉 fetchAnkiCards(1|2,'answered') 后客户端 filter(corpusId!==null) 得当季所有对子
  *           （存完对子返回本 tab、重新挂载即见新对子）。点对子卡直达该题「题目分析」页
  *           （/analysis?questionId&storyId=corpusId&review=1，与 useGotoPractice 复练同范式），从分析页可进练习。
- *           不做换/解绑 UI（创始人拍板：删语料即退回分析，机制在别处）。
+ *           卡角提供删语料入口（ConfirmDialog 二次确认 → deleteCorpus 真删）：删语料即解绑，
+ *           绑定的 anki 卡 corpus_id 经 FK set null 退回题目分析（机制在 DB 层）。
+ *           注意：本 tab 只列已绑对子的语料（corpusId 非空）；未绑对子的语料在此看不到、也删不了
+ *           （删除口子待创始人确认，见交付说明）。
  * @author   LingoBridge
  * @created  2026-07-25
  */
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { Link2, Sparkles, Loader2 } from 'lucide-react'
+import { Link2, Sparkles, Loader2, Trash2 } from 'lucide-react'
 import { useNav } from '@/components/NavProgress'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import Skeleton from '@/components/Skeleton'
 import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
+import ConfirmDialog from '@/components/ConfirmDialog'
+import Toast from '@/components/Toast'
 import { fetchAnkiCards } from '@/lib/anki/cards-client'
+import { deleteCorpus } from '@/lib/db/corpus'
 import { ensureSession } from '@/lib/supabase'
 import { prettifyTopic } from '@/lib/topic'
 import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/search'
@@ -54,6 +60,10 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
   const [pairs, setPairs] = useState<AnkiCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // 待删语料（点卡角删除按钮后置入 → 弹确认框）；deleting 锁按钮；toast 报结果
+  const [pendingDelete, setPendingDelete] = useState<AnkiCard | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   // 挂载即拉当季对子：part1 + part2 已回答卡 → 客户端筛 corpusId 非空。每次进 tab 重挂载即重拉，
   // 故别处存完对子返回本 tab 能立刻看到新的。失败置 error（离线走 OfflineState，其余走可重试空态）。
@@ -91,6 +101,26 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
   useEffect(() => {
     onSearchCountsChange?.({ matched: visible.length, total: pairs.length })
   }, [visible.length, pairs.length, onSearchCountsChange])
+
+  // 确认删语料：真删（deleteCorpus 清 corpus_point_links 后删 corpus 行；绑定的 anki 卡经 FK set null
+  // 退回题目分析）。成功后把同一 corpusId 的对子全部从列表移除——同一语料可绑多题，删语料即全部解绑。
+  const handleConfirmDelete = async (): Promise<void> => {
+    const target = pendingDelete
+    if (!target?.corpusId) return
+    const corpusId = target.corpusId
+    setDeleting(true)
+    try {
+      await deleteCorpus(corpusId)
+      setPairs((prev) => prev.filter((c) => c.corpusId !== corpusId))
+      setToast('已删除语料，绑定的题卡已退回题目分析')
+    } catch (e) {
+      console.warn('[CorpusMatchesTab] 删除语料失败', e)
+      setToast('删除失败，请重试')
+    } finally {
+      setDeleting(false)
+      setPendingDelete(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -138,8 +168,9 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
         const topic = prettifyTopic(card.topic)
         const ready = isBackReady(card)
         return (
+          // relative 容器：主卡点击（跳分析）与删除按钮是并列的两个 button，不嵌套（HTML 不允许 button 套 button）
+          <div key={card.questionId} className="relative lg:h-full">
           <button
-            key={card.questionId}
             type="button"
             // 点卡直达该题分析页（storyId=corpusId，review=1 复练语义），从分析页可进练习
             onClick={() => navigate(`/analysis?questionId=${encodeURIComponent(card.questionId)}&storyId=${encodeURIComponent(card.corpusId ?? '')}&review=1`)}
@@ -147,8 +178,8 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
             className="block w-full text-left active:scale-[0.99] transition-transform lg:h-full focus-visible:outline-none rounded-[16px] focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
           >
             <Card className="p-4 lg:h-full flex flex-col">
-              {/* 头部：Part 标 + 话题 Tag + 状态标签（状态带文字，不只靠色） */}
-              <div className="flex items-center gap-2 flex-wrap mb-2.5">
+              {/* 头部：Part 标 + 话题 Tag + 状态标签（状态带文字，不只靠色）。pr-9 给右上角删除按钮留位，避免标签跑到按钮下 */}
+              <div className="flex items-center gap-2 flex-wrap mb-2.5 pr-9">
                 <Tag variant="gray" label={`Part ${card.part}`} />
                 {topic && <Tag variant="green" label={topic} />}
                 {ready ? (
@@ -183,8 +214,34 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
               </div>
             </Card>
           </button>
+
+          {/* 卡右上角删除入口：44×44 命中区（图标本身 15px），stopPropagation 不触发主卡跳转 */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setPendingDelete(card) }}
+            aria-label={`删除语料：${card.corpusSummary ?? pairTitle(card)}`}
+            className="absolute top-1.5 right-1.5 w-11 h-11 flex items-center justify-center rounded-full text-v2-text-muted hover:text-error hover:bg-error/5 active:scale-[0.94] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-1"
+          >
+            <Trash2 size={15} />
+          </button>
+          </div>
         )
       })}
+
+      {/* 删语料二次确认（不可撤销）*/}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="删除这条语料？"
+        description="删除后，绑定的题卡会退回题目分析（卡背清空）。此操作不可撤销。"
+        danger
+        loading={deleting}
+        loadingText="删除中…"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+
+      {/* 删除结果提示（底部居中）*/}
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </div>
   )
 }
