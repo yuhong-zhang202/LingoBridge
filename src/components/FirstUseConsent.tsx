@@ -6,6 +6,10 @@
  *           点击「同意并开始」= 明示同意（clickwrap / affirmative action），调 /api/consent 落一条
  *           可查证的同意记录，成功才关弹窗放行；失败留弹窗 + 重试（绝不只写 localStorage 就放行）。
  *           读路径查库判是否已签（hasRecordedConsent，localStorage 仅作缓存）；披露版本 bump 后老用户重弹重签。
+ *           【fail-closed】闸态是三态 'checking' | 'blocked' | 'allowed'，初值 'checking' = 未知即阻断：
+ *           查库是异步（含 getSession 可能刷 token 的网络往返），返回前渲染不透明全屏遮罩(加载态)拦住首页，
+ *           绝不在「未确认已同意」前放行；查询异常也落到 'blocked'。仅 'allowed'（已签）才零遮挡返回 null。
+ *           不用「延时 N ms 再显示遮罩」消抖——那等于重开 N ms 的 fail-open 窗口，宁可短暂遮罩不留窗口。
  *           次要出口「不同意」给真离开动作：退出登录并回登录页（清 session，不作为已登录用户留下），
  *           避免键盘 / 读屏用户被 focus trap 困死。披露文案唯一真源在 src/lib/privacy-copy.ts；
  *           落库 / 查库逻辑在 src/lib/consent.ts。
@@ -19,6 +23,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
 import { CONSENT_POPUP_TITLE, CONSENT_POPUP_DISCLOSURE } from '@/lib/privacy-copy'
 import { hasRecordedConsent, recordConsent, clearConsentCache } from '@/lib/consent'
@@ -38,7 +43,8 @@ const CONSENT_ACTIONS = 'contents lg:flex lg:flex-col lg:items-stretch lg:gap-2 
 
 export default function FirstUseConsent() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  // 三态闸：'checking'（初值，未知即阻断，渲染加载遮罩）/ 'blocked'（未签，渲染同意对话框）/ 'allowed'（已签，零遮挡）
+  const [status, setStatus] = useState<'checking' | 'blocked' | 'allowed'>('checking')
   const [declined, setDeclined] = useState(false)   // 次要出口：用户选择「暂不使用」后的阻断视图
   const [submitting, setSubmitting] = useState(false)
   const [leaving, setLeaving] = useState(false)      // 退出登录并离开进行中
@@ -47,10 +53,15 @@ export default function FirstUseConsent() {
 
   useEffect(() => {
     let cancelled = false
-    // 查库（含缓存快路径）判是否已对当前披露版本签过同意；未签才弹
-    hasRecordedConsent().then((ok) => {
-      if (!cancelled && !ok) setOpen(true)
-    })
+    // 查库（含缓存快路径）判是否已对当前披露版本签过同意：已签→allowed 放行，未签→blocked 弹窗。
+    // 异常同样 fail-closed 落 blocked；即便 promise 永不 resolve，status 停在 'checking' 仍阻断（天然 fail-closed）。
+    hasRecordedConsent()
+      .then((ok) => {
+        if (!cancelled) setStatus(ok ? 'allowed' : 'blocked')
+      })
+      .catch(() => {
+        if (!cancelled) setStatus('blocked')
+      })
     return () => {
       cancelled = true
     }
@@ -60,11 +71,26 @@ export default function FirstUseConsent() {
   // 聚焦容器（tabIndex=-1）而非「首个可聚焦元素」——否则一进来焦点就落在「内测数据处理说明」链接上、
   // 带出全局 :focus-visible 橘色轮廓，视觉突兀；聚焦容器不点亮任何链接，读屏仍经 aria-labelledby 念标题。
   useEffect(() => {
-    if (!open) return
+    // 仅 blocked 态才有对话框可聚焦；checking 遮罩无对话框、不抢焦点
+    if (status !== 'blocked') return
     dialogRef.current?.focus()
-  }, [open, declined])
+  }, [status, declined])
 
-  if (!open) return null
+  // 已签：零遮挡放行
+  if (status === 'allowed') return null
+
+  // 未知即阻断：查库返回前渲染不透明全屏遮罩 + 加载态，拦住首页（fixed inset-0 z-50 拦指针，
+  // 底色 bg-bg-page 不透出内容——不能用 bg-black/40 半透，那会透出首页）。复用 lucide-react Loader2 spinner。
+  if (status === 'checking') {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-bg-page"
+        aria-busy="true"
+      >
+        <Loader2 className="animate-spin text-v2-text-muted" size={28} />
+      </div>
+    )
+  }
 
   const handleAgree = async () => {
     setFailed(false)
@@ -72,7 +98,7 @@ export default function FirstUseConsent() {
     try {
       const ok = await recordConsent()
       if (ok) {
-        setOpen(false)   // 成功才放行
+        setStatus('allowed')   // 成功才放行
       } else {
         setFailed(true)  // 失败留弹窗 + 重试
       }
