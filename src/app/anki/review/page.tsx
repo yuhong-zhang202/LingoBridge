@@ -2,8 +2,11 @@
  * @module   AnkiReviewPage
  * @desc     Anki 题卡 SRS 复习宿主页 —— 套用 /review 骨架（顶栏关闭 + 进度条/点、翻卡、左右滑评级、Leitner 排下次）。
  *           拉当季题卡 → QuestionFlashCard 逐张翻面/滑动/逐点编辑。
- *   ⚠️ 本批只做卡片本身 + 交互：外围导航（素材库入口 / 全部|已回答 × part 筛选 / 同批语料分组）尚未接，
- *      故 part/scope 暂用固定默认（part1 · 全部），待下批筛选接入后由查询参数驱动。
+ *   牌堆构成（S3）：并行拉当季 part1 + part2 两份列表，按 RPC 返回顺序 concat 成一副牌（part1 段在前、
+ *     part2 段在后）；part3 子卡由 get_anki_cards 随其 part2 父卡成组、已排好序（见 0034/0039），前端【不重排】、
+ *     直接沿用返回顺序渲染，保成组不被打散。part3 卡背走静态 analysis.example（CardBack 已支持）。
+ *   ⚠️ 本批只做卡片本身 + 交互：外围导航（素材库入口 / 全部|已回答 筛选 / 同批语料分组）尚未接，
+ *      故 scope 暂用固定默认（全部），待下批筛选接入后由查询参数驱动。
  * @author   LingoBridge
  * @created  2026-07-24
  */
@@ -19,7 +22,6 @@ import { parseEditOverrides, applyEditOverride, serializeEditOverrides } from '@
 import type { AnkiCard } from '@/lib/anki/list'
 
 // 外围导航未接前的临时默认（下批筛选接入后改由查询参数驱动）
-const DEFAULT_PART = 1 as const
 const DEFAULT_SCOPE = 'all' as const
 
 export default function AnkiReviewPage(): JSX.Element {
@@ -34,8 +36,14 @@ export default function AnkiReviewPage(): JSX.Element {
     let cancelled = false
     void (async () => {
       try {
-        const cards = await fetchAnkiCards(DEFAULT_PART, DEFAULT_SCOPE)
+        // part1 + part2 两副牌并行拉，按 RPC 返回顺序 concat（part1 在前、part2 在后）；
+        // part3 子卡已随其 part2 父卡在 p2 内成组排好，不在前端重排、直接沿用顺序，保成组。
+        const [p1, p2] = await Promise.all([
+          fetchAnkiCards(1, DEFAULT_SCOPE),
+          fetchAnkiCards(2, DEFAULT_SCOPE),
+        ])
         if (cancelled) return
+        const cards = [...p1, ...p2]
         setQueue(cards)
         setTotal(cards.length)
       } catch (e) {
@@ -65,6 +73,12 @@ export default function AnkiReviewPage(): JSX.Element {
     const next = serializeEditOverrides(merged)
     setQueue((q) => q.map((c, i) => (i === current ? { ...c, editedAnswer: next === '' ? null : next } : c)))
   }, [queue, current])
+
+  // 空点态「补一句语料就能生成」（B3）：跳「给这道题补语料」的定向录音流 —— /recording?qid 会串起
+  // 录音→转写→restructure（qid 走雅思流）→ upsertMatch 把新语料绑定到该题→分析，正是给该题补料的完整路径。
+  const handleSupplement = useCallback((questionId: string): void => {
+    router.push(`/recording?qid=${encodeURIComponent(questionId)}`)
+  }, [router])
 
   const close = (): void => router.back()
   const done = !loading && !error && queue.length > 0 && current >= queue.length
@@ -113,6 +127,7 @@ export default function AnkiReviewPage(): JSX.Element {
               card={queue[current]}
               onGrade={(r) => void gradeOne(r)}
               onEditPoint={handleEditPoint}
+              onSupplement={handleSupplement}
             />
           </div>
         )}

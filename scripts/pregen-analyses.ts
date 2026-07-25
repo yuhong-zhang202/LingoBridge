@@ -213,9 +213,16 @@ async function analyzeQuestion(q: QRow): Promise<QuestionAnalysis> {
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const commit = args.includes('--commit')
-  const unknown = args.filter((a) => a !== '--commit' && a !== '--dry-run')
+  // --limit=N：只处理 N 题（分 part 均衡取样，覆盖 part1/2/3 三种框架）——供先跑小样本验质量再全量。
+  const limitArg = args.find((a) => a.startsWith('--limit='))
+  const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : null
+  const unknown = args.filter((a) => a !== '--commit' && a !== '--dry-run' && !a.startsWith('--limit='))
   if (unknown.length > 0) {
-    console.error(`未知参数：${unknown.join(', ')}（仅支持 --dry-run(默认) / --commit）`)
+    console.error(`未知参数：${unknown.join(', ')}（仅支持 --dry-run(默认) / --commit / --limit=N）`)
+    process.exit(1)
+  }
+  if (limitArg && (!Number.isInteger(limit) || (limit as number) <= 0)) {
+    console.error(`--limit 需正整数，收到：${limitArg}`)
     process.exit(1)
   }
 
@@ -243,7 +250,15 @@ async function main(): Promise<void> {
   if (aErr) throw new Error(`读取 ${ANALYSES_TABLE} 失败：${aErr.message}`)
   const done = new Set(((aData ?? []) as { question_id: string }[]).map((r) => r.question_id))
 
-  const pending = questions.filter((q) => !done.has(q.id))
+  const allPending = questions.filter((q) => !done.has(q.id))
+  // --limit：分 part 均衡取样（每 part 取约 limit/3），凑够 limit；不足则有多少取多少。
+  let pending = allPending
+  if (limit && limit < allPending.length) {
+    const perPart = Math.ceil(limit / 3)
+    const byP: Record<1 | 2 | 3, QRow[]> = { 1: [], 2: [], 3: [] }
+    for (const q of allPending) byP[q.part].push(q)
+    pending = [...byP[1].slice(0, perPart), ...byP[2].slice(0, perPart), ...byP[3].slice(0, perPart)].slice(0, limit)
+  }
 
   // 3) 统计报告（dry-run 与 commit 都先打印）。
   const byPart = (rows: QRow[]): Record<1 | 2 | 3, number> => {
@@ -252,13 +267,17 @@ async function main(): Promise<void> {
     return acc
   }
   const totalDist = byPart(questions)
+  const allPendingDist = byPart(allPending)
   const pendingDist = byPart(pending)
 
   console.log('# pregen-analyses 预生成计划报告\n')
   console.log(`当季 CURRENT_SEASON = ${CURRENT_SEASON}`)
   console.log(`当季全库题数：${questions.length}（Part1 ${totalDist[1]} / Part2 ${totalDist[2]} / Part3 ${totalDist[3]}）`)
   console.log(`已有当季分析（跳过）：${done.size}`)
-  console.log(`待生成：${pending.length}（Part1 ${pendingDist[1]} / Part2 ${pendingDist[2]} / Part3 ${pendingDist[3]}）`)
+  console.log(`待生成（全部）：${allPending.length}（Part1 ${allPendingDist[1]} / Part2 ${allPendingDist[2]} / Part3 ${allPendingDist[3]}）`)
+  if (limit && pending.length < allPending.length) {
+    console.log(`⚠ --limit=${limit}：本次只处理取样的 ${pending.length} 题（Part1 ${pendingDist[1]} / Part2 ${pendingDist[2]} / Part3 ${pendingDist[3]}）——验质量用；之后去掉 --limit 跑全量（幂等续跑、自动跳过这批）。`)
+  }
   console.log(`  · Part1/Part2 → services/analysis.ts generateAnalysis`)
   console.log(`  · Part3       → 本脚本 generatePart3Analysis（独立框架，质量待单独金标）`)
 

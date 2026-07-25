@@ -170,11 +170,26 @@ function CardBack({ card, onSupplement }: {
   const focusPoints = card.analysis?.focusPoints ?? []
   const points = deriveEffectivePoints(focusPoints, card.generatedAnswer, card.editedAnswer)
   const allEmpty = points.length > 0 && points.every((p) => p.noMaterial)
+  // A1：已绑语料（corpusId 非空 或 isAnswered）= 用户真的给这题存过料，各点全空只是 drain 尚未回填生成内容
+  // （最长约 2min 窗口）—— 是「生成中」而非「素材太少」。未绑语料才是真·没素材，两者文案必须分开，
+  // 别对刚绑了丰富语料的用户误报「语料太少」。
+  const hasCorpus = card.corpusId !== null || card.isAnswered
 
   if (points.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-center">
         <p className="text-[13px] text-v2-text-muted">这道题还没有可展示的答题要点</p>
+      </div>
+    )
+  }
+
+  // 生成中：已绑语料但各点英文尚未回填 → 整卡显「例句生成中」，不逐点渲染「这点你还没讲到」（避免逐点责备），
+  // 也不显补料引导（料已经绑了，用户该做的是等，不是再补）。
+  if (allEmpty && hasCorpus) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+        <p className="text-[14px] text-v2-text-secondary">例句生成中</p>
+        <p className="text-[13px] text-v2-text-muted leading-[1.5]">这题的例句正在生成，稍后回来看就好</p>
       </div>
     )
   }
@@ -189,7 +204,8 @@ function CardBack({ card, onSupplement }: {
           <PointRow key={p.idx} p={p} questionId={card.questionId} onSupplement={onSupplement} />
         ))}
       </ul>
-      {/* 全空兜底：整卡多点皆空 → 卡底一条补料引导（引导色、非告警）。 */}
+      {/* 全空且未绑语料兜底：真·没素材 → 卡底一条补料引导（引导色、非告警）。「已绑语料但生成中」的全空
+          已在上方提前 return，走不到这里，故此处 allEmpty 必为未绑语料。 */}
       {allEmpty && (
         <button
           type="button"

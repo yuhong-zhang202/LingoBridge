@@ -37,9 +37,11 @@ export default function LibraryPage() {
   const [error, setError]           = useState<string | null>(null)
 
   // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2
-  // 两份列表后本地派生：道数 = part1+part2 主题（part3 是子题、不单列入口，排除）；待复习张数 = due_at 已到期。
-  // ⚠️ 语义待产品方确认：「当季 N 道」是否含 part3、「待复习 M 张」是否= due_at<=now（默认卡 due_at 回 now
-  //   即视为待复习）；且这是两次全量列表拉取（无轻量计数接口），后续若需要可加计数 RPC。见交付说明。
+  // 两份列表后本地派生：道数 = 用户已建卡的 part1+part2 主题；待复习张数 = 其中 due_at 已到期。
+  // ⚠️ 口径（S2，产品方拍板）：「待复习」只算【用户真正建过/答过】的卡，故用 scope='answered'（get_anki_cards
+  //   只返回 is_answered 的卡，见 0039）——不含从没碰过的默认卡（默认卡 due_at 被 coalesce 成 now，若用 'all'
+  //   会把每道没碰过的题都算「待复习」、ankiHasCards 恒 true、新用户空态永不触发）。新用户 0 已答卡 →
+  //   ankiSeasonCount=0 → 下游 ankiHasCards=false → Hero 走空态跳 /question-bank。part3 是子题、不单列入口，排除。
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
   const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
@@ -99,13 +101,13 @@ export default function LibraryPage() {
       .then(setDueCount)
       .catch(e => console.warn('[LibraryPage] 获取待复习数失败', e))
 
-    // 题卡 Hero 数据：拉当季 part1 + part2 列表 → 本地派生道数/待复习张数/一句题面样本。
+    // 题卡 Hero 数据：拉当季【已答】part1 + part2 列表 → 本地派生道数/待复习张数/一句题面样本。
     // 失败静默降级为空态（Hero 仍显示，导题库），不阻塞素材库其余模块。
     void (async () => {
       try {
         const [p1, p2] = await Promise.all([
-          fetchAnkiCards(1, 'all'),
-          fetchAnkiCards(2, 'all'),
+          fetchAnkiCards(1, 'answered'),
+          fetchAnkiCards(2, 'answered'),
         ])
         const mains = [...p1, ...p2].filter(c => c.part !== 3) // part3 是子题、不单列入口
         const now = Date.now()
