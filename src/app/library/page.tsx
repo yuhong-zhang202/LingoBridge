@@ -36,12 +36,15 @@ export default function LibraryPage() {
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
 
-  // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2
-  // 两份列表后本地派生：道数 = 用户已建卡的 part1+part2 主题；待复习张数 = 其中 due_at 已到期。
-  // ⚠️ 口径（S2，产品方拍板）：「待复习」只算【用户真正建过/答过】的卡，故用 scope='answered'（get_anki_cards
-  //   只返回 is_answered 的卡，见 0039）——不含从没碰过的默认卡（默认卡 due_at 被 coalesce 成 now，若用 'all'
-  //   会把每道没碰过的题都算「待复习」、ankiHasCards 恒 true、新用户空态永不触发）。新用户 0 已答卡 →
-  //   ankiSeasonCount=0 → 下游 ankiHasCards=false → Hero 走空态跳 /question-bank。part3 是子题、不单列入口，排除。
+  // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2 的【全部】
+  // 卡（scope='all'）后本地派生三口径（一次 all 拉取即够，请求数与改前的两次 answered 拉取相同、无新增 DB
+  // 函数/端点）：
+  //   - ankiSeasonCount = 当季可刷主题总数（part1+part2 所有题，含用户没碰过的默认卡）——设定是「所有题都能刷」，
+  //     新用户也能直接刷；
+  //   - ankiDueCount    = 用户【已答】卡里到期的张数（只数 isAnswered 卡、按其真实 due_at；默认卡 due_at 被
+  //     coalesce 成 now 且 isAnswered=false，滤掉即等价于旧 scope='answered' 口径，不回归）；
+  //   - ankiSample      = 已答卡首题优先，否则当季首题；仅当季真 0 题才为 null（空态不显预览）。
+  // part3 是子题、不单列入口，排除。
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
   const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
@@ -101,20 +104,21 @@ export default function LibraryPage() {
       .then(setDueCount)
       .catch(e => console.warn('[LibraryPage] 获取待复习数失败', e))
 
-    // 题卡 Hero 数据：拉当季【已答】part1 + part2 列表 → 本地派生道数/待复习张数/一句题面样本。
-    // 失败静默降级为空态（Hero 仍显示，导题库），不阻塞素材库其余模块。
+    // 题卡 Hero 数据：拉当季【全部】part1 + part2 列表 → 本地派生当季总道数 / 已答到期张数 / 一句题面样本。
+    // 失败静默降级为空态（Hero 仍显示），不阻塞素材库其余模块。
     void (async () => {
       try {
         const [p1, p2] = await Promise.all([
-          fetchAnkiCards(1, 'answered'),
-          fetchAnkiCards(2, 'answered'),
+          fetchAnkiCards(1, 'all'),
+          fetchAnkiCards(2, 'all'),
         ])
         const mains = [...p1, ...p2].filter(c => c.part !== 3) // part3 是子题、不单列入口
+        const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义）
         const now = Date.now()
-        setAnkiSeasonCount(mains.length)
-        setAnkiDueCount(mains.filter(c => new Date(c.dueAt).getTime() <= now).length)
-        const first = mains[0]
-        setAnkiSample(first ? { part: first.part, text: first.questionText } : null)
+        setAnkiSeasonCount(mains.length)                        // 当季可刷主题总数（所有 part1+2 题）
+        setAnkiDueCount(answeredMains.filter(c => new Date(c.dueAt).getTime() <= now).length)
+        const sample = answeredMains[0] ?? mains[0]             // 已答首题优先，否则当季首题
+        setAnkiSample(sample ? { part: sample.part, text: sample.questionText } : null)
       } catch (e) {
         console.warn('[LibraryPage] 获取题卡概况失败，Hero 走空态', e)
       }

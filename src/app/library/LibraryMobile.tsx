@@ -58,7 +58,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   const totalCount = stories.length + cards.length + wordsCount + pronCount
   const matchedTotal = stories.reduce((sum, s) => sum + (s.matchedCount ?? 0), 0)
   const latestCard = cards[0]
-  // 题卡 Hero：有当季题卡才导向刷题；空态仍显示 Hero，改导题库（不给死胡同）
+  // 题卡 Hero：当季有题即导向刷题（设定是「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
+  // （off-season）才走空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态，不给死胡同）。
   const ankiHasCards = ankiSeasonCount > 0
 
   return (
@@ -175,10 +176,10 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 reduced-motion 由 globals.css 全局关停（同词组 Hero，不逐元素处理）。
                 TODO(桌面)：移动优先，桌面 hub（LibraryDesktop）暂未补题卡入口，待产品方看过位置后再做。 */}
             <Link
-              href={ankiHasCards ? '/anki/review' : '/question-bank'}
+              href="/anki/review"
               aria-label={ankiHasCards
                 ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
-                : '题卡复习，还没有题卡，去题库把想练的题存起来'}
+                : '题卡复习，当季暂无题卡'}
               className="block animate-fade-up"
               style={{ animationDelay: '0.06s' }}
             >
@@ -238,7 +239,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     </p>
                   ) : (
                     <p className="text-[13px] text-v2-text-secondary mt-[5px]">
-                      还没有题卡 · 去题库把想练的题存起来
+                      当季暂无题卡
                     </p>
                   )}
 
@@ -254,7 +255,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
                     style={GRADIENT_BORDER_STYLE}
                   >
-                    <span className="text-v2-text-secondary">{ankiHasCards ? '开始刷题卡' : '去题库'}</span>
+                    <span className="text-v2-text-secondary">开始刷题卡</span>
                     <span className="text-brand-primary-dark">›</span>
                   </div>
                 </div>

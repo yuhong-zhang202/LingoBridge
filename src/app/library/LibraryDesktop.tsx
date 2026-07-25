@@ -56,7 +56,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
   const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
 
   const totalCount = stories.length + cards.length + wordsCount + pronCount
-  // 题卡复习入口：有当季题卡才导向刷题；空态仍显示大卡、改导题库（不给死胡同），与移动端 Hero 同范式
+  // 题卡复习入口：当季有题即导刷题（设定「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
+  // 才空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态）。与移动端 Hero 同范式。
   const ankiHasCards = ankiSeasonCount > 0
   // 匿名判定（与 settings/profile 同范式）：仅用于决定是否展示登录软引导卡。
   // 读取失败一律按「非匿名」降级 —— 宁可少打扰一次，也不给已登录用户误显引导。
@@ -137,10 +138,10 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {/* 题卡复习入口（hub 区第一张卡）—— 桌面照移动端「题卡 Hero」范式放大：全宽横向三段式（叠卡 / 文案预览 / CTA）。
             叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。有卡→/anki/review，空态→/question-bank。 */}
         <Link
-          href={ankiHasCards ? '/anki/review' : '/question-bank'}
+          href="/anki/review"
           aria-label={ankiHasCards
             ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
-            : '题卡复习，还没有题卡，去题库把想练的题存起来'}
+            : '题卡复习，当季暂无题卡'}
           className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
         >
           <Card variant="gradient" className="px-[26px] py-[22px] flex items-center gap-7 active:scale-[0.99] transition-transform mb-4">
@@ -180,7 +181,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                   当季 {ankiSeasonCount} 道 · 待复习 <span className="text-brand-primary-dark font-bold text-[16px]">{ankiDueCount}</span> 张
                 </p>
               ) : (
-                <p className="text-[13px] text-v2-text-secondary mt-1.5">还没有题卡 · 去题库把想练的题存起来</p>
+                <p className="text-[13px] text-v2-text-secondary mt-1.5">当季暂无题卡</p>
               )}
 
               {/* 题面预览块（仅有题卡且有样本时显示） */}
@@ -194,7 +195,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
 
             {/* 右段·CTA */}
             <span className="inline-flex items-center gap-[3px] rounded-full px-6 py-3 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
-              <span className="text-v2-text-secondary">{ankiHasCards ? '开始刷题卡' : '去题库'}</span>
+              <span className="text-v2-text-secondary">开始刷题卡</span>
               <span className="text-brand-primary-dark">›</span>
             </span>
           </Card>

@@ -5,7 +5,10 @@
  *             - 每点：StepNum 序号圈 + 同段内联「标题：解释」一行（标题粗、解释次色），英文例句当主角落在下一行，
  *               播放按钮 🔊 跟英文例句同行右侧（朗读的就是这句，复用 FlashCard 的 speechSynthesis 发音）；无折叠/截断（产品方明确不要）。
  *             - part1（2 点）点间距放大（gap-8/10），part2/3（3 点）保持 gap-5/6，避免大卡里 2 点挤在中间。
- *             - 空点态（noMaterial）：标题照常显示（结构不塌），英文位换虚线框 + 补料钩子（引导，不用告警色）；无例句不显示播放按钮。
+ *             - 脊柱（序号+中文标题+中文说明）恒显不塌；仅「英文例句格」按四态分流（该点 en===null 时）：
+ *               生成中（hasCorpus 且未生成完 → 浅字「例句生成中…」）/ 生成完但这点没料（hasCorpus 且生成完 →
+ *               浅字「这点你没讲到」，绝不再说生成中）/ 未绑语料（留白）；三态皆非交互、不显播放按钮。
+ *               仅「未绑语料且全空」的题在卡底显一条正向 CTA「绑一句语料，生成你的英文例句 ›」。
  *
  *   翻面机制沿用 FlashCard 范式但改用 grid 双面同格叠放（gridArea 1/1）：容器行高取较高面（背面满点），
  *   背面撑开不被裁 —— 根治旧「背面 absolute inset-0 被锁死在正面高度、第 3 点例句被 overflow-hidden 切掉」。
@@ -16,7 +19,7 @@
  *       该分支同时是端侧退路（grid + preserve-3d + rotateX 在移动 Safari/微信 WebView 若冲突可整体退回单面）；
  *       滑动飞出 → 即时评级不做大位移。
  *     - 翻面可键盘：整卡 role=button / tabIndex=0 / Space·Enter 翻面 / aria-pressed / 可见焦点环。
- *     - 触控目标 ≥44px（翻面区、播放、补料钩子）；点数组用 <ul><li>；空点态给读屏文本。
+ *     - 触控目标 ≥44px（翻面区、播放、卡底绑语料 CTA）；点数组用 <ul><li>；空点态给读屏文本。
  * @author   LingoBridge
  * @created  2026-07-24
  */
@@ -82,24 +85,6 @@ function useReducedMotion(): boolean {
   return reduced
 }
 
-/** 空点态：虚线框 + 补料钩子（引导，不用 error/warning 色；读屏可读；钩子 ≥44px）。 */
-function EmptyPointBox({ questionId, onSupplement }: { questionId: string; onSupplement?: (q: string) => void }): JSX.Element {
-  return (
-    <div className="mt-1.5 rounded-[12px] border border-dashed border-warm-line px-3 py-2.5">
-      <p className="text-[13px] text-v2-text-muted">这点你还没讲到</p>
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onSupplement?.(questionId) }}
-        disabled={!onSupplement}
-        className="mt-1 min-h-[44px] flex items-center gap-0.5 text-[13px] text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
-      >
-        补一句语料就能生成例句
-        <ChevronRight size={14} />
-      </button>
-    </div>
-  )
-}
-
 /** 播放按钮（🔊，≥44px 命中区）。复用 FlashCard 的 speechSynthesis 发音，朗读本点英文例句。 */
 function PlayBtn({ idx, text }: { idx: number; text: string }): JSX.Element {
   return (
@@ -114,22 +99,36 @@ function PlayBtn({ idx, text }: { idx: number; text: string }): JSX.Element {
   )
 }
 
-/** 英文例句主角行（右侧 🔊 播放）/ 空点态（无例句不显示播放）二选一。 */
-function PointBody({ p, questionId, onSupplement }: {
-  p: EffectivePoint; questionId: string; onSupplement?: (q: string) => void
-}): JSX.Element {
-  if (p.noMaterial || p.en === null) return <EmptyPointBox questionId={questionId} onSupplement={onSupplement} />
+/**
+ * 「英文例句格」四态分流（脊柱恒显、只有这一格随状态变）：
+ *   A 正常   ：p.en !== null → 英文例句 + 播放键；
+ *   C 未绑语料：p.en===null 且 !hasCorpus → 留白（返回 null，什么都不渲染）；
+ *   B 生成中 ：p.en===null 且 hasCorpus 且 !genDone → 浅字「例句生成中…」，非交互、无播放键；
+ *   B′ 生成完这点没料：p.en===null 且 hasCorpus 且 genDone → 浅字「这点你没讲到」（生成已完成，绝不说生成中）。
+ * B/B′ 同字号/色，仅措辞按 genDone 分。
+ */
+function PointBody({ p, hasCorpus, genDone }: {
+  p: EffectivePoint; hasCorpus: boolean; genDone: boolean
+}): JSX.Element | null {
+  if (p.en !== null) {
+    return (
+      <div className="flex items-start justify-between gap-2 mt-1.5">
+        <p className="text-[15px] lg:text-[17px] text-v2-text-primary leading-[1.5] flex-1 min-w-0" lang="en">{p.en}</p>
+        <PlayBtn idx={p.idx} text={p.en} />
+      </div>
+    )
+  }
+  if (!hasCorpus) return null
   return (
-    <div className="flex items-start justify-between gap-2 mt-1.5">
-      <p className="text-[15px] lg:text-[17px] text-v2-text-primary leading-[1.5] flex-1 min-w-0" lang="en">{p.en}</p>
-      <PlayBtn idx={p.idx} text={p.en} />
-    </div>
+    <p className="text-[13px] lg:text-[14px] text-v2-text-muted leading-[1.5] mt-1.5">
+      {genDone ? '这点你没讲到' : '例句生成中…'}
+    </p>
   )
 }
 
-/** 序号脊柱单点（part1/2/3 统一）：StepNum + 同段内联「标题：解释」、英文例句当主角。 */
-function PointRow({ p, questionId, onSupplement }: {
-  p: EffectivePoint; questionId: string; onSupplement?: (q: string) => void
+/** 序号脊柱单点（part1/2/3 统一）：StepNum + 同段内联「标题：解释」恒显；英文例句格按 A/B/B′/C 分流。 */
+function PointRow({ p, hasCorpus, genDone }: {
+  p: EffectivePoint; hasCorpus: boolean; genDone: boolean
 }): JSX.Element {
   return (
     <li className="flex items-start gap-2.5">
@@ -139,7 +138,7 @@ function PointRow({ p, questionId, onSupplement }: {
           <span className="font-semibold text-v2-text-primary">{p.title}</span>
           <span className="text-v2-text-secondary">：{p.desc}</span>
         </p>
-        <PointBody p={p} questionId={questionId} onSupplement={onSupplement} />
+        <PointBody p={p} hasCorpus={hasCorpus} genDone={genDone} />
       </div>
     </li>
   )
@@ -169,27 +168,18 @@ function CardBack({ card, onSupplement }: {
 }): JSX.Element {
   const focusPoints = card.analysis?.focusPoints ?? []
   const points = deriveEffectivePoints(focusPoints, card.generatedAnswer, card.editedAnswer)
-  const allEmpty = points.length > 0 && points.every((p) => p.noMaterial)
-  // A1：已绑语料（corpusId 非空 或 isAnswered）= 用户真的给这题存过料，各点全空只是 drain 尚未回填生成内容
-  // （最长约 2min 窗口）—— 是「生成中」而非「素材太少」。未绑语料才是真·没素材，两者文案必须分开，
-  // 别对刚绑了丰富语料的用户误报「语料太少」。
+  const allEmpty = points.length > 0 && points.every((p) => p.en === null)
+  // 「已绑语料」= corpusId 非空 或 isAnswered（用户给这题存过料）。未绑语料才是真·没素材。
   const hasCorpus = card.corpusId !== null || card.isAnswered
+  // 「生成已完成」判据 = drain 整卡原子写回后 generatedAnswer 非 null（哪怕所有点留空、JSON 串 "[...]" 仍非
+  // null），或用户已逐点编辑（editedAnswer 非空）。据此把「生成中」与「生成完但这点没料」分开——不能用
+  // anyEn 启发式（全留空时会永远误判成生成中）。
+  const genDone = card.generatedAnswer !== null || (card.editedAnswer !== null && card.editedAnswer !== '')
 
   if (points.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-center">
         <p className="text-[13px] text-v2-text-muted">这道题还没有可展示的答题要点</p>
-      </div>
-    )
-  }
-
-  // 生成中：已绑语料但各点英文尚未回填 → 整卡显「例句生成中」，不逐点渲染「这点你还没讲到」（避免逐点责备），
-  // 也不显补料引导（料已经绑了，用户该做的是等，不是再补）。
-  if (allEmpty && hasCorpus) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-        <p className="text-[14px] text-v2-text-secondary">例句生成中</p>
-        <p className="text-[13px] text-v2-text-muted leading-[1.5]">这题的例句正在生成，稍后回来看就好</p>
       </div>
     )
   }
@@ -201,19 +191,18 @@ function CardBack({ card, onSupplement }: {
     <div className="flex-1 flex flex-col justify-center">
       <ul className={`flex flex-col ${gapClass}`}>
         {points.map((p) => (
-          <PointRow key={p.idx} p={p} questionId={card.questionId} onSupplement={onSupplement} />
+          <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
         ))}
       </ul>
-      {/* 全空且未绑语料兜底：真·没素材 → 卡底一条补料引导（引导色、非告警）。「已绑语料但生成中」的全空
-          已在上方提前 return，走不到这里，故此处 allEmpty 必为未绑语料。 */}
-      {allEmpty && (
+      {/* 卡底 CTA：仅「未绑语料且全空」的题显示——引导去绑第一句语料生成例句。有语料的卡（含全留空 B′）不显示。 */}
+      {allEmpty && !hasCorpus && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onSupplement?.(card.questionId) }}
           disabled={!onSupplement}
-          className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[13px] text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
+          className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
         >
-          这道题你的语料还比较少，去补几句
+          绑一句语料，生成你的英文例句
           <ChevronRight size={14} />
         </button>
       )}
