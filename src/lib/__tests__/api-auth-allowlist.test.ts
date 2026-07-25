@@ -6,6 +6,11 @@
  *           ⑤ 名单外抛 403 ⑥ 查表失败 fail-open 放行 ⑦ 大小写不一致仍匹配（两侧 lower）。
  *           api-auth 内有 60 秒进程内缓存，故每个用例前 resetModules 重新加载，杜绝用例间串味。
  *           全依赖 mock，不碰真实 DB。
+ *
+ *           鉴权链已从 auth.getUser 迁到本地验签（jwt-verify），故此处 mock 掉 @/lib/jwt-verify：
+ *           ① 隔离纯 ESM 包 jose（ts-jest 转 CommonJS 无法解析其 export 语法，会整套件崩）；
+ *           ② 让 verifyAccessToken 直接吐出可控 payload（sub/email/is_anonymous），本套件只测白名单闸、
+ *              不测验签本身。api-auth 另会查 revoked_users 做即时吊销兜底，故 supabase mock 也提供该表。
  * @author   LingoBridge
  * @created  2026-07-19
  */
@@ -16,6 +21,12 @@ jest.mock('@/lib/env-server', () => ({ env: { adminEmails: '' } }))
 const mockSupabaseHolder: { current: unknown } = { current: null }
 jest.mock('@/lib/supabase-server', () => ({ getSupabaseServer: () => mockSupabaseHolder.current }))
 
+/** 持有当前用例期望的验签 payload（verifyAccessToken 的返回），由 setup 按 user 填充。 */
+const mockPayloadHolder: { current: { sub: string; email: string | null; is_anonymous: boolean; exp: number } } = {
+  current: { sub: 'u0', email: null, is_anonymous: false, exp: Math.floor(Date.now() / 1000) + 3600 },
+}
+jest.mock('@/lib/jwt-verify', () => ({ verifyAccessToken: () => Promise.resolve(mockPayloadHolder.current) }))
+
 import type { requireUser as RequireUser } from '@/lib/api-auth'
 
 /** 造一个请求头带合法 Bearer token 的 Request。 */
@@ -24,17 +35,24 @@ function req(): Request {
 }
 
 /**
- * 装配 supabase mock：getUser 回指定用户，beta_allowlist 查询回指定行/错误。
- * @param user      getUser 返回的用户（email 可为 null 表示匿名）
+ * 装配鉴权 mock：verifyAccessToken 吐出指定用户的 payload，beta_allowlist 查询回指定行/错误。
+ * @param user      验签 payload 对应的用户（email 可为 null 表示匿名/无邮箱）
  * @param allowlist 白名单查询结果；传 'error' 表示查表失败
  */
 function setup(
   user: { id: string; email: string | null; is_anonymous: boolean },
   allowlist: Array<{ email: string }> | 'error',
 ): void {
+  mockPayloadHolder.current = {
+    sub: user.id,
+    email: user.email,
+    is_anonymous: user.is_anonymous,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  }
   mockSupabaseHolder.current = {
-    auth: { getUser: () => Promise.resolve({ data: { user }, error: null }) },
     from: (table: string) => {
+      // 即时吊销兜底：authUser 验签后查 revoked_users，本套件用例均非吊销用户，恒返回空集。
+      if (table === 'revoked_users') return { select: () => Promise.resolve({ data: [], error: null }) }
       if (table !== 'beta_allowlist') throw new Error(`unexpected table ${table}`)
       return {
         select: () =>

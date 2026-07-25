@@ -42,6 +42,9 @@ function result(key: string): { error: { message: string } | null } {
 function makeAdmin() {
   return {
     from: (table: string) => ({
+      // revoked_users 吊销名单写入（route 步骤 1.2）：失败仅 logErr、不阻断删号，故默认成功。
+      // 记 `upsert:${table}` 到 tableErrors 可模拟失败分支（当前无用例需要，预留）。
+      upsert: async () => ({ error: tableErrors[`upsert:${table}`] ?? null }),
       select: () => ({ eq: async () => ({ data: [], error: null }) }),
       delete: () => ({
         eq: async () => result(`delete:${table}`),

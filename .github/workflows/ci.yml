@@ -1,0 +1,48 @@
+# push / PR 到 main 时跑全套质量闸：类型检查 + lint + 单测 + 生产构建，任一失败即红。
+# 目的：把「白名单闸 / 同意闸 / 删号合规」等回归保护挂到合并前必过的门禁上（配合仓库 branch protection）。
+# 注：build 只验证「能否编译」，不做真实外呼——故 env 用占位值即可（真实密钥在 Zeabur 运行时注入，不进 CI）。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支/PR 新推送时取消上一次仍在跑的 CI，省 runner 额度。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 类型检查（strict TS）
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: 单元测试
+        run: npx jest
+
+      # next build 会预渲染静态页并静态分析全部路由：只需环境变量存在且格式合法即可编译，
+      # 不建立真实 Supabase / AI 连接。故此处用占位值，绝不把生产密钥放进 CI。
+      - name: 生产构建
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+          CONSENT_HASH_SALT: placeholder-salt
+        run: npm run build

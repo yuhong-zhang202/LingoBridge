@@ -52,6 +52,9 @@ beforeEach(() => {
   mockGetSupabase.mockReturnValue({
     from: (table: string) => {
       if (table === 'consent_records') return { insert: insertSpy }
+      // route 成功后 fire-and-forget 往 perf_samples 写验签/插库耗时埋点（void ...then()），
+      // 与同意主流程解耦；此处给个恒成功的 thenable，避免埋点写入干扰被测断言。
+      if (table === 'perf_samples') return { insert: () => Promise.resolve({ error: null }) }
       throw new Error(`unexpected table ${table}`)
     },
   } as never)
