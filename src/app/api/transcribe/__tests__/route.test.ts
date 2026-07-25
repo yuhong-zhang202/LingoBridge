@@ -8,7 +8,9 @@
  *           ④【排队超时绝不扣次数】—— 等待发生在计次之前，超时用户一次都不该被扣。
  *           另守卫失败记账口径：⑤ EMPTY_TRANSCRIPT 打 metadata.error_kind='user_input' 且按真实时长记费
  *           （看板据此从错误率摘出、但保留在失败成本里）；其余失败记 0。
- *           ⑥ 无论成功/失败，metadata 始终带 phase='transcribe'（2026-07-25 补埋点，让转写故障按环节归位）。
+ *           ⑥ 无论成功/失败，metadata 始终带 phase（2026-07-25 补埋点，让转写故障按环节归位）；
+ *             2026-07-26 起按 FormData 的 scene 细分：'story'→transcribe_story（语料转写）、
+ *             'practice'→transcribe_practice（练习转写），缺省/非法回退 'transcribe'（兼容旧客户端）。
  *           ⑦ 失败记账补 error_code/error_message 三键（供应商响应、无 PII）；并发超限 45000292 打
  *             error_kind='capacity'（人多稍等、非系统故障，看板据此再从错误率摘出）。
  * @author   LingoBridge
@@ -72,10 +74,14 @@ const gateMock = jest.requireMock('@/lib/concurrency-gate') as {
   __createdWith: unknown[]
 }
 
-/** 造一个带音频文件的 multipart 请求 */
-function audioReq(): Request {
+/**
+ * 造一个带音频文件的 multipart 请求
+ * @param scene  可选场景标（'story'/'practice'/非法值）；缺省不带 = 旧客户端行为
+ */
+function audioReq(scene?: string): Request {
   const form = new FormData()
   form.append('audio', new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'audio/webm' }), 'a.webm')
+  if (scene !== undefined) form.append('scene', scene)
   return new Request('http://localhost/api/transcribe', {
     method: 'POST',
     headers: { authorization: 'Bearer t' },
@@ -145,7 +151,7 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
     await POST(audioReq())
 
     // 1 秒音频 × ¥0.0001/s（mock 单价）。记 0 会让成本看板的"失败成本"永远看不到这笔白烧。
-    // metadata 始终带 phase='transcribe'（按环节归位）+ error_code/error_message 三键（供应商响应、无 PII）；
+    // metadata 始终带 phase（本用例不带 scene → 兜底 'transcribe'）+ error_code/error_message 三键（供应商响应、无 PII）；
     // 空录音再叠 error_kind='user_input'（不计系统故障）。cause 无 logId 故不带该键。
     expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
       status: 'error',
@@ -177,8 +183,45 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
 
     const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
     expect(arg.estimated_cost_cny).toBe(0)
-    // 即便 ASR 前失败，失败记账仍带 phase='transcribe' + 三键（无 error_kind → 系统故障口径不变）
+    // 即便 ASR 前失败，失败记账仍带 phase（不带 scene → 兜底 'transcribe'）+ 三键（无 error_kind → 系统故障口径不变）
     expect(arg.metadata).toEqual({ phase: 'transcribe', error_code: 'unknown', error_message: 'ffmpeg 挂了' })
+  })
+})
+
+describe('phase 埋点 · 按 FormData 的 scene 区分语料转写 / 练习转写', () => {
+  test.each([
+    ['story → transcribe_story（语料转写）', 'story', 'transcribe_story'],
+    ['practice → transcribe_practice（练习转写）', 'practice', 'transcribe_practice'],
+  ])('成功记账：%s', async (_label, scene, expectedPhase) => {
+    const res = await POST(audioReq(scene))
+
+    expect(res.status).toBe(200)
+    expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      metadata: { phase: expectedPhase },
+    }))
+  })
+
+  test('失败记账同样按 scene 打 phase：练习轮次上游超时 → phase=transcribe_practice', async () => {
+    mockTranscribe.mockRejectedValue(new Error('上游超时'))
+
+    await POST(audioReq('practice'))
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
+    expect(arg.metadata).toEqual({ phase: 'transcribe_practice', error_code: 'unknown', error_message: '上游超时' })
+  })
+
+  test.each([
+    ['缺省（旧客户端缓存页面不带 scene）', undefined],
+    ['非法值（不认识的场景标不瞎归类）', 'bogus'],
+  ])('回退语义：%s → phase=transcribe', async (_label, scene) => {
+    const res = await POST(audioReq(scene))
+
+    expect(res.status).toBe(200)
+    expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      metadata: { phase: 'transcribe' },
+    }))
   })
 })
 

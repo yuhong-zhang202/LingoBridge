@@ -19,6 +19,8 @@ const SERVICE_META: Record<string, { name: string; color: string }> = {
 
 // 环节（phase）中文名：各 route 在 metadata.phase 打的标签。
 // transcribe（最高频环节）自 2026-07-25 起补打 phase，其失败不再落 other 桶、可按环节归位；
+// 2026-07-26 起再按客户端 scene 细分 transcribe_story（语料链路）/ transcribe_practice（练习对话轮次）；
+// 裸 transcribe 保留 = 细分前的历史行 + 旧客户端缓存页面的兜底。
 // matching 是 /api/matching catch 处无法判定挂在哪步时的兜底 phase，补此键避免前端显示生字符串 'matching'。
 const PHASE_META: Record<string, string> = {
   extraction:  '观察点萃取',
@@ -31,6 +33,8 @@ const PHASE_META: Record<string, string> = {
   restructure: '语料整理',
   polish:      '单句润色',
   transcribe:  '语音转写',
+  transcribe_story:    '语料转写',
+  transcribe_practice: '练习转写',
   other:       '其他',
 }
 

@@ -24,10 +24,12 @@ const SVC: Record<string, [string, string]> = {
 }
 // 环节（metadata.phase）中文名：与 dashboard/route.ts 的 PHASE_META 同源。失败视图「环节」列据此显示，
 // 缺 phase（埋点前的历史失败行）显示「未标注」而非生 key。
+// transcribe_story / transcribe_practice：2026-07-26 起转写按场景细分；裸 transcribe = 历史行 + 兜底。
 const PHASE_LABEL: Record<string, string> = {
   extraction: '观察点萃取', ranking: '题目重排', matching: '匹配', analysis: '侧重点分析',
   coach: '教练对话', phrases: '词组生成', pronounce: '发音提示', restructure: '语料整理',
   polish: '单句润色', transcribe: '语音转写', anki_answer: '卡背生成', other: '其他',
+  transcribe_story: '语料转写', transcribe_practice: '练习转写',
 }
 // 承载文字改用 v2-text-secondary（达 AA 对比度），服务色只做左侧圆点点缀，不再压白当文字色（a11y 正文级）。
 function Badge({ s }: { s: string }) {

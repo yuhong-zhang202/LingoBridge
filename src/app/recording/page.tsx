@@ -80,6 +80,8 @@ function RecordingContent(): JSX.Element {
       if (blob.size > 10 * 1024 * 1024) throw new Error('录音过长，请分段录制') // ENGINEERING §9
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
+      // scene='story'：语料转写（录音→整理语料链路）。仅供服务端打 phase 埋点区分看板归位，不影响转写行为。
+      form.append('scene', 'story')
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const res = await apiFetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
       // 服务端同意闸拒绝（未捕获同意）：这两个 AI 路由的 403 只可能是缺同意。回首页触发同意弹窗，

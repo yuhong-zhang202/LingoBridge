@@ -238,6 +238,8 @@ function PracticeContent(): JSX.Element {
       // 每次现构 FormData：body 被消费过不可复用（重试/文字取消后重发都要新构一份）
       const form = new FormData()
       form.append('audio', blob, 'turn.webm')
+      // scene='practice'：练习转写（对话轮次）。仅供服务端打 phase 埋点区分看板归位，不影响转写行为。
+      form.append('scene', 'practice')
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗。

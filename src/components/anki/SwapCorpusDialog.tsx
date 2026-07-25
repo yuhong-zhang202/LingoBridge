@@ -10,7 +10,7 @@
  * @created  2026-07-25
  */
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import GradientButton from '@/components/GradientButton'
@@ -34,6 +34,33 @@ function summaryText(summary: string | null): string {
   return s && s !== '' ? s : '（这条语料还没有概括）'
 }
 
+/** 超过此字数视为「长语料」，默认折叠 + 「查看更多」展开（3 行 ≈ 60 中文字，留余量取 60）。 */
+const SUMMARY_CLAMP_CHARS = 60
+
+/**
+ * 语料文本（长文折叠）：≤阈值直接全显；超长默认 line-clamp-3，尾部给「查看更多/收起」切换。
+ * 用字数判断而非测量 DOM（弹窗内容短平快，不值得上 ResizeObserver）。
+ */
+function CorpusSummary({ text, className }: { text: string; className: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const isLong = text.length > SUMMARY_CLAMP_CHARS
+  return (
+    <div className="mt-2">
+      <p className={`${className} leading-relaxed ${isLong && !expanded ? 'line-clamp-3' : ''}`}>{text}</p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
+          className="mt-1 min-h-[32px] text-[12px] font-medium text-brand-primary-dark active:opacity-60"
+          aria-expanded={expanded}
+        >
+          {expanded ? '收起' : '查看更多'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, onSwap, onKeepCurrent }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +70,9 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
     return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
   }
 
-  useEffect(() => { focusables()[0]?.focus() }, [])
+  // 焦点移入【面板本身】而非首个按钮：程序化 focus 到按钮会点亮全局 :focus-visible 橙焦点环，
+  // 开屏即给主 CTA 套一圈橙框（产品方点名去掉）。聚焦面板读屏照常播报 dialog，Tab 一下即到按钮。
+  useEffect(() => { panelRef.current?.focus() }, [])
 
   // Esc 关闭 + Tab 焦点陷阱（照 QuotaReached）。换语料进行中仍允许关闭键（请求已发出，关闭只收起 UI）。
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -72,6 +101,8 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
         role="dialog"
         aria-modal="true"
         aria-labelledby="swap-corpus-title"
+        tabIndex={-1}
+        style={{ outline: 'none' }}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[380px] bg-bg-surface rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] animate-fade-up px-6 py-7"
       >
@@ -85,11 +116,11 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
         <div className="flex flex-col gap-3 mt-5">
           <Card className="px-4 py-3.5">
             <Tag variant="gray" label="当前语料" />
-            <p className="text-[14px] text-v2-text-secondary leading-relaxed mt-2">{summaryText(currentCorpus.summary)}</p>
+            <CorpusSummary text={summaryText(currentCorpus.summary)} className="text-[14px] text-v2-text-secondary" />
           </Card>
           <Card variant="gradient" className="px-4 py-3.5">
             <Tag variant="green" label="新语料" />
-            <p className="text-[14px] text-v2-text-primary leading-relaxed mt-2">{summaryText(newCorpus.summary)}</p>
+            <CorpusSummary text={summaryText(newCorpus.summary)} className="text-[14px] text-v2-text-primary" />
           </Card>
         </div>
 

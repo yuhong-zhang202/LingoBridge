@@ -173,7 +173,7 @@ export default function PracticeDesktop({
               </GradientButton>
             </div>
           ) : phase === 'transcribeFailed' ? (
-            <TranscribeFailCard onRetry={onRetryTranscribe} onUseText={onUseTextInput} />
+            <TranscribeFailCard onRetry={onRetryTranscribe} />
           ) : phase === 'textInput' ? (
             <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
           ) : (

@@ -54,6 +54,15 @@ export const maxDuration = 60
 /** 豆包并发超限错误码（transcription 层把上游 X-Api-Status-Code 原样放进 AppError.code） */
 const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
 
+// ——— 场景 → phase 埋点值 ———
+// 客户端 FormData 带 scene 区分两条转写链路：'story'=录音→整理语料（recording 页）、
+// 'practice'=练习对话每轮转写（practice 页）。看板据此把「语料转写」「练习转写」分开归位。
+// 缺省/非法值回退 'transcribe'（兼容旧客户端缓存页面的历史行为）。只改埋点值，转写行为/计次/error_kind 不变。
+const SCENE_PHASE: Record<string, string> = {
+  story:    'transcribe_story',
+  practice: 'transcribe_practice',
+}
+
 /** 「人多」的三种来源：本地队列满 / 本地等待超时 / 仍被豆包判并发超限 */
 type BusyReason = GateRejectReason | 'upstream_limit'
 
@@ -96,6 +105,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   //   · billedDurationS —— 豆包已完整处理的音频秒数，仅在「调用真的走完一整趟」的失败里用于记账（见 catch）。
   let attribution: { userId: string; isAnonymous: boolean } | null = null
   let billedDurationS: number | null = null
+  // phase 埋点值：解析出 FormData 的 scene 后按 SCENE_PHASE 定值；解析前（如鉴权失败）保持兜底 'transcribe'。
+  // 声明在 try 外，让 catch 的失败记账拿到与成功路径一致的 phase。
+  let phase = 'transcribe'
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
     attribution = { userId, isAnonymous }
@@ -105,6 +117,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '请先在首页阅读并同意隐私说明', code: 'CONSENT_REQUIRED' }, { status: 403 })
     }
     const form = await req.formData()
+    // scene 只影响 phase 埋点值，不参与任何业务分支；非法/缺省保持 'transcribe'
+    const scene = form.get('scene')
+    if (typeof scene === 'string' && SCENE_PHASE[scene]) phase = SCENE_PHASE[scene]
     const file = form.get('audio')
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: '缺少音频文件' }, { status: 400 })
@@ -150,8 +165,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
         transcribeAudio(wavBlob),
       )
-      // metadata.phase='transcribe'：让看板按环节归位这个最高频环节的耗时/故障，不再落 other 桶。
-      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'transcribe' } })
+      // metadata.phase：按 scene 分 transcribe_story / transcribe_practice（缺省 'transcribe'），
+      // 让看板把「语料转写」「练习转写」两条链路的耗时/故障分开归位，不落 other 桶。
+      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase } })
       return NextResponse.json({ text })
     } finally {
       // 名额必须归还：无论成功、超额早退还是抛错。漏了就是永久泄漏，闸门会越关越死。
@@ -180,10 +196,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       latency_ms: Date.now() - t0,
       status: 'error',
       ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
-      // phase='transcribe' 始终打（按环节归位）；error_code/error_message/logId 三键来自豆包响应、无用户内容；
+      // phase 始终打（按环节归位；scene 已解析则为 transcribe_story/transcribe_practice，否则兜底 'transcribe'）；
+      // error_code/error_message/logId 三键来自豆包响应、无用户内容；
       // 再按情形叠 error_kind（user_input / capacity，均不计系统故障）。
       metadata: {
-        phase: 'transcribe',
+        phase,
         ...errorLogMeta(e),
         ...(errorKind ? { [ERROR_KIND_KEY]: errorKind } : {}),
       },
