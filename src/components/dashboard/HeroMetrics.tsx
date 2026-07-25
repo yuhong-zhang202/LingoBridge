@@ -59,12 +59,12 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
           <div className="text-[40px] md:text-[44px] font-bold text-v2-text-primary leading-none tabular-nums">
             {data.registeredActiveToday}
           </div>
-          {/* 匿名副行：会话数（含重复访问、非去重真人），绝不与注册相加。为 0 时整行隐藏 */}
+          {/* 匿名副行：去重身份（匿名 user_id 按设备持久去重，非唯一真人），绝不与注册相加。为 0 时整行隐藏 */}
           {data.anonSessionsToday > 0 && (
             <div className="flex items-center gap-1.5 mt-2.5">
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-neutral-mid" />
               <span className="text-[12px] text-v2-text-muted">
-                另有匿名试用 {data.anonSessionsToday} 次会话 · 含重复访问 · 非去重真人
+                另有匿名试用 {data.anonSessionsToday} · 去重身份 · 按设备持久 · 非唯一真人
               </span>
             </div>
           )}

@@ -26,7 +26,8 @@ type UserTotal    = { userId: string; isAnonymous: boolean; cost: number; calls:
 type RecentLog = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
-  metadata?: { phase?: string; cost_source?: string; error_kind?: string } | null
+  // error_code/error_message/logId：失败记账三键（供应商响应、无 PII），失败明细表据此显示错误码 + hover message
+  metadata?: { phase?: string; cost_source?: string; error_kind?: string; error_code?: string; error_message?: string; logId?: string } | null
 }
 type PhaseLatency = { phase: string; name: string; p50: number; p90: number; max: number; calls: number }
 type TrendPhase   = { phase: string; name: string; days: Array<{ date: string; p50: number | null; p90: number | null; calls: number }> }
@@ -75,53 +76,96 @@ const RANGE_LABEL: Record<Range, string> = { '7d': '7天', '14d': '14天', '30d'
 // 取 v2-text-muted token 值（#7C6B5E，on surface 5.09:1 达 AA），替换原 #A89990（2.75:1 不达标）。
 const AXIS_TICK_FILL = '#7C6B5E'
 
-// 迷你统计条（含【日均调用】）—— 归入 F 组「原始日志排障」，从首屏踢出（日均调用曾在首屏误导，pm 点名）。
+// 迷你统计条（含【日均调用】）—— 归入 E 组「技术明细」，从首屏踢出（日均调用曾在首屏误导，pm 点名）。
+// 延迟一律以秒展示（÷1000 保留 1 位小数，如 3.8s / 15.4s），与看板其余耗时口径统一、别取整丢分辨率。
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
   // 中位数而非均值：同输入长度不同的调用延迟能差 3 倍，均值谁也不代表（P95 保留，答"最坏能多坏"）
-  { label: '中位数延迟', value: `${d.p50Latency}ms` },
-  { label: 'P95 延迟', value: `${d.p95Latency}ms` },
+  { label: '中位数延迟', value: `${(d.p50Latency / 1000).toFixed(1)}s` },
+  { label: 'P95 延迟', value: `${(d.p95Latency / 1000).toFixed(1)}s` },
   { label: '错误率',   value: `${d.errorRate}%` },
   { label: '日均费用', value: formatCny(d.avgDailyCost) },
   { label: '估算占比', value: `${d.estimateRatio}%` },
 ]
 
+/** other 桶显示名：明确它是「未标注环节」而非某个真实环节（pm 方案 §2.3） */
+function phaseDisplayName(p: PhaseTotal): string {
+  return p.phase === 'other' ? '其他（未标注环节）' : p.name
+}
+
 /**
- * 「按环节成本 / 失败率」视图 — 哪个环节最贵、哪个环节在失败。横向条按最高成本归一化。
- * 有失败的环节额外标出「失败率 + 白烧成本」：如 matching 中 extraction 成功记账后 ranking 失败，
- * 该环节的钱花了却没拿到结果，从这里能一眼定位是哪个环节在漏钱。
- * @param phases     已按成本降序的环节聚合数组
- * @param failedCost 本期全部失败调用的成本合计（白烧总额）
+ * 块A「钱花在哪个环节」（归成本组）— 横条按最高成本归一，每行 = 环节名 + 成本条 + ¥金额 + 占本期总成本%。
+ * 刻意删失败率、删次数：这块只回答"钱花哪了"，失败拆到块B。other 桶照实按成本排、不隐藏（pm 方案 §2.3）。
+ * @param phases  已按成本降序的环节聚合数组
  */
-function PhaseBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; failedCost: number }) {
-  const max = phases.reduce((m, p) => Math.max(m, p.cost), 0)
+function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
+  const max   = phases.reduce((m, p) => Math.max(m, p.cost), 0)
+  const total = phases.reduce((s, p) => s + p.cost, 0)
+  const hasOther = phases.some(p => p.phase === 'other')
   return (
-    <section aria-label="按环节成本与失败率" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
+    <section aria-label="按环节成本" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2">
-        <h2 className="text-[13px] font-semibold text-v2-text-primary">按环节成本 / 失败率</h2>
-        {failedCost > 0 && (
-          <span className="text-[11px] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
-        )}
+        <h2 className="text-[13px] font-semibold text-v2-text-primary">钱花在哪个环节</h2>
+        <span className="text-[10px] text-v2-text-muted">占本期总成本</span>
       </div>
       {phases.length === 0 ? (
         <div className="text-v2-text-muted text-[12px] py-4 text-center">本期暂无环节数据</div>
       ) : (
         <div className="space-y-2">
-          {phases.map(p => (
-            <div key={p.phase} className="flex items-center gap-3">
-              <span className="text-[11px] text-v2-text-secondary w-24 flex-shrink-0 truncate">{p.name}</span>
-              <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${p.errors > 0 ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
-                  style={{ width: `${max > 0 ? (p.cost / max) * 100 : 0}%` }} />
+          {phases.map(p => {
+            const name = phaseDisplayName(p)
+            const pct  = total > 0 ? Math.round(p.cost / total * 100) : 0
+            return (
+              <div key={p.phase} className="flex items-center gap-3">
+                <span className="text-[11px] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={name}>{name}</span>
+                <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-brand-accent/70"
+                    style={{ width: `${max > 0 ? (p.cost / max) * 100 : 0}%` }} />
+                </div>
+                <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
+                <span className="text-[10px] text-v2-text-muted w-10 text-right flex-shrink-0 tabular-nums">{pct}%</span>
               </div>
-              {/* 失败标记：仅有失败的环节显示，暖色警示 + 失败率，无失败则留空不干扰 */}
-              <span className="text-[10px] w-20 text-right flex-shrink-0">
-                {p.errors > 0
-                  ? <span className="text-warning-text font-medium">失败 {p.errorRate}%</span>
-                  : <span className="text-v2-text-muted">—</span>}
+            )
+          })}
+          {hasOther && (
+            <div className="text-[10px] text-v2-text-muted mt-2 leading-relaxed">
+              「其他（未标注环节）」多为埋点前的转写调用，新数据会自动归位。
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/**
+ * 块B「哪个环节在失败」（归故障组）— 只列 errors>0 的环节，每行 = 环节名 + 失败X次(占该环节调用Y%) + 白烧¥。
+ * 如 matching 中 extraction 成功记账后 ranking 失败，从这里能一眼定位是哪个环节在漏钱。全无失败显示占位文案。
+ * @param phases     环节聚合数组（内部按失败次数降序重排）
+ * @param failedCost 本期全部失败调用的成本合计（白烧总额）
+ */
+function PhaseFailureBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; failedCost: number }) {
+  const failing = phases.filter(p => p.errors > 0).sort((a, b) => b.errors - a.errors || b.errorCost - a.errorCost)
+  return (
+    <section aria-label="按环节失败率" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
+      <div className="flex items-baseline justify-between mb-3 gap-2">
+        <h2 className="text-[13px] font-semibold text-v2-text-primary">哪个环节在失败</h2>
+        {failedCost > 0 && (
+          <span className="text-[11px] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
+        )}
+      </div>
+      {failing.length === 0 ? (
+        <div className="text-v2-text-muted text-[12px] py-4 text-center">本期各环节无失败</div>
+      ) : (
+        <div className="space-y-2">
+          {failing.map(p => (
+            <div key={p.phase} className="flex items-center gap-3">
+              <span className="text-[11px] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={phaseDisplayName(p)}>{phaseDisplayName(p)}</span>
+              <span className="flex-1 text-[11px] text-warning-text">
+                失败 <span className="font-medium tabular-nums">{p.errors}</span> 次
+                <span className="text-v2-text-muted">（占该环节调用 {p.errorRate}%）</span>
               </span>
-              <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
-              <span className="text-[10px] text-v2-text-muted w-14 text-right flex-shrink-0">{p.calls} 次</span>
+              <span className="text-[11px] font-medium text-warning-text w-24 text-right flex-shrink-0 tabular-nums">白烧 {formatCny(p.errorCost)}</span>
             </div>
           ))}
         </div>
@@ -315,11 +359,12 @@ export default function DashboardPage() {
           口径说明：上方四数卡为今日口径（按东八区日历边界）；以下展开区的所有图表与统计均为所选区间（{RANGE_LABEL[range]}）口径。
         </div>
 
-        {/* A · 增长（默认展开） */}
-        <CollapsibleSection title="A · 增长" subtitle="今日新增 · 留存（下一步）" defaultOpen>
+        {/* A · 增长与参与（默认展开）：原「增长」+「参与度趋势」并组 */}
+        <CollapsibleSection title="A · 增长与参与" subtitle="今日新增 · 活跃场次 · 留存（下一步）" defaultOpen>
           <div className="flex gap-2.5 flex-wrap">
             <GrowthStat label="今日新增注册" value={data.newRegistrationsToday} note="profiles 今日 created_at 计数" />
-            <GrowthStat label="今日匿名活跃" value={data.anonSessionsToday} note="匿名会话数 · 含重复访问 · 非去重真人" />
+            {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
+            <GrowthStat label="今日匿名活跃" value={data.anonSessionsToday} note="去重身份 · 按设备持久 · 非唯一真人" />
             {data.retentionPending && (
               <PendingPlaceholder title="次日 / 7 日留存" reason="需 user_id 跨天配对，口径较重，本轮先占位。" />
             )}
@@ -331,28 +376,35 @@ export default function DashboardPage() {
           <div className="text-[10px] text-v2-text-muted mt-3">
             注：暂不给「匿名→注册」转化率——需匹配匿名与注册的复杂口径，先给上面两个数供人工对照。
           </div>
+          {/* 参与度趋势（活跃 + 场次双线）并入本组 */}
+          <div className="mt-4">
+            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 活跃人数 + 练习场次</div>
+            {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
+              ? <EngagementTrendChart data={data.engagementTrend} />
+              : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
+          </div>
         </CollapsibleSection>
 
-        {/* B · 故障明细 */}
-        <CollapsibleSection title="B · 故障明细" subtitle="每日系统故障（不含空录音）">
+        {/* B · 故障与排障：每日失败柱 + 按环节失败率（块B）+ 失败明细表（默认失败视图） */}
+        <CollapsibleSection title="B · 故障与排障" subtitle="每日系统故障 · 按环节失败 · 失败明细">
           <DailyFailureChart data={data.dailyFailures} />
+          <div className="mt-4">
+            {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本 */}
+            <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+            {/* 失败明细表：本组只给失败视图（每日故障图的下钻出口），最近/最贵归 E 组 */}
+            <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
+              views={['failed']} defaultMode="failed" />
+          </div>
         </CollapsibleSection>
 
-        {/* C · 耗时 */}
-        <CollapsibleSection title="C · 各环节耗时" subtitle="分布 / 趋势">
+        {/* C · 性能耗时：各环节耗时（已换人话 / 秒） */}
+        <CollapsibleSection title="C · 性能耗时" subtitle="每个 AI 环节要跑多久">
           <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
             cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
         </CollapsibleSection>
 
-        {/* D · 趋势（活跃 + 场次双线） */}
-        <CollapsibleSection title="D · 参与度趋势" subtitle="活跃人数 + 练习场次">
-          {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
-            ? <EngagementTrendChart data={data.engagementTrend} />
-            : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
-        </CollapsibleSection>
-
-        {/* E · 成本细节 */}
-        <CollapsibleSection title="E · 成本细节" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户">
+        {/* D · 成本：费用卡 · 趋势 · 按服务 · 按环节（块A）· 按用户 */}
+        <CollapsibleSection title="D · 成本" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户">
           {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
           <CostCards data={data} />
           <div className="text-[10px] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
@@ -381,15 +433,15 @@ export default function DashboardPage() {
             注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在卡片染色提示，不触发任何告警推送。
           </div>
 
-          {/* 按环节成本 / 失败率 */}
-          <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+          {/* 块A「钱花在哪个环节」：横条 + ¥金额 + 占本期总成本%（失败率拆到 B 组） */}
+          <PhaseCostBreakdown phases={data.phaseTotals} />
           {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
           <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
         </CollapsibleSection>
 
-        {/* F · 原始日志排障 */}
-        <CollapsibleSection title="F · 原始日志排障" subtitle="性能指标 · 小时分布 · 调用明细">
-          {/* 迷你统计条（含日均调用，从首屏移入此处） */}
+        {/* E · 技术明细：迷你条（秒）· 小时分布 · 调用明细（最近 / 最贵）· 单价参考 */}
+        <CollapsibleSection title="E · 技术明细" subtitle="性能指标 · 小时分布 · 调用明细 · 单价">
+          {/* 迷你统计条（含日均调用，从首屏移入此处；延迟已改秒） */}
           <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mb-4 overflow-hidden">
             {MINI_STATS(data).map(s => (
               <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
@@ -433,8 +485,9 @@ export default function DashboardPage() {
             )}
           </section>
 
-          {/* 调用明细表格（最近 / 最贵 / 失败可切换，失败视图是每日故障图的下钻出口） */}
-          <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs} />
+          {/* 调用明细表格：本组给最近 / 最贵（失败视图归 B 组故障与排障） */}
+          <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
+            views={['recent', 'costly']} defaultMode="recent" />
 
           {/* 底部单价参考 */}
           <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">

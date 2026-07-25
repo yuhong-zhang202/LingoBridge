@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { errorLogMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
@@ -220,7 +221,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 失败行补 phase：本 catch 包住 extraction + ranking 两步（都在 matchByStory 内深处），
     // 从 catch 处无法判定挂在哪一步，故用能表意的兜底值 'matching'（看板 PHASE_META 无此键则原样显示，
     // 仍好过掉进空 metadata 的 other 桶）。此处只接系统故障（入参校验在前面已 400 早退），不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e) } })
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }

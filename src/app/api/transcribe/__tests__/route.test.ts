@@ -9,6 +9,8 @@
  *           另守卫失败记账口径：⑤ EMPTY_TRANSCRIPT 打 metadata.error_kind='user_input' 且按真实时长记费
  *           （看板据此从错误率摘出、但保留在失败成本里）；其余失败记 0。
  *           ⑥ 无论成功/失败，metadata 始终带 phase='transcribe'（2026-07-25 补埋点，让转写故障按环节归位）。
+ *           ⑦ 失败记账补 error_code/error_message 三键（供应商响应、无 PII）；并发超限 45000292 打
+ *             error_kind='capacity'（人多稍等、非系统故障，看板据此再从错误率摘出）。
  * @author   LingoBridge
  * @created  2026-07-20
  */
@@ -143,12 +145,13 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
     await POST(audioReq())
 
     // 1 秒音频 × ¥0.0001/s（mock 单价）。记 0 会让成本看板的"失败成本"永远看不到这笔白烧。
-    // metadata 始终带 phase='transcribe'（按环节归位）；空录音再叠 error_kind='user_input'（不计系统故障）。
+    // metadata 始终带 phase='transcribe'（按环节归位）+ error_code/error_message 三键（供应商响应、无 PII）；
+    // 空录音再叠 error_kind='user_input'（不计系统故障）。cause 无 logId 故不带该键。
     expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
       status: 'error',
       usage_amount: 1,
       estimated_cost_cny: 0.0001,
-      metadata: { phase: 'transcribe', error_kind: 'user_input' },
+      metadata: { phase: 'transcribe', error_code: 'EMPTY_TRANSCRIPT', error_message: '没识别到内容', error_kind: 'user_input' },
       user_id: 'u1',              // 失败行同样要归到人，否则「按用户成本」漏账
       is_anonymous: false,
     }))
@@ -161,8 +164,9 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
 
     const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
     expect(arg.status).toBe('error')
-    // metadata 只带 phase、无 error_kind → 看板按系统故障计入错误率，但已按环节归位到「语音转写」
-    expect(arg.metadata).toEqual({ phase: 'transcribe' })
+    // 无 error_kind → 看板按系统故障计入错误率，但已按环节归位到「语音转写」；三键中裸 Error 无 code→'unknown'，
+    // error_message 取 Error.message，无 cause.logId 故不带 logId
+    expect(arg.metadata).toEqual({ phase: 'transcribe', error_code: 'unknown', error_message: '上游超时' })
     expect(arg.estimated_cost_cny).toBe(0) // 豆包没跑完整趟，不认这笔钱
   })
 
@@ -173,8 +177,8 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
 
     const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as Record<string, unknown>
     expect(arg.estimated_cost_cny).toBe(0)
-    // 即便 ASR 前失败，失败记账仍带 phase='transcribe'（无 error_kind → 系统故障口径不变）
-    expect(arg.metadata).toEqual({ phase: 'transcribe' })
+    // 即便 ASR 前失败，失败记账仍带 phase='transcribe' + 三键（无 error_kind → 系统故障口径不变）
+    expect(arg.metadata).toEqual({ phase: 'transcribe', error_code: 'unknown', error_message: 'ffmpeg 挂了' })
   })
 })
 
@@ -288,5 +292,10 @@ describe('ASR 并发闸 · 排队被拒绝', () => {
 
     expect(res.status).toBe(503)
     expect(await res.json()).toEqual(expect.objectContaining({ code: 'ASR_BUSY' }))
+    // 记账打 error_kind='capacity'（人多、非系统故障，看板据此从错误率摘出）+ error_code 供辨识
+    expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+      metadata: { phase: 'transcribe', error_code: '45000292', error_message: 'concurrency limit exceeded', error_kind: 'capacity' },
+    }))
   })
 })

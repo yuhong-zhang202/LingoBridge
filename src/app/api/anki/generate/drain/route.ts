@@ -27,6 +27,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { generateAnkiAnswer } from '@/lib/ai/anki-answer'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { errorLogMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import {
   ANKI_DRAIN_BATCH,
@@ -90,8 +91,13 @@ async function markFailure(job: ClaimedJob, kind: FailureKind, err: string): Pro
   await getSupabaseServer().from('anki_generation_jobs').update(patch).eq('id', job.id)
 }
 
-/** 卡背失败：既标注失败结局，又记一条 error 账（对齐 phrases 路由失败分支补 phase）。 */
-async function failJob(job: ClaimedJob, kind: FailureKind, err: string, t0: number): Promise<void> {
+/**
+ * 卡背失败：既标注失败结局，又记一条 error 账（对齐 phrases 路由失败分支补 phase）。
+ * @param cause  可选的原始错误对象（AI 调用抛出的异常）；据此补 error_code/error_message/logId 三键，
+ *               让看板一眼区分「真故障 / 供应商报错」。前置校验类失败（如 CONSENT_MISSING）无此对象，
+ *               三键退化为 error_code='unknown'，其结局码仍由 metadata.error（= err 字符串）承载。
+ */
+async function failJob(job: ClaimedJob, kind: FailureKind, err: string, t0: number, cause?: unknown): Promise<void> {
   await markFailure(job, kind, err)
   await logApiUsage({
     service: 'qwen_plus',
@@ -103,7 +109,7 @@ async function failJob(job: ClaimedJob, kind: FailureKind, err: string, t0: numb
     status: 'error',
     user_id: job.user_id,
     corpus_id: job.corpus_id ?? undefined,
-    metadata: { phase: 'anki_answer', kind, error: err.slice(0, 200) },
+    metadata: { phase: 'anki_answer', kind, error: err.slice(0, 200), ...errorLogMeta(cause) },
   })
 }
 
@@ -215,7 +221,7 @@ async function processJob(job: ClaimedJob): Promise<void> {
   } catch (e) {
     // AI / 系统故障：可重试（退避）。失败事实落库 + 记 error 账，不外抛（单条失败不拖垮整批）。
     logErr('[anki drain job]', e)
-    await failJob(job, 'retryable', e instanceof Error ? e.message : String(e), t0)
+    await failJob(job, 'retryable', e instanceof Error ? e.message : String(e), t0, e)
   }
 }
 

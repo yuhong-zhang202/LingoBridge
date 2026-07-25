@@ -15,10 +15,10 @@ import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
 import {
   ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT,
-  ERROR_KIND_KEY, ERROR_KIND_USER_INPUT,
+  ERROR_KIND_KEY, ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY,
 } from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
-import type { AppError } from '@/types/errors'
+import { isAppError, errorLogMeta } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
@@ -50,11 +50,6 @@ export const runtime = 'nodejs'
 //    真实超时上限 = Zeabur 网关超时（见 docs/部署交接-香港PaaS.md）；此处 60 不是本接口的实际执行上限，别据它推算。
 //    保留而不删：无害 no-op，且若将来改回 Vercel 仍需要它；删属部署面变更，要单独验证（与 next.config.mjs 的 outputFileTracing* 同理）。
 export const maxDuration = 60
-
-/** AppError 类型守卫（code + message 字段） */
-function isAppError(e: unknown): e is AppError {
-  return typeof e === 'object' && e !== null && 'code' in e && 'message' in e
-}
 
 /** 豆包并发超限错误码（transcription 层把上游 X-Api-Status-Code 原样放进 AppError.code） */
 const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
@@ -171,7 +166,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     //   · 归因：打 error_kind=user_input，成本看板据此把它排除在系统错误率之外，但仍计入失败成本。
     // 其余失败（转码报错 / 并发被拒 / 网络中断）豆包没跑完整趟，一律记 0，绝不拿音频时长虚增成本。
     const isUserInputError = isAppError(e) && e.code === 'EMPTY_TRANSCRIPT'
+    // 并发超限（45000292）= 「人多稍等」，非系统故障：打 error_kind=capacity，让看板从错误率摘出（见 constants）。
+    const isCapacityError  = isAppError(e) && e.code === DOUBAO_CONCURRENCY_LIMIT_CODE
     const failedDurationS  = isUserInputError ? (billedDurationS ?? 0) : 0
+    // 失败归因 error_kind：空录音→user_input，并发超限→capacity，其余系统故障不打（缺键即系统故障）。
+    const errorKind = isUserInputError ? ERROR_KIND_USER_INPUT : isCapacityError ? ERROR_KIND_CAPACITY : null
     await logApiUsage({
       service: 'doubao_asr',
       endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash',
@@ -181,10 +180,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       latency_ms: Date.now() - t0,
       status: 'error',
       ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
-      // phase='transcribe' 始终打，让转写失败按环节归位；空录音再叠 error_kind=user_input（不计系统故障）。
-      metadata: isUserInputError
-        ? { phase: 'transcribe', [ERROR_KIND_KEY]: ERROR_KIND_USER_INPUT }
-        : { phase: 'transcribe' },
+      // phase='transcribe' 始终打（按环节归位）；error_code/error_message/logId 三键来自豆包响应、无用户内容；
+      // 再按情形叠 error_kind（user_input / capacity，均不计系统故障）。
+      metadata: {
+        phase: 'transcribe',
+        ...errorLogMeta(e),
+        ...(errorKind ? { [ERROR_KIND_KEY]: errorKind } : {}),
+      },
     })
     logErr('[transcribe API]', e)
     // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）

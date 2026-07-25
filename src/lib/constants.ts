@@ -202,6 +202,12 @@ export const DEFAULT_TARGET_BAND = 6.5
 export const ERROR_KIND_KEY = 'error_kind'
 /** 用户输入问题（空录音、将来的音频过大/文字超长等同类）：计入失败成本，但不计入系统错误率 */
 export const ERROR_KIND_USER_INPUT = 'user_input'
+/**
+ * 容量繁忙（豆包并发超限 45000292，对用户返回 503 ASR_BUSY 的那条）：属「人多稍等」、服务本身是好的，
+ * 不是系统故障。与 user_input 同层——计入失败成本（豆包这一跳仍可能计费），但不计入系统错误率，
+ * 免得高峰期排队把真实故障信号污染成一片红。看板 isSystemError 据此从错误率摘出。
+ */
+export const ERROR_KIND_CAPACITY = 'capacity'
 
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {

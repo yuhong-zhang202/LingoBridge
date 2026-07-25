@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { generatePronunciationTip } from '@/services/pronounce'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { errorLogMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
@@ -55,7 +56,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值 'pronounce'），避免空 metadata 掉进看板 other 桶、辨不出环节。
     // 此处只接 AI/系统故障（intended/heard 空/超长在前面已 400 早退），故不补 error_kind（缺键即系统故障）。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'pronounce' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'pronounce', ...errorLogMeta(e) } })
     logErr('[pronounce API]', e)
     return NextResponse.json({ error: '生成发音提示失败' }, { status: 500 })
   }

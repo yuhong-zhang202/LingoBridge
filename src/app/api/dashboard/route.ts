@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
-import { ERROR_KIND_USER_INPUT } from '@/lib/constants'
+import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY } from '@/lib/constants'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -158,8 +158,13 @@ function parseRange(raw: string | null): number {
   return 7
 }
 
-/** api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的三键） */
-type LogMeta = { phase?: string; cost_source?: string; error_kind?: string } | null
+// api_usage_logs 行的最小读取形状（metadata 为 jsonb，只取本看板用到的键）。
+// error_code/error_message/logId 三键自 2026-07-25 起由各 route 失败记账补写（全部取自供应商响应、无 PII），
+// 失败明细表据此一眼区分「并发超限 / 真故障」；无需改 select——它们随已 select 的整块 metadata jsonb 一并返回。
+type LogMeta = {
+  phase?: string; cost_source?: string; error_kind?: string
+  error_code?: string; error_message?: string; logId?: string
+} | null
 // 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
 // user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
 type AttribRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
@@ -196,13 +201,16 @@ type RecentRow = {
  *    全部落进只装失败的 other 桶所致。转写失败只占 error 的 9/66，摘除空录音仅值约 2 个百分点。）
  *   · 系统故障 —— 模型报错、上游超时、我方 bug。这是错误率要盯的信号。
  *   · 用户输入问题 —— metadata.error_kind='user_input'（如没有人声的空录音）。服务本身是好的。
+ *   · 容量繁忙 —— metadata.error_kind='capacity'（豆包并发超限 45000292，对用户返回 503 ASR_BUSY）。
+ *     「人多稍等」不是故障；高峰期排队本会大量产生，混进错误率会把真实故障信号淹成一片红。
  * 只有【错误率】这一个口径按此过滤；失败成本 / 按环节 errorCost 一律照旧全量统计 error 行
  * （钱确实花了，产品方拍板：从错误率摘出、留在失败成本里）。
  * 历史行没有该键 → 归为系统故障，口径变化不追溯改写历史数据。
  * @param row  日志行（只用到 status 与 metadata.error_kind）
  */
 function isSystemError(row: { status: string; metadata: LogMeta }): boolean {
-  return row.status === 'error' && row.metadata?.error_kind !== ERROR_KIND_USER_INPUT
+  const kind = row.metadata?.error_kind
+  return row.status === 'error' && kind !== ERROR_KIND_USER_INPUT && kind !== ERROR_KIND_CAPACITY
 }
 
 /** 把某一 UTC 时刻按东八区折算，返回该日 0 点对应的 UTC 时刻（供日界/月界计算） */
@@ -371,8 +379,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 复用「按用户成本」同款分类逻辑：先把今日每个 user_id 归成匿名 / 注册（同一 user_id 只要有一条
     // is_anonymous=true 即整体标匿名），再各自去重计数。user_id 为空的行（老行/无归属）无法归到人，跳过。
     //   · registeredActiveToday = COUNT(DISTINCT 非匿名 user_id) —— 北极星「今日活跃真人」。
-    //   · anonSessionsToday    = COUNT(DISTINCT 匿名 user_id)   —— 是「会话数」不是去重真人：
-    //     匿名登录每次新开会分到新 user_id，故它含重复访问、绝不与注册活跃相加。
+    //   · anonSessionsToday    = COUNT(DISTINCT 匿名 user_id)   —— 是「去重身份」不是去重真人：
+    //     匿名 user_id 按设备持久（同一设备重复访问仍是同一 id、会被去重），但同一真人换设备 / 清缓存会分到
+    //     新 id，故它高估真人数（非唯一真人）、绝不与注册活跃相加。前端措辞据此写「去重身份·按设备持久·非唯一真人」。
     const todayUserAnon = new Map<string, boolean>()
     for (const row of tdRows) {
       if (row.user_id == null) continue

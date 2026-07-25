@@ -46,11 +46,18 @@ function DistView({ phases, latencyWarn }: { phases: PhaseLatency[]; latencyWarn
   const max = phases.reduce((m, p) => Math.max(m, p.p90), 0)
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-3 text-[10px] text-v2-text-muted">
+      {/* 表头换人话：P50/P90 是行话，看板给非技术读者，主标用大白话、代码退成小字副标（见 pm 方案 §2.2）。 */}
+      <div className="flex items-end gap-3 text-[10px] text-v2-text-muted">
         <span className="w-24 flex-shrink-0">环节</span>
         <span className="flex-1" />
-        <span className="w-12 text-right flex-shrink-0">P50</span>
-        <span className="w-12 text-right flex-shrink-0">P90</span>
+        <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
+          <span>一半调用快于</span>
+          <span className="text-[9px] text-v2-text-muted/70">P50</span>
+        </span>
+        <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
+          <span>最慢10%慢于</span>
+          <span className="text-[9px] text-v2-text-muted/70">P90</span>
+        </span>
         <span className="w-12 text-right flex-shrink-0">最慢</span>
         <span className="w-12 text-right flex-shrink-0">次数</span>
       </div>
@@ -61,8 +68,8 @@ function DistView({ phases, latencyWarn }: { phases: PhaseLatency[]; latencyWarn
             <div className={`h-full rounded-full ${p.p90 > latencyWarn ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
               style={{ width: `${max > 0 ? (p.p90 / max) * 100 : 0}%` }} />
           </div>
-          <span className="text-[11px] text-v2-text-secondary w-12 text-right flex-shrink-0 tabular-nums">{toSec(p.p50)}s</span>
-          <span className={`text-[11px] font-medium w-12 text-right flex-shrink-0 tabular-nums ${p.p90 > latencyWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
+          <span className="text-[11px] text-v2-text-secondary w-16 text-right flex-shrink-0 tabular-nums">{toSec(p.p50)}s</span>
+          <span className={`text-[11px] font-medium w-16 text-right flex-shrink-0 tabular-nums ${p.p90 > latencyWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
             {toSec(p.p90)}s
           </span>
           <span className="text-[11px] text-v2-text-secondary w-12 text-right flex-shrink-0 tabular-nums">{toSec(p.max)}s</span>
@@ -223,6 +230,12 @@ export default function PhaseLatencyPanel({
           ))}
         </div>
       </div>
+      {/* 顶部一句人话总说明：这块最容易被误读成「网页打开速度」，先把它是什么说清楚（pm 方案 §2.2）。 */}
+      <div className="text-[11px] text-v2-text-secondary leading-relaxed mb-2">
+        每个 AI 环节自己要跑多久（不是网页打开速度）；数字越大，用户在这步等得越久。
+      </div>
+      {/* 链路口径脚注上移到说明下方（原在区块底部）：紧跟总说明，读者先建立整体口径再看数字。 */}
+      <Footnote />
       {phases.length === 0 ? (
         <div className="text-v2-text-muted text-[12px] py-4 text-center">{cutoffLabel} 起暂无耗时数据</div>
       ) : view === 'dist' ? (
@@ -230,7 +243,6 @@ export default function PhaseLatencyPanel({
       ) : (
         <TrendView trend={trend} latencyWarn={latencyWarnMs} />
       )}
-      <Footnote />
     </section>
   )
 }
