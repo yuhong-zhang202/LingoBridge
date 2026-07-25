@@ -9,7 +9,7 @@
  */
 'use client'
 import { type JSX, useEffect, useRef } from 'react'
-import { Sparkles, Volume2, X } from 'lucide-react'
+import { Sparkles, AudioLines, X } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
 
 interface PracticeIntroDialogProps {
@@ -90,7 +90,7 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
           {/* 功能二：发音纠错 */}
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-9 h-9 rounded-full bg-brand-accent-light flex items-center justify-center">
-              <Volume2 size={16} className="text-brand-accent" />
+              <AudioLines size={16} className="text-brand-accent" />
             </div>
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-v2-text-primary">发音纠错</p>
