@@ -29,6 +29,9 @@ function MatchingContent() {
   const { navigate } = useNav()
   const params = useSearchParams()
   const corpusId = params.get('corpusId') ?? ''
+  // ⚠️ 测试钩子：URL 带 ?previewSwapDialog=1 时，用占位数据直接弹换语料弹窗，供真机看 UI
+  // （正常靠存对子 409 触发，产品方无第二条语料触发不了）。需显式带参、普通用户不受影响。日后清理连同此注释一并删。
+  const previewSwapDialog = params.get('previewSwapDialog') === '1'
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +56,12 @@ function MatchingContent() {
 
   // 切换 Tab 时收起折叠
   useEffect(() => { setExpanded(false) }, [activeTab])
+
+  // ⚠️ 测试钩子：预览模式挂载即用占位「当前语料」弹出换语料弹窗；新语料 summary 由渲染处填占位。
+  useEffect(() => {
+    if (!previewSwapDialog) return
+    setSwap({ questionId: '__preview__', current: { id: '__preview_current__', summary: '（示例）去年夏天回老家，陪爷爷在院子里修那台老座钟的下午' } })
+  }, [previewSwapDialog])
 
   useEffect(() => {
     if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
@@ -276,9 +285,11 @@ function MatchingContent() {
       {swap && (
         <SwapCorpusDialog
           currentCorpus={swap.current}
-          newCorpus={{ id: corpusId, summary: null }}
+          // ⚠️ 测试钩子：预览模式给新语料占位概括；正常模式匹配页拿不到概括 → null 走弹窗内中性占位
+          newCorpus={{ id: corpusId, summary: previewSwapDialog ? '（示例）上周末第一次带朋友去爬山，五点起床赶在日出前登顶' : null }}
           swapping={swapping}
-          onSwap={() => void handleConfirmSwap()}
+          // ⚠️ 测试钩子：预览模式不真发 PUT（题/语料都是占位），点「换成新语料」只收起弹窗
+          onSwap={() => { if (previewSwapDialog) { setSwap(null); return } void handleConfirmSwap() }}
           onKeepCurrent={() => { if (!swapping) setSwap(null) }}
         />
       )}

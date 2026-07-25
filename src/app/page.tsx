@@ -40,6 +40,10 @@ export default function HomePage() {
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [typed, setTyped] = useState('')
   const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
+  // ⚠️ 测试钩子：URL 带 ?previewQuota=story|ielts 时强制弹额度双维度弹层（填占位假数字），供真机看 UI。
+  // 产品方凑不齐 10 条语料、触发不了真实 402，故给个显式带参的预览开关；普通用户无此参、完全不受影响。
+  // 用 window.location 读参（避免为一个测试钩子给首页套 useSearchParams 的 Suspense 边界）。
+  const [previewQuota, setPreviewQuota] = useState<'story' | 'ielts' | null>(null)
   const { question, loading, error, exhausted, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
@@ -63,6 +67,12 @@ export default function HomePage() {
     step()
     return () => window.clearTimeout(timer)
   }, [ieltsMode])
+
+  // ⚠️ 测试钩子：挂载读一次 ?previewQuota，命中 story/ielts 即置态、下方强制渲染预览弹层。
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('previewQuota')
+    if (p === 'story' || p === 'ielts') setPreviewQuota(p)
+  }, [])
 
   // 点「开始录音」先核额度、再探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）。
   // checkBlocked / getUserMedia 都是异步慢操作，此前 fire-and-forget 无反馈 → 用户以为按钮坏了。
@@ -146,6 +156,16 @@ export default function HomePage() {
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuota.blockedVariant && (
         <QuotaReached variant={storyQuota.blockedVariant} asOverlay onClose={storyQuota.dismiss} />
+      )}
+      {/* ⚠️ 测试钩子：?previewQuota=story|ielts 强制弹双维度弹层（占位假数字）。触发侧传大数被夹到 limit（显满），
+          对侧给个部分用量。仅显式带参可达，关闭即消失。 */}
+      {previewQuota && (
+        <QuotaReached
+          variant={previewQuota}
+          asOverlay
+          previewUsed={previewQuota === 'story' ? { story: 999, review: 6 } : { story: 4, review: 999 }}
+          onClose={() => setPreviewQuota(null)}
+        />
       )}
     </>
   )

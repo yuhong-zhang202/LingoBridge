@@ -70,13 +70,20 @@ interface Props {
   /** asOverlay 时点遮罩/关闭逻辑（如取消触发的复练操作） */
   onClose?: () => void
   className?: string
+  /**
+   * ⚠️ 测试钩子：传入则跳过真实当月用量拉取、直接用占位数字渲染双维度弹层（story/ielts 变体），
+   * 供 `?previewQuota=story|ielts` 在真机预览 UI（产品方凑不齐 10 条语料、触发不了真实 402）。
+   * 只有显式带参的入口才会传，普通用户路径永不传、不受影响。触发侧传大数会被 QuotaLine 夹到 limit（显满）。
+   */
+  previewUsed?: { story: number; review: number }
 }
 
-export default function QuotaReached({ variant, asOverlay, onClose, className }: Props) {
+export default function QuotaReached({ variant, asOverlay, onClose, className, previewUsed }: Props) {
   const router = useRouter()
   // 两个维度的真实当月用量（null=尚未取回）；quotaFailed=取数失败 → 退回不带数字的中性文案（不谎报）。
-  const [storyUsed, setStoryUsed]   = useState<number | null>(null)
-  const [reviewUsed, setReviewUsed] = useState<number | null>(null)
+  // previewUsed（测试钩子）传入时用占位数字初始化、并在下方 effect 跳过真实拉取。
+  const [storyUsed, setStoryUsed]   = useState<number | null>(previewUsed ? previewUsed.story : null)
+  const [reviewUsed, setReviewUsed] = useState<number | null>(previewUsed ? previewUsed.review : null)
   const [quotaFailed, setQuotaFailed] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -102,6 +109,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   // 仅月额度变体需要；trial 试用变体（匿名）无月额度，跳过、绝不显示月额度谎报。
   useEffect(() => {
     if (variant !== 'story' && variant !== 'ielts') return
+    if (previewUsed) return   // ⚠️ 测试钩子：占位预览不发真实用量请求（用量已由初值填好）
     let cancelled = false
     void (async () => {
       try {
@@ -114,7 +122,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
       }
     })()
     return () => { cancelled = true }
-  }, [variant])
+  }, [variant, previewUsed])
 
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
   const handlePracticeIelts = () => router.push('/question-bank')

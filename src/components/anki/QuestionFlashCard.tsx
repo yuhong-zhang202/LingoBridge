@@ -8,8 +8,9 @@
  *             - 脊柱（序号+中文标题+中文说明）恒显不塌；仅「英文例句格」按四态分流（该点 en===null 时）：
  *               生成中（hasCorpus 且未生成完 → 浅字「例句生成中…」）/ 生成完但这点没料（hasCorpus 且生成完 →
  *               浅字「这点你没讲到」，绝不再说生成中）/ 未绑语料（留白）；三态皆非交互、不显播放按钮。
- *               仅「未绑语料且全空」的题在卡底显一条中性指路 CTA「去题库找这道题 ›」（→ /question-bank，
- *               不入队生成——旧「绑一句语料，生成你的英文例句」是空头支票，点了卡背永久转圈，已撤）。
+ *               仅「未绑语料且全空」的题在卡底显一条邀请式 CTA「分享你的想法 ›」——经宿主 onSupplement 接
+ *               /write?qid=（雅思文本输入页，读题做上下文、可切语音、提交后走 restructure→analysis→practice 绑该题）；
+ *               匿名用户点它则弹注册引导（宿主用 AnkiRegisterGate）。旧「去题库找这道题 / 绑一句语料生成例句」均已撤。
  *
  *   翻面机制沿用 FlashCard 范式但改用 grid 双面同格叠放（gridArea 1/1）：容器行高取较高面（背面满点），
  *   背面撑开不被裁 —— 根治旧「背面 absolute inset-0 被锁死在正面高度、第 3 点例句被 overflow-hidden 切掉」。
@@ -58,13 +59,39 @@ interface Props {
    * 保留为可选 prop 仅为兼容仍传入它的宿主页；组件内不再调用，对应 PATCH 后端端点保留未删。
    */
   onEditPoint?: (idx: number, en: string) => Promise<void>
-  /** 空点态指路钩子（「去题库找这道题」→ /question-bank）。外围导航未接前可留空 → 钩子降级为不可点提示。 */
+  /**
+   * 空点态邀请钩子（「分享你的想法」）。注册用户 → 宿主 router.push('/write?qid='+questionId)；
+   * 匿名用户 → 宿主弹注册引导（AnkiRegisterGate）。外围未接前可留空 → 钩子降级为不可点提示。
+   */
   onSupplement?: (questionId: string) => void
   /**
-   * 匿名会话：隐藏 SRS 熟悉/不熟悉评级（评级 POST 需注册），只保留翻面浏览；底部改显「注册后记录复习进度」。
-   * 评级三条入口（左右滑 / 键盘 ←→ / 底部按钮）统一经 flyOut，匿名时 flyOut 短路，故右滑也不会误评级。
+   * 匿名会话：隐藏 SRS 熟悉/不熟悉评级（评级 POST 需注册）。
+   * - 翻面浏览照旧可用；
+   * - 左右滑 / 键盘 ←→ 改为【切换卡片】（上一张/下一张，纯浏览、不评级、不落库），经 onPrev/onNext 交宿主换卡索引；
+   * - 评级三条入口（左右滑 / 键盘 ←→ / 底部按钮）在匿名下都不会触发 flyOut（flyOut 另有短路双保险）。
    */
   anonymous?: boolean
+  /** 匿名浏览：上一张（宿主把当前卡索引 -1，clamp 到 0）。仅 anonymous 时经 ←/右滑触发。 */
+  onPrev?: () => void
+  /** 匿名浏览：下一张（宿主把当前卡索引 +1，clamp 到末张）。仅 anonymous 时经 →/左滑触发。 */
+  onNext?: () => void
+}
+
+/**
+ * 话题名美化（Part1 话题标用）：topic 是英文全大写、下划线分词（如 HOMETOWN / WORK_OR_STUDY），
+ * 直接显难看。转 Title Case + 下划线→空格（HOMETOWN→Hometown，WORK_OR_STUDY→Work Or Study）。
+ * 空 / 全空白 → 返回 null（调用侧不渲染话题标）。
+ * ⚠️ 这是英文话题名占位；理想是中文话题名 topic_zh，但 AnkiCard 目前无该字段（需后端 get_anki_cards RPC 补），
+ *    本轮先用美化英文，不阻塞。
+ */
+function prettifyTopic(topic: string): string | null {
+  const t = topic.trim()
+  if (t === '') return null
+  return t
+    .split(/[_\s]+/)
+    .filter((w) => w !== '')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
 }
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底灰数字（与 analysis 侧重点 StepNum 视觉一致）。 */
@@ -156,9 +183,16 @@ function CardFront({ card }: { card: AnkiCard }): JSX.Element {
   const heading = card.part === 2 ? splitCueCard(card.questionText).intro : card.questionText
   // 语料一句话概括：给用户一句「这题你打算讲哪段经历」的上下文；空 / 旧语料降级——整行不渲染。
   const summary = card.corpusSummary?.trim()
+  // 仅 Part1：显话题标，给「Is that a big city」这类追问上下文（Part2/3 是 cue card、非话题追问，不加）。
+  const topicLabel = card.part === 1 ? prettifyTopic(card.topic) : null
   return (
     <div className="relative flex-1 flex flex-col items-center justify-center text-center">
-      <Tag variant="gray" label={`Part ${card.part}`} className="absolute top-0 left-0" />
+      <div className="absolute top-0 left-0 flex items-center gap-2">
+        <Tag variant="gray" label={`Part ${card.part}`} />
+        {topicLabel && (
+          <span className="text-[11px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+        )}
+      </div>
       <p className="text-[19px] lg:text-[26px] font-semibold text-v2-text-primary leading-[1.5]" lang="en">{heading}</p>
       <p className="text-[13px] lg:text-[15px] text-brand-accent mt-5 lg:mt-7">想想你会怎么答？</p>
       {summary && (
@@ -205,8 +239,8 @@ function CardBack({ card, onSupplement }: {
           <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
         ))}
       </ul>
-      {/* 卡底 CTA：仅「未绑语料且全空」的题显示。中性指路——去题库找这道题（不承诺"点了就生成例句"：
-          该入口并不入队生成，旧文案"绑一句语料，生成你的英文例句"是张空头支票，点了卡背只会永久转圈）。 */}
+      {/* 卡底 CTA：仅「未绑语料且全空」的题显示。邀请式——分享你的想法（宿主接 /write?qid= 雅思文本输入页，
+          匿名则弹注册引导）。不再走旧「去题库找这道题」，也不承诺"点了就生成例句"（那入口并不入队生成）。 */}
       {allEmpty && !hasCorpus && (
         <button
           type="button"
@@ -214,7 +248,7 @@ function CardBack({ card, onSupplement }: {
           disabled={!onSupplement}
           className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
         >
-          去题库找这道题
+          分享你的想法
           <ChevronRight size={14} />
         </button>
       )}
@@ -248,7 +282,7 @@ function FaceShell({ children, flip3d, back, inert }: {
   )
 }
 
-export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false }: Props): JSX.Element {
+export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false, onPrev, onNext }: Props): JSX.Element {
   const reduced = useReducedMotion()
   const [flipped, setFlipped] = useState(false)
   const [dx, setDx] = useState(0)
@@ -271,18 +305,32 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
     window.setTimeout(() => onGrade(remembered), 180)
   }, [reduced, onGrade, anonymous])
 
-  // 键盘 ←→ 评级（匿名时 flyOut 内部短路，不评级）
+  // 键盘 ←→：注册用户 = SRS 评级（→熟悉/←不熟悉）；匿名 = 切卡浏览（→下一张/←上一张，不评级、不落库）。
   useEffect(() => {
-    if (anonymous) return
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); flyOut(true) }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut(false) }
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+      e.preventDefault()
+      if (anonymous) {
+        if (e.key === 'ArrowRight') onNext?.()
+        else onPrev?.()
+        return
+      }
+      if (e.key === 'ArrowRight') flyOut(true)
+      else flyOut(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [flyOut, anonymous])
+  }, [flyOut, anonymous, onPrev, onNext])
 
   const toggleFlip = useCallback((): void => { if (!moved.current) setFlipped((f) => !f) }, [])
+
+  // 弹回原位（拖拽未过阈值 / 匿名切卡后当前卡收回中心；切卡时宿主换索引会让本组件按 key 重挂、天然回中）。
+  const snapBack = useCallback((): void => {
+    setAnimated(true)
+    dxRef.current = 0
+    setDx(0)
+    window.setTimeout(() => setAnimated(false), 180)
+  }, [])
 
   // 整卡键盘翻面（Space/Enter）；仅当事件目标是卡容器本身（非内部控件）才翻，避免抢内部按钮的激活
   const onContainerKeyDown = (e: React.KeyboardEvent): void => {
@@ -307,12 +355,17 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
     if (!dragging.current) return
     dragging.current = false
     const cur = dxRef.current
+    if (anonymous) {
+      // 匿名 = 切卡浏览：右滑（cur>0）上一张 / 左滑（cur<0）下一张；不评级、不飞出、不落库。
+      // 换卡由宿主换索引触发本组件按 key 重挂（回中心），这里同时 snapBack 兜底（到边界索引不变、不重挂时也归位）。
+      if (cur > SWIPE_THRESHOLD) { snapBack(); onPrev?.(); return }
+      if (cur < -SWIPE_THRESHOLD) { snapBack(); onNext?.(); return }
+      snapBack()
+      return
+    }
     if (cur > SWIPE_THRESHOLD) { flyOut(true); return }   // flyOut 内部统一处理 reduced（即时评级）/ 非 reduced（飞出动画 + setDx）
     if (cur < -SWIPE_THRESHOLD) { flyOut(false); return }
-    setAnimated(true) // 未过阈值：弹回原位
-    dxRef.current = 0
-    setDx(0)
-    window.setTimeout(() => setAnimated(false), 180)
+    snapBack() // 未过阈值：弹回原位
   }
 
   return (
@@ -327,7 +380,10 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
         role="button"
         tabIndex={0}
         aria-pressed={flipped}
-        aria-label={flipped ? '题卡背面（答题要点），按空格或回车翻回正面' : '题卡正面（题目），按空格或回车翻面看答题要点'}
+        aria-label={
+          (flipped ? '题卡背面（答题要点），按空格或回车翻回正面' : '题卡正面（题目），按空格或回车翻面看答题要点')
+          + (anonymous ? '；匿名浏览，按左右方向键或左右滑动切换上一张/下一张卡片' : '')
+        }
         className="outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-[22px]"
       >
         {reduced ? (
@@ -353,14 +409,14 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
         )}
       </div>
 
-      {!flipped ? (
+      {anonymous ? (
+        // 匿名：评级需注册（隐藏熟悉/不熟悉）；左右滑 / ←→ = 切卡浏览。正面提示可翻面、背面提示注册记录进度，两态都点出可切卡。
+        <p className="text-center text-[13px] text-v2-text-muted mt-[18px] lg:mt-6">
+          {flipped ? '左右切卡浏览 · 注册后记录复习进度' : '点击翻面看要点 · 左右切卡浏览'}
+        </p>
+      ) : !flipped ? (
         <p className="text-center text-[13px] text-v2-text-secondary mt-[18px] lg:mt-6 flex items-center justify-center gap-1.5">
           <RotateCw size={14} />点击卡片翻面看答题要点
-        </p>
-      ) : anonymous ? (
-        // 匿名：评级需注册，隐藏熟悉/不熟悉，只提示注册后可记录复习进度（翻面浏览仍可用）
-        <p className="text-center text-[13px] text-v2-text-muted mt-[18px] lg:mt-6">
-          注册后记录复习进度
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px] lg:mt-6">

@@ -6,15 +6,15 @@
  * @created  2026-05-28
  */
 'use client'
-import { Quote, Sparkles, Pencil, Check, RefreshCw, Lightbulb } from 'lucide-react'
+import { Quote, Sparkles, RefreshCw, Lightbulb } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Card from '@/components/Card'
 import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
-import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import AnkiBookmarkButton, { type AnkiSaveState } from '@/components/anki/AnkiBookmarkButton'
+import CorpusEditChip from './CorpusEditChip'
 import type { RestructureViewProps } from './types'
 
 function AiResultCard({ text, isEditing, onToggleEdit, onChange, canSaveAnki, ankiSaveState, onSaveAnki }: {
@@ -22,8 +22,9 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange, canSaveAnki, an
   canSaveAnki: boolean; ankiSaveState: AnkiSaveState; onSaveAnki: () => void
 }) {
   return (
-    <Card variant="gradient" className="relative px-5 pt-4 pb-5">
-      {/* 存对子书签（雅思模式）：右上角，与底部「编辑」Chip 分角不挤 */}
+    // 存对子拼图（右上）与编辑入口（右下）分处两角；底部留白 pb-14 给右下角编辑 Chip 让位、不压正文
+    <Card variant="gradient" className="relative px-5 pt-4 pb-14">
+      {/* 存对子拼图（雅思模式）：右上角 */}
       {canSaveAnki && (
         <AnkiBookmarkButton state={ankiSaveState} onSave={onSaveAnki} className="absolute top-3 right-3 z-[1]" />
       )}
@@ -37,11 +38,8 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange, canSaveAnki, an
       ) : (
         <p className={`text-[16px] text-v2-text-primary leading-relaxed ${canSaveAnki ? 'pr-10' : ''}`}>{text}</p>
       )}
-      <div className="flex justify-end mt-2">
-        <Chip onClick={onToggleEdit} variant="default">
-          {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
-        </Chip>
-      </div>
+      {/* 编辑入口：右下角，带 hover/focus tooltip */}
+      <CorpusEditChip isEditing={isEditing} onToggle={onToggleEdit} />
     </Card>
   )
 }

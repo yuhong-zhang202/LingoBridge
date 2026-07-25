@@ -19,6 +19,7 @@ import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import QuestionFlashCard from '@/components/anki/QuestionFlashCard'
+import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useAccount } from '@/hooks/useAccount'
 import { ensureSession } from '@/lib/supabase'
@@ -55,6 +56,8 @@ export default function AnkiReviewPage(): JSX.Element {
   const isAnonymous = account?.isAnonymous ?? false
   // 重试键：错误态「重试」自增触发重新拉取（而非只「返回」把用户踢走）
   const [reloadKey, setReloadKey] = useState(0)
+  // 匿名用户点空点态「分享你的想法」→ 弹注册引导（复用 AnkiRegisterGate）；注册用户直接跳 /write?qid=
+  const [registerGate, setRegisterGate] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -126,10 +129,20 @@ export default function AnkiReviewPage(): JSX.Element {
     setQueue((q) => q.map((c) => (c.questionId === card.questionId ? { ...c, editedAnswer: next === '' ? null : next } : c)))
   }, [visibleQueue, current])
 
-  // 空点态中性指路：去题库找这道题（/question-bank），不走 /recording 空头支票（那条并不入队生成、卡背永久转圈）。
-  const handleSupplement = useCallback((): void => {
-    navigate('/question-bank')
-  }, [navigate])
+  // 空点态邀请「分享你的想法」：注册用户 → /write?qid=（雅思文本输入页，读题做上下文、可切语音、提交后走
+  // restructure→analysis→practice 绑该题，下游现成）；匿名用户 → 弹注册引导（写作/存题卡链路需注册）。
+  const handleSupplement = useCallback((questionId: string): void => {
+    if (isAnonymous) { setRegisterGate(true); return }
+    navigate(`/write?qid=${questionId}`)
+  }, [isAnonymous, navigate])
+
+  // 匿名浏览切卡：注册用户 ←→/滑动是 SRS 评级，匿名改为纯浏览换卡索引（不评级、不落库）。clamp 到 [0, len-1]。
+  const goPrev = useCallback((): void => {
+    setCurrent((c) => Math.max(0, c - 1))
+  }, [])
+  const goNext = useCallback((): void => {
+    setCurrent((c) => Math.min(visibleQueue.length - 1, c + 1))
+  }, [visibleQueue.length])
 
   const close = (): void => router.back()
   const done = !loading && !error && visibleQueue.length > 0 && current >= visibleQueue.length
@@ -217,12 +230,17 @@ export default function AnkiReviewPage(): JSX.Element {
                   onEditPoint={handleEditPoint}
                   onSupplement={handleSupplement}
                   anonymous={isAnonymous}
+                  onPrev={goPrev}
+                  onNext={goNext}
                 />
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* 匿名用户点空点态「分享你的想法」→ 注册引导（写作链路需注册）；关闭回本页、复习状态不丢。 */}
+      {registerGate && <AnkiRegisterGate onClose={() => setRegisterGate(false)} />}
     </div>
   )
 }

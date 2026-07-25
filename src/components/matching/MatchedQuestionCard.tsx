@@ -1,15 +1,16 @@
 /**
  * @module   MatchedQuestionCard
  * @desc     匹配页单题卡片（移动端）— 复用现有视觉，数据来自真实匹配结果。新增「存对子」：
- *           右滑存（绿底书签层，右移 > 60px 触发、松手弹回并切已存态）+ 右上角三态书签按钮（右滑的
- *           a11y 兜底，右滑绝不是唯一途径）。三态：存中（spinner + aria-live 播报）/ 已存（BookmarkCheck，
- *           右滑短路）/ 未存。失败由外壳 Toast 呈现、回未存态。reduced-motion 下弹回不做动画。
+ *           右滑存（绿底拼图层，右移 > 60px 触发、松手弹回并切已存态）+ 右上角三态书签按钮（右滑的
+ *           a11y 兜底，右滑绝不是唯一途径）。图标统一用 lucide Puzzle（结对语义）。三态：存中（spinner +
+ *           aria-live 播报）/ 已存（实心 Puzzle，右滑短路）/ 未存。失败由外壳 Toast 呈现、回未存态。
+ *           reduced-motion 下弹回不做动画。
  * @author   LingoBridge
  * @created  2026-06-03
  */
 'use client'
 import { useRef, useState } from 'react'
-import { ArrowRight, Bookmark, BookmarkCheck } from 'lucide-react'
+import { ArrowRight, Puzzle } from 'lucide-react'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
@@ -100,10 +101,10 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
 
   return (
     <div className="relative rounded-[14px] overflow-hidden">
-      {/* 右滑绿底书签层：卡片右移时从左侧透出；越阈图标 Bookmark → BookmarkCheck，给存对子的即时预告 */}
+      {/* 右滑绿底拼图层：卡片右移时从左侧透出；越阈图标由描边 Puzzle → 实心 Puzzle，给存对子的即时预告 */}
       <div className="absolute inset-0 bg-tag-success-bg flex items-center pl-5" aria-hidden="true">
         <span className="text-tag-success-text">
-          {overThreshold ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
+          <Puzzle size={20} className={overThreshold ? 'fill-current' : ''} />
         </span>
       </div>
 

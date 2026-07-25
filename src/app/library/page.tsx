@@ -13,6 +13,7 @@ import { DIMENSION_LABEL } from '@/lib/constants'
 import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
 import { getDueCount } from '@/lib/db/phrase-cards'
 import { fetchAnkiCards } from '@/lib/anki/cards-client'
+import { ensureSession } from '@/lib/supabase'
 import { formatRelativeTime } from '@/lib/utils'
 import type { MyStory, CollectedCard, DimensionLabel } from '@/lib/types'
 import type { AnkiHeroSample } from './types'
@@ -51,8 +52,9 @@ export default function LibraryPage() {
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
   const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
-  // 题卡 Hero 加载态：初值 true，异步拉取 finally 置 false。Hero 据此三态分流（加载中→「加载中…」，
-  // 完成有题→计数，完成 0 题→「当季暂无题卡」），避免拉取返回前 count=0 被误判成空态。
+  // 题卡 Hero 加载态：初值 true，异步拉取 finally 置 false。Hero 据此分流（加载中→「加载中…」，
+  // 完成有题→真实当季张数，完成/失败 0 题→通用「当季题卡 · 随时刷」不带 0，绝不显「当季暂无题卡」——
+  // 当季恒有题，0 只可能是取数失败），避免拉取返回前 count=0 被误判成空态。
   const [ankiLoading, setAnkiLoading]         = useState(true)
 
   // 三类收藏：SWR 单源（各自首拉顺带触发一次幂等迁移）
@@ -114,6 +116,10 @@ export default function LibraryPage() {
     // 失败静默降级为空态（Hero 仍显示），不阻塞素材库其余模块。
     void (async () => {
       try {
+        // 先确保匿名会话（token）就位再拉题卡：GET /api/anki/cards 对匿名放行、但仍需带 Bearer token，
+        // 否则本 IIFE 常并发早于 listMyCorpus/getDueCount 内部建会话 → 401 降级空态 → Hero 误显「当季暂无题卡」。
+        // 当季恒有题（含未注册可见的默认卡），建会话后匿名即可拿到真实当季张数。
+        await ensureSession()
         const [p1, p2] = await Promise.all([
           fetchAnkiCards(1, 'all'),
           fetchAnkiCards(2, 'all'),

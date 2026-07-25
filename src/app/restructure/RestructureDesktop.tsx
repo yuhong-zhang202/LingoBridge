@@ -7,12 +7,12 @@
  */
 'use client'
 import { useEffect, useRef } from 'react'
-import { Sparkles, Pencil, Check, RefreshCw } from 'lucide-react'
+import { Sparkles, RefreshCw } from 'lucide-react'
 import Card from '@/components/Card'
 import Orb from '@/components/Orb'
-import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import AnkiBookmarkButton from '@/components/anki/AnkiBookmarkButton'
+import CorpusEditChip from './CorpusEditChip'
 import type { RestructureViewProps } from './types'
 
 export default function RestructureDesktop({
@@ -89,16 +89,14 @@ export default function RestructureDesktop({
 
           {/* 右栏：整理后（主角，渐变描边 + 可编辑） */}
           <div>
-            <div className="mb-2.5 flex items-center justify-between">
+            <div className="mb-2.5 flex items-center">
               <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.03em] text-brand-primary-dark">
                 <Sparkles size={13} className="text-brand-accent" />整理后
               </span>
-              <Chip onClick={onToggleEdit} variant="default">
-                {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
-              </Chip>
             </div>
-            <Card variant="gradient" className="relative px-7 py-6 min-h-[300px] flex flex-col justify-center">
-              {/* 存对子书签（雅思模式）：卡右上角，与上方「编辑」Chip 分区不挤 */}
+            {/* 存对子拼图（右上）与编辑入口（右下）分处两角；底部留白 pb-14 给右下角编辑 Chip 让位、不压正文 */}
+            <Card variant="gradient" className="relative px-7 pt-6 pb-14 min-h-[300px] flex flex-col justify-center">
+              {/* 存对子拼图（雅思模式）：卡右上角 */}
               {canSaveAnki && (
                 <AnkiBookmarkButton state={ankiSaveState} onSave={onSaveAnki} className="absolute top-3 right-3 z-[1]" />
               )}
@@ -113,6 +111,8 @@ export default function RestructureDesktop({
               ) : (
                 <p className={`text-[16px] text-v2-text-primary leading-[1.9] ${canSaveAnki ? 'pr-10' : ''}`}>{aiText}</p>
               )}
+              {/* 编辑入口：卡右下角，带 hover/focus tooltip */}
+              <CorpusEditChip isEditing={isEditing} onToggle={onToggleEdit} />
             </Card>
             {usable === false && (
               <p className="mt-2.5 text-[12px] text-v2-text-muted leading-relaxed">

@@ -27,6 +27,8 @@ import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
+import HeroHelpTip from './HeroHelpTip'
+import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
 
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
@@ -143,7 +145,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             ? '题库速览，加载中'
             : ankiHasCards
               ? `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
-              : '题库速览，当季暂无题卡'}
+              : '题库速览，随时开始刷当季题卡'}
           className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
         >
           <Card variant="gradient" className="px-[26px] py-[22px] flex items-center gap-7 active:scale-[0.99] transition-transform mb-4">
@@ -172,35 +174,25 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               </div>
             </div>
 
-            {/* 中段·文案 + 题面预览 */}
+            {/* 中段·文案（主说明 + 计数 + 结对说明）；问号气泡讲不同模式下如何结对 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                 <Tag label="当季·新" variant="green" />
+                <HeroHelpTip text={HERO_HELP_TEXT} />
               </div>
-              {ankiLoading ? (
-                <p className="text-[13px] text-v2-text-muted mt-1.5">加载中…</p>
-              ) : ankiHasCards ? (
-                <p className="text-[13px] text-v2-text-secondary mt-1.5">
-                  当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[16px]">{ankiDueCount}</span> 张
-                </p>
-              ) : (
-                <p className="text-[13px] text-v2-text-secondary mt-1.5">当季暂无题卡</p>
-              )}
-
-              {/* 口径澄清：当季题默认就能刷（含没碰过的默认卡），「绑语料」是可选增强——绑上后卡背换成基于你语料的答法。
-                  与复习页「去题库存对子」的措辞对齐，消除「默认全有 vs 你去存」的矛盾。 */}
-              {ankiHasCards && (
-                <p className="text-[12px] text-v2-text-muted mt-1">绑上你的语料，卡背就换成你自己的答法</p>
-              )}
-
-              {/* 题面预览块（仅有题卡且有样本时显示） */}
-              {ankiHasCards && ankiSample && (
-                <div className="bg-bg-page rounded-[14px] px-[14px] py-[11px] mt-3">
-                  <p className="text-[12px] text-v2-text-muted mb-[3px]">最近想练的一题</p>
-                  <p className="text-[13px] text-v2-text-primary font-medium truncate">{ankiSample.text}</p>
-                </div>
-              )}
+              {/* 主说明：这个入口是什么 */}
+              <p className="text-[13px] text-v2-text-secondary mt-1.5 leading-relaxed">{HERO_TITLE_DESC}</p>
+              {/* 计数：真实当季张数；0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
+              <p className="text-[12px] text-v2-text-muted mt-1.5">
+                {ankiLoading
+                  ? '加载中…'
+                  : ankiHasCards
+                    ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
+                    : HERO_EMPTY_FALLBACK}
+              </p>
+              {/* 结对说明：为什么把题目和语料结对 */}
+              <p className="text-[12px] text-v2-text-muted mt-2 leading-relaxed">{HERO_PAIR_DESC}</p>
             </div>
 
             {/* 右段·CTA */}
