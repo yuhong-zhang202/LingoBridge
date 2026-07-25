@@ -49,8 +49,9 @@ function SourceTag({ src }: { src?: string }) {
 }
 // 最近/最贵视图列序（含成功行，故保留「状态」）。失败视图列序独立、见 FAILED_COLS。
 const BASE_COLS = ['时间', '服务', '接口', '用量', '费用', '延迟', '状态']
-// 失败视图列序（pm 方案 §2.1）：环节提到最前、时间挪到最右，删状态/接口/用量，新增错误码。
-const FAILED_COLS = ['环节', '错误码', '服务', '延迟', '费用', '时间']
+// 失败视图列序（pm 方案 §2.1 + 创始人「错误类型写清楚」）：环节提到最前、时间挪到最右，删状态/接口/用量；
+// 第二列「错误类型」= 明确中文分类（排队 / 空录音 / 转写失败 / 系统故障 / 未记录），error_code 退成技术副字。
+const FAILED_COLS = ['环节', '错误类型', '服务', '延迟', '费用', '时间']
 const SHOW = 20
 type Mode = 'recent' | 'costly' | 'failed'
 const MODE_LABEL: Record<Mode, string> = { recent: '最近', costly: '最贵', failed: '失败' }
@@ -58,9 +59,15 @@ const MODE_LABEL: Record<Mode, string> = { recent: '最近', costly: '最贵', f
 const EMPTY_TEXT: Record<Mode, string> = {
   recent: '暂无调用记录', costly: '暂无调用记录', failed: '本期无失败调用',
 }
-// error_kind 中文名：user_input = 用户输入问题（如没有人声的空录音）；capacity = 容量繁忙（并发超限、人多稍等）。
-// 二者服务本身都是好的、不计系统故障；缺该键的失败按系统故障计（与 API 侧 isSystemError 一致）。
-const ERROR_KIND_LABEL: Record<string, string> = { user_input: '用户输入', capacity: '容量繁忙' }
+// 错误类型分类的四种色调 → chip 样式：
+//   info（排队·人多，非故障）= 冷静绿；warn（空录音，用户输入）= 暖橙；
+//   error（真·转写/系统故障）= 红；muted（原因未记录，老数据）= 灰。
+const TYPE_TONE_CLASS: Record<'info' | 'warn' | 'error' | 'muted', string> = {
+  info:  'bg-brand-accent/15 text-v2-text-secondary',
+  warn:  'bg-warning/15 text-warning-text',
+  error: 'bg-error/[0.1] text-error',
+  muted: 'bg-black/[0.03] text-v2-text-muted',
+}
 // 时间列按东八区（UTC+8，香港节点无夏令时）展示，与看板其余"今日/日界"口径一致；
 // DB 存 UTC，直接用浏览器本地时区会随访问者所在地漂移。折算后统一取 getUTC* 读墙上钟。
 const HK_OFFSET_MS = 8 * 60 * 60 * 1000
@@ -68,18 +75,42 @@ const HK_OFFSET_MS = 8 * 60 * 60 * 1000
 function toSec(ms: number): string {
   return (ms / 1000).toFixed(1)
 }
-/** 环节中文名：缺 phase 显示「未标注」（埋点前历史失败行） */
+/**
+ * 环节中文名：优先 metadata.phase；缺失时豆包 ASR（唯一只做转写的 service）兜底为「语音转写」，
+ * 与 API 侧 resolvePhase 同口径、消灭「未标注」。真·非豆包又无 phase（正常不该有）才显示「未标注」。
+ */
 function phaseName(log: Log): string {
-  const p = log.metadata?.phase
+  const p = log.metadata?.phase ?? (log.service === 'doubao_asr' ? 'transcribe' : undefined)
   if (!p) return '未标注'
   return PHASE_LABEL[p] ?? p
 }
-/** error_kind 小徽标：仅在有 kind 时渲染，暖色提示「非系统故障」；无则不占位 */
-function KindChip({ kind }: { kind?: string }) {
-  if (!kind) return null
+
+/**
+ * 失败「错误类型」明确中文分类（创始人要求：标清排队 vs 真失败，老数据诚实标未记录、不瞎猜）：
+ *   · error_kind='capacity'  → 排队·人多（豆包并发繁忙、非故障）
+ *   · error_kind='user_input'→ 空录音（用户输入问题、非故障）
+ *   · 无 kind 但有 error_code（新的真失败，记账三键已落）→ 豆包=转写失败 / 其余=系统故障
+ *   · 无 error_code（埋点前老数据，无法归因）→ —（原因未记录）
+ * @param log  失败行
+ */
+function failureType(log: Log): { text: string; tone: 'info' | 'warn' | 'error' | 'muted' } {
+  const kind = log.metadata?.error_kind
+  if (kind === 'capacity')   return { text: '排队·人多', tone: 'info' }
+  if (kind === 'user_input') return { text: '空录音', tone: 'warn' }
+  // error_code 存在 = 新链路已记账（即便是裸 Error 的 'unknown' 也算「有记录的真失败」）；缺失 = 埋点前老数据。
+  if (log.metadata?.error_code !== undefined) {
+    return log.service === 'doubao_asr'
+      ? { text: '转写失败', tone: 'error' }
+      : { text: '系统故障', tone: 'error' }
+  }
+  return { text: '— 原因未记录', tone: 'muted' }
+}
+/** 错误类型徽标：明确分类 chip（一眼分排队 / 空录音 / 真失败 / 未记录） */
+function TypeChip({ log }: { log: Log }) {
+  const { text, tone } = failureType(log)
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-warning/15 text-warning-text whitespace-nowrap">
-      {ERROR_KIND_LABEL[kind] ?? kind}
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${TYPE_TONE_CLASS[tone]}`}>
+      {text}
     </span>
   )
 }
@@ -144,14 +175,15 @@ export default function RecentCallsTable({
                 return (
                   <tr key={log.id} className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
                     <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{phaseName(log)}</td>
-                    {/* 错误码 + 供应商 message（hover title + 小字）：一眼分「并发超限 45000292 / 真故障」 */}
+                    {/* 错误类型：明确中文分类 chip 领头（排队 / 空录音 / 转写失败 / 未记录），
+                        error_code + 供应商 message 退成技术副字（hover title 看全文），一眼分「排队 vs 真失败」 */}
                     <td className="px-3 py-2" title={log.metadata?.error_message ?? undefined}>
-                      <div className="flex items-center gap-1.5 whitespace-nowrap">
-                        <span className="text-v2-text-primary" style={{ fontFamily: 'monospace', fontSize: 10 }}>
-                          {log.metadata?.error_code ?? '—'}
-                        </span>
-                        <KindChip kind={log.metadata?.error_kind} />
-                      </div>
+                      <TypeChip log={log} />
+                      {log.metadata?.error_code !== undefined && log.metadata.error_code !== 'unknown' && (
+                        <div className="text-[9px] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
+                          {log.metadata.error_code}
+                        </div>
+                      )}
                       {log.metadata?.error_message && (
                         <div className="text-[9px] text-v2-text-muted max-w-[200px] truncate">{log.metadata.error_message}</div>
                       )}

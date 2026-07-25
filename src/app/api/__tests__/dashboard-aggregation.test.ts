@@ -155,11 +155,12 @@ describe('GET /api/dashboard · 聚合口径', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
 
-    // ① 按环节：coach(2) > analysis(1) > other(0.5)，缺 phase 归 other
+    // ① 按环节：coach(2) > analysis(1) > transcribe(0.5)。缺 phase 的豆包行由 resolvePhase 确定性兜底成
+    //    'transcribe'（语音转写）——豆包只做转写，不再落进无意义的 'other' 桶（创始人反馈：消灭「其他」）。
     expect(body.phaseTotals).toEqual([
       expect.objectContaining({ phase: 'coach', cost: 2, calls: 1 }),
       expect.objectContaining({ phase: 'analysis', cost: 1, calls: 1 }),
-      expect.objectContaining({ phase: 'other', cost: 0.5, calls: 1 }),
+      expect.objectContaining({ phase: 'transcribe', cost: 0.5, calls: 1 }),
     ])
 
     // ⑥ 最贵 Top-N 独立于时间序透传，成本降序
@@ -290,12 +291,15 @@ describe('GET /api/dashboard · 聚合口径', () => {
     // ② 留下：钱确实花了，失败成本两笔都算
     expect(body.failedCost).toBe(0.9)
 
-    // ③ 按环节下钻同口径：transcribe 无 phase → other；errors 只数系统故障，errorCost 仍全量
-    const other = body.phaseTotals.find((p: { phase: string }) => p.phase === 'other')
-    expect(other.calls).toBe(4)
-    expect(other.errors).toBe(1)
-    expect(other.errorRate).toBe(25)
-    expect(other.errorCost).toBe(0.9)
+    // ③ 按环节下钻同口径：4 行都是无 phase 的豆包，由 resolvePhase 兜底归 'transcribe'（非 'other'）；
+    //    errors 只数系统故障（1 条），errorCost 仍全量（含空录音那笔）。
+    const transcribe = body.phaseTotals.find((p: { phase: string }) => p.phase === 'transcribe')
+    expect(transcribe.calls).toBe(4)
+    expect(transcribe.errors).toBe(1)
+    expect(transcribe.errorRate).toBe(25)
+    expect(transcribe.errorCost).toBe(0.9)
+    // 「其他」桶不再出现（豆包已确定性归位）
+    expect(body.phaseTotals.find((p: { phase: string }) => p.phase === 'other')).toBeUndefined()
   })
 
   test('历史数据不追溯：无 error_kind 的老 error 行一律按系统故障计', async () => {

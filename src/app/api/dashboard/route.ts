@@ -213,6 +213,21 @@ function isSystemError(row: { status: string; metadata: LogMeta }): boolean {
   return row.status === 'error' && kind !== ERROR_KIND_USER_INPUT && kind !== ERROR_KIND_CAPACITY
 }
 
+/** 豆包 ASR 是唯一「只做语音转写」的 service：无 phase 的豆包行 100% 是埋点前的转写调用（非某个未知环节）。 */
+function isDoubaoAsr(row: { service: string }): boolean {
+  return row.service === 'doubao_asr'
+}
+
+/**
+ * 解析一行的环节 key：优先 metadata.phase；缺失时若为豆包 ASR（唯一只做转写的 service）确定性兜底为
+ * 'transcribe'，据此消灭「其他/未标注」桶（那 100% 是埋点前缺 phase 的转写行，非未知环节）。
+ * 非豆包又无 phase 的行返回 undefined（千问各环节成功/失败都带 phase，正常不该有这种行）。
+ * @param row  日志行（用到 metadata.phase 与 service）
+ */
+function resolvePhase(row: { metadata: LogMeta; service: string }): string | undefined {
+  return row.metadata?.phase ?? (isDoubaoAsr(row) ? 'transcribe' : undefined)
+}
+
 /** 把某一 UTC 时刻按东八区折算，返回该日 0 点对应的 UTC 时刻（供日界/月界计算） */
 function hkDayStartUtc(y: number, m: number, d: number): Date {
   return new Date(Date.UTC(y, m, d) - HK_OFFSET_MS)
@@ -470,7 +485,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     // errorCost 则与 failedCost 同口径（全量 error 行），两者刻意不同 —— 一个问"哪坏了"，一个问"钱哪去了"。
     const phaseMap = new Map<string, { cost: number; calls: number; errors: number; errorCost: number }>()
     for (const row of rngRows) {
-      const key = row.metadata?.phase ?? 'other'
+      // resolvePhase：豆包无 phase 兜底成 transcribe，消灭「其他」桶（成本块/失败块都读 phaseTotals）。
+      const key = resolvePhase(row) ?? 'other'
       const cur = phaseMap.get(key) ?? { cost: 0, calls: 0, errors: 0, errorCost: 0 }
       cur.cost += row.estimated_cost_cny
       cur.calls += 1
