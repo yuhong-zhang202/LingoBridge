@@ -22,12 +22,13 @@ import LoginPrompt from './_components/LoginPrompt'
 import LoggedInView from './_components/LoggedInView'
 import FeatureListCard from './_components/FeatureListCardMobile'
 import QuotaCard from './_components/QuotaCard'
+import TrialQuotaCard from './_components/TrialQuotaCard'
 import type { ProfileViewProps } from './types'
 
 // 占位：stats.corpus 仅作初始值，LoggedInView 内部拉取真实数据覆写
 const STATS = { corpus: 12 }
 
-export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileViewProps): JSX.Element {
+export default function ProfileMobile({ loggedIn, isAnon, email, onLogout }: ProfileViewProps): JSX.Element {
   const router = useRouter()
   const [nameOpen, setNameOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
@@ -93,8 +94,9 @@ export default function ProfileMobile({ loggedIn, email, onLogout }: ProfileView
           )}
         </div>
 
-        {/* ── 未登录引导卡 */}
+        {/* ── 未登录引导卡（+ 匿名试用额度卡：让匿名用户二次确认「总数 1 条、注册后每月 10 次」口径） */}
         {!loggedIn && <LoginPrompt className="mb-3" />}
+        {!loggedIn && isAnon && <TrialQuotaCard />}
 
         {/* ── 已登录态专属内容（条件挂载，LoggedInView 内部加载真实数据） */}
         {loggedIn && <LoggedInView stats={STATS} />}

@@ -15,6 +15,7 @@ import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
 import { cn } from '@/lib/utils'
 import { nextMonthFirstLabel } from '@/lib/date'
+import { ANON_CORPUS_LIMIT } from '@/lib/constants'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 
@@ -70,13 +71,15 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
   const handlePracticeIelts = () => router.push('/question-bank')
 
-  // trial：匿名试用结束态，面向注册转化，与「月额度用完（n/n）」文案区分，避免误导匿名用户。
+  // trial：匿名试用结束态，面向注册转化，文案讲清「试用总量 ↔ 注册后每月额度」两套口径，绝不显示月额度谎报。
   const trialBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
       <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">试用已完成</h2>
+      {/* 双口径在同一句讲清：匿名试用总量（ANON_CORPUS_LIMIT）↔ 注册后每月额度（STORY_MONTHLY_LIMIT），
+          均读常量、绝不写死数字（口径调整文案自动跟随）。绝不给匿名显示「/10」或「10/10」月额度谎报。 */}
       <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
-        注册账号，继续把你的故事变成雅思口语素材。
+        免费试用的 {ANON_CORPUS_LIMIT} 次已用完，注册后每月可练 {STORY_MONTHLY_LIMIT} 次。
       </p>
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <GradientButton
@@ -89,15 +92,13 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
     </div>
   )
 
-  // 「已用/上限」两个数都读常量、绝不写死：上限取本变体对应的月额度常量（story→STORY、ielts→IELTS，
-  // quotaBody 仅这两个变体渲染），已用因处于"已用完"态即等于上限。这样内测前把常量调回 10 时文案自动跟随，
-  // 不必再记着改这第三处（此前写死「10/10」而常量临时放开到 100，文案与真实上限自相矛盾）。
-  const monthlyLimit = variant === 'story' ? STORY_MONTHLY_LIMIT : IELTS_MONTHLY_LIMIT
-
+  // 标题只说「已用完」、不带数字：本组件拿不到真实 used（story/ielts 各自的当月实际用量分散在不同来源），
+  // 硬凑「上限/上限」= 假设 used===上限，一旦变体选错（如匿名误入此分支）就成「10/10」谎报。中性文案最诚实，
+  // 真实用量改由「我的 › 本月额度」承担（下方入口引导过去看）。
   const quotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完（{monthlyLimit}/{monthlyLimit}）</h2>
+      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">本月额度已用完</h2>
       <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>
@@ -123,7 +124,15 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         )}
       </div>
 
-      <p className="text-[13px] text-v2-text-muted mt-6">
+      {/* 二次确认入口：本弹层只说「已用完」，真实用量去「我的 › 本月额度」看。 */}
+      <button
+        onClick={() => router.push('/profile')}
+        className="text-[13px] text-v2-text-secondary underline underline-offset-2 mt-6 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
+      >
+        额度明细可在「我的 › 本月额度」查看
+      </button>
+
+      <p className="text-[13px] text-v2-text-muted mt-4">
         需要更多额度？添加开发者微信 <span className="text-v2-text-secondary font-medium">zyh202x</span>
       </p>
     </div>

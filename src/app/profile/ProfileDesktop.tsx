@@ -14,6 +14,7 @@ import { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import { maskEmail } from '@/lib/auth'
 import { LATEST_VERSION } from '@/lib/changelog'
 import LoginPrompt from './_components/LoginPrompt'
+import TrialQuotaCard from './_components/TrialQuotaCard'
 import FeatureListCard from './_components/FeatureListCard'
 import IdentityCard from './_components/IdentityCard'
 import ExamGoalCard from './_components/ExamGoalCard'
@@ -21,7 +22,7 @@ import CommonActions from './_components/CommonActions'
 import PortraitCard from './_components/PortraitCard'
 import type { ProfileViewProps } from './types'
 
-export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
+export default function ProfileDesktop({ loggedIn, isAnon, email, joinDays, onLogout }: ProfileViewProps): JSX.Element {
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const settingsButton = (
@@ -68,9 +69,10 @@ export default function ProfileDesktop({ loggedIn, email, joinDays, onLogout }: 
             <FeatureListCard version={LATEST_VERSION} onLogout={onLogout} />
           </div>
         ) : (
-          /* 未登录：引导卡 + 功能列表 */
+          /* 未登录：引导卡（+ 匿名试用额度卡，二次确认口径）+ 功能列表 */
           <div className="max-w-[640px] mx-auto flex flex-col gap-3">
             <LoginPrompt />
+            {isAnon && <TrialQuotaCard />}
             <FeatureListCard version={LATEST_VERSION} />
           </div>
         )}

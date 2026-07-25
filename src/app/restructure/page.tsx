@@ -11,8 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned, getCorpusById } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
-import { getSupabase } from '@/lib/supabase'
-import { apiFetch } from '@/lib/api-client'
+import { apiFetch, readQuotaReason } from '@/lib/api-client'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -80,15 +79,11 @@ function RestructureContent() {
   const [pendingRestructure, setPendingRestructure] = useState(!corpusId && handoff !== null && handoff.cleanedText == null)
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层
-  const [storyQuotaReached, setStoryQuotaReached] = useState(false)
-  // 匿名试用用户：额度提示走 trial 变体（引导注册），注册用户走 story 变体（月额度 10/10）
-  const [isAnon, setIsAnon] = useState(false)
-  useEffect(() => {
-    void getSupabase().auth.getSession().then(({ data: { session } }) => {
-      setIsAnon(session?.user?.is_anonymous ?? false)
-    })
-  }, [])
+  // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层。
+  // 变体由服务端 402 的 reason 决定（trial=匿名试用 / story=注册月额度），不再靠异步 isAnon 竞态推导——
+  // 竞态会让匿名用户误显示注册的「本月额度已用完」谎报。/api/restructure 402 是匿名 only、不带 reason，
+  // readQuotaReason 返回 null，此处默认 'trial'，语义正确。
+  const [storyQuota, setStoryQuota] = useState<'trial' | 'story' | null>(null)
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -101,8 +96,13 @@ function RestructureContent() {
         json: { rawText: rawStory },
         signal,
       })
-      // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」
-      if (res.status === 402) { if (!signal?.aborted) setStoryQuotaReached(true); return }
+      // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」。
+      // /api/restructure 402 匿名 only、不带 reason → readQuotaReason 返回 null → 走 trial（引导注册）。
+      if (res.status === 402) {
+        const reason = await readQuotaReason(res)
+        if (!signal?.aborted) setStoryQuota(reason === 'story' ? 'story' : 'trial')
+        return
+      }
       // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不卡在「整理失败」。
       if (res.status === 403) { if (!signal?.aborted) router.push('/'); return }
       if (!res.ok) throw new Error('整理失败')
@@ -168,7 +168,13 @@ function RestructureContent() {
           method: 'POST',
           json: { source: 'voice', rawText: rawStory },
         })
-        if (res.status === 402) { setStoryQuotaReached(true); setIsSaving(false); return }
+        // 建语料 402：reason 决定变体——匿名总条数闸 trial（注册引导）/ 注册月额度闸 story（月额度用完）。
+        if (res.status === 402) {
+          const reason = await readQuotaReason(res)
+          setStoryQuota(reason === 'story' ? 'story' : 'trial')
+          setIsSaving(false)
+          return
+        }
         // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不停在「语料保存失败」错误态。
         if (res.status === 403) { router.push('/'); return }
         if (!res.ok) throw new Error('语料保存失败，请重试')
@@ -257,8 +263,8 @@ function RestructureContent() {
         onConfirm={() => { const c = confirm; setConfirm(null); if (c === 'exit') doExit(); else void reRestructure() }}
         onCancel={() => setConfirm(null)}
       />
-      {/* 额度超限覆盖层：匿名走 trial（引导注册）、注册走 story（月额度）；关闭即回首页 */}
-      {storyQuotaReached && <QuotaReached variant={isAnon ? 'trial' : 'story'} asOverlay onClose={() => router.push('/')} />}
+      {/* 额度超限覆盖层：变体由服务端 402 reason 决定（trial 引导注册 / story 月额度）；关闭即回首页 */}
+      {storyQuota && <QuotaReached variant={storyQuota} asOverlay onClose={() => router.push('/')} />}
     </>
   )
 }

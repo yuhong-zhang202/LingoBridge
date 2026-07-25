@@ -41,6 +41,29 @@ export interface ApiFetchInit extends Omit<RequestInit, 'body' | 'headers'> {
  * @returns       原始 Response
  * @sideEffect    读一次本地 session 取鉴权头（不发网络请求）
  */
+/**
+ * 服务端配额 402 的 reason 值 —— 与 QuotaReached 的 variant 1:1 对应（reason 即 variant）：
+ *   trial=匿名试用用尽（引导注册）· story=注册故事月额度用完 · ielts=注册复练月额度用完。
+ */
+export type QuotaReason = 'trial' | 'story' | 'ielts'
+
+/**
+ * 从 402 响应体读出配额 reason，供前端确定性选 QuotaReached 变体（取代异步 isAnon 竞态推导）。
+ * 用 clone() 读，不消费原 Response（调用方仍可再读）；解析失败/字段缺失/非法值一律返回 null，
+ * 调用方自行兜底默认 'trial'（匿名 only 的 402——如 /api/restructure、/api/transcribe——不带 reason，走此默认，语义正确）。
+ * @param res  某次 apiFetch 拿到的 Response（通常已判定 status===402）
+ * @returns    合法 reason 或 null
+ */
+export async function readQuotaReason(res: Response): Promise<QuotaReason | null> {
+  try {
+    const body = (await res.clone().json()) as { reason?: unknown }
+    const r = body?.reason
+    return r === 'trial' || r === 'story' || r === 'ielts' ? r : null
+  } catch {
+    return null
+  }
+}
+
 export async function apiFetch(input: string, init: ApiFetchInit = {}): Promise<Response> {
   const { json, body, headers, ...rest } = init
   // 全链路 flow_id 走 X-Flow-Id 头透传（非 URL / 非 body）：一处注入，transcribe / restructure /

@@ -10,7 +10,7 @@
  */
 'use client'
 import { type JSX, useEffect, useRef, useState, Fragment } from 'react'
-import { Mic, Clock, X, Send } from 'lucide-react'
+import { Mic, Clock, X, Send, Loader2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import GradientButton from '@/components/GradientButton'
@@ -22,6 +22,9 @@ import UserBubble from './_components/UserBubble'
 import RephrasePopup from './_components/RephrasePopup'
 import VoiceBar from './_components/VoiceBar'
 import PronounceCapturePopup from './_components/PronounceCapturePopup'
+import InlineTopProgress from './_components/InlineTopProgress'
+import TranscribeFailCard from './_components/TranscribeFailCard'
+import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
 /** 舞台高度：满屏减去外壳 72px 顶栏（绑定视口，让消息列表内部滚动、输入条钉底） */
@@ -33,6 +36,7 @@ export default function PracticeDesktop({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
+  onRetryTranscribe, onUseTextInput, onSubmitText, onCancelText,
 }: PracticeViewProps): JSX.Element {
 
   // 键盘：Space 空闲=开始录音 / 录音=发送；Esc 录音时取消。弹窗打开或焦点在输入框时不响应，避免误触
@@ -44,19 +48,26 @@ export default function PracticeDesktop({
   const { account } = useAccount()
   const avatarUrl = account?.avatarUrl ?? null
 
-  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture })
-  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture }
+  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText })
+  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
       const s = latest.current
-      // ① Esc 就近关浮层（换说法弹窗 / 发音纠错卡，含其输入框内也能关）→ 录音时取消 → 否则不退页（退出走顶栏 ✕）
+      // ① Esc 就近关浮层（换说法弹窗 / 发音纠错卡，含其输入框内也能关）→ 录音时取消 →
+      //    文字输入态返回失败双选（TextInputBar 的 textarea 已自处理并 stopPropagation，此处是失焦兜底）→ 否则不退页
       if (e.key === 'Escape') {
         if (s.showPolish) { s.onClosePolish(); return }
         if (s.capture) { s.onCloseCapture(); return }
         if (s.phase === 'recording') { s.onCancelRecord(); return }
+        if (s.phase === 'textInput') { s.onCancelText(); return }
         return
+      }
+      // 失败态 Enter → 重试转写（焦点在「重试转写」按钮上时交还原生激活，不重复触发）
+      if (e.key === 'Enter' && s.phase === 'transcribeFailed') {
+        if (t?.closest('button, a, [role="button"]')) return
+        e.preventDefault(); s.onRetryTranscribe(); return
       }
       // 其余键：输入框内让位、弹窗开时不响应
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -95,6 +106,8 @@ export default function PracticeDesktop({
 
   return (
     <div className={`${STAGE} flex flex-col items-center px-8`}>
+      {/* 转写排队自动重试：页内顶部涓流条 + sr-only 安抚播报（视觉与全局条一致，但不走 useNav） */}
+      {phase === 'queued' && <InlineTopProgress />}
       {/* relative：给「换个说法」弹窗做 absolute 定位基准，弹窗宽度收进本列而非横跨全屏 */}
       <div className="relative w-full max-w-[600px] flex-1 min-h-0 flex flex-col">
 
@@ -133,7 +146,7 @@ export default function PracticeDesktop({
                   )}
                 </Fragment>
           )}
-          {phase === 'transcribing' && <UserBubble text="…" avatarUrl={avatarUrl} />}
+          {(phase === 'transcribing' || phase === 'queued') && <UserBubble text="…" avatarUrl={avatarUrl} />}
           {phase === 'replying' && <AiBubble text="…" />}
           {error && phase === 'idle' && (
             <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
@@ -159,6 +172,10 @@ export default function PracticeDesktop({
                 查看反馈
               </GradientButton>
             </div>
+          ) : phase === 'transcribeFailed' ? (
+            <TranscribeFailCard onRetry={onRetryTranscribe} onUseText={onUseTextInput} />
+          ) : phase === 'textInput' ? (
+            <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
           ) : (
             <>
               {nearLimit && (
@@ -166,6 +183,13 @@ export default function PracticeDesktop({
                   <Clock size={13} className="flex-shrink-0 mt-px" />
                   <span>{capHint}</span>
                 </div>
+              )}
+
+              {/* 排队自动重试安抚微文案：明确「不用重说」，别让用户以为卡死 */}
+              {phase === 'queued' && (
+                <p className="mb-2.5 px-1 text-[11px] leading-[1.4] text-v2-text-muted">
+                  现在人有点多，正在为你自动重试，不用重说，通常几秒就好
+                </p>
               )}
 
               <div className="flex items-center gap-[12px]">
@@ -211,7 +235,9 @@ export default function PracticeDesktop({
                     disabled={phase !== 'idle'}
                     onClick={onStartRecord}
                   >
-                    <Mic size={19} className="text-brand-primary" />
+                    {phase === 'transcribing' || phase === 'queued'
+                      ? <Loader2 size={19} className="text-brand-primary animate-spin" />
+                      : <Mic size={19} className="text-brand-primary" />}
                     <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
                   </button>
                 )}

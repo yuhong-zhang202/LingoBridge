@@ -37,16 +37,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     // 额度服务端强制：超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹配额提示。
-    // 匿名用户走「试用仅 1 条」（总条数）；注册用户维持既有故事月额度。
+    // reason 透传「拦的是哪道闸」，供前端确定性选 QuotaReached 变体（不再靠前端异步推 isAnon 竞态）：
+    //   匿名总条数闸 → reason:'trial'（引导注册）；注册月额度闸 → reason:'story'（月额度用完）。
+    // reason 值即 QuotaReached variant，1:1 对应；message 保持两条不同文案不变。
     if (isAnonymous) {
       const total = await countCorpusForUserServer(userId)
       if (total >= ANON_CORPUS_LIMIT) {
-        return NextResponse.json({ error: '试用已完成，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        return NextResponse.json({ error: '试用已完成，请注册后继续', code: 'QUOTA_EXCEEDED', reason: 'trial' }, { status: 402 })
       }
     } else {
       const used = await countCorpusThisMonthServer(userId)
       if (used >= STORY_MONTHLY_LIMIT) {
-        return NextResponse.json({ error: '本月故事额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        return NextResponse.json({ error: '本月故事额度已用完', code: 'QUOTA_EXCEEDED', reason: 'story' }, { status: 402 })
       }
     }
 

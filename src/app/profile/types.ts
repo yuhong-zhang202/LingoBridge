@@ -6,6 +6,8 @@
  */
 export interface ProfileViewProps {
   loggedIn: boolean
+  /** 匿名会话（已建匿名 user、尚未注册）：与「完全无 session」区分，用于给匿名态渲染只读试用额度卡 */
+  isAnon: boolean
   email: string | null
   joinDays: number | null
   onLogout: () => void

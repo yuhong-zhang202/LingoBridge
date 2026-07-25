@@ -1,0 +1,50 @@
+/**
+ * @module   TranscribeFailCard
+ * @desc     练习页底部输入区在「转写彻底失败」（自动重试到顶/超时后）时的替换卡片 —— 照 isCapped 收尾区的
+ *           `flex flex-col items-center gap-3` 范式：一句安抚 + 主按钮「重试转写」（同一段留存 blob 重发）
+ *           + 次按钮「改用文字输入」。【绝不出现任何「再说 / 重录」字样】——语音这段已被系统接住、只是转写
+ *           没成功，让用户重说是把系统的锅甩给用户。挂载即把焦点移到「重试转写」（a11y）。
+ * @author   LingoBridge
+ * @created  2026-07-25
+ */
+'use client'
+import { type JSX, useEffect, useRef } from 'react'
+import GradientButton from '@/components/GradientButton'
+
+interface TranscribeFailCardProps {
+  /** 用同一段留存的 blob 重发转写 */
+  onRetry: () => void
+  /** 放弃语音、改走文字输入 */
+  onUseText: () => void
+}
+
+/**
+ * 转写失败双选卡片。
+ * @param onRetry    「重试转写」主按钮回调
+ * @param onUseText  「改用文字输入」次按钮回调
+ * @returns          底部输入区替换卡片
+ */
+export default function TranscribeFailCard({ onRetry, onUseText }: TranscribeFailCardProps): JSX.Element {
+  // 进失败态即把焦点移到「重试转写」（GradientButton 不透传 ref，改在根容器上按标签取首个 button）
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    rootRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+  }, [])
+
+  return (
+    <div ref={rootRef} className="flex flex-col items-center gap-3">
+      <p className="text-[13px] text-v2-text-secondary text-center leading-[1.5]">
+        刚才这段没接住，网络或服务开了会儿小差
+      </p>
+      <GradientButton onClick={onRetry} className="px-6 py-3 rounded-full text-[14px] font-medium">
+        重试转写
+      </GradientButton>
+      <button
+        onClick={onUseText}
+        className="flex items-center justify-center min-h-[44px] py-2.5 px-3 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform"
+      >
+        改用文字输入
+      </button>
+    </div>
+  )
+}

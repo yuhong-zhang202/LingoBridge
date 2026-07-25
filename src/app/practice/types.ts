@@ -9,7 +9,15 @@
 import type { RefObject } from 'react'
 import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/types'
 
-export type PracticePhase = 'init' | 'idle' | 'recording' | 'transcribing' | 'replying' | 'error'
+export type PracticePhase =
+  | 'init' | 'idle' | 'recording' | 'transcribing' | 'replying' | 'error'
+  // —— 转写「排队自动重试 / 失败双选 / 文字输入」三态 ——
+  /** ASR 并发闸 503（人多）→ 自动重试等待中；挂顶部涓流进度条 + sr-only 安抚播报 */
+  | 'queued'
+  /** 重试到顶/超时后进失败态：底部给「重试转写 / 改用文字输入」双选（blob 仍留存供重发） */
+  | 'transcribeFailed'
+  /** 用户改用文字输入：底部换 textarea，提交后与转写成功走完全相同的下游（sendReply） */
+  | 'textInput'
 
 /** 发音捕捉态：点某个词后挂在该气泡下方的纠错卡数据 */
 export interface PracticeCapture {
@@ -51,6 +59,14 @@ export interface PracticeViewProps {
   onCancelRecord: () => void
   /** 停录 → 转写 → 追加 → 回复 */
   onSend: () => void
+  /** 转写失败态：用同一段留存的 blob 重发（重置重试计数） */
+  onRetryTranscribe: () => void
+  /** 转写失败态：放弃语音、改走文字输入（→ textInput） */
+  onUseTextInput: () => void
+  /** 文字输入态：提交这段文字当作本轮用户发言，走与转写成功完全相同的下游 */
+  onSubmitText: (text: string) => void
+  /** 文字输入态：返回失败双选（→ transcribeFailed） */
+  onCancelText: () => void
   onWordTap: (word: string, content: string, index: number) => void
   onPolish: (content: string, index: number) => void
   onReopenPolish: () => void

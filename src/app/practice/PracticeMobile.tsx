@@ -7,7 +7,7 @@
  */
 'use client'
 import { type JSX, Fragment } from 'react'
-import { Mic, Clock, X, Send } from 'lucide-react'
+import { Mic, Clock, X, Send, Loader2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import EmptyState from '@/components/EmptyState'
@@ -20,6 +20,9 @@ import UserBubble from './_components/UserBubble'
 import RephrasePopup from './_components/RephrasePopup'
 import VoiceBar from './_components/VoiceBar'
 import PronounceCapturePopup from './_components/PronounceCapturePopup'
+import InlineTopProgress from './_components/InlineTopProgress'
+import TranscribeFailCard from './_components/TranscribeFailCard'
+import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
 export default function PracticeMobile({
@@ -28,6 +31,7 @@ export default function PracticeMobile({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
+  onRetryTranscribe, onUseTextInput, onSubmitText, onCancelText,
 }: PracticeViewProps): JSX.Element {
   // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
   const { account } = useAccount()
@@ -35,6 +39,8 @@ export default function PracticeMobile({
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
+      {/* 转写排队自动重试：页内顶部涓流条 + sr-only 安抚播报（视觉与全局条一致，但不走 useNav） */}
+      {phase === 'queued' && <InlineTopProgress />}
       <TopBar title="练习对话" />
       <StepBar currentStep="practice" />
 
@@ -87,8 +93,8 @@ export default function PracticeMobile({
               </Fragment>
         )}
 
-        {/* 处理中提示 */}
-        {phase === 'transcribing' && <UserBubble text="…" avatarUrl={avatarUrl} />}
+        {/* 处理中提示：转写中与排队重试都显示「…」用户气泡（这段话已被系统接住，不该消失） */}
+        {(phase === 'transcribing' || phase === 'queued') && <UserBubble text="…" avatarUrl={avatarUrl} />}
         {phase === 'replying' && <AiBubble text="…" />}
         {error && phase === 'idle' && (
           <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
@@ -121,6 +127,10 @@ export default function PracticeMobile({
               查看反馈
             </GradientButton>
           </div>
+        ) : phase === 'transcribeFailed' ? (
+          <TranscribeFailCard onRetry={onRetryTranscribe} onUseText={onUseTextInput} />
+        ) : phase === 'textInput' ? (
+          <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
         ) : (
         <>
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
@@ -129,6 +139,13 @@ export default function PracticeMobile({
             <Clock size={13} className="flex-shrink-0 mt-px" />
             <span>{capHint}</span>
           </div>
+        )}
+
+        {/* 排队自动重试安抚微文案：明确「不用重说」，别让用户以为卡死 */}
+        {phase === 'queued' && (
+          <p className="mb-2.5 px-1 text-[11px] leading-[1.4] text-v2-text-muted">
+            现在人有点多，正在为你自动重试，不用重说，通常几秒就好
+          </p>
         )}
 
         <div className="flex items-center gap-[12px]">
@@ -174,7 +191,9 @@ export default function PracticeMobile({
               disabled={phase !== 'idle'}
               onClick={onStartRecord}
             >
-              <Mic size={19} className="text-brand-primary" />
+              {phase === 'transcribing' || phase === 'queued'
+                ? <Loader2 size={19} className="text-brand-primary animate-spin" />
+                : <Mic size={19} className="text-brand-primary" />}
               <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
             </button>
           )}

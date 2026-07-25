@@ -45,10 +45,12 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     // 服务端硬防线：每次调用先计次（放在 scaffold 分支之前，伪造 scaffold 也无法绕过），且在任何 AI 调用之前。
     // 匿名超每日轮次上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。
+    // 匿名 402 带 reason:'trial'：匿名没有月额度、撞的是试用轮次，前端据此走 trial 变体（引导注册），
+    // 不再靠异步 isAnon 竞态推导（否则匿名会误显示「本月额度已用完」的月额度变体）。
     const dailyCount = await bumpDailyUsageServer(userId, 'practice')
     if (isAnonymous ? dailyCount > ANON_PRACTICE_TURN_LIMIT : dailyCount > REG_PRACTICE_DAILY_LIMIT) {
       return isAnonymous
-        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED', reason: 'trial' }, { status: 402 })
         : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
     }
 
@@ -65,12 +67,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 提前捕获为局部 const：闭包内 TS 不保留 body.questionId 的收窄，取局部值避免非空断言。
       const questionId = body.questionId
       // 复练月额度服务端强制：仅在开始一次新复练（review + 首轮）时校验，避免拦断进行中的对话。
-      // 超额返回 402 + code=QUOTA_EXCEEDED，客户端据此弹 QuotaReached（ielts）。
-      // 匿名用户走的是 corpus 单条试用额度，不叠加复练月额度，故 !isAnonymous 才校验。
+      // 超额返回 402 + code=QUOTA_EXCEEDED + reason:'ielts'，客户端据此确定性弹 QuotaReached（ielts 月额度变体）。
+      // 匿名用户走的是 corpus 单条试用额度，不叠加复练月额度，故 !isAnonymous 才校验（匿名到不了此分支）。
       if (!isAnonymous && body.isReview) {
         const used = await countReviewPracticeThisMonthServer(userId)
         if (used >= IELTS_MONTHLY_LIMIT) {
-          return NextResponse.json({ error: '本月复练额度已用完', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+          return NextResponse.json({ error: '本月复练额度已用完', code: 'QUOTA_EXCEEDED', reason: 'ielts' }, { status: 402 })
         }
       }
       // 越权防护：storyId 属他人语料则 403（storyId 缺省时不带故事，无需校验）

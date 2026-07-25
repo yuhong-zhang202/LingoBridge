@@ -17,15 +17,19 @@ const MS_PER_DAY = 86_400_000
 export default function ProfilePage(): JSX.Element {
   // Supabase session 异步读，初始值 false/null，挂载后同步实际状态
   const [loggedIn, setLoggedIn] = useState(false)
+  // 匿名会话（已建匿名 user、未注册）：与 loggedIn 互斥，用于给匿名态渲染只读试用额度卡（二次确认）
+  const [isAnon,   setIsAnon]   = useState(false)
   const [email,    setEmail]    = useState<string | null>(null)
   const [joinDays, setJoinDays] = useState<number | null>(null)
 
   useEffect(() => {
     getAccount().then(acct => {
       setLoggedIn(!!acct && !acct.isAnonymous && !!acct.email)
+      setIsAnon(!!acct && acct.isAnonymous)
       setEmail(acct?.email ?? null)
     }).catch(() => {
       setLoggedIn(false)
+      setIsAnon(false)
       setEmail(null)
     })
     // 加入天数取自账号创建时间（前端只读，取不到则不展示）
@@ -38,11 +42,12 @@ export default function ProfilePage(): JSX.Element {
   const onLogout = useCallback(() => {
     void logout().then(() => {
       setLoggedIn(false)
+      setIsAnon(false)
       setEmail(null)
     })
   }, [])
 
-  const viewProps = { loggedIn, email, joinDays, onLogout }
+  const viewProps = { loggedIn, isAnon, email, joinDays, onLogout }
 
   return (
     <>
