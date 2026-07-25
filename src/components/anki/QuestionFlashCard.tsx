@@ -190,7 +190,10 @@ function CardBack({ card, onSupplement }: {
   const gapClass = points.length === 2 ? 'gap-12 lg:gap-14' : 'gap-5 lg:gap-6'
 
   return (
-    <div className="flex-1 flex flex-col justify-center">
+    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+      {/* my-auto：内容不足时垂直居中；内容超高（part3 满点+长例句）时外边距收拢、从顶部滚动，
+          外层 py 边距恒在、内容不裁不贴框，卡片仍固定同高（统一）。 */}
+      <div className="my-auto w-full">
       <ul className={`flex flex-col ${gapClass}`}>
         {points.map((p) => (
           <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
@@ -208,6 +211,7 @@ function CardBack({ card, onSupplement }: {
           <ChevronRight size={14} />
         </button>
       )}
+      </div>
     </div>
   )
 }
