@@ -13,6 +13,7 @@
 'use client'
 import { type JSX, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import QuestionFlashCard from '@/components/anki/QuestionFlashCard'
@@ -26,6 +27,8 @@ const DEFAULT_SCOPE = 'all' as const
 
 export default function AnkiReviewPage(): JSX.Element {
   const router = useRouter()
+  // 「补语料」跳 /recording（会加载页）走 navigate 亮进度条；关闭复习走 router.back()（回退，非前进加载页）
+  const { navigate } = useNav()
   const [queue, setQueue] = useState<AnkiCard[]>([])
   const [current, setCurrent] = useState(0)
   const [total, setTotal] = useState(0)
@@ -77,8 +80,8 @@ export default function AnkiReviewPage(): JSX.Element {
   // 空点态「补一句语料就能生成」（B3）：跳「给这道题补语料」的定向录音流 —— /recording?qid 会串起
   // 录音→转写→restructure（qid 走雅思流）→ upsertMatch 把新语料绑定到该题→分析，正是给该题补料的完整路径。
   const handleSupplement = useCallback((questionId: string): void => {
-    router.push(`/recording?qid=${encodeURIComponent(questionId)}`)
-  }, [router])
+    navigate(`/recording?qid=${encodeURIComponent(questionId)}`)
+  }, [navigate])
 
   const close = (): void => router.back()
   const done = !loading && !error && queue.length > 0 && current >= queue.length

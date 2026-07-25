@@ -6,7 +6,7 @@
  */
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { ChevronDown } from 'lucide-react'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
@@ -34,7 +34,8 @@ interface Props {
 }
 
 export default function QuestionListTab({ mappedQuestions, offseasonQuestions, totalMapped, totalMatched, availableParts }: Props) {
-  const router = useRouter()
+  // 「练习」跳 /practice-question（会加载页）走 navigate 亮进度条；Part 筛选是纯本地 state，不涉导航
+  const { navigate } = useNav()
   const [part, setPart] = useState('全部')
   const [matchedOpen, setMatchedOpen] = useState(true)
   const [unmatchedOpen, setUnmatchedOpen] = useState(false)
@@ -105,7 +106,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
                 <Chip
                   variant="gradient"
                   size="sm"
-                  onClick={() => router.push(`/practice-question?questionId=${q.id}`)}
+                  onClick={() => navigate(`/practice-question?questionId=${q.id}`)}
                   className="font-medium flex-shrink-0"
                 >练习</Chip>
               </div>
@@ -153,7 +154,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
                   <Chip
                     variant="gradient"
                     size="sm"
-                    onClick={() => router.push(`/practice-question?questionId=${q.id}`)}
+                    onClick={() => navigate(`/practice-question?questionId=${q.id}`)}
                     className="font-medium flex-shrink-0"
                   >练习</Chip>
                 </div>

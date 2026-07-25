@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import PartTag from '@/components/PartTag'
 import Chip from '@/components/Chip'
 import Card from '@/components/Card'
@@ -12,7 +12,8 @@ type PartFilter = typeof PARTS[number]
 interface Props { topics: PracticedTopic[] }
 
 export default function PracticeTopicsTab({ topics }: Props) {
-  const router = useRouter()
+  // 「练习」跳 /practice（会加载/AI 对话页）走 navigate 亮进度条，消除跳转白屏
+  const { navigate } = useNav()
   const [filter, setFilter] = useState<PartFilter>('全部')
   const filtered = filter === '全部' ? topics : topics.filter(t => t.part === filter)
 
@@ -53,7 +54,7 @@ export default function PracticeTopicsTab({ topics }: Props) {
             </span>
             <Chip
               variant="gradient"
-              onClick={() => router.push(`/practice?questionId=${topic.questionId}`)}
+              onClick={() => navigate(`/practice?questionId=${topic.questionId}`)}
               className="font-medium"
             >
               练习

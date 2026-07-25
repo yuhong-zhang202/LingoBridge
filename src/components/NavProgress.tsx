@@ -14,7 +14,7 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useState, useTransition, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { BRAND_GRADIENT } from '@/lib/constants'
+import { BRAND_GRADIENT, SLOW_HINT_MS } from '@/lib/constants'
 
 interface NavContextValue {
   /** 程序化跳转：包在 startTransition 里，点击瞬间即置 isNavigating=true（顶部条立刻亮） */
@@ -66,6 +66,8 @@ export function NavProgress(): ReactNode {
   const { isNavigating } = useNav()
   const [visible, setVisible] = useState(false)
   const [width, setWidth] = useState(0)
+  // 跳转持续超 SLOW_HINT_MS 才亮的安抚文案（国内直连新加坡 Supabase 的高延迟场景），跳转一结束即撤
+  const [slowHint, setSlowHint] = useState(false)
 
   useEffect(() => {
     if (isNavigating) {
@@ -84,6 +86,13 @@ export function NavProgress(): ReactNode {
     return undefined
     // visible 有意不入依赖：只由 isNavigating 边沿驱动状态机，纳入会在淡出后二次触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNavigating])
+
+  // 慢跳转安抚文案：跳转持续超 SLOW_HINT_MS 才淡入，跳转一结束立即撤（与进度条状态机解耦，单独计时）
+  useEffect(() => {
+    if (!isNavigating) { setSlowHint(false); return undefined }
+    const t = window.setTimeout(() => setSlowHint(true), SLOW_HINT_MS)
+    return () => window.clearTimeout(t)
   }, [isNavigating])
 
   return (
@@ -105,6 +114,17 @@ export function NavProgress(): ReactNode {
       <span role="status" aria-live="polite" className="sr-only">
         {isNavigating ? '正在跳转…' : ''}
       </span>
+      {/* 慢跳转安抚文案：视口中央淡入一行，只安抚不报错（真失败由各页 error 态承担）。
+          与进度条同为装饰层（读屏播报已由上方 status 承担），故 aria-hidden 避免重复念读。 */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-1/2 z-[100] flex justify-center px-6 transition-opacity duration-300"
+        style={{ opacity: slowHint ? 1 : 0 }}
+      >
+        <span className="rounded-full bg-white/95 px-4 py-2 text-[13px] text-v2-text-secondary shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-black/[0.05]">
+          网络较慢，正在加载，请稍候…
+        </span>
+      </div>
     </>
   )
 }

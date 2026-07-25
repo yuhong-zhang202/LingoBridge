@@ -10,6 +10,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { Mic2, Keyboard, ChevronRight, Trash2 } from 'lucide-react'
 import { BRAND_GRADIENT_SOFT, GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { MyStory } from '@/lib/types'
@@ -49,6 +50,8 @@ const NOOP = (): void => {}
 
 export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
   const router = useRouter()
+  // 「查看」跳 /matching（会加载页）走 navigate 亮进度条；空态「去录制」跳首页仍用 router（非加载/AI 页）
+  const { navigate } = useNav()
 
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getStoryText), [searchQuery])
   const sel = useSelectMode({
@@ -171,7 +174,7 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
                     <>
                       <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
                       <button
-                        onClick={() => router.push(`/matching?corpusId=${story.id}`)}
+                        onClick={() => navigate(`/matching?corpusId=${story.id}`)}
                         className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
                       >
                         查看<ChevronRight size={13} />

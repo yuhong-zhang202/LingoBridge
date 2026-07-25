@@ -16,6 +16,8 @@ import { getQuestionById } from '@/lib/db/questions'
 import { computeRichness } from '@/lib/story-richness'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import Toast from '@/components/Toast'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -26,6 +28,8 @@ import type { WriteViewProps, WriteQuestionContext } from './types'
 
 function WriteContent(): JSX.Element {
   const router = useRouter()
+  // 「切换到语音」跳 /recording（会加载页）走 navigate 亮进度条；退出跳首页仍走 router（非加载/AI 页）
+  const { navigate } = useNav()
   const qid = useSearchParams().get('qid')
   const [textStory, setTextStory] = useState('')
   const [questionContext, setQuestionContext] = useState<WriteQuestionContext | null>(null)
@@ -40,6 +44,9 @@ function WriteContent(): JSX.Element {
     if (await storyQuota.checkBlocked()) return
     submit()
   }
+  // checkBlocked（查额度，跨新加坡可 1-2s）期间也让提交按钮转圈：guard pending OR 进 submitting，
+  // 与其后 useStorySubmit 自持的 submitting 无缝接力（submit() 首个 await 前即同步置 submitting=true）。
+  const [runSubmit, checkingSubmit] = useAsyncAction(handleSubmit)
 
   /**
    * 「切换到语音」入口：与首页「开始录音」同一道守卫。
@@ -48,7 +55,7 @@ function WriteContent(): JSX.Element {
    */
   async function handleSwitchToVoice(): Promise<void> {
     if (await storyQuota.checkBlocked()) return
-    router.push(qid ? `/recording?qid=${qid}` : '/recording')
+    navigate(qid ? `/recording?qid=${qid}` : '/recording')
   }
 
   // ?qid 存在时取题目做上下文 caption（客户端读，找不到/出错静默忽略，不挡写作）
@@ -77,8 +84,8 @@ function WriteContent(): JSX.Element {
     textStory,
     onChangeText: setTextStory,
     canSubmit,
-    submitting,
-    onSubmit: () => void handleSubmit(),
+    submitting: submitting || checkingSubmit,
+    onSubmit: () => void runSubmit(),
     onSwitchToVoice: () => void handleSwitchToVoice(),
     questionContext,
     onExit: doExit,

@@ -20,6 +20,13 @@ export const TOPNAV_H_DESKTOP = 72
 /** TopNav 桌面高度的 Tailwind class（唯一来源，见 TOPNAV_H_DESKTOP） */
 export const TOPNAV_H_DESKTOP_CLASS = 'lg:h-[72px]'
 
+// ── 跳转加载反馈 ─────────────────────────────
+/**
+ * 顶部路由进度条持续超过此毫秒数（跨新加坡 Supabase 高延迟）时，才淡入一行安抚文案「网络较慢…」。
+ * 只安抚、不报错（真失败由各页 error 态承担）。改阈值只改这里，NavProgress 引用此值。
+ */
+export const SLOW_HINT_MS = 2500
+
 // ── 题库季度（换季软下架）─────────────────────────────
 /**
  * 当前在考季度，格式 'YYYY-MM'。匹配召回与首页切换池只取 season === 此值的题；

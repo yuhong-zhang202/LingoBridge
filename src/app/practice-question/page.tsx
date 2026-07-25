@@ -12,8 +12,8 @@
  */
 'use client'
 import { type JSX, Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, Plus, RefreshCw } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { ArrowRight, Plus, RefreshCw, Loader2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import DesktopBackLink from '@/components/DesktopBackLink'
 import Card from '@/components/Card'
@@ -26,6 +26,8 @@ import MicPermissionSheet from '@/components/MicPermissionSheet'
 import GradientButton from '@/components/GradientButton'
 import QuotaReached from '@/components/QuotaReached'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useNav } from '@/components/NavProgress'
 import { getQuestionById } from '@/lib/db/questions'
 import { listCorpusByQuestion, type CorpusMatch, type MatchLevel } from '@/lib/db/matches'
 import { formatRelativeTime } from '@/lib/utils'
@@ -89,26 +91,31 @@ function CorpusMatchCard({ item, selected, onToggle, onPractice }: {
   )
 }
 
-/** 添加语料：虚线珊瑚边卡（与「练习」按钮的白底渐变描边刻意区分） */
-function AddCorpusCard({ onClick, prominent }: { onClick: () => void; prominent?: boolean }): JSX.Element {
+/** 添加语料：虚线珊瑚边卡（与「练习」按钮的白底渐变描边刻意区分）。
+ *  loading（查额度 + 探麦克风期间）时：禁用 + aria-busy + 图标换 spinner + 文案改「正在打开录音…」，
+ *  给国内高延迟下的这段静默等待一个明确反馈（否则用户以为按钮坏了）。 */
+function AddCorpusCard({ onClick, prominent, loading }: { onClick: () => void; prominent?: boolean; loading?: boolean }): JSX.Element {
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-[14px] border-2 border-dashed border-brand-primary/40 bg-brand-primary/[0.03] flex flex-col items-center justify-center text-center active:scale-[0.99] transition-transform ${
+      disabled={loading}
+      aria-busy={loading}
+      className={`w-full rounded-[14px] border-2 border-dashed border-brand-primary/40 bg-brand-primary/[0.03] flex flex-col items-center justify-center text-center active:scale-[0.99] transition-transform disabled:opacity-50 disabled:cursor-not-allowed ${
         prominent ? 'py-8' : 'py-5'
       }`}
     >
       <div className="flex items-center gap-1.5 text-brand-primary-dark">
-        <Plus size={16} />
+        {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
         <span className="text-[14px] font-semibold">添加语料</span>
       </div>
-      <span className="text-[12px] text-v2-text-muted mt-1">录一段新故事来练习这道题</span>
+      <span className="text-[12px] text-v2-text-muted mt-1">{loading ? '正在打开录音，请稍候…' : '录一段新故事来练习这道题'}</span>
     </button>
   )
 }
 
 function PracticeQuestionContent(): JSX.Element {
-  const router = useRouter()
+  // 语料练习 / 添加语料 / 文字提交都跳「会加载 / AI 页」，一律走 navigate 亮顶部进度条，消除跳转白屏
+  const { navigate } = useNav()
   const qId = useSearchParams().get('questionId') ?? ''
 
   const [question, setQuestion]   = useState<QuestionWithLinks | null>(null)
@@ -120,6 +127,8 @@ function PracticeQuestionContent(): JSX.Element {
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [textOpen, setTextOpen] = useState(false)
   const [textVal, setTextVal]   = useState('')
+  // 文字面板「开始分析」点击后到 /restructure 跳转完成前的按钮 loading（putHandoff 同步，靠 navigate 亮进度条兜住主反馈）
+  const [analyzing, setAnalyzing] = useState(false)
   // 建新故事额度守卫（与首页 / write / recording 同一份 hook）：本页「添加语料」也是建新语料入口，
   // 且它是录音与文字回退两条路的唯一入口（文字面板只从麦克风失败的 sheet 打开），故在此一处拦即可覆盖两条。
   const storyQuota = useStoryQuotaGuard()
@@ -130,12 +139,14 @@ function PracticeQuestionContent(): JSX.Element {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
-      router.push(`/recording?qid=${qId}`)
+      navigate(`/recording?qid=${qId}`)
     } catch (err) {
       const name = (err as DOMException)?.name
       setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
     }
   }
+  // 额度核对 + 麦克风探测期间按钮转圈（照搬首页 startingRec 范式）：pending 传给 AddCorpusCard 做 loading+disabled+aria-busy
+  const [addCorpus, addingCorpus] = useAsyncAction(handleAddCorpus)
 
   useEffect(() => {
     let cancelled = false
@@ -248,7 +259,7 @@ function PracticeQuestionContent(): JSX.Element {
             {items.length === 0 ? (
               <>
                 <p className="text-[13px] text-v2-text-muted text-center py-2">还没有能匹配这道题的语料</p>
-                <AddCorpusCard prominent onClick={() => void handleAddCorpus()} />
+                <AddCorpusCard prominent loading={addingCorpus} onClick={() => void addCorpus()} />
               </>
             ) : (
               <div className="flex flex-col gap-2">
@@ -258,10 +269,10 @@ function PracticeQuestionContent(): JSX.Element {
                     item={item}
                     selected={item.id === selectedId}
                     onToggle={() => setSelectedId((id) => (id === item.id ? null : item.id))}
-                    onPractice={() => router.push(`/analysis?questionId=${qId}&storyId=${item.id}`)}
+                    onPractice={() => navigate(`/analysis?questionId=${qId}&storyId=${item.id}`)}
                   />
                 ))}
-                <AddCorpusCard onClick={() => void handleAddCorpus()} />
+                <AddCorpusCard loading={addingCorpus} onClick={() => void addCorpus()} />
               </div>
             )}
           </>
@@ -301,10 +312,12 @@ function PracticeQuestionContent(): JSX.Element {
             <div className="mt-4">
               <GradientButton
                 disabled={textVal.trim().length < 10}
+                loading={analyzing}
                 onClick={() => {
                   const key = putHandoff(textVal)
                   if (!key) return
-                  router.push(`/restructure?h=${key}&qid=${qId}`)
+                  setAnalyzing(true)
+                  navigate(`/restructure?h=${key}&qid=${qId}`)
                 }}
                 className="w-full py-3 rounded-full text-[14px] font-medium"
               >

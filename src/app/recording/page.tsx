@@ -14,6 +14,7 @@ import { newFlowId } from '@/lib/flow-id'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { apiFetch } from '@/lib/api-client'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
+import { useNav } from '@/components/NavProgress'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -22,6 +23,9 @@ import type { RecordingViewProps } from './types'
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()
+  // 「改用文字」跳 /write（会加载页）走 navigate 亮进度条；返回/退出/转写后跳 restructure 仍走 router
+  // （后者带 AbortController 中断语义，不进 startTransition 以免与中断判定纠缠）
+  const { navigate } = useNav()
   const qid = useSearchParams().get('qid')
   const [seconds, setSeconds] = useState(0)
   const secondsRef = useRef(0)
@@ -169,7 +173,7 @@ function RecordingContent(): JSX.Element {
     onFinish: () => void handleFinish(),
     onRerecord: () => void handleRerecord(),
     onBack: () => router.back(),
-    onSwitchToText: () => router.push(qid ? `/write?qid=${qid}` : '/write'),
+    onSwitchToText: () => navigate(qid ? `/write?qid=${qid}` : '/write'),
     onExit: () => router.push('/'),
     onDismissToast: () => setToastMsg(null),
   }

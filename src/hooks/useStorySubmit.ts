@@ -13,7 +13,7 @@
  * @created  2026-07-09
  */
 import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
@@ -43,7 +43,8 @@ interface UseStorySubmitReturn {
  * @returns      { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota }
  */
 export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmitReturn {
-  const router = useRouter()
+  // 用 useNav 而非 useRouter：跳 /restructure（会加载/AI 页）时点击当帧即亮顶部进度条，消除跳转白屏窗口
+  const { navigate } = useNav()
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [quotaReached, setQuotaReached] = useState(false)
@@ -77,7 +78,7 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
         }
         // 服务端同意闸拒绝（未捕获同意）：回首页触发同意弹窗，别把用户带到 restructure 页再 403 一次。
         if (res.status === 403) {
-          router.push('/')
+          navigate('/')
           return
         }
         if (res.ok) {
@@ -87,19 +88,19 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
             return
           }
           // usable：把整理结果（含一句话概括 summary）一并带走，restructure 页免二次整理调用、保存时写进 corpus.summary
-          router.push(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText, summary: data.summary ?? '' })}${qidParam}`)
+          navigate(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText, summary: data.summary ?? '' })}${qidParam}`)
           return
         }
         // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理
-        router.push(`/restructure?h=${putHandoff(text)}${qidParam}`)
+        navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } catch {
         // 网络失败：放行，restructure 页兜底
-        router.push(`/restructure?h=${putHandoff(text)}${qidParam}`)
+        navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } finally {
         setSubmitting(false)
       }
     })()
-  }, [text, qid, router])
+  }, [text, qid, navigate])
 
   const dismissToast = useCallback((): void => setToastMsg(null), [])
   const dismissQuota = useCallback((): void => setQuotaReached(false), [])

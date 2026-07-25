@@ -10,7 +10,7 @@
  */
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import { listCorpusByQuestion, mapBestCorpusIdByQuestion } from '@/lib/db/matches'
 import { getAccount } from '@/lib/auth'
@@ -46,7 +46,8 @@ interface Prefetched {
  * @returns { reviewQuotaShown, dismissReviewQuota, pendingQid, gotoPractice }
  */
 export function useGotoPractice(): UseGotoPracticeReturn {
-  const router = useRouter()
+  // 用 useNav 而非 useRouter：跳 /analysis（AI 分析页）时点击当帧即亮顶部进度条，消除跳转白屏窗口
+  const { navigate } = useNav()
   const [reviewQuotaShown, setReviewQuotaShown] = useState(false)
   const [pendingQid, setPendingQid] = useState<string | null>(null)
   /** 预取的 in-flight promise；点击早于预取完成时 join 它，不重复发请求 */
@@ -76,8 +77,8 @@ export function useGotoPractice(): UseGotoPracticeReturn {
   /** 组装跳转 URL 并跳转；storyId 为 null 时不带该参数，走通用分析 */
   const push = useCallback((qid: string, storyId: string | null): void => {
     const story = storyId ? `&storyId=${encodeURIComponent(storyId)}` : ''
-    router.push(`/analysis?questionId=${encodeURIComponent(qid)}${story}&review=1`)
-  }, [router])
+    navigate(`/analysis?questionId=${encodeURIComponent(qid)}${story}&review=1`)
+  }, [navigate])
 
   const gotoPractice = useCallback(async (qid: string): Promise<void> => {
     // 快路径：预取已就绪且该题命中 → 全同步，点击即跳，不闪加载态
