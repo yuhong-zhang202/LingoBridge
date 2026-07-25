@@ -18,7 +18,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
-import { setSessionPolishes } from '@/lib/storage'
+import { setSessionPolishes, hasSeenPracticeIntro, markPracticeIntroSeen } from '@/lib/storage'
 import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
@@ -30,6 +30,7 @@ import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import PracticeMobile from './PracticeMobile'
 import PracticeDesktop from './PracticeDesktop'
+import PracticeIntroDialog from './_components/PracticeIntroDialog'
 import type { PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
@@ -77,6 +78,15 @@ function PracticeContent(): JSX.Element {
     void getSupabase().auth.getSession().then(({ data: { session } }) => {
       setIsAnon(session?.user?.is_anonymous ?? false)
     })
+  }, [])
+
+  // 功能引导：首次进入、教练开场白就绪（phase='idle'）时弹一次。绑 idle 而非「一进页面」——
+  // 那时还没用户气泡（两功能作用于用户气泡），且天然避开额度(402)/同意(403)拦截层（那两种 phase 到不了 idle）。
+  const [showIntro, setShowIntro] = useState(false)
+  const introCheckedRef = useRef(false)
+  const closeIntro = useCallback(() => {
+    setShowIntro(false)
+    markPracticeIntroSeen()   // 关闭即写标记，之后不再自动弹
   }, [])
 
   const popupRef  = useRef<HTMLDivElement>(null)
@@ -228,6 +238,13 @@ function PracticeContent(): JSX.Element {
     setCapture(null)
   }, [capture])
 
+  // 首个 idle（教练开场白就绪）时判一次功能引导；ref 守卫使 phase 之后在 idle/recording 间来回也不重复弹。
+  useEffect(() => {
+    if (phase !== 'idle' || introCheckedRef.current) return
+    introCheckedRef.current = true
+    if (!hasSeenPracticeIntro()) setShowIntro(true)
+  }, [phase])
+
   const onStartRecord = useCallback(() => {
     if (phase !== 'idle') return
     setError(null)
@@ -348,6 +365,7 @@ function PracticeContent(): JSX.Element {
           <PracticeDesktop {...viewProps} />
         </FlowShellDesktop>
         {quotaOverlay}
+        <PracticeIntroDialog open={showIntro} onClose={closeIntro} />
       </>
     )
   }
@@ -355,6 +373,7 @@ function PracticeContent(): JSX.Element {
     <>
       <PracticeMobile {...viewProps} />
       {quotaOverlay}
+      <PracticeIntroDialog open={showIntro} onClose={closeIntro} />
     </>
   )
 }

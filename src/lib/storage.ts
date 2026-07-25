@@ -29,3 +29,26 @@ export function clearSessionPolishes(): void {
   if (typeof window === 'undefined') return
   sessionStorage.removeItem(SESSION_KEY)
 }
+
+// ── 练习页功能引导：首次进入弹一次（跨会话持久 → localStorage） ──
+const PRACTICE_INTRO_SEEN_KEY = 'lingobridge:practice_intro_seen'
+
+/** 是否已看过练习页功能引导。SSR / localStorage 不可用（隐私模式）时当作「已看过」，绝不误弹或报错。 */
+export function hasSeenPracticeIntro(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return localStorage.getItem(PRACTICE_INTRO_SEEN_KEY) === '1'
+  } catch {
+    return true
+  }
+}
+
+/** 标记已看过；隐私模式写不了则静默（本次会话内靠组件 state 已不再弹）。 */
+export function markPracticeIntroSeen(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(PRACTICE_INTRO_SEEN_KEY, '1')
+  } catch {
+    /* 隐私模式：忽略 */
+  }
+}
