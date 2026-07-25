@@ -8,7 +8,6 @@
 'use client'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MOCK_RAW_STORY } from '@/data/restructure'
 import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned, getCorpusById } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
@@ -43,7 +42,9 @@ function RestructureContent() {
   const corpusId = params.get('corpusId')
   // 首程 handoff（仅无 corpusId 时读取；返回态置 null 不消费 sessionStorage）：
   // 新版结构化 handoff 携 { rawText, cleanedText }：直接进已整理态、跳过首次整理调用；
-  // 旧版纯字符串 handoff（网络/非 402 错误兜底）仍原样读出，走自行整理。都无则回退 rawText / MOCK。
+  // 旧版纯字符串 handoff（网络/非 402 错误兜底）仍原样读出，走自行整理。再无则退 URL 的 rawText。
+  // 三者皆无（典型场景：handoff 取一次即删，用户在 /restructure?h=xxx 上刷新）→ null：
+  // 语料确实没了，交由 loadError 明确报错，不得拿示例故事冒充「你的语料」。
   const [handoff] = useState<{ rawStory: string; cleanedText: string | null; summary: string | null } | null>(() => {
     if (corpusId) return null   // 返回态：不读 handoff，等下方 effect 从 DB 水合
     const h = params.get('h')
@@ -53,7 +54,9 @@ function RestructureContent() {
       const s = takeHandoff(h)   // 未通过校验时未消费，此处原样读出旧版纯文本
       if (s !== null) return { rawStory: s, cleanedText: null, summary: null }
     }
-    return { rawStory: params.get('rawText') ?? MOCK_RAW_STORY, cleanedText: null, summary: null }
+    const rawText = params.get('rawText')
+    if (rawText !== null) return { rawStory: rawText, cleanedText: null, summary: null }
+    return null
   })
   // rawStory 现为 state：返回态由 getCorpusById 异步水合；首程同步取自 handoff。
   const [rawStory,   setRawStory]   = useState(handoff?.rawStory ?? '')
@@ -68,10 +71,12 @@ function RestructureContent() {
   const [isEditing, setIsEditing] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [usable,    setUsable]    = useState<boolean | null>(handoff?.cleanedText != null ? true : null)
-  // 返回态 corpusId 水合失败 / 语料为 null：明确错误态 + 回首页出口，禁止沿用 MOCK 把「语料没了」伪装成陌生示例。
-  const [loadError, setLoadError] = useState(false)
-  // 首次 AI 整理待办：首程无整理结果即待办；返回态由水合按 cleanedText 是否为空决定。
-  const [pendingRestructure, setPendingRestructure] = useState(corpusId ? false : handoff?.cleanedText == null)
+  // 语料取不回时的明确错误态 + 回首页出口，禁止用示例故事把「语料没了」伪装成陌生语料。两种来源：
+  // 返回态 corpusId 水合失败 / 语料为 null（下方 effect 置位）；首程 handoff 与 rawText 皆无（此处初始化）。
+  const [loadError, setLoadError] = useState(!corpusId && handoff === null)
+  // 首次 AI 整理待办：首程有语料但无整理结果即待办；返回态由水合按 cleanedText 是否为空决定。
+  // 首程语料缺失（handoff 为 null）置 false：此时 rawStory 为空串，不能拿空文本去调整理接口。
+  const [pendingRestructure, setPendingRestructure] = useState(!corpusId && handoff !== null && handoff.cleanedText == null)
   const [isSaving,  setIsSaving]  = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   // 服务端额度超限（/api/corpus 或 /api/restructure 返回 402）→ 弹 QuotaReached 覆盖层
@@ -195,7 +200,8 @@ function RestructureContent() {
   const requestExit = () => setConfirm('exit')
   const requestReRestructure = () => { if (hasUnsaved) setConfirm('rerestructure'); else void reRestructure() }
 
-  // 返回态水合失败：不 MOCK 兜底，明确告知语料取不回 + 回首页出口。
+  // 语料取不回（返回态水合失败 / 首程 handoff 已被消费且 URL 无 rawText）：不拿示例故事兜底，
+  // 明确告知取不回 + 回首页出口，两种来源共用同一错误态与文案。
   if (loadError) {
     return (
       <div className="min-h-dvh bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
