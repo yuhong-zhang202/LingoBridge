@@ -14,7 +14,6 @@
  */
 'use client'
 import { Puzzle, Loader2 } from 'lucide-react'
-import Tag from '@/components/Tag'
 import { cn } from '@/lib/utils'
 
 export type AnkiSaveState = 'idle' | 'saving' | 'saved'
@@ -37,7 +36,10 @@ export default function AnkiBookmarkButton({ state, onSave, savedTag = false, cl
     return (
       <div className={cn('flex items-center', className)}>
         {savedTag ? (
-          <Tag variant="green" label="已存题卡" icon={<Puzzle size={12} className="fill-current" />} />
+          // 已存态品牌橙（与移动端角标橙拼图一致，产品方定的存对子已存色）：Tag 无橙变体，按 DESIGN §次要元素手写橙 chip
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-brand-primary-light text-brand-primary-dark">
+            <Puzzle size={12} className="fill-current" />已存题卡
+          </span>
         ) : (
           <span
             className="w-10 h-10 flex items-center justify-center text-brand-primary"

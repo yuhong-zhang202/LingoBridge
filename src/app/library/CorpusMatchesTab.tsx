@@ -13,7 +13,7 @@
  */
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { Link2, Sparkles, Loader2, Trash2 } from 'lucide-react'
+import { Link2, Loader2, Trash2 } from 'lucide-react'
 import { useNav } from '@/components/NavProgress'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
@@ -183,7 +183,7 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
                 <Tag variant="gray" label={`Part ${card.part}`} />
                 {topic && <Tag variant="green" label={topic} />}
                 {ready ? (
-                  <Tag variant="green" label="卡背已就绪" icon={<Sparkles size={11} />} />
+                  <Tag variant="green" label="卡背已就绪" />
                 ) : (
                   // 生成中 = 暖橙状态标签。Tag 组件只有 green/gradient/gray、无橙色状态变体，故按 DESIGN §次要元素
                   // 「小 badge：brand-primary-light 底 + 对应深色文字」手写；带 Loader 文字，a11y 不只靠色。
