@@ -1,0 +1,32 @@
+[
+  {
+    "id": "emotion",
+    "name": "情绪内核",
+    "sort_order": 1
+  },
+  {
+    "id": "relationship",
+    "name": "人际羁绊",
+    "sort_order": 2
+  },
+  {
+    "id": "space",
+    "name": "空间感知",
+    "sort_order": 3
+  },
+  {
+    "id": "spirit",
+    "name": "精神栖所",
+    "sort_order": 4
+  },
+  {
+    "id": "growth",
+    "name": "成长演进",
+    "sort_order": 5
+  },
+  {
+    "id": "value",
+    "name": "价值底色",
+    "sort_order": 6
+  }
+]

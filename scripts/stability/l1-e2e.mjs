@@ -127,7 +127,10 @@ const willSpend = PARTS.some((p) => SPENDING_PARTS.includes(p))
 if (willSpend) {
   // ⚠️ 必须把 --i-approved-cost 透传给 confirmCost —— 漏传会让该授权参数被静默忽略、
   // 本层永远只能交互式运行（L3 一直是对的，L1 此前漏了）。ledger 分账本记，避免与 L3 额度互串。
-  await confirmCost(estLines, est, { approved: args['i-approved-cost'], ledger: 'l1-e2e', tag: PARTS.join(',') })
+  // --ledger 可指定账本池名（缺省 'l1-e2e'）。每一轮新授权应开新池：额度是「本轮新预算」，
+  // 与上一轮的已花额度不共享；沿用旧池会把历史累计算进来、导致新授权被误判超额而拒跑。
+  // 注意：这不是绕过封顶——新池仍受本次 --i-approved-cost 全额约束，且旧池记录一条不删。
+  await confirmCost(estLines, est, { approved: args['i-approved-cost'], ledger: String(args.ledger ?? 'l1-e2e'), tag: PARTS.join(',') })
 } else {
   console.log(`\n本次分段（${PARTS.join(',')}）不含任何会调用 AI 的段 → 预估 ¥0，跳过花钱确认。`)
   console.log('（依据：各路由的 consent 闸与 assertCorpusOwner 均在 bumpDailyUsage 与模型调用之前）\n')
