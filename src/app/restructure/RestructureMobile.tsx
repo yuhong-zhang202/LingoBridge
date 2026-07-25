@@ -14,13 +14,19 @@ import { StepBar } from '@/components/StepBar'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
+import AnkiBookmarkButton, { type AnkiSaveState } from '@/components/anki/AnkiBookmarkButton'
 import type { RestructureViewProps } from './types'
 
-function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
+function AiResultCard({ text, isEditing, onToggleEdit, onChange, canSaveAnki, ankiSaveState, onSaveAnki }: {
   text: string; isEditing: boolean; onToggleEdit: () => void; onChange: (v: string) => void
+  canSaveAnki: boolean; ankiSaveState: AnkiSaveState; onSaveAnki: () => void
 }) {
   return (
-    <Card variant="gradient" className="px-5 pt-4 pb-5">
+    <Card variant="gradient" className="relative px-5 pt-4 pb-5">
+      {/* 存对子书签（雅思模式）：右上角，与底部「编辑」Chip 分角不挤 */}
+      {canSaveAnki && (
+        <AnkiBookmarkButton state={ankiSaveState} onSave={onSaveAnki} className="absolute top-3 right-3 z-[1]" />
+      )}
       {isEditing ? (
         <textarea
           value={text}
@@ -29,7 +35,7 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
           autoFocus
         />
       ) : (
-        <p className="text-[16px] text-v2-text-primary leading-relaxed">{text}</p>
+        <p className={`text-[16px] text-v2-text-primary leading-relaxed ${canSaveAnki ? 'pr-10' : ''}`}>{text}</p>
       )}
       <div className="flex justify-end mt-2">
         <Chip onClick={onToggleEdit} variant="default">
@@ -43,6 +49,7 @@ function AiResultCard({ text, isEditing, onToggleEdit, onChange }: {
 export default function RestructureMobile({
   rawStory, aiText, isEditing, isLoading, error, usable, isSaving, saveError, qid,
   onAiChange, onToggleEdit, onReRestructure, onMatch, onExit,
+  canSaveAnki, ankiSaveState, onSaveAnki,
 }: RestructureViewProps) {
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -97,6 +104,9 @@ export default function RestructureMobile({
               isEditing={isEditing}
               onToggleEdit={onToggleEdit}
               onChange={onAiChange}
+              canSaveAnki={canSaveAnki}
+              ankiSaveState={ankiSaveState}
+              onSaveAnki={onSaveAnki}
             />
             {usable === false && (
               <p className="text-[12px] text-v2-text-muted text-center px-2 leading-relaxed">

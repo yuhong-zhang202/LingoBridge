@@ -8,7 +8,8 @@
  *             - 脊柱（序号+中文标题+中文说明）恒显不塌；仅「英文例句格」按四态分流（该点 en===null 时）：
  *               生成中（hasCorpus 且未生成完 → 浅字「例句生成中…」）/ 生成完但这点没料（hasCorpus 且生成完 →
  *               浅字「这点你没讲到」，绝不再说生成中）/ 未绑语料（留白）；三态皆非交互、不显播放按钮。
- *               仅「未绑语料且全空」的题在卡底显一条正向 CTA「绑一句语料，生成你的英文例句 ›」。
+ *               仅「未绑语料且全空」的题在卡底显一条中性指路 CTA「去题库找这道题 ›」（→ /question-bank，
+ *               不入队生成——旧「绑一句语料，生成你的英文例句」是空头支票，点了卡背永久转圈，已撤）。
  *
  *   翻面机制沿用 FlashCard 范式但改用 grid 双面同格叠放（gridArea 1/1）：容器行高取较高面（背面满点），
  *   背面撑开不被裁 —— 根治旧「背面 absolute inset-0 被锁死在正面高度、第 3 点例句被 overflow-hidden 切掉」。
@@ -57,8 +58,13 @@ interface Props {
    * 保留为可选 prop 仅为兼容仍传入它的宿主页；组件内不再调用，对应 PATCH 后端端点保留未删。
    */
   onEditPoint?: (idx: number, en: string) => Promise<void>
-  /** 补料钩子入口（空点态「去补一句语料」）。外围导航未接前可留空 → 钩子降级为不可点提示。 */
+  /** 空点态指路钩子（「去题库找这道题」→ /question-bank）。外围导航未接前可留空 → 钩子降级为不可点提示。 */
   onSupplement?: (questionId: string) => void
+  /**
+   * 匿名会话：隐藏 SRS 熟悉/不熟悉评级（评级 POST 需注册），只保留翻面浏览；底部改显「注册后记录复习进度」。
+   * 评级三条入口（左右滑 / 键盘 ←→ / 底部按钮）统一经 flyOut，匿名时 flyOut 短路，故右滑也不会误评级。
+   */
+  anonymous?: boolean
 }
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底灰数字（与 analysis 侧重点 StepNum 视觉一致）。 */
@@ -199,7 +205,8 @@ function CardBack({ card, onSupplement }: {
           <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
         ))}
       </ul>
-      {/* 卡底 CTA：仅「未绑语料且全空」的题显示——引导去绑第一句语料生成例句。有语料的卡（含全留空 B′）不显示。 */}
+      {/* 卡底 CTA：仅「未绑语料且全空」的题显示。中性指路——去题库找这道题（不承诺"点了就生成例句"：
+          该入口并不入队生成，旧文案"绑一句语料，生成你的英文例句"是张空头支票，点了卡背只会永久转圈）。 */}
       {allEmpty && !hasCorpus && (
         <button
           type="button"
@@ -207,7 +214,7 @@ function CardBack({ card, onSupplement }: {
           disabled={!onSupplement}
           className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
         >
-          绑一句语料，生成你的英文例句
+          去题库找这道题
           <ChevronRight size={14} />
         </button>
       )}
@@ -241,7 +248,7 @@ function FaceShell({ children, flip3d, back, inert }: {
   )
 }
 
-export default function QuestionFlashCard({ card, onGrade, onSupplement }: Props): JSX.Element {
+export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false }: Props): JSX.Element {
   const reduced = useReducedMotion()
   const [flipped, setFlipped] = useState(false)
   const [dx, setDx] = useState(0)
@@ -252,25 +259,28 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement }: Props
   const moved = useRef(false)
   const fired = useRef(false)
 
-  // 直接飞出并回调（底部按钮 / 键盘 ←→）；reduced-motion 下即时评级、不做大位移
+  // 直接飞出并回调（底部按钮 / 键盘 ←→ / 右滑越阈）；reduced-motion 下即时评级、不做大位移。
+  // 匿名短路：评级需注册，匿名一律不飞出、不回调（三入口共用本函数，故右滑也被一并挡住）。
   const flyOut = useCallback((remembered: boolean): void => {
+    if (anonymous) return
     if (fired.current) return
     fired.current = true
     if (reduced) { onGrade(remembered); return }
     setAnimated(true)
     setDx(remembered ? 520 : -520)
     window.setTimeout(() => onGrade(remembered), 180)
-  }, [reduced, onGrade])
+  }, [reduced, onGrade, anonymous])
 
-  // 键盘 ←→ 评级
+  // 键盘 ←→ 评级（匿名时 flyOut 内部短路，不评级）
   useEffect(() => {
+    if (anonymous) return
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'ArrowRight') { e.preventDefault(); flyOut(true) }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [flyOut])
+  }, [flyOut, anonymous])
 
   const toggleFlip = useCallback((): void => { if (!moved.current) setFlipped((f) => !f) }, [])
 
@@ -346,6 +356,11 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement }: Props
       {!flipped ? (
         <p className="text-center text-[13px] text-v2-text-secondary mt-[18px] lg:mt-6 flex items-center justify-center gap-1.5">
           <RotateCw size={14} />点击卡片翻面看答题要点
+        </p>
+      ) : anonymous ? (
+        // 匿名：评级需注册，隐藏熟悉/不熟悉，只提示注册后可记录复习进度（翻面浏览仍可用）
+        <p className="text-center text-[13px] text-v2-text-muted mt-[18px] lg:mt-6">
+          注册后记录复习进度
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px] lg:mt-6">

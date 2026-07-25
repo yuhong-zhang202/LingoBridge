@@ -53,6 +53,28 @@ export async function getCardCorpusBinding(userId: string, questionId: string): 
 }
 
 /**
+ * 批量查某用户在给定题目集合里【已存对子】（卡行存在且 corpus_id 非空）的题 id 集合。
+ * 供匹配接口给每题补 ankiSaved（已存态）——与存对子 409 判定同口径（corpus_id 非空 = 已存过对子），
+ * corpus_id 为 null 的退化裸卡（复习/编辑懒物化出）不算已存对子。
+ * @param  userId       requireUser 反查出的当前用户 id
+ * @param  questionIds  待判定的题 id 列表（空列表直接回空集，不发查询）
+ * @returns             已存对子的题 id 集合
+ * @throws              Error —— 查询出错
+ * @sideEffect          service_role 读 anki_cards（绕 RLS，须显式按 user_id 过滤）
+ */
+export async function getBoundQuestionIds(userId: string, questionIds: string[]): Promise<Set<string>> {
+  if (questionIds.length === 0) return new Set<string>()
+  const { data, error } = await getSupabaseServer()
+    .from('anki_cards')
+    .select('question_id')
+    .eq('user_id', userId)
+    .in('question_id', questionIds)
+    .not('corpus_id', 'is', null)
+  if (error) throw new Error(`读取已存题卡失败：${error.message}`)
+  return new Set(((data as { question_id: string }[] | null) ?? []).map((r) => r.question_id))
+}
+
+/**
  * 换语料（方案 §11 自动重生成红线）——【单事务原子】：清空卡背 + 卡行改指新语料（懒物化下卡行不存在则
  * 物化插入）+ 在途任务改指新语料 + 兜底入队（同题已有 active 任务则 do-nothing）。这四步全部收敛进 0035
  * 的 swap_anki_corpus RPC，故本函数不再分多条 app 层 DML（旧实现 rebind + 单独 enqueue 非原子，中间失败

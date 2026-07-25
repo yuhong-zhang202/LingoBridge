@@ -150,3 +150,25 @@ export async function getCorpusByIdServer(id: string): Promise<string | null> {
     return null
   }
 }
+
+/**
+ * 按 id 读取单条语料的一句话概括（summary），供换语料弹窗对比「当前已绑语料」用。
+ * 使用 service_role client，绕 RLS；不存在 / 无概括 / 出错一律返回 null（弹窗降级为中性占位文案）。
+ * @param  id  corpus UUID
+ * @returns    语料一句话概括，或 null
+ */
+export async function getCorpusSummaryServer(id: string): Promise<string | null> {
+  if (!id) return null
+  try {
+    const { data, error } = await getSupabaseServer()
+      .from('corpus')
+      .select('summary')
+      .eq('id', id)
+      .maybeSingle()
+    if (error) throw error
+    return (data as { summary: string | null } | null)?.summary ?? null
+  } catch (err) {
+    console.error('[corpus-server] getCorpusSummaryServer failed', err)
+    return null
+  }
+}

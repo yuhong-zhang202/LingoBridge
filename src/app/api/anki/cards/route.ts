@@ -9,9 +9,11 @@
  *             覆盖数组（分点式 v0.3；en 空串 = 清该点覆盖回退生成/示范；part3 亦可，用户自填）。
  *
  *           为什么 POST 而非 GET 存对子：有副作用（扣额度 + 入队付费 AI 生成），与 phrases/matching 同口径。
- *           鉴权：requireUser（注册专属：Anki 卡是跨天 SRS 资产、档位依赖用户目标分，匿名不适用）；同意闸 + 计次在入队【之前】
- *           硬前置（enqueue.ts 顶注：同意/计次归「用户发起请求」的端点，与 phrases「requireConsent +
- *           bumpDailyUsage 前置、再调 AI」同范式）。越权防护：assertCorpusOwner 校验语料归属。
+ *           鉴权：GET 匿名放行（requireUserAllowAnon）——读路径无副作用，匿名会话回当季全库默认卡（背面走静态
+ *           题目分析、corpus_id=null），让未注册用户能浏览题库速览；POST/PATCH 仍 requireRegistered（存对子/SRS
+ *           是跨天资产、档位依赖用户目标分，注册专属，产品方拍板）。POST 的同意闸 + 计次在入队【之前】硬前置
+ *           （enqueue.ts 顶注：同意/计次归「用户发起请求」的端点，与 phrases「requireConsent + bumpDailyUsage
+ *           前置、再调 AI」同范式）。越权防护：assertCorpusOwner 校验语料归属。
  * @author   LingoBridge
  * @created  2026-07-23
  */
@@ -21,8 +23,9 @@ import { getQuestionById } from '@/lib/db/questions'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { enqueueAnkiGeneration } from '@/lib/anki/enqueue'
 import { getCardCorpusBinding, patchEditedPoint } from '@/lib/db/anki-cards-server'
+import { getCorpusSummaryServer } from '@/lib/db/corpus-server'
 import { listAnkiCards, type AnkiListScope } from '@/lib/anki/list'
-import { requireRegistered, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
+import { requireRegistered, requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { REG_ANKI_DAILY_LIMIT } from '@/lib/constants'
 
@@ -31,10 +34,15 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v.trim() : ''
 }
 
-/** GET：列出当季某 part 的 Anki 卡。scope 缺省 all、part 缺省 1；非法值 400。 */
+/**
+ * GET：列出当季某 part 的 Anki 卡。scope 缺省 all、part 缺省 1；非法值 400。
+ * 匿名放行（requireUserAllowAnon）：读路径无副作用、不注册 SRS 资产，匿名会话 userId 无绑定卡 →
+ * RPC 一律回当季全库【默认卡】（corpus_id=null、背面走静态题目分析），让未注册用户也能浏览题库速览；
+ * 写路径 POST/PATCH 仍 requireRegistered（存对子/SRS 注册专属，产品方拍板）。
+ */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
-    const { userId } = await requireRegistered(req)
+    const { userId } = await requireUserAllowAnon(req)
     const { searchParams } = new URL(req.url)
 
     // scope ∈ {all, answered}，缺省 all。
@@ -86,7 +94,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 懒物化出的裸卡、或删语料后的退化卡）视为可绑，放行。换语料走 PUT /corpus，不走这里。
     const binding = await getCardCorpusBinding(userId, questionId)
     if (binding.exists && binding.corpusId !== null) {
-      return NextResponse.json({ error: '该题已存过对子，换语料请用换语料入口', code: 'ANKI_ALREADY_BOUND' }, { status: 409 })
+      // 409 带 currentCorpus：附上当前已绑语料的 id + 一句话概括，供前端换语料弹窗对比「当前 vs 新」。
+      // summary 读失败/为空 → null，弹窗降级为中性占位（getCorpusSummaryServer 内部已吞异常）。
+      const summary = await getCorpusSummaryServer(binding.corpusId)
+      return NextResponse.json(
+        {
+          error: '该题已存过对子，换语料请用换语料入口',
+          code: 'ANKI_ALREADY_BOUND',
+          currentCorpus: { id: binding.corpusId, summary },
+        },
+        { status: 409 },
+      )
     }
 
     // 服务端硬防线：计次在入队（→ 付费 AI）之前。注册专属功能，超熔断 → 429。

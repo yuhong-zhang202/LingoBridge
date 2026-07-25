@@ -16,6 +16,10 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
+import Toast from '@/components/Toast'
+import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
+import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
+import { saveAnkiPair, swapAnkiCorpus, type CorpusBrief } from '@/lib/anki/cards-client'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -84,6 +88,15 @@ function RestructureContent() {
   // 竞态会让匿名用户误显示注册的「本月额度已用完」谎报。/api/restructure 402 是匿名 only、不带 reason，
   // readQuotaReason 返回 null，此处默认 'trial'，语义正确。
   const [storyQuota, setStoryQuota] = useState<'trial' | 'story' | null>(null)
+  // ── 存对子（雅思模式，qid 非空时可用）——
+  // ensuredStoryId：ensureCorpusSaved 首次落库拿到的 storyId 缓存，令「存对子」与「开始分析」复用同一条
+  // 语料、不重复建库/多耗额度（点存即落库该语料，占 1 条语料额度是拍板 A 已接受的语义）。
+  const [ensuredStoryId, setEnsuredStoryId] = useState<string | null>(null)
+  const [ankiSaveState, setAnkiSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [ankiGate, setAnkiGate] = useState(false)
+  const [ankiToast, setAnkiToast] = useState<string | null>(null)
+  const [ankiSwap, setAnkiSwap] = useState<{ current: CorpusBrief; newStoryId: string } | null>(null)
+  const [ankiSwapping, setAnkiSwapping] = useState(false)
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -156,33 +169,41 @@ function RestructureContent() {
   // A13 防重入：「重新整理」「重试」两个按钮共用一个 ref 守卫，连点只发一次 AI 整理
   const [reRestructure] = useAsyncAction(runRestructure)
 
+  // 落库当前语料并返回 storyId（「开始分析/匹配」与「存对子」共用）：
+  //   corpus 幂等——返回态（corpusId 从 URL 水合）或本会话已 ensure 过 → 复用同一条、不重复建库；
+  //   首程无 → 服务端创建（配额 + 落库防绕过）并缓存 id。再更新整理结果（写 cleaned/summary）。
+  //   配额 402 / 同意 403 由本函数内处理副作用并返回 null，调用方据 null 静默收尾（不再往下走）。
+  const ensureCorpusSaved = useCallback(async (): Promise<string | null> => {
+    let storyId = corpusId ?? ensuredStoryId
+    if (!storyId) {
+      const res = await apiFetch('/api/corpus', {
+        method: 'POST',
+        json: { source: 'voice', rawText: rawStory },
+      })
+      // 建语料 402：reason 决定变体——匿名总条数闸 trial（注册引导）/ 注册月额度闸 story（月额度用完）。
+      if (res.status === 402) {
+        const reason = await readQuotaReason(res)
+        setStoryQuota(reason === 'story' ? 'story' : 'trial')
+        return null
+      }
+      // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不停在「语料保存失败」错误态。
+      if (res.status === 403) { router.push('/'); return null }
+      if (!res.ok) throw new Error('语料保存失败，请重试')
+      const { corpus } = (await res.json()) as { corpus: { id: string } }
+      storyId = corpus.id
+      setEnsuredStoryId(storyId)
+    }
+    // summary 非空才随本次保存写入；null（旧兜底路径/返回态未重算）→ 不传，不覆盖 DB 已有概括。
+    await updateCorpusCleaned(storyId, aiText, summary ?? undefined)
+    return storyId
+  }, [corpusId, ensuredStoryId, rawStory, aiText, summary, router])
+
   const handleMatchClick = useCallback(async (): Promise<void> => {
     setIsSaving(true)
     setSaveError(null)
     try {
-      // corpus 幂等：返回态（corpusId 从 URL 水合）已有语料 → 跳过 POST，直接更新整理结果，
-      // 保证全程一条语料、不重复建库、不多耗额度；首程无 corpusId → 照旧服务端创建（配额 + 落库防绕过）。
-      let storyId = corpusId
-      if (!storyId) {
-        const res = await apiFetch('/api/corpus', {
-          method: 'POST',
-          json: { source: 'voice', rawText: rawStory },
-        })
-        // 建语料 402：reason 决定变体——匿名总条数闸 trial（注册引导）/ 注册月额度闸 story（月额度用完）。
-        if (res.status === 402) {
-          const reason = await readQuotaReason(res)
-          setStoryQuota(reason === 'story' ? 'story' : 'trial')
-          setIsSaving(false)
-          return
-        }
-        // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不停在「语料保存失败」错误态。
-        if (res.status === 403) { router.push('/'); return }
-        if (!res.ok) throw new Error('语料保存失败，请重试')
-        const { corpus } = (await res.json()) as { corpus: { id: string } }
-        storyId = corpus.id
-      }
-      // summary 非空才随本次保存写入；null（旧兜底路径/返回态未重算）→ 不传，不覆盖 DB 已有概括。
-      await updateCorpusCleaned(storyId, aiText, summary ?? undefined)
+      const storyId = await ensureCorpusSaved()
+      if (!storyId) { setIsSaving(false); return }   // 402/403 已在 ensureCorpusSaved 内处理副作用
       // navigate（非 router.push）：保存完成到目标页（分析/匹配均为 AI 环节、非瞬时）跳转期间亮顶部条，
       // 与按钮「保存中…」spinner 接力，全程有反馈。
       if (qid) {
@@ -196,7 +217,37 @@ function RestructureContent() {
       setSaveError(e instanceof Error ? e.message : '语料保存失败，请重试')
       setIsSaving(false)
     }
-  }, [rawStory, aiText, summary, qid, corpusId, router, navigate])
+  }, [ensureCorpusSaved, qid, navigate])
+
+  // 存对子（雅思模式）：点书签 → 先静默 ensureCorpusSaved 落库拿 storyId → POST /anki/cards。
+  // 200 已存 / 401 弹注册引导 / 409 弹换语料弹窗（新语料 = 刚 ensure 的这条）/ 429·失败 toast。
+  const handleSaveAnki = useCallback(async (): Promise<void> => {
+    if (!qid || ankiSaveState !== 'idle') return
+    setAnkiSaveState('saving')
+    try {
+      const storyId = await ensureCorpusSaved()
+      if (!storyId) { setAnkiSaveState('idle'); return }   // 落库撞 402/403：额度层/同意层已接管
+      const r = await saveAnkiPair(qid, storyId)
+      if (r.ok) { setAnkiSaveState('saved'); return }
+      if (r.kind === 'anon') { setAnkiSaveState('idle'); setAnkiGate(true); return }
+      if (r.kind === 'bound') { setAnkiSaveState('idle'); setAnkiSwap({ current: r.currentCorpus, newStoryId: storyId }); return }
+      if (r.kind === 'limit') { setAnkiSaveState('idle'); setAnkiToast('今天存的题卡有点多，明天再来'); return }
+      setAnkiSaveState('idle'); setAnkiToast('没存上，再试一次')
+    } catch {
+      setAnkiSaveState('idle'); setAnkiToast('没存上，再试一次')
+    }
+  }, [qid, ankiSaveState, ensureCorpusSaved])
+
+  // 换语料确认：PUT 成功 → 标已存 + 成功 toast；失败 → 通用 toast。
+  const handleConfirmSwapAnki = useCallback(async (): Promise<void> => {
+    if (!qid || !ankiSwap) return
+    setAnkiSwapping(true)
+    const ok = await swapAnkiCorpus(qid, ankiSwap.newStoryId)
+    setAnkiSwapping(false)
+    setAnkiSwap(null)
+    if (ok) { setAnkiSaveState('saved'); setAnkiToast('已换成新语料，正在重新生成') }
+    else setAnkiToast('没换成，再试一次')
+  }, [qid, ankiSwap])
 
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline
@@ -238,6 +289,9 @@ function RestructureContent() {
     onReRestructure: () => void reRestructure(),
     onMatch: () => void handleMatchClick(),
     onExit: requestExit,
+    canSaveAnki: qid !== null,
+    ankiSaveState,
+    onSaveAnki: () => void handleSaveAnki(),
   }
 
   return (
@@ -265,6 +319,19 @@ function RestructureContent() {
       />
       {/* 额度超限覆盖层：变体由服务端 402 reason 决定（trial 引导注册 / story 月额度）；关闭即回首页 */}
       {storyQuota && <QuotaReached variant={storyQuota} asOverlay onClose={() => router.push('/')} />}
+      {/* 匿名点存题卡（401）：注册引导小模态；关闭回本页（语料与整理结果不丢） */}
+      {ankiGate && <AnkiRegisterGate onClose={() => setAnkiGate(false)} />}
+      {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 刚 ensure 的这条，客户端有其一句话概括 */}
+      {ankiSwap && (
+        <SwapCorpusDialog
+          currentCorpus={ankiSwap.current}
+          newCorpus={{ id: ankiSwap.newStoryId, summary }}
+          swapping={ankiSwapping}
+          onSwap={() => void handleConfirmSwapAnki()}
+          onKeepCurrent={() => { if (!ankiSwapping) setAnkiSwap(null) }}
+        />
+      )}
+      <Toast message={ankiToast} onDismiss={() => setAnkiToast(null)} />
     </>
   )
 }

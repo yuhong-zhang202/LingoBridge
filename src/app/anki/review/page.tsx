@@ -20,7 +20,9 @@ import { X } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import QuestionFlashCard from '@/components/anki/QuestionFlashCard'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
-import { fetchAnkiCards, gradeAnkiCard, patchAnkiPoint } from '@/lib/anki/cards-client'
+import { useAccount } from '@/hooks/useAccount'
+import { ensureSession } from '@/lib/supabase'
+import { fetchAnkiCards, gradeAnkiCard, patchAnkiPoint, AnkiFetchError } from '@/lib/anki/cards-client'
 import { parseEditOverrides, applyEditOverride, serializeEditOverrides } from '@/lib/anki/answer-points'
 import type { AnkiCard } from '@/lib/anki/list'
 
@@ -37,7 +39,7 @@ const PART_TABS: readonly { id: PartTab; label: string }[] = [
 
 export default function AnkiReviewPage(): JSX.Element {
   const router = useRouter()
-  // 「补语料」跳 /recording（会加载页）走 navigate 亮进度条；关闭复习走 router.back()（回退，非前进加载页）
+  // 空点态指路跳 /question-bank 走 navigate 亮进度条；关闭复习走 router.back()（回退，非前进加载页）
   const { navigate } = useNav()
   const [queue, setQueue] = useState<AnkiCard[]>([])
   const [current, setCurrent] = useState(0)
@@ -46,11 +48,24 @@ export default function AnkiReviewPage(): JSX.Element {
   const [activePart, setActivePart] = useState<PartTab>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // 401（GET 理论已匿名放行，但会话过期/被吊销仍可能 401）→ 注册引导态，不当「加载失败」；其余走加载失败 + 重试。
+  const [authRequired, setAuthRequired] = useState(false)
+  // 匿名会话：隐藏 SRS 评级（评级 POST 需注册），只保留翻面浏览（GET 已放行、返回默认无语料卡）。
+  const { account } = useAccount()
+  const isAnonymous = account?.isAnonymous ?? false
+  // 重试键：错误态「重试」自增触发重新拉取（而非只「返回」把用户踢走）
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setError(null)
+    setAuthRequired(false)
     void (async () => {
       try {
+        // 先确保有会话（无则匿名登录）：GET 已匿名放行，匿名 token 存在才能拿到当季全库默认卡；
+        // 深链直达本页的首访者否则无 Authorization 头 → 401 误入注册引导态。
+        await ensureSession()
         // part1 + part2 两副牌并行拉，按 RPC 返回顺序 concat（part1 在前、part2 在后）；
         // part3 子卡已随其 part2 父卡在 p2 内成组排好，不在前端重排、直接沿用顺序，保成组。
         const [p1, p2] = await Promise.all([
@@ -63,13 +78,16 @@ export default function AnkiReviewPage(): JSX.Element {
         // fetchAnkiCards(1) 只回 part1；fetchAnkiCards(2) 回 part2 + 其 part3 子卡（已成组）；「全部」= 整副牌
         setTotals({ all: cards.length, 1: p1.length, 2: p2.length })
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : '加载失败，请重试')
+        if (cancelled) return
+        // 按 status 分流：401 → 注册引导态；其余（500 / 网络，status=0）→ 加载失败 + 重试。
+        if (e instanceof AnkiFetchError && e.status === 401) setAuthRequired(true)
+        else setError(e instanceof Error ? e.message : '加载失败，请重试')
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [reloadKey])
 
   // 当前 Tab 可见牌堆：从完整 queue 按 part 派生（Part 1 → part===1；Part 2 → part===2 或 3，part3 跟随父 part2
   // 成组，filter 不改相对顺序故成组不被打散）。翻卡/评级/进度全作用在 visibleQueue 上。
@@ -89,12 +107,13 @@ export default function AnkiReviewPage(): JSX.Element {
   }, [])
 
   const handleGrade = useCallback((remembered: boolean): void => {
+    if (isAnonymous) return // 匿名不评级（评级 POST 需注册）；QuestionFlashCard 已隐藏评级 UI，此为双保险
     const card = visibleQueue[current]
     if (!card) return
     void gradeAnkiCard(card.questionId, remembered).catch(() => {}) // 静默失败，不打断复习
     if (!remembered) setQueue((q) => [...q, card]) // 没记住：排到队尾本轮再练（同 part 的卡 filter 后仍落该 tab 队尾）
     setCurrent((c) => c + 1)
-  }, [visibleQueue, current])
+  }, [visibleQueue, current, isAnonymous])
   const [gradeOne] = useAsyncAction(handleGrade)
 
   // 逐点编辑（已下线、仅兼容仍传入的宿主 prop）：按 questionId 定位当前可见卡回写覆盖，避免 index 落在完整 queue 上错位
@@ -107,10 +126,9 @@ export default function AnkiReviewPage(): JSX.Element {
     setQueue((q) => q.map((c) => (c.questionId === card.questionId ? { ...c, editedAnswer: next === '' ? null : next } : c)))
   }, [visibleQueue, current])
 
-  // 空点态「补一句语料就能生成」（B3）：跳「给这道题补语料」的定向录音流 —— /recording?qid 会串起
-  // 录音→转写→restructure（qid 走雅思流）→ upsertMatch 把新语料绑定到该题→分析，正是给该题补料的完整路径。
-  const handleSupplement = useCallback((questionId: string): void => {
-    navigate(`/recording?qid=${encodeURIComponent(questionId)}`)
+  // 空点态中性指路：去题库找这道题（/question-bank），不走 /recording 空头支票（那条并不入队生成、卡背永久转圈）。
+  const handleSupplement = useCallback((): void => {
+    navigate('/question-bank')
   }, [navigate])
 
   const close = (): void => router.back()
@@ -143,8 +161,21 @@ export default function AnkiReviewPage(): JSX.Element {
       <div className="flex-1 min-h-0 overflow-y-auto px-6 lg:px-8 py-6 relative z-10 flex flex-col lg:max-w-[760px] lg:w-full lg:mx-auto">
         {loading ? (
           <div className="flex-1 flex items-center justify-center"><EmptyState title="加载中…" orbSize={100} /></div>
+        ) : authRequired ? (
+          // 401（会话过期/被吊销）：注册引导态，不是「加载失败」。CTA → /login。
+          <div className="flex-1 flex items-center justify-center">
+            <EmptyState
+              title="登录后查看你的题卡"
+              subtitle="题卡会按你的目标分帮你复习，登录 / 注册后就能看到你存过的题。"
+              ctaLabel="注册 / 登录"
+              onCta={() => router.push('/login')}
+            />
+          </div>
         ) : error ? (
-          <div className="flex-1 flex items-center justify-center"><EmptyState title="加载失败" subtitle={error} ctaLabel="返回" onCta={close} /></div>
+          // 500 / 网络：加载失败 + 重试（重新拉取，不是「返回」把用户踢走）。
+          <div className="flex-1 flex items-center justify-center">
+            <EmptyState title="加载失败" subtitle={error} ctaLabel="重试" onCta={() => setReloadKey((k) => k + 1)} alert />
+          </div>
         ) : queue.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <EmptyState title="当季没有题卡" subtitle="去题库把想练的题「存对子」，就会出现在这里" ctaLabel="返回" onCta={close} />
@@ -185,6 +216,7 @@ export default function AnkiReviewPage(): JSX.Element {
                   onGrade={(r) => void gradeOne(r)}
                   onEditPoint={handleEditPoint}
                   onSupplement={handleSupplement}
+                  anonymous={isAnonymous}
                 />
               </div>
             )}

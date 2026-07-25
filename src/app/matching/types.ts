@@ -22,6 +22,8 @@ export interface FunnelQuestion {
   isPrimaryMatch: boolean
   relevanceScore?: number
   relevanceReason?: string
+  /** 该题是否已被本用户存为题卡（已存对子）。服务端按 anki_cards 是否已绑非空语料判；匿名一律 false。 */
+  ankiSaved: boolean
 }
 
 export interface FunnelResult {
@@ -71,6 +73,12 @@ export interface MatchingViewProps {
   onToggleExpanded: () => void
   /** 对某题进入题目分析（跳 /analysis，非 /practice） */
   onPractice: (id: string) => void
+  /** 已存题卡的题 id 集合（含服务端 ankiSaved 初值 + 本次会话新存的）。 */
+  savedIds: Set<string>
+  /** 正在存题卡的题 id（同一时刻至多一个）；null = 无进行中。 */
+  savingId: string | null
+  /** 存题卡（书签/右滑触发）。已存题短路、匿名 401 弹注册引导、409 弹换语料弹窗，均在外壳处理。 */
+  onSavePair: (id: string) => void
   /** error 态重试（含防重入守卫） */
   onRetry: () => void
   /** 返回上一步（→ /restructure?corpusId=…）；替掉移动端 TopBar 默认 router.back() 落假故事的现网破损 */

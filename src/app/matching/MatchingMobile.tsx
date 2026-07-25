@@ -43,9 +43,12 @@ function GroupHeader({ label, count, variant }: {
 export default function MatchingMobile({
   result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
-  selectedId, expanded,
-  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onRetry, onBack, onExit,
+  selectedId, expanded, savedIds, savingId,
+  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onSavePair, onRetry, onBack, onExit,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
+  // 单题存对子三态：进行中 > 已存 > 未存（saving 优先于 saved，避免刚点完瞬间闪回未存）
+  const saveStateOf = (id: string): 'idle' | 'saving' | 'saved' =>
+    savingId === id ? 'saving' : savedIds.has(id) ? 'saved' : 'idle'
   return (
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="题目匹配" onBack={onBack} />
@@ -182,6 +185,8 @@ export default function MatchingMobile({
                         onPractice={() => onPractice(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={true}
+                        saveState={saveStateOf(q.id)}
+                        onSave={() => onSavePair(q.id)}
                       />
                     ))}
                   </div>
@@ -202,6 +207,8 @@ export default function MatchingMobile({
                         onPractice={() => onPractice(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={false}
+                        saveState={saveStateOf(q.id)}
+                        onSave={() => onSavePair(q.id)}
                       />
                     ))}
                   </div>

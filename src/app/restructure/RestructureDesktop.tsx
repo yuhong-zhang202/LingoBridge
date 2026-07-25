@@ -12,11 +12,13 @@ import Card from '@/components/Card'
 import Orb from '@/components/Orb'
 import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
+import AnkiBookmarkButton from '@/components/anki/AnkiBookmarkButton'
 import type { RestructureViewProps } from './types'
 
 export default function RestructureDesktop({
   rawStory, aiText, isEditing, isLoading, error, usable, isSaving, saveError, qid,
   onAiChange, onToggleEdit, onReRestructure, onMatch, onExit,
+  canSaveAnki, ankiSaveState, onSaveAnki,
 }: RestructureViewProps) {
   // 键盘（仅 ≥1024px 桌面断点生效；CSS 双挂载需按视口过滤，避免隐藏视图误触）：
   // ⌘/Ctrl+Enter = 主 CTA（非加载/错误/保存中才触发，避开裸 Enter 在 textarea 换行）；Esc = 退出（与 ✕ 一致）。
@@ -95,7 +97,11 @@ export default function RestructureDesktop({
                 {isEditing ? <><Check size={12} />完成</> : <><Pencil size={12} />编辑</>}
               </Chip>
             </div>
-            <Card variant="gradient" className="px-7 py-6 min-h-[300px] flex flex-col justify-center">
+            <Card variant="gradient" className="relative px-7 py-6 min-h-[300px] flex flex-col justify-center">
+              {/* 存对子书签（雅思模式）：卡右上角，与上方「编辑」Chip 分区不挤 */}
+              {canSaveAnki && (
+                <AnkiBookmarkButton state={ankiSaveState} onSave={onSaveAnki} className="absolute top-3 right-3 z-[1]" />
+              )}
               {isEditing ? (
                 <textarea
                   value={aiText}
@@ -105,7 +111,7 @@ export default function RestructureDesktop({
                   autoFocus
                 />
               ) : (
-                <p className="text-[16px] text-v2-text-primary leading-[1.9]">{aiText}</p>
+                <p className={`text-[16px] text-v2-text-primary leading-[1.9] ${canSaveAnki ? 'pr-10' : ''}`}>{aiText}</p>
               )}
             </Card>
             {usable === false && (

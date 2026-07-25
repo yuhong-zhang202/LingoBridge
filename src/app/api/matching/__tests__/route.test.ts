@@ -20,6 +20,9 @@ jest.mock('@/lib/db/corpus-server', () => ({
   getCorpusByIdServer: jest.fn(),
   bumpDailyUsageServer: jest.fn(),
 }))
+jest.mock('@/lib/db/anki-cards-server', () => ({
+  getBoundQuestionIds: jest.fn(() => Promise.resolve(new Set<string>())),
+}))
 jest.mock('@/lib/api-auth', () => ({
   requireUserAllowAnon: jest.fn(),
   assertCorpusOwner: jest.fn(),
@@ -42,6 +45,7 @@ import { env } from '@/lib/env-server'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { getBoundQuestionIds } from '@/lib/db/anki-cards-server'
 import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
 import { logEvent } from '@/lib/events'
 import { logApiUsage } from '@/lib/api-logger'
@@ -59,6 +63,7 @@ const mockAssertOwner    = assertCorpusOwner as jest.MockedFunction<typeof asser
 const mockLogEvent       = logEvent as jest.MockedFunction<typeof logEvent>
 const mockLogApiUsage    = logApiUsage as jest.MockedFunction<typeof logApiUsage>
 const mockGetSupabase    = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
+const mockGetBoundQids    = getBoundQuestionIds as jest.MockedFunction<typeof getBoundQuestionIds>
 
 // —— 桩数据 ——
 const CLEANED = '上周末我去公园散步，待了很久就放松下来了。'
@@ -104,6 +109,7 @@ beforeEach(() => {
   mockLogEvent.mockResolvedValue(undefined)
   mockLogApiUsage.mockResolvedValue(undefined)
   mockMatchByStory.mockResolvedValue(makeResult('fresh'))
+  mockGetBoundQids.mockResolvedValue(new Set<string>())
 
   // persistMatches 走真实代码，直接用 getSupabaseServer；给它一个可链式调用的最小 stub。
   cqmUpsert = jest.fn().mockResolvedValue({ error: null })
@@ -311,5 +317,34 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     const meta = errCall?.metadata as { phase?: string; error_kind?: string } | undefined
     expect(meta?.phase).toBe('matching')
     expect(meta?.error_kind).toBeUndefined()
+  })
+
+  test('11. ankiSaved：注册用户按已存题卡集合逐题标注（已绑 → true，未绑 → false）', async () => {
+    // 两题：q-a 已存对子、q-b 未存
+    const multi = makeResult('fresh')
+    multi.questions = [
+      { ...multi.questions[0], id: 'q-a' },
+      { ...multi.questions[0], id: 'q-b' },
+    ]
+    mockMatchByStory.mockResolvedValue(multi)
+    mockGetBoundQids.mockResolvedValue(new Set<string>(['q-a']))
+
+    const res = await POST(makeReq())
+    const body = (await res.json()) as { questions: { id: string; ankiSaved: boolean }[] }
+
+    expect(mockGetBoundQids).toHaveBeenCalledWith('u1', ['q-a', 'q-b'])
+    const saved = Object.fromEntries(body.questions.map((q) => [q.id, q.ankiSaved]))
+    expect(saved).toEqual({ 'q-a': true, 'q-b': false })
+  })
+
+  test('12. 匿名用户：一律不查已存题卡、每题 ankiSaved=false', async () => {
+    mockRequireUser.mockResolvedValue({ userId: 'anon1', isAnonymous: true })
+
+    const res = await POST(makeReq())
+    const body = (await res.json()) as { questions: { ankiSaved: boolean }[] }
+
+    // 匿名不查库（存对子注册专属，匿名点存必被 401 拦）
+    expect(mockGetBoundQids).not.toHaveBeenCalled()
+    expect(body.questions.every((q) => q.ankiSaved === false)).toBe(true)
   })
 })

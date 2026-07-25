@@ -14,6 +14,7 @@ import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { errorLogMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { getBoundQuestionIds } from '@/lib/db/anki-cards-server'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
@@ -213,8 +214,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     //    与改动前 `await logEvent(...)` 的行为保持逐字一致（照旧冒泡到外层 catch → 500）。
     await Promise.all(afterTasks)
 
+    // 每题补 ankiSaved（已存对子态）：供匹配页书签入口显示「已存/未存」。匿名一律 false（存对子注册专属，
+    // 匿名点存必被 401 拦），故不查库、直接空集。查库失败不阻断匹配返回——降级为全部未存（.catch 留证）。
+    // 此态用户/时间相关，不进快照（快照按 corpusId 冻结的是匹配结果本身），每次响应实算。
+    let savedIds = new Set<string>()
+    if (!isAnonymous && result.questions.length > 0) {
+      try {
+        savedIds = await getBoundQuestionIds(userId, result.questions.map((q) => q.id))
+      } catch (e) {
+        logErr('[matching ankiSaved]', e)
+      }
+    }
+    const questionsWithSaved = result.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
+
     // 响应 DTO 附 servedFrom（在 route 包一层，不改 matchByStory 的 service 返回契约）：前端可据此区分冻结档/新算。
-    return NextResponse.json({ ...result, servedFrom })
+    return NextResponse.json({ ...result, questions: questionsWithSaved, servedFrom })
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes

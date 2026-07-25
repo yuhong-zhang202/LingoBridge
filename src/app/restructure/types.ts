@@ -26,4 +26,10 @@ export interface RestructureViewProps {
   onMatch: () => void
   /** 退出本次语料输入（移动端返回键 / 桌面 ✕ / Esc 一致）：先弹确认，确认后 router.push('/') 回首页 */
   onExit: () => void
+  /** 是否显示存对子书签：仅雅思模式（qid 非空、题已预选）显示；故事模式在匹配页存、此处不显。 */
+  canSaveAnki: boolean
+  /** 存对子三态（存中/已存/未存）。 */
+  ankiSaveState: 'idle' | 'saving' | 'saved'
+  /** 点书签存对子（先静默 ensureCorpusSaved 落库该语料拿 storyId，再 POST /anki/cards）。 */
+  onSaveAnki: () => void
 }

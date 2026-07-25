@@ -16,6 +16,10 @@ import { apiFetch } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
+import Toast from '@/components/Toast'
+import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
+import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
+import { saveAnkiPair, swapAnkiCorpus, type CorpusBrief } from '@/lib/anki/cards-client'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import type { FunnelResult, PartTab, MatchingViewProps } from './types'
@@ -37,6 +41,15 @@ function MatchingContent() {
   const [retryKey, setRetryKey] = useState(0)
   // A12 防重入：error 态两个重试入口共用一个 ref 守卫，连点只触发一次重新匹配
   const [retry] = useAsyncAction(() => setRetryKey(k => k + 1))
+  // ── 存对子（题卡）态 ──
+  // savedIds：已存题卡的题 id（服务端 ankiSaved 初值 + 本次新存）；savingId：进行中的题；
+  // ankiGate：匿名点存 → 注册引导模态；swap：409 换语料弹窗（携当前已绑语料对比）；toast：失败/成功轻提示。
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [ankiGate, setAnkiGate] = useState(false)
+  const [swap, setSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
+  const [swapping, setSwapping] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   // 切换 Tab 时收起折叠
   useEffect(() => { setExpanded(false) }, [activeTab])
@@ -61,7 +74,12 @@ function MatchingContent() {
         if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
         if (!res.ok) throw new Error('匹配失败')
         const data = (await res.json()) as FunnelResult
-        if (!cancelled) { setResult(data); setSelectedId(data.questions[0]?.id ?? null) }
+        if (!cancelled) {
+          setResult(data)
+          setSelectedId(data.questions[0]?.id ?? null)
+          // 已存态初值来自服务端 ankiSaved（匿名一律 false）——书签直接呈现「已存/未存」，不必再单独查一次。
+          setSavedIds(new Set(data.questions.filter((q) => q.ankiSaved).map((q) => q.id)))
+        }
         // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
         if (!cancelled && corpusId && data.primary) {
           saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
@@ -174,6 +192,40 @@ function MatchingContent() {
   const expandedEffective = expanded || autoExpand
   const showToggle = hasMore && !autoExpand
 
+  // 存题卡：已存短路；否则 POST → 200 标已存 / 401 弹注册引导 / 409 弹换语料弹窗 / 429·失败 toast。
+  // corpusId 来自本页 URL（当前匹配会话的语料）。savingId 守卫：同题进行中不重复发。
+  const handleSavePair = async (questionId: string): Promise<void> => {
+    if (!corpusId) return
+    if (savedIds.has(questionId) || savingId === questionId) return   // 已存/进行中：短路
+    setSavingId(questionId)
+    try {
+      const r = await saveAnkiPair(questionId, corpusId)
+      if (r.ok) { setSavedIds((s) => new Set(s).add(questionId)); return }
+      if (r.kind === 'anon') { setAnkiGate(true); return }
+      if (r.kind === 'bound') { setSwap({ questionId, current: r.currentCorpus }); return }
+      if (r.kind === 'limit') { setToast('今天存的题卡有点多，明天再来'); return }
+      setToast('没存上，再试一次')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  // 换语料：PUT 成功 → 标该题已存 + 成功 toast；失败 → toast 通用文案（弹窗保持关闭）。
+  const handleConfirmSwap = async (): Promise<void> => {
+    if (!swap || !corpusId) return
+    setSwapping(true)
+    const ok = await swapAnkiCorpus(swap.questionId, corpusId)
+    setSwapping(false)
+    if (ok) {
+      setSavedIds((s) => new Set(s).add(swap.questionId))
+      setSwap(null)
+      setToast('已换成新语料，正在重新生成')
+    } else {
+      setSwap(null)
+      setToast('没换成，再试一次')
+    }
+  }
+
   const viewProps: MatchingViewProps & { globalNoneVisible: boolean } = {
     result,
     loading,
@@ -199,6 +251,9 @@ function MatchingContent() {
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
     onPractice: (id) => navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`),
+    savedIds,
+    savingId,
+    onSavePair: (id) => void handleSavePair(id),
     onRetry: () => void retry(),
     onBack: () => router.push(`/restructure?corpusId=${corpusId}`),
     onExit: () => router.push('/'),
@@ -215,6 +270,19 @@ function MatchingContent() {
       </div>
       {/* 402 匿名试用额度用尽：引导注册；关闭即回首页（本页无内容可留） */}
       {quotaShown && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
+      {/* 匿名点存题卡（401）：注册引导小模态；关闭回本页（匹配结果不丢） */}
+      {ankiGate && <AnkiRegisterGate onClose={() => setAnkiGate(false)} />}
+      {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 本页会话语料，客户端无其概括 → summary null 走占位 */}
+      {swap && (
+        <SwapCorpusDialog
+          currentCorpus={swap.current}
+          newCorpus={{ id: corpusId, summary: null }}
+          swapping={swapping}
+          onSwap={() => void handleConfirmSwap()}
+          onKeepCurrent={() => { if (!swapping) setSwap(null) }}
+        />
+      )}
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </>
   )
 }

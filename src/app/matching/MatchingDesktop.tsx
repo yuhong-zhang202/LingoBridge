@@ -20,6 +20,7 @@ import OfflineState from '@/components/OfflineState'
 import GradientButton from '@/components/GradientButton'
 import NoMatchView from '@/components/matching/NoMatchView'
 import MatchingProgress from '@/components/matching/MatchingProgress'
+import AnkiBookmarkButton, { type AnkiSaveState } from '@/components/anki/AnkiBookmarkButton'
 import { SCORE_HIGH, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 import type { MatchingViewProps, FunnelQuestion } from './types'
 
@@ -110,7 +111,12 @@ function QuestionRow({ q, isHigh, selected, onSelect }: {
 }
 
 /** 右栏选中题详情 */
-function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (id: string) => void }) {
+function DetailPane({ q, onPractice, saveState, onSave }: {
+  q: FunnelQuestion | null
+  onPractice: (id: string) => void
+  saveState: AnkiSaveState
+  onSave: () => void
+}) {
   if (!q) {
     return (
       <Card className="flex items-center justify-center px-8 py-16 text-center">
@@ -131,7 +137,11 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
           <PartTag label={`Part ${q.part}`} />
           <Tag variant="green" label={q.dimension} />
           {q.is_new && <Tag variant="green" label="新题" />}
-          <span className="ml-auto"><TierBadge tier={tier} /></span>
+          <span className="ml-auto flex items-center gap-1.5">
+            <TierBadge tier={tier} />
+            {/* 存对子书签（TierBadge 行最右）：已存显「已存题卡」绿 Tag，未存/存中显 40×40 图标按钮 */}
+            <AnkiBookmarkButton state={saveState} onSave={onSave} savedTag />
+          </span>
         </div>
         <p className="text-[20px] font-bold text-v2-text-primary leading-snug mb-1.5">{enText}</p>
         {zhText && <p className="text-[14px] text-v2-text-muted mb-6">{zhText}</p>}
@@ -162,8 +172,8 @@ function DetailPane({ q, onPractice }: { q: FunnelQuestion | null; onPractice: (
 
 export default function MatchingDesktop({
   result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab, filtered,
-  highGroup, midGroup, noneVisible, globalNoneVisible, selectedId,
-  onSelectTab, onSelect, onPractice, onRetry, onExit,
+  highGroup, midGroup, noneVisible, globalNoneVisible, selectedId, savedIds, savingId,
+  onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
 }: MatchingViewProps & { globalNoneVisible: boolean }) {
 
   const hasList = !loading && !error && !dailyLimitHit && !!result && !result.noMatch && !globalNoneVisible
@@ -361,7 +371,12 @@ export default function MatchingDesktop({
 
           {/* 右·选中题详情（随 selectedId 实时刷新，内容高、纵向居中于列表高度） */}
           <div className="flex-1 min-h-0 flex flex-col justify-center">
-            <DetailPane q={selected} onPractice={onPractice} />
+            <DetailPane
+              q={selected}
+              onPractice={onPractice}
+              saveState={selected ? (savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle') : 'idle'}
+              onSave={() => { if (selected) onSavePair(selected.id) }}
+            />
           </div>
         </div>
 
