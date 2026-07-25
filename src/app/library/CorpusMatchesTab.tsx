@@ -182,11 +182,9 @@ export default function CorpusMatchesTab({ searchQuery, onSearchCountsChange }: 
               <div className="flex items-center gap-2 flex-wrap mb-2.5 pr-9">
                 <Tag variant="gray" label={`Part ${card.part}`} />
                 {topic && <Tag variant="green" label={topic} />}
-                {ready ? (
-                  <Tag variant="green" label="卡背已就绪" />
-                ) : (
-                  // 生成中 = 暖橙状态标签。Tag 组件只有 green/gradient/gray、无橙色状态变体，故按 DESIGN §次要元素
-                  // 「小 badge：brand-primary-light 底 + 对应深色文字」手写；带 Loader 文字，a11y 不只靠色。
+                {/* 已就绪不显标签（产品方定：整块删除）；仅生成中显暖橙状态标签。
+                    Tag 无橙变体，按 DESIGN §次要元素「brand-primary-light 底 + 深色文字」手写；带 Loader 文字、a11y 不只靠色。 */}
+                {!ready && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-[10px] py-[5px] bg-brand-primary-light border border-brand-primary-light text-brand-primary-dark">
                     <Loader2 size={11} className="animate-spin" />
                     生成中…

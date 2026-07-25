@@ -20,7 +20,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue'
 import { getAccount } from '@/lib/auth'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
-import { HERO_TITLE_DESC, HERO_PAIR_TITLE, HERO_PAIR_STEPS, HERO_PAIR_TAIL, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
+import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
 
 type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
@@ -289,14 +289,10 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </div>
             </Link>
 
-            {/* 3.5) 说明文案下沉区（从 Hero 内移出）：① 主说明讲这个入口是什么；② 结对操作指引，点明「拼图图标」按钮位置。 */}
+            {/* 3.5) 说明文案下沉区（从 Hero 内移出）：两段短说明；结对怎么操作的详细指引放题库速览标题旁的问号 tooltip。 */}
             <div className="animate-fade-up px-1" style={{ animationDelay: '0.14s', marginBottom: 16 }}>
               <p className="text-[13px] text-v2-text-secondary leading-relaxed">{HERO_TITLE_DESC}</p>
-              <p className="text-[12px] font-semibold text-v2-text-secondary mt-3">{HERO_PAIR_TITLE}</p>
-              {HERO_PAIR_STEPS.map((step) => (
-                <p key={step} className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{step}</p>
-              ))}
-              <p className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{HERO_PAIR_TAIL}</p>
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
             </div>
 
             {/* 4) 收藏卡片 */}
