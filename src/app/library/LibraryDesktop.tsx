@@ -34,9 +34,9 @@ type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 const DECK_SHADOW = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 const TAB_IDS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
-/** 「工具栏走 Portal 槽」的 tab：cards/phrases/pron 由各 tab 组件渲染多选删除工具栏；stories（语料匹配）
- *  是对子只读 tab、不做删除（创始人拍板不做解绑 UI），列此仅为让其工具栏槽保持空 → 右侧不出垃圾桶按钮。
- *  未列入的 tab 会退到占位「多选删除即将上线」Toast。 */
+/** 「工具栏走 Portal 槽」的 tab：四个 tab 均由各自组件把多选删除工具栏 Portal 到右侧槽（搜索图标右边）。
+ *  语料匹配（stories）的删除语义 = 删语料（deleteCorpus，解绑退回分析），与其余三 tab 的删收藏并列、都真删。
+ *  未列入的 tab 会退到占位「多选删除即将上线」Toast（当前四个全接入，占位分支保留作兜底、实际走不到）。 */
 const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
 /** useSearchParams 需在 Suspense 内；本页 page.tsx 不便改，故边界内建于此。 */
@@ -173,7 +173,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               </div>
             </div>
 
-            {/* 中段·文案（仅标题 + 计数；说明文案已下沉到复习卡下方）；问号气泡讲不同模式下如何结对 */}
+            {/* 中段·文案（标题 + 计数 + 说明文案，说明文案紧跟计数行在 Hero 卡内）；问号气泡讲不同模式下如何结对 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
@@ -188,6 +188,9 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                     ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
                     : HERO_EMPTY_FALLBACK}
               </p>
+              {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
             </div>
 
             {/* 右段·CTA */}
@@ -216,12 +219,6 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             </span>
           </Card>
         </Link>
-
-        {/* 说明文案下沉区（从 Hero 内移出）：两段短说明；结对怎么操作的详细指引放题库速览标题旁的问号 tooltip。 */}
-        <div className="mt-4 px-1">
-          <p className="text-[13px] text-v2-text-secondary leading-relaxed">{HERO_TITLE_DESC}</p>
-          <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
-        </div>
 
         {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
         <div className="flex items-center justify-between gap-3 my-5">
@@ -270,9 +267,9 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-        {/* 语料匹配 tab（对子只读展示）：自持数据/加载/空态；不接多选删除（创始人拍板不做解绑 UI），
-            故不用 toolbarSlotRef/onSelectingChange —— 工具栏槽保持空，本 tab 右侧仅搜索。 */}
-        {tab === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+        {/* 语料匹配 tab（对子展示 + 多选删语料）：自持数据/加载/空态；桌面多选删除工具栏 Portal 到右侧槽，
+            删语料即解绑（绑定的 anki 卡 corpus_id 经 FK set null 退回题目分析）。 */}
+        {tab === 'stories' && <CorpusMatchesTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
       </main>
 
       {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}

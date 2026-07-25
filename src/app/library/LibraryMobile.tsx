@@ -201,7 +201,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   </div>
                 </div>
 
-                {/* 右侧文字（仅标题 + 计数；说明文案已下沉到复习卡下方）；问号气泡讲不同模式下如何结对 */}
+                {/* 右侧文字（标题 + 计数 + 说明文案，说明文案紧跟计数行在 Hero 卡内）；问号气泡讲不同模式下如何结对 */}
                 <div className="flex-1 min-w-0 relative z-[1]">
                   <div className="flex items-center gap-2">
                     <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
@@ -216,6 +216,9 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                         ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
                         : HERO_EMPTY_FALLBACK}
                   </p>
+                  {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
+                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2.5">{HERO_TITLE_DESC}</p>
+                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
 
                   <div
                     className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
@@ -288,12 +291,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 </div>
               </div>
             </Link>
-
-            {/* 3.5) 说明文案下沉区（从 Hero 内移出）：两段短说明；结对怎么操作的详细指引放题库速览标题旁的问号 tooltip。 */}
-            <div className="animate-fade-up px-1" style={{ animationDelay: '0.14s', marginBottom: 16 }}>
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed">{HERO_TITLE_DESC}</p>
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
-            </div>
 
             {/* 4) 收藏卡片 */}
             <button

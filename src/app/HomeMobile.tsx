@@ -12,6 +12,7 @@ import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import StoryTextPanel from '@/components/StoryTextPanel'
 import GradientButton from '@/components/GradientButton'
+import PartTag from '@/components/PartTag'
 import { prettifyTopic } from '@/lib/topic'
 import type { HomeViewProps } from './types'
 
@@ -34,7 +35,7 @@ export default function HomeMobile({
   onChangeTextStory,
   onSubmitStory,
 }: HomeViewProps) {
-  // 雅思模式选题卡的话题标（与题卡 QuestionFlashCard Part1 话题标同款美化）：题目信息补全，切题时可见话题。
+  // 雅思模式选题卡的 Part 标 + 话题标（对齐桌面 HomeDesktop）：题目信息补全，切题时可见 Part 与话题。
   const topicLabel = question ? prettifyTopic(question.topic) : null
   return (
     <div
@@ -96,9 +97,14 @@ export default function HomeMobile({
                   </>
                 ) : (
                   <>
-                    {/* 话题标（雅思模式选题信息补全）：仅有真实题目、非加载/报错/抽空时显示 */}
-                    {!loading && !error && !exhausted && topicLabel && (
-                      <p className="w-full text-center text-[12px] font-medium text-v2-text-muted mb-1.5">{topicLabel}</p>
+                    {/* Part 标 + 话题标（雅思模式选题信息补全，对齐桌面 HomeDesktop）：仅有真实题目、非加载/报错/抽空时显示 */}
+                    {!loading && !error && !exhausted && question && (
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <PartTag label={`Part ${question.part}`} />
+                        {topicLabel && (
+                          <span className="text-[12px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+                        )}
+                      </div>
                     )}
                     {!loading && error ? (
                       <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">没取到题，点下面换一题重试</p>
