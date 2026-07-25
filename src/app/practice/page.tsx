@@ -66,6 +66,10 @@ function PracticeContent(): JSX.Element {
   const storyId = params.get('storyId') ?? ''
   const level = params.get('level') ?? '6.0'
   const isReview = params.get('review') === '1'
+  // ⚠️ 测试钩子：模拟转写异常，供真机验"失败备选方案"（你这边转写不失败、无法自然触发）。
+  //    ?simTranscribe=fail → 强制走「失败双选(重试转写/文字输入)」；=busy → 强制走「排队自动重试(顶部进度条)」。
+  //    需显式带 URL 参数，普通用户不受影响；正式清理时可整段删除。
+  const simTranscribe = params.get('simTranscribe')
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -227,6 +231,9 @@ function PracticeContent(): JSX.Element {
   const runTranscribeAttempt = useCallback(async () => {
     const blob = pendingBlobRef.current
     if (!blob) { setPhase('idle'); return }   // 兜底：无 blob 不该走到这
+    // ⚠️ 测试钩子：跳过真实请求，直接演示失败双选 / 排队重试（?simTranscribe=fail|busy）
+    if (simTranscribe === 'fail') { setPhase('transcribeFailed'); return }
+    if (simTranscribe === 'busy') { scheduleRetry(0); return }
     try {
       // 每次现构 FormData：body 被消费过不可复用（重试/文字取消后重发都要新构一份）
       const form = new FormData()
@@ -264,7 +271,7 @@ function PracticeContent(): JSX.Element {
       // 网络中断等：留 blob，进失败双选
       setPhase('transcribeFailed')
     }
-  }, [router, scheduleRetry, sendReply])
+  }, [router, scheduleRetry, sendReply, simTranscribe])
   runTranscribeAttemptRef.current = runTranscribeAttempt
 
   /** 一轮起点：停录 → 无 blob 则「没听清」回 idle；否则存 blob、重置重试计数、起首次转写。 */
