@@ -20,6 +20,19 @@ export interface ChangelogEntry {
 /** 最新在前；发版时在数组开头加新条目 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    // 版本号沿用现有 semver 方案（vX.Y.Z）——isNewerVersion / 铃铛红点按段数值比较，
+    // 不能用日期串（'2026-07-25' 解析成 NaN 会破坏红点逻辑）。首页公告卡（ChangelogAnnouncement）
+    // 只取本条（CHANGELOG[0]）主动弹一次；内容占位，产品方后续自行编辑。
+    version: 'v0.8.0',
+    date: '2026-07-25',
+    title: '题库速览上线',
+    notes: [
+      '题库速览上线：当季题卡随时刷、绑语料生成你的答法',
+      '练习转写更稳：排队自动重试、失败可改文字输入',
+      '额度提示更清楚',
+    ],
+  },
+  {
     version: 'v0.7.0',
     date: '2026-07-10',
     title: '桌面端全新体验',
@@ -37,6 +50,14 @@ export const CHANGELOG: ChangelogEntry[] = [
 
 /** 当前最新版本号（构建时烘焙；客户端与 /api/version 对比可检测旧标签页） */
 export const LATEST_VERSION = CHANGELOG[0]!.version
+
+/**
+ * 取当前要展示的最新一条更新（首页公告卡 ChangelogAnnouncement 用）。
+ * @returns  最新一条 ChangelogEntry；列表为空时返回 null（不展示公告）
+ */
+export function getLatestChangelog(): ChangelogEntry | null {
+  return CHANGELOG[0] ?? null
+}
 
 /**
  * 版本比较：a 是否比 b 新（支持 'v0.6.0' 形式，逐段数值比较，缺段按 0）

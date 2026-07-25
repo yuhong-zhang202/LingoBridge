@@ -17,6 +17,7 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnalysisMobile from './AnalysisMobile'
 import AnalysisDesktop from './AnalysisDesktop'
+import AnalysisTopProgress from './_components/AnalysisTopProgress'
 import type { AnalysisViewProps } from './types'
 import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, SavedWord } from '@/lib/types'
 import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
@@ -176,6 +177,9 @@ function AnalysisContent() {
 
   return (
     <>
+      {/* 落地分析页后页内等 AI 生成分析（POST /api/analysis 较慢，非路由跳转）时亮顶部涓流条 + sr-only 播报，
+          与题目匹配页顶部条给用户同样的「正在处理」反馈。单实例即可（fixed 覆盖桌面/移动两视图）。 */}
+      {loading && <AnalysisTopProgress />}
       <div className="lg:hidden"><AnalysisMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（分析步激活）+ split 两栏舞台 */}
       <div className="hidden lg:block">

@@ -50,6 +50,14 @@ function setup(
     exp: Math.floor(Date.now() / 1000) + 3600,
   }
   mockSupabaseHolder.current = {
+    // authUser 现从权威源(auth.admin.getUserById)读 is_anonymous / email，取代可能陈旧的 JWT claim。
+    // 本套件恒返回与 payload 一致的身份（不测「陈旧 token」场景，只测白名单闸），保 7 条不变式不变。
+    auth: {
+      admin: {
+        getUserById: (id: string) =>
+          Promise.resolve({ data: { user: { id, email: user.email, is_anonymous: user.is_anonymous } }, error: null }),
+      },
+    },
     from: (table: string) => {
       // 即时吊销兜底：authUser 验签后查 revoked_users，本套件用例均非吊销用户，恒返回空集。
       if (table === 'revoked_users') return { select: () => Promise.resolve({ data: [], error: null }) }

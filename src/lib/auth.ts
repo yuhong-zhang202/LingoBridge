@@ -108,7 +108,18 @@ export async function registerWithPassword(email: string, password: string): Pro
   validatePassword(password)
   await ensureSession()
   const { error } = await getSupabase().auth.updateUser({ email: e, password })
-  if (!error) return
+  if (!error) {
+    // 绑邮箱成功即强制重签 access token：updateUser 不换发新 token，旧 token 里 is_anonymous 仍为 true、
+    // email 仍为 null，会让服务端按额度判身份时误判为匿名（阻断级 bug，见 api-auth loadIdentity）。
+    // refreshSession 让后续请求带上 is_anonymous=false / email 有值的新 token，把主误判窗口关到近乎零。
+    // 失败静默吞掉、绝不阻断注册：服务端 loadIdentity 查权威源已能兜底，重签只是把窗口从 ~1h 缩到 ~0。
+    try {
+      await getSupabase().auth.refreshSession()
+    } catch {
+      /* 静默：B（服务端权威查询）已兜底，重签失败最多让识别延迟到缓存 TTL / token 过期 */
+    }
+    return
+  }
 
   // 内测白名单拒绝优先判：触发器抛的是 DB 异常（多为 500），若落到下面兜底分支
   // 用户只会看到「创建账号失败，请稍后再试」，完全不知道自己是被名单挡了。

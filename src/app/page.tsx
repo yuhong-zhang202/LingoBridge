@@ -17,6 +17,7 @@ import Toast from '@/components/Toast'
 import FirstUseConsent from '@/components/FirstUseConsent'
 import MicPermissionSheet from '@/components/MicPermissionSheet'
 import QuotaReached from '@/components/QuotaReached'
+import ChangelogAnnouncement from '@/components/ChangelogAnnouncement'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
@@ -125,6 +126,10 @@ export default function HomePage() {
 
       {/* ============ 桌面端：营销落地页 ============ */}
       <div className="hidden lg:block"><HomeDesktop {...viewProps} /></div>
+
+      {/* 版本更新公告卡：进首页主动弹一次（按版本号只弹一次、可关、非阻断），内容来自 CHANGELOG[0]。
+          z-40 低于首次同意硬闸（z-50）——新用户先过同意闸，老用户直接见公告。 */}
+      <ChangelogAnnouncement />
 
       {/* 共享：提示 / 首次同意 / 麦克风权限弹层 */}
       <Toast message={toastMsg} onDismiss={dismissToast} />

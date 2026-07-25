@@ -52,3 +52,34 @@ export function markPracticeIntroSeen(): void {
     /* 隐私模式：忽略 */
   }
 }
+
+// ── 版本更新公告：按版本号只弹一次（首页公告卡 ChangelogAnnouncement 用；与顶栏铃铛红点各用各的 key，互不影响） ──
+const CHANGELOG_SEEN_PREFIX = 'lingobridge:changelog_seen_'
+
+/**
+ * 是否已看过某版本的更新公告。SSR / localStorage 不可用（隐私模式）时当作「已看过」，绝不误弹或报错。
+ * @param  version  版本号（CHANGELOG[0].version，如 'v0.8.0'）
+ * @returns         是否已看过该版本公告
+ */
+export function hasSeenChangelog(version: string): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return localStorage.getItem(`${CHANGELOG_SEEN_PREFIX}${version}`) === '1'
+  } catch {
+    return true
+  }
+}
+
+/**
+ * 标记某版本公告已看过（关闭公告卡时调用）；隐私模式写不了则静默。
+ * @param  version  版本号（CHANGELOG[0].version）
+ * @sideEffect      写 localStorage
+ */
+export function markChangelogSeen(version: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(`${CHANGELOG_SEEN_PREFIX}${version}`, '1')
+  } catch {
+    /* 隐私模式：忽略 */
+  }
+}

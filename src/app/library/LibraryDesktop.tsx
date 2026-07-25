@@ -167,7 +167,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                   className="text-[10px] leading-tight text-v2-text-secondary text-center break-words"
                   style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                 >
-                  {ankiSample?.text ?? '把想练的题存成题卡'}
+                  {ankiSample?.text ?? '当季题卡'}
                 </span>
               </div>
             </div>
@@ -186,6 +186,12 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                 </p>
               ) : (
                 <p className="text-[13px] text-v2-text-secondary mt-1.5">当季暂无题卡</p>
+              )}
+
+              {/* 口径澄清：当季题默认就能刷（含没碰过的默认卡），「绑语料」是可选增强——绑上后卡背换成基于你语料的答法。
+                  与复习页「去题库存对子」的措辞对齐，消除「默认全有 vs 你去存」的矛盾。 */}
+              {ankiHasCards && (
+                <p className="text-[12px] text-v2-text-muted mt-1">绑上你的语料，卡背就换成你自己的答法</p>
               )}
 
               {/* 题面预览块（仅有题卡且有样本时显示） */}

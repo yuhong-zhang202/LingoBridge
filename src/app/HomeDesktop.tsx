@@ -152,7 +152,7 @@ function PreviewPron() {
 /** 三种复用练习：Tab 舞台数据（对应收藏类型 + 真实 UI 预览 + 光晕色） */
 const REUSE: { tab: string; collected: string; title: string; desc: string; glow: string; Preview: () => JSX.Element }[] = [
   { tab: '拼句练习', collected: '收藏的句子', title: '拼句练习', desc: '收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewSentence },
-  { tab: 'Anki 复习', collected: '收藏的词组', title: 'Anki 复习', desc: '收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。', glow: 'rgba(168,210,196,0.42)', Preview: PreviewAnki },
+  { tab: '词组闪卡', collected: '收藏的词组', title: '词组闪卡', desc: '收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。（与「题库速览」的整题题卡是两回事——这里练的是词组）', glow: 'rgba(168,210,196,0.42)', Preview: PreviewAnki },
   { tab: '发音教学', collected: '读错的发音', title: '发音教学', desc: '告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewPron },
 ]
 

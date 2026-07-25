@@ -115,6 +115,65 @@ async function isRevoked(userId: string): Promise<boolean> {
   return (await loadRevoked()).has(userId)
 }
 
+// ── 身份权威快照（分额度 / 白名单所依赖的 is_anonymous / email）────────────────
+// 【为什么不能信 JWT 的 is_anonymous / email】这两个 claim 是【签发时快照】：匿名→注册升级
+// (auth.ts updateUser 绑邮箱) 后 GoTrue 不立即换发新 token，旧 token 最长活到 exp(≈1h) 才带新值。
+// 窗口内注册用户带旧 token 请求 → 服务端读到 is_anonymous:true → 误走匿名闸(ANON_CORPUS_LIMIT=1)
+// → 讲完第 1 个故事、建第 2 个即 402（阻断级 bug）。故【按额度区分身份 / 白名单判邮箱】所依赖的
+// is_anonymous / email 必须查权威实时源(auth.admin.getUserById 读 auth.users)，不取 payload 的陈旧 claim。
+// 【陷阱】不能改用 JWT 的 email claim 判注册——旧 token 里 email 同为 null、同源陈旧、同样误判。
+// 沿用 revoked / allowlist 的进程内短 TTL 缓存范式，避免每请求一次「香港→新加坡」GoTrue 往返。
+// ⚠️ 本层只改「is_anonymous / email 的取值来源」，不碰吊销、越权、requireRegistered 拒匿名等其它判定。
+
+/** 身份快照缓存 TTL：30 秒。副作用——匿名→注册升级最多 30 秒后被服务端识别（配 auth.ts 重签近乎即时）。 */
+const IDENTITY_TTL_MS = 30_000
+/** 进程内身份快照上限：超过则清理过期项，防单实例长跑内存无界增长（内测量级远够不到，仅护栏）。 */
+const IDENTITY_CACHE_MAX = 5_000
+
+/** 进程内身份快照：userId → { at, email, isAnonymous } */
+const identityCache = new Map<string, { at: number; email: string | null; isAnonymous: boolean }>()
+
+/**
+ * 读某 userId 的权威身份（is_anonymous / email），带 30 秒进程内缓存。
+ * 用 service_role 调 auth.admin.getUserById 读 auth.users 实时状态，取代 JWT 里可能陈旧的同名 claim。
+ * @param userId    验签得到的 sub
+ * @param fallback  取库失败时的兜底值（传入 JWT 的 claim）——fail-back 到 token claim = 回退到本改动前的
+ *                  行为，【不放大任何权限】（吊销/越权/白名单各闸仍独立生效）；瞬时 GoTrue 故障不该让全站不可用。
+ * @returns         { email, isAnonymous } 权威值（失败时为 fallback）
+ * @sideEffect      service_role 调 GoTrue admin API 读 auth.users
+ */
+async function loadIdentity(
+  userId: string,
+  fallback: { email: string | null; isAnonymous: boolean },
+): Promise<{ email: string | null; isAnonymous: boolean }> {
+  const now = Date.now()
+  const cached = identityCache.get(userId)
+  if (cached && now - cached.at < IDENTITY_TTL_MS) {
+    return { email: cached.email, isAnonymous: cached.isAnonymous }
+  }
+  try {
+    const { data, error } = await getSupabaseServer().auth.admin.getUserById(userId)
+    if (error) throw error
+    const u = data.user
+    if (!u) throw new Error('getUserById 未返回用户')
+    // is_anonymous 字段缺失（某些 GoTrue 版本可能不返回）时【回退 token claim】而非默认 false：
+    // 默认 false 会把全体判成注册 → 真匿名者绕过注册专属闸（反向洞，security-auditor Q2）。
+    // 回退 claim：真匿名的 claim 恒 true → 仍判匿名、不放权；正常情况字段存在时照用权威值。
+    const identity = {
+      email: u.email ?? null,
+      isAnonymous: u.is_anonymous ?? fallback.isAnonymous,
+    }
+    if (identityCache.size >= IDENTITY_CACHE_MAX) {
+      for (const [k, v] of identityCache) if (now - v.at >= IDENTITY_TTL_MS) identityCache.delete(k)
+    }
+    identityCache.set(userId, { at: now, ...identity })
+    return identity
+  } catch (e) {
+    logErr('[identity] getUserById failed, fall back to token claims', e)
+    return fallback
+  }
+}
+
 /** 从 Authorization: Bearer 头取 token 并反查用户（token 缺失/无效抛 401）。内部复用，不导出。 */
 async function authUser(req: Request): Promise<{ id: string; email: string | null; isAnonymous: boolean }> {
   const auth = req.headers.get('authorization') ?? ''
@@ -128,7 +187,14 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
   } catch (e) {
     throw authError(401, 'UNAUTHORIZED', '未授权', e)
   }
-  const user = { id: payload.sub, email: payload.email ?? null, isAnonymous: payload.is_anonymous ?? false }
+  // 分额度 / 白名单所依赖的 is_anonymous / email 取权威实时源（见 loadIdentity 注释）：JWT 同名 claim 是
+  // 签发快照，匿名→注册升级后约 1h 才刷新，窗口内会把注册用户误判为匿名、错走匿名闸。取库失败 fail-back
+  // 到 token claim（= 本改动前行为）。其余判定（吊销 / 越权 / requireRegistered 拒匿名）一律不变。
+  const { email, isAnonymous } = await loadIdentity(payload.sub, {
+    email: payload.email ?? null,
+    isAnonymous: payload.is_anonymous ?? false,
+  })
+  const user = { id: payload.sub, email, isAnonymous }
   // 即时吊销兜底：验签只证 token 未伪造/未过期，查不到「封号/删号」；这里补查吊销名单（≤60s 生效）。
   if (await isRevoked(user.id)) throw authError(401, 'UNAUTHORIZED', '会话已失效')
   await assertAllowlisted(user.email, user.isAnonymous)
