@@ -66,7 +66,7 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
           <Volume2 size={16} className="text-v2-text-muted" />
         </button>
       )}
-      <div className="px-[22px] pt-[18px] pb-[18px] min-h-[420px] lg:min-h-[400px] flex flex-col">
+      <div className="px-[22px] pt-[18px] pb-[18px] min-h-[320px] lg:min-h-[360px] flex flex-col">
         {card.group && (
           <Tag variant="green" label={card.group} className="self-start" />
         )}
@@ -151,7 +151,7 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
   }
 
   return (
-    <div className="w-full max-w-[320px] lg:max-w-[360px] mx-auto select-none">
+    <div className="w-full max-w-[420px] lg:max-w-[400px] mx-auto select-none">
       <div
         style={{ transform: `translateX(${dx}px) rotate(${dx * 0.03}deg)`, transition: animated ? 'transform 0.2s ease' : 'none' }}
         onClick={onClick}

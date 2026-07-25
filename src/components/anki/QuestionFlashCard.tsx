@@ -232,7 +232,7 @@ function FaceShell({ children, flip3d, back, inert }: {
       inert={inert}
     >
       <div className="absolute left-0 top-0 bottom-0 w-[5px] z-[1]" style={{ background: STRIP }} aria-hidden="true" />
-      <div className="px-[22px] py-[22px] min-h-[384px] lg:px-10 lg:py-10 lg:min-h-[440px] flex flex-col">{children}</div>
+      <div className="px-[22px] py-[22px] h-[384px] lg:px-10 lg:py-10 lg:h-[440px] flex flex-col">{children}</div>
     </div>
   )
 }
