@@ -51,7 +51,8 @@ export default function AnkiReviewPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   // 401（GET 理论已匿名放行，但会话过期/被吊销仍可能 401）→ 注册引导态，不当「加载失败」；其余走加载失败 + 重试。
   const [authRequired, setAuthRequired] = useState(false)
-  // 匿名会话：隐藏 SRS 评级（评级 POST 需注册），只保留翻面浏览（GET 已放行、返回默认无语料卡）。
+  // 匿名会话：卡背 UI 与注册一致（同款评级箭头、刷卡一样顺），评级只前进不落库、不显进度点、绝不弹注册；
+  // GET 已匿名放行（返回默认无语料卡）。唯一注册引导 = 卡底「分享你的想法」（想输入语料时）。
   const { account } = useAccount()
   const isAnonymous = account?.isAnonymous ?? false
   // 重试键：错误态「重试」自增触发重新拉取（而非只「返回」把用户踢走）
@@ -110,11 +111,14 @@ export default function AnkiReviewPage(): JSX.Element {
   }, [])
 
   const handleGrade = useCallback((remembered: boolean): void => {
-    if (isAnonymous) return // 匿名不评级（评级 POST 需注册）；QuestionFlashCard 已隐藏评级 UI，此为双保险
     const card = visibleQueue[current]
     if (!card) return
-    void gradeAnkiCard(card.questionId, remembered).catch(() => {}) // 静默失败，不打断复习
-    if (!remembered) setQueue((q) => [...q, card]) // 没记住：排到队尾本轮再练（同 part 的卡 filter 后仍落该 tab 队尾）
+    // 匿名与注册【共用同一评级 UI、体验一样顺】；差别只在持久化：
+    //   注册 → 落库 SRS + 没记住排队尾本轮再练；匿名 → 只前进到下一张（不落库、不排队尾、绝不弹注册）。
+    if (!isAnonymous) {
+      void gradeAnkiCard(card.questionId, remembered).catch(() => {}) // 静默失败，不打断复习
+      if (!remembered) setQueue((q) => [...q, card]) // 没记住：排到队尾本轮再练（同 part 的卡 filter 后仍落该 tab 队尾）
+    }
     setCurrent((c) => c + 1)
   }, [visibleQueue, current, isAnonymous])
   const [gradeOne] = useAsyncAction(handleGrade)
@@ -135,14 +139,6 @@ export default function AnkiReviewPage(): JSX.Element {
     if (isAnonymous) { setRegisterGate(true); return }
     navigate(`/write?qid=${questionId}`)
   }, [isAnonymous, navigate])
-
-  // 匿名浏览切卡：注册用户 ←→/滑动是 SRS 评级，匿名改为纯浏览换卡索引（不评级、不落库）。clamp 到 [0, len-1]。
-  const goPrev = useCallback((): void => {
-    setCurrent((c) => Math.max(0, c - 1))
-  }, [])
-  const goNext = useCallback((): void => {
-    setCurrent((c) => Math.min(visibleQueue.length - 1, c + 1))
-  }, [visibleQueue.length])
 
   const close = (): void => router.back()
   const done = !loading && !error && visibleQueue.length > 0 && current >= visibleQueue.length
@@ -230,8 +226,6 @@ export default function AnkiReviewPage(): JSX.Element {
                   onEditPoint={handleEditPoint}
                   onSupplement={handleSupplement}
                   anonymous={isAnonymous}
-                  onPrev={goPrev}
-                  onNext={goNext}
                 />
               </div>
             )}

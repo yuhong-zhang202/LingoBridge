@@ -57,6 +57,7 @@ function mapSwitchQuestion(raw: RawQuestionRow): SwitchQuestion {
   return {
     id: raw.id,
     part: raw.part as 1 | 2,
+    topic: raw.topic ?? '',
     question_text: raw.question_text,
     question_text_zh: raw.question_text_zh ?? '',
     cue_card_title: raw.cue_card_title,
@@ -201,7 +202,7 @@ export async function getRandomSwitchQuestion(
   // anon key 直读即可），无需用户身份。而它只在服务端 API 路由被调用，若走 ensureSession 会在每个冷启动
   // signInAnonymously 建一个用不上的临时匿名用户（auth.users 垃圾账号来源之一），故此处显式不建会话。
   const supabase = getSupabase()
-  const selectFields = `id, part, question_text, question_text_zh, cue_card_title, cue_card_title_zh, topic_only, question_observation_links(observation_point_id)`
+  const selectFields = `id, part, topic, question_text, question_text_zh, cue_card_title, cue_card_title_zh, topic_only, question_observation_links(observation_point_id)`
 
   // 1. 优先取 topic_only 题目
   let q1 = supabase

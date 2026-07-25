@@ -1,12 +1,13 @@
 /**
  * @module   AnkiBookmarkButton
  * @desc     存对子书签按钮（三态）：匹配页桌面详情卡右上角 / 整理页语料卡右上角共用。
- *           图标用 lucide Puzzle（拼图＝结对语义），idle 描边 + 弱色、saved 实心 + 绿。
+ *           图标用 lucide Puzzle（拼图＝结对语义），idle 描边 + 弱色、saved 实心。
  *           三态：
  *             - idle  ：Puzzle 描边图标，可点存题卡；hover / 键盘 focus 均弹 tooltip 解释，aria-label 兜底；
  *             - saving：Loader2 转圈 + aria-live 播报「正在存题卡」（读屏可感知进行中）；
- *             - saved ：savedTag=true → 渲染 <Tag green 已存题卡>（桌面详情行有横向空间）；
- *                       savedTag=false → 换成实心绿 Puzzle（角标位无空间放 Tag）。已存态不可再触发、不带 tooltip。
+ *             - saved ：savedTag=true → 渲染 <Tag green 已存题卡>（桌面详情行有横向空间，仍是绿色强调标签，遵 DESIGN §5）；
+ *                       savedTag=false → 换成实心【品牌橙 brand-primary】Puzzle（角标位无空间放 Tag，产品方定的存对子已存色）。
+ *                       已存态不可再触发、不带 tooltip。
  *           40×40 命中区（≥WCAG 2.5.5）、focus-visible 焦点环；idle/saving 均为原生 <button>。
  * @author   LingoBridge
  * @created  2026-07-25
@@ -39,7 +40,7 @@ export default function AnkiBookmarkButton({ state, onSave, savedTag = false, cl
           <Tag variant="green" label="已存题卡" icon={<Puzzle size={12} className="fill-current" />} />
         ) : (
           <span
-            className="w-10 h-10 flex items-center justify-center text-tag-success-text"
+            className="w-10 h-10 flex items-center justify-center text-brand-primary"
             aria-label="已存题卡"
             role="img"
           >

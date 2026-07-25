@@ -382,6 +382,8 @@ export interface AnalysisResponse {
 export interface SwitchQuestion {
   id: string
   part: 1 | 2
+  /** 话题名（英文大写下划线，如 HOMETOWN）：首页雅思模式选题卡显示话题标用，展示前经 prettifyTopic 美化。 */
+  topic: string
   question_text: string
   question_text_zh: string
   cue_card_title: string | null

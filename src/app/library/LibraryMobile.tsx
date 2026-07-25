@@ -23,7 +23,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue'
 import { getAccount } from '@/lib/auth'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
-import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
+import { HERO_TITLE_DESC, HERO_PAIR_TITLE, HERO_PAIR_STEPS, HERO_PAIR_TAIL, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
 
 type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
@@ -231,15 +231,13 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   </div>
                 </div>
 
-                {/* 右侧文字（主说明 + 计数 + 结对说明）；问号气泡讲不同模式下如何结对 */}
+                {/* 右侧文字（仅标题 + 计数；说明文案已下沉到复习卡下方）；问号气泡讲不同模式下如何结对 */}
                 <div className="flex-1 min-w-0 relative z-[1]">
                   <div className="flex items-center gap-2">
                     <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                     <Tag label="当季·新" variant="green" />
                     <HeroHelpTip text={HERO_HELP_TEXT} />
                   </div>
-                  {/* 主说明：这个入口是什么 */}
-                  <p className="text-[13px] text-v2-text-secondary mt-[5px] leading-relaxed">{HERO_TITLE_DESC}</p>
                   {/* 计数：真实当季张数；0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
                   <p className="text-[12px] text-v2-text-muted mt-[5px]">
                     {ankiLoading
@@ -248,8 +246,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                         ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
                         : HERO_EMPTY_FALLBACK}
                   </p>
-                  {/* 结对说明：为什么把题目和语料结对 */}
-                  <p className="text-[12px] text-v2-text-muted mt-2 leading-relaxed">{HERO_PAIR_DESC}</p>
 
                   <div
                     className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
@@ -322,6 +318,16 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 </div>
               </div>
             </Link>
+
+            {/* 3.5) 说明文案下沉区（从 Hero 内移出）：① 主说明讲这个入口是什么；② 结对操作指引，点明「拼图图标」按钮位置。 */}
+            <div className="animate-fade-up px-1" style={{ animationDelay: '0.14s', marginBottom: 16 }}>
+              <p className="text-[13px] text-v2-text-secondary leading-relaxed">{HERO_TITLE_DESC}</p>
+              <p className="text-[12px] font-semibold text-v2-text-secondary mt-3">{HERO_PAIR_TITLE}</p>
+              {HERO_PAIR_STEPS.map((step) => (
+                <p key={step} className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{step}</p>
+              ))}
+              <p className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{HERO_PAIR_TAIL}</p>
+            </div>
 
             {/* 4) 收藏卡片 */}
             <button

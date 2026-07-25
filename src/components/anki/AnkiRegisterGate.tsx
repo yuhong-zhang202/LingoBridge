@@ -66,7 +66,7 @@ export default function AnkiRegisterGate({ onClose }: Props) {
           <Orb size={120} pulse={false} />
           <h2 id="anki-gate-title" className="text-[15px] font-medium text-v2-text-primary mt-5">存题卡需要注册</h2>
           <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
-            题卡会按你的目标分持续帮你复习，注册后就能把这道题存下来、随时回看。
+            注册后，把这道题存成你的复习卡，绑上你的语料生成专属答法，还能记录复习进度。
           </p>
           <div className="flex flex-col items-center gap-2.5 mt-5">
             <GradientButton

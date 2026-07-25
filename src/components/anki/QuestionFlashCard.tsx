@@ -11,6 +11,11 @@
  *               仅「未绑语料且全空」的题在卡底显一条邀请式 CTA「分享你的想法 ›」——经宿主 onSupplement 接
  *               /write?qid=（雅思文本输入页，读题做上下文、可切语音、提交后走 restructure→analysis→practice 绑该题）；
  *               匿名用户点它则弹注册引导（宿主用 AnkiRegisterGate）。旧「去题库找这道题 / 绑一句语料生成例句」均已撤。
+ *   记忆进度露出（SRS box）：卡背底部固定一排「记忆进度」7 点（MemoryDots），按 card.box 亮 —— box 是 7 档
+ *     （srs.ts MAX_BOX=7）不是词卡 Dots 的 5 档，别复制那个坑。仅注册用户显 Dots（匿名无持久进度、不显）。
+ *   匿名与注册【共用同一套卡背 UI】：同款红左「不熟悉」/绿右「熟悉」评级箭头（本轮一个像素不改），刷卡一样顺；
+ *     匿名点评级/滑动/键盘 ←→ 只前进到下一张、不落库、不弹注册（是否持久化由宿主 handleGrade 决定）。匿名唯一
+ *     注册引导入口 = 卡底空点态「分享你的想法」（想输入语料时）。
  *
  *   翻面机制沿用 FlashCard 范式但改用 grid 双面同格叠放（gridArea 1/1）：容器行高取较高面（背面满点），
  *   背面撑开不被裁 —— 根治旧「背面 absolute inset-0 被锁死在正面高度、第 3 点例句被 overflow-hidden 切掉」。
@@ -31,6 +36,7 @@ import { RotateCw, ArrowLeft, ArrowRight, Volume2, ChevronRight } from 'lucide-r
 import Tag from '@/components/Tag'
 import { BRAND_GRADIENT_VERTICAL, BRAND_GRADIENT_SOFT } from '@/lib/constants'
 import { deriveEffectivePoints, splitCueCard, type EffectivePoint } from '@/lib/anki/answer-points'
+import { prettifyTopic } from '@/lib/topic'
 import type { AnkiCard } from '@/lib/anki/list'
 
 // 超过此位移（px）判定为一次有效滑动
@@ -65,33 +71,13 @@ interface Props {
    */
   onSupplement?: (questionId: string) => void
   /**
-   * 匿名会话：隐藏 SRS 熟悉/不熟悉评级（评级 POST 需注册）。
-   * - 翻面浏览照旧可用；
-   * - 左右滑 / 键盘 ←→ 改为【切换卡片】（上一张/下一张，纯浏览、不评级、不落库），经 onPrev/onNext 交宿主换卡索引；
-   * - 评级三条入口（左右滑 / 键盘 ←→ / 底部按钮）在匿名下都不会触发 flyOut（flyOut 另有短路双保险）。
+   * 匿名会话：卡背 UI 与注册【完全一致】（同款红左「不熟悉」/绿右「熟悉」评级箭头），刷卡体验一样顺。
+   * - 评级/滑动/键盘 ←→ 照常触发 flyOut + onGrade；区别只在宿主 handleGrade 对匿名【不落库、只前进到下一张】；
+   * - 唯一视觉差异：不显「记忆进度」Dots（匿名无持久 SRS 进度）；
+   * - 刷卡/评级过程【绝不弹注册、绝不打扰】。匿名唯一注册引导入口 = 卡底空点态「分享你的想法」
+   *   （onSupplement，仅在想输入语料时触发）。
    */
   anonymous?: boolean
-  /** 匿名浏览：上一张（宿主把当前卡索引 -1，clamp 到 0）。仅 anonymous 时经 ←/右滑触发。 */
-  onPrev?: () => void
-  /** 匿名浏览：下一张（宿主把当前卡索引 +1，clamp 到末张）。仅 anonymous 时经 →/左滑触发。 */
-  onNext?: () => void
-}
-
-/**
- * 话题名美化（Part1 话题标用）：topic 是英文全大写、下划线分词（如 HOMETOWN / WORK_OR_STUDY），
- * 直接显难看。转 Title Case + 下划线→空格（HOMETOWN→Hometown，WORK_OR_STUDY→Work Or Study）。
- * 空 / 全空白 → 返回 null（调用侧不渲染话题标）。
- * ⚠️ 这是英文话题名占位；理想是中文话题名 topic_zh，但 AnkiCard 目前无该字段（需后端 get_anki_cards RPC 补），
- *    本轮先用美化英文，不阻塞。
- */
-function prettifyTopic(topic: string): string | null {
-  const t = topic.trim()
-  if (t === '') return null
-  return t
-    .split(/[_\s]+/)
-    .filter((w) => w !== '')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ')
 }
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底灰数字（与 analysis 侧重点 StepNum 视觉一致）。 */
@@ -204,9 +190,33 @@ function CardFront({ card }: { card: AnkiCard }): JSX.Element {
   )
 }
 
-/** 卡背（分点式）：part1/2/3 统一序号脊柱；点数组用 <ul>，垂直居中。 */
-function CardBack({ card, onSupplement }: {
-  card: AnkiCard; onSupplement?: (q: string) => void
+/**
+ * 记忆进度圆点（题卡专用，SRS box 露出）。
+ * ⚠️ 档位坑（与词卡 FlashCard.Dots 的差异，必须记账）：SRS 引擎 box 实为 7 档（srs.ts MAX_BOX=7、
+ *   nextBox 封顶 7），而词卡 Dots 只画 5 点 —— box≥5 即满档、box 6/7 无从体现。此处【不复制 5 档坑】，
+ *   直接画 7 点，box ≤ i 的点亮（brand-primary）、其余空态（warm-line，DESIGN token「进度点空态」）。
+ *   仅注册用户显示：匿名不记 SRS 进度，调用点按 anonymous 短路、根本不渲染本组件（评级也全隐藏）。
+ *   默认卡（hasCard=false）box 为默认值 1 → 第 1 点亮，表意「刚开始记忆」。
+ */
+function MemoryDots({ box }: { box: number }): JSX.Element {
+  return (
+    <div className="flex items-center justify-center gap-2 pt-3 shrink-0">
+      <span className="text-[11px] text-v2-text-muted">记忆进度</span>
+      <span className="flex gap-[5px]">
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-warm-line'}`} />
+        ))}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * 卡背（分点式）：part1/2/3 统一序号脊柱；点数组用 <ul>，垂直居中；底部固定「记忆进度」7 点（仅注册用户）。
+ * anonymous：匿名会话不记 SRS 进度 → 不渲染 MemoryDots（进度点与评级一样，只对注册用户露出）。
+ */
+function CardBack({ card, onSupplement, anonymous }: {
+  card: AnkiCard; onSupplement?: (q: string) => void; anonymous?: boolean
 }): JSX.Element {
   const focusPoints = card.analysis?.focusPoints ?? []
   const points = deriveEffectivePoints(focusPoints, card.generatedAnswer, card.editedAnswer)
@@ -220,8 +230,11 @@ function CardBack({ card, onSupplement }: {
 
   if (points.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center">
-        <p className="text-[13px] text-v2-text-muted">这道题还没有可展示的答题要点</p>
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 flex items-center justify-center text-center">
+          <p className="text-[13px] text-v2-text-muted">这道题还没有可展示的答题要点</p>
+        </div>
+        {!anonymous && <MemoryDots box={card.box} />}
       </div>
     )
   }
@@ -230,29 +243,33 @@ function CardBack({ card, onSupplement }: {
   const gapClass = points.length === 2 ? 'gap-12 lg:gap-14' : 'gap-5 lg:gap-6'
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-      {/* my-auto：内容不足时垂直居中；内容超高（part3 满点+长例句）时外边距收拢、从顶部滚动，
-          外层 py 边距恒在、内容不裁不贴框，卡片仍固定同高（统一）。 */}
-      <div className="my-auto w-full">
-      <ul className={`flex flex-col ${gapClass}`}>
-        {points.map((p) => (
-          <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
-        ))}
-      </ul>
-      {/* 卡底 CTA：仅「未绑语料且全空」的题显示。邀请式——分享你的想法（宿主接 /write?qid= 雅思文本输入页，
-          匿名则弹注册引导）。不再走旧「去题库找这道题」，也不承诺"点了就生成例句"（那入口并不入队生成）。 */}
-      {allEmpty && !hasCorpus && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onSupplement?.(card.questionId) }}
-          disabled={!onSupplement}
-          className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
-        >
-          分享你的想法
-          <ChevronRight size={14} />
-        </button>
-      )}
+    <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        {/* my-auto：内容不足时垂直居中；内容超高（part3 满点+长例句）时外边距收拢、从顶部滚动，
+            外层 py 边距恒在、内容不裁不贴框，卡片仍固定同高（统一）。 */}
+        <div className="my-auto w-full">
+        <ul className={`flex flex-col ${gapClass}`}>
+          {points.map((p) => (
+            <PointRow key={p.idx} p={p} hasCorpus={hasCorpus} genDone={genDone} />
+          ))}
+        </ul>
+        {/* 卡底 CTA：仅「未绑语料且全空」的题显示。邀请式——分享你的想法（宿主接 /write?qid= 雅思文本输入页，
+            匿名则弹注册引导）。不再走旧「去题库找这道题」，也不承诺"点了就生成例句"（那入口并不入队生成）。 */}
+        {allEmpty && !hasCorpus && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onSupplement?.(card.questionId) }}
+            disabled={!onSupplement}
+            className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
+          >
+            分享你的想法
+            <ChevronRight size={14} />
+          </button>
+        )}
+        </div>
       </div>
+      {/* 记忆进度（SRS box 露出）：固定在卡背底部、不随要点滚动；仅注册用户显示。 */}
+      {!anonymous && <MemoryDots box={card.box} />}
     </div>
   )
 }
@@ -282,7 +299,7 @@ function FaceShell({ children, flip3d, back, inert }: {
   )
 }
 
-export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false, onPrev, onNext }: Props): JSX.Element {
+export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false }: Props): JSX.Element {
   const reduced = useReducedMotion()
   const [flipped, setFlipped] = useState(false)
   const [dx, setDx] = useState(0)
@@ -293,38 +310,33 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
   const moved = useRef(false)
   const fired = useRef(false)
 
-  // 直接飞出并回调（底部按钮 / 键盘 ←→ / 右滑越阈）；reduced-motion 下即时评级、不做大位移。
-  // 匿名短路：评级需注册，匿名一律不飞出、不回调（三入口共用本函数，故右滑也被一并挡住）。
+  // 直接飞出并回调（底部按钮 / 键盘 ←→ / 滑动越阈）；reduced-motion 下即时评级、不做大位移。
+  // 匿名与注册【共用同一路径、视觉一致】：都飞出 + 回调 onGrade；是否落库由宿主 handleGrade 按匿名与否决定
+  // （匿名只前进到下一张、不持久化，且评级路径绝不弹注册）。故这里不再对 anonymous 短路。
   const flyOut = useCallback((remembered: boolean): void => {
-    if (anonymous) return
     if (fired.current) return
     fired.current = true
     if (reduced) { onGrade(remembered); return }
     setAnimated(true)
     setDx(remembered ? 520 : -520)
     window.setTimeout(() => onGrade(remembered), 180)
-  }, [reduced, onGrade, anonymous])
+  }, [reduced, onGrade])
 
-  // 键盘 ←→：注册用户 = SRS 评级（→熟悉/←不熟悉）；匿名 = 切卡浏览（→下一张/←上一张，不评级、不落库）。
+  // 键盘 ←→：→熟悉 / ←不熟悉（匿名与注册一致，都经 flyOut → onGrade；匿名不落库、只前进，宿主处理）。
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
       e.preventDefault()
-      if (anonymous) {
-        if (e.key === 'ArrowRight') onNext?.()
-        else onPrev?.()
-        return
-      }
       if (e.key === 'ArrowRight') flyOut(true)
       else flyOut(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [flyOut, anonymous, onPrev, onNext])
+  }, [flyOut])
 
   const toggleFlip = useCallback((): void => { if (!moved.current) setFlipped((f) => !f) }, [])
 
-  // 弹回原位（拖拽未过阈值 / 匿名切卡后当前卡收回中心；切卡时宿主换索引会让本组件按 key 重挂、天然回中）。
+  // 弹回原位（拖拽未过阈值时把卡收回中心）。
   const snapBack = useCallback((): void => {
     setAnimated(true)
     dxRef.current = 0
@@ -355,14 +367,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
     if (!dragging.current) return
     dragging.current = false
     const cur = dxRef.current
-    if (anonymous) {
-      // 匿名 = 切卡浏览：右滑（cur>0）上一张 / 左滑（cur<0）下一张；不评级、不飞出、不落库。
-      // 换卡由宿主换索引触发本组件按 key 重挂（回中心），这里同时 snapBack 兜底（到边界索引不变、不重挂时也归位）。
-      if (cur > SWIPE_THRESHOLD) { snapBack(); onPrev?.(); return }
-      if (cur < -SWIPE_THRESHOLD) { snapBack(); onNext?.(); return }
-      snapBack()
-      return
-    }
+    // 匿名与注册一致：右滑=熟悉 / 左滑=不熟悉，都走 flyOut（匿名不落库、只前进，宿主 handleGrade 处理）。
     if (cur > SWIPE_THRESHOLD) { flyOut(true); return }   // flyOut 内部统一处理 reduced（即时评级）/ 非 reduced（飞出动画 + setDx）
     if (cur < -SWIPE_THRESHOLD) { flyOut(false); return }
     snapBack() // 未过阈值：弹回原位
@@ -380,10 +385,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
         role="button"
         tabIndex={0}
         aria-pressed={flipped}
-        aria-label={
-          (flipped ? '题卡背面（答题要点），按空格或回车翻回正面' : '题卡正面（题目），按空格或回车翻面看答题要点')
-          + (anonymous ? '；匿名浏览，按左右方向键或左右滑动切换上一张/下一张卡片' : '')
-        }
+        aria-label={flipped ? '题卡背面（答题要点），按空格或回车翻回正面' : '题卡正面（题目），按空格或回车翻面看答题要点'}
         className="outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-[22px]"
       >
         {reduced ? (
@@ -391,7 +393,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
           // 单面天然自适应内容高、不裁，也是 grid+3D 端侧冲突时的整体退路。
           <FaceShell flip3d={false}>
             {flipped
-              ? <CardBack card={card} onSupplement={onSupplement} />
+              ? <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} />
               : <CardFront card={card} />}
           </FaceShell>
         ) : (
@@ -402,19 +404,15 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
                 <CardFront card={card} />
               </FaceShell>
               <FaceShell flip3d back inert={!flipped}>
-                <CardBack card={card} onSupplement={onSupplement} />
+                <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} />
               </FaceShell>
             </div>
           </div>
         )}
       </div>
 
-      {anonymous ? (
-        // 匿名：评级需注册（隐藏熟悉/不熟悉）；左右滑 / ←→ = 切卡浏览。正面提示可翻面、背面提示注册记录进度，两态都点出可切卡。
-        <p className="text-center text-[13px] text-v2-text-muted mt-[18px] lg:mt-6">
-          {flipped ? '左右切卡浏览 · 注册后记录复习进度' : '点击翻面看要点 · 左右切卡浏览'}
-        </p>
-      ) : !flipped ? (
+      {/* 匿名与注册【同一套 UI】：未翻面提示翻面，翻面后显红左/绿右评级箭头（匿名点了也只是前进、不落库、不弹注册）。 */}
+      {!flipped ? (
         <p className="text-center text-[13px] text-v2-text-secondary mt-[18px] lg:mt-6 flex items-center justify-center gap-1.5">
           <RotateCw size={14} />点击卡片翻面看答题要点
         </p>

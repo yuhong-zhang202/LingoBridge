@@ -101,9 +101,10 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
 
   return (
     <div className="relative rounded-[14px] overflow-hidden">
-      {/* 右滑绿底拼图层：卡片右移时从左侧透出；越阈图标由描边 Puzzle → 实心 Puzzle，给存对子的即时预告 */}
+      {/* 右滑绿底拼图层：卡片右移时从左侧透出；越阈图标由描边 Puzzle → 实心 Puzzle，给存对子的即时预告。
+          拼图用品牌橙（brand-primary）= 存对子已存色（与角标已存态同色）；绿底保留为右滑亲和背景。 */}
       <div className="absolute inset-0 bg-tag-success-bg flex items-center pl-5" aria-hidden="true">
-        <span className="text-tag-success-text">
+        <span className="text-brand-primary">
           <Puzzle size={20} className={overThreshold ? 'fill-current' : ''} />
         </span>
       </div>

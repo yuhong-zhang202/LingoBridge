@@ -25,6 +25,7 @@ import AiBubble from '@/app/practice/_components/AiBubble'
 import UserBubble from '@/app/practice/_components/UserBubble'
 import OrbSoft from '@/app/practice/_components/OrbSoft'
 import { GRADIENT_BORDER_STYLE, GRADIENT_BORDER_STYLE_FULL_OPAQUE, BRAND_GRADIENT_VERTICAL, PAGE_CONTAINER } from '@/lib/constants'
+import { prettifyTopic } from '@/lib/topic'
 import type { HomeViewProps } from './types'
 
 // TODO: 文案待确认 —— 以下桌面营销模块文案取自参考稿占位，非最终产品文案
@@ -174,6 +175,8 @@ export default function HomeDesktop({
   onSelectReuseTab,
 }: HomeViewProps) {
   const ActivePreview = REUSE[reuseTab].Preview
+  // 雅思模式选题卡的话题标（与题卡 QuestionFlashCard Part1 话题标同款美化）：切题时补全题目信息。
+  const topicLabel = question ? prettifyTopic(question.topic) : null
 
   return (
     <div className="min-h-screen bg-bg-page">
@@ -229,9 +232,14 @@ export default function HomeDesktop({
                     </h1>
                   ) : (
                     <>
-                      {/* 题目上方标注 Part（白底渐变边框） */}
+                      {/* 题目上方标注 Part（白底渐变边框）+ 话题标（同题卡 Part1 话题标，补全题目信息） */}
                       {!loading && !error && question && (
-                        <div className="mb-3"><PartTag label={`Part ${question.part}`} /></div>
+                        <div className="mb-3 flex items-center gap-2">
+                          <PartTag label={`Part ${question.part}`} />
+                          {topicLabel && (
+                            <span className="text-[13px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+                          )}
+                        </div>
                       )}
                       <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
                         {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : exhausted ? '本季真题你都练过啦，换季会上新题' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}

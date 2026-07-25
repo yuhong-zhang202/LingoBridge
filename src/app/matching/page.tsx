@@ -64,6 +64,10 @@ function MatchingContent() {
   }, [previewSwapDialog])
 
   useEffect(() => {
+    // ⚠️ 测试钩子：预览模式只弹换语料弹窗、不取匹配数据 —— 短路掉下方「缺 corpusId 报错态」与「403 回首页」
+    // 两条路径。否则带 ?previewSwapDialog=1（无有效 corpusId，或命中未捕获同意的 403）会在弹窗渲染前先被
+    // 错误态盖住 / 被重定向踢回首页（产品方反馈「带参却跳回首页、开关没触发」的根因）。日后清理连同此注释删。
+    if (previewSwapDialog) { setLoading(false); return }
     if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
     let cancelled = false
     const ac = new AbortController()
@@ -102,7 +106,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true; ac.abort() }
-  }, [corpusId, retryKey, router])
+  }, [corpusId, retryKey, router, previewSwapDialog])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {

@@ -28,7 +28,7 @@ import PronunciationTab from '@/components/library/PronunciationTab'
 import MyStoriesTab from '@/components/library/MyStoriesTab'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
-import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
+import { HERO_TITLE_DESC, HERO_PAIR_TITLE, HERO_PAIR_STEPS, HERO_PAIR_TAIL, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
 
 type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
@@ -174,15 +174,13 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               </div>
             </div>
 
-            {/* 中段·文案（主说明 + 计数 + 结对说明）；问号气泡讲不同模式下如何结对 */}
+            {/* 中段·文案（仅标题 + 计数；说明文案已下沉到复习卡下方）；问号气泡讲不同模式下如何结对 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                 <Tag label="当季·新" variant="green" />
                 <HeroHelpTip text={HERO_HELP_TEXT} />
               </div>
-              {/* 主说明：这个入口是什么 */}
-              <p className="text-[13px] text-v2-text-secondary mt-1.5 leading-relaxed">{HERO_TITLE_DESC}</p>
               {/* 计数：真实当季张数；0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
               <p className="text-[12px] text-v2-text-muted mt-1.5">
                 {ankiLoading
@@ -191,8 +189,6 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                     ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
                     : HERO_EMPTY_FALLBACK}
               </p>
-              {/* 结对说明：为什么把题目和语料结对 */}
-              <p className="text-[12px] text-v2-text-muted mt-2 leading-relaxed">{HERO_PAIR_DESC}</p>
             </div>
 
             {/* 右段·CTA */}
@@ -221,6 +217,16 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             </span>
           </Card>
         </Link>
+
+        {/* 说明文案下沉区（从 Hero 内移出）：① 主说明讲这个入口是什么；② 结对操作指引，点明「拼图图标」按钮位置。 */}
+        <div className="mt-4 px-1">
+          <p className="text-[13px] text-v2-text-secondary leading-relaxed">{HERO_TITLE_DESC}</p>
+          <p className="text-[12px] font-semibold text-v2-text-secondary mt-3">{HERO_PAIR_TITLE}</p>
+          {HERO_PAIR_STEPS.map((step) => (
+            <p key={step} className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{step}</p>
+          ))}
+          <p className="text-[12px] text-v2-text-muted leading-relaxed mt-1">{HERO_PAIR_TAIL}</p>
+        </div>
 
         {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
         <div className="flex items-center justify-between gap-3 my-5">

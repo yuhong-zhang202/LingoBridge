@@ -12,6 +12,7 @@ import Orb from '@/components/Orb'
 import TabBar from '@/components/TabBar'
 import StoryTextPanel from '@/components/StoryTextPanel'
 import GradientButton from '@/components/GradientButton'
+import { prettifyTopic } from '@/lib/topic'
 import type { HomeViewProps } from './types'
 
 export default function HomeMobile({
@@ -33,6 +34,8 @@ export default function HomeMobile({
   onChangeTextStory,
   onSubmitStory,
 }: HomeViewProps) {
+  // 雅思模式选题卡的话题标（与题卡 QuestionFlashCard Part1 话题标同款美化）：题目信息补全，切题时可见话题。
+  const topicLabel = question ? prettifyTopic(question.topic) : null
   return (
     <div
       className="relative h-dvh bg-bg-page flex flex-col overflow-hidden"
@@ -93,6 +96,10 @@ export default function HomeMobile({
                   </>
                 ) : (
                   <>
+                    {/* 话题标（雅思模式选题信息补全）：仅有真实题目、非加载/报错/抽空时显示 */}
+                    {!loading && !error && !exhausted && topicLabel && (
+                      <p className="w-full text-center text-[12px] font-medium text-v2-text-muted mb-1.5">{topicLabel}</p>
+                    )}
                     {!loading && error ? (
                       <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">没取到题，点下面换一题重试</p>
                     ) : !loading && exhausted ? (

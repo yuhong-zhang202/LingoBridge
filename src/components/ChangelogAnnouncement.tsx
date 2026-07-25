@@ -1,12 +1,12 @@
 /**
  * @module   ChangelogAnnouncement
- * @desc     首页版本更新公告卡 —— 主动、非阻断、按版本只弹一次的轻量提示：进首页时若当前版本
+ * @desc     首页版本更新公告卡 —— 按版本只弹一次的居中模态：进首页时若当前版本
  *           （CHANGELOG[0]）尚未看过（localStorage lingobridge:changelog_seen_<version>），在页面居中
- *           浮出一张可关闭的卡（桌面更宽更大内距），列出本次更新要点；点关闭即写标记、本版本不再弹。
- *           内容真源复用 src/lib/changelog.ts
+ *           浮出一张更大的公告卡（桌面尤其放大），半透明遮罩（bg-black/40）盖住背景聚焦视线，列出本次
+ *           更新要点；点遮罩或 ✕ 关闭即写标记、本版本不再弹。内容真源复用 src/lib/changelog.ts
  *           的 CHANGELOG（与顶栏铃铛同一份），但用【各自独立】的 localStorage key：关公告 ≠ 消铃铛红点，反之亦然。
- *           非模态（不夺焦、不锁背景、不拦指针背景）——「别做成打扰」；z 低于首次同意硬闸（z-50），
- *           新用户先过同意闸、老用户直接见公告。SSR / 隐私模式下 hasSeenChangelog 返回 true → 不弹、不报错。
+ *           z 低于首次同意硬闸（z-50），新用户先过同意闸、老用户直接见公告。
+ *           SSR / 隐私模式下 hasSeenChangelog 返回 true → 不弹、不报错。
  * @author   LingoBridge
  * @created  2026-07-25
  */
@@ -39,15 +39,19 @@ export default function ChangelogAnnouncement(): JSX.Element | null {
   }
 
   return (
-    // 页面居中展示（非阻断）：满屏定位层只做居中，pointer-events-none 让层本身不拦背景点击；
-    // 仅卡片 pointer-events-auto 可交互。故意不加遮罩 —— 它是「主动提示、可关」不是硬闸，别做成阻断。
+    // 居中模态：半透明遮罩（bg-black/40）盖住背景、聚焦视线；点遮罩即关闭（写标记、本版本不再弹）。
+    // 卡片 stopPropagation 阻断冒泡，点卡片内部不误关。
     <div
       role="region"
       aria-label="版本更新公告"
-      className="fixed inset-0 z-40 flex items-center justify-center px-4 pointer-events-none"
+      onClick={dismiss}
+      className="fixed inset-0 z-40 flex items-center justify-center px-4 bg-black/40"
     >
-      <div className="pointer-events-auto w-full max-w-[400px] lg:max-w-[520px] animate-fade-up">
-        <Card variant="gradient" className="px-[18px] pt-[15px] pb-[17px] lg:px-7 lg:pt-6 lg:pb-7 relative">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[440px] lg:max-w-[640px] animate-fade-up"
+      >
+        <Card variant="gradient" className="px-6 pt-6 pb-7 lg:px-9 lg:pt-8 lg:pb-9 relative">
           {/* 关闭按钮：44×44 触控区，图标居中；点击写标记，本版本不再弹 */}
           <button
             type="button"
@@ -62,10 +66,10 @@ export default function ChangelogAnnouncement(): JSX.Element | null {
             <Tag label="更新" variant="green" />
             <span className="text-[11px] text-v2-text-muted">{latest.date}</span>
           </div>
-          <p className="text-[15px] lg:text-[18px] font-bold text-v2-text-primary mt-2 tracking-[-0.2px]">{latest.title}</p>
-          <ul className="mt-2 lg:mt-3 flex flex-col gap-1.5 lg:gap-2">
+          <p className="text-[17px] lg:text-[21px] font-bold text-v2-text-primary mt-2.5 tracking-[-0.2px]">{latest.title}</p>
+          <ul className="mt-3 lg:mt-4 flex flex-col gap-2 lg:gap-2.5">
             {latest.notes.map((note) => (
-              <li key={note} className="flex gap-1.5 text-[12.5px] lg:text-[14px] text-v2-text-secondary leading-relaxed">
+              <li key={note} className="flex gap-1.5 text-[13.5px] lg:text-[15px] text-v2-text-secondary leading-relaxed">
                 <span aria-hidden="true" className="text-brand-accent mt-[1px]">·</span>
                 {note}
               </li>
