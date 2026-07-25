@@ -56,9 +56,16 @@
 | `ADMIN_EMAILS` | .env.local 同名（费用看板白名单）**不配=没人能进 /dashboard** |
 | `RAW_LOG_ENABLED` | 填 **`1`**（生产开原文留证：入库 + RLS + pg_cron 30 天过期） |
 | `ANTHROPIC_API_KEY` | 可选，见 §3.2 |
+| `ANKI_DRAIN_SECRET` | **Anki 题卡必配**：drain 端点鉴权秘钥。值须 == DB 侧 `_anki_drain_config.drain_secret`（cowork 2026-07-25 已生成并存库，值另发）。**不配则 drain 恒 401、入队的卡片永不生成**。设完须重启实例让 env 生效 |
 
 **别配**：`LLM_RAW_LOG_DIR`（留证已改数据库）、`LLM_DEBUG`（生产已物理禁用）、`RANKING_DIMENSIONAL`（默认关）、`MATCH_SNAPSHOT_ENABLED`（默认开，仅回滚设 `0`）。
 **ffmpeg**：VPS 跑完整 Node（`next start`），`ffmpeg-static` 在 `node_modules` 天然可用，无需额外配置。
+
+### 5.1 Anki 题卡 · drain 定时触发（2026-07-25 补）
+Anki 卡背生成靠后台队列 + drain 端点，**必须有东西周期性触发 drain，否则卡片永不生成**。已用 **DB 侧 pg_cron + pg_net**（迁移 `0040_anki_drain_cron`，已应用生产库）：每 2 分钟 POST `/api/anki/generate/drain`，秘钥/URL 存 RLS 锁死的 `_anki_drain_config`（cowork 已配）。端点幂等（`FOR UPDATE SKIP LOCKED`），与任何额外触发源并发安全。
+- **要 work 只差一步**：在 Zeabur 设 `ANKI_DRAIN_SECRET`（见上表）== DB 侧 secret，然后重启。未设前 cron 每 2 分钟会打到 drain 但被 401 拒（无害空转）。
+- **验证**：设完 secret + 重启后，DB 里 `select public.run_anki_drain();` 再 `select status_code from net._http_response order by id desc limit 1;` 应为 **200**（未设时是 401）。或用内测账号绑语料、2 分钟内看卡背生成。
+- **回滚**：`select cron.unschedule('anki_drain');`。
 
 ## 6. 域名 & HTTPS
 Zeabur 给默认域名 + 自动 HTTPS，可直接用。**已上线域名：https://lingobridge.zeabur.app（2026-07-19 生成，已 PROVISIONED）。** 要更稳的国内访问可选绑自定义域名（DNS 解析，香港节点免大陆备案）。海外访问慢见 §10。

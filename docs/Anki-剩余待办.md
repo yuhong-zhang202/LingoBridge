@@ -95,6 +95,7 @@
   - ✅ **误报（已防住）**：part3 不变式（corpus_id/generated_answer 恒 null，走 question_analyses 不进 anki_cards）· extractJson 双发边界（平衡括号兜住）· 同源漂移测试（example-probe↔生产逐字比对）。
 - ✅ **0039 迁移回退修复（2026-07-25，红队外自查）**：`0039_get_anki_cards_summary` 曾拿 0034 当基线、把 0036 的 is_answered 修正覆盖回退（generated_answer 加回 + 丢 nullif 空串处理，主行 + part3 子行两处）。已对齐 0036 + 订正头注（标明基线是 0036、勿回退）。⚠️ 真库未验（随下批 db:push）。
 - [ ] **真库验证写路径**（本地无库、仅静态推演）：0035 事务 RPC 原子性、孤儿回收、换/删语料 job 竞态、drain 状态机（consent 撤回不外发）、懒物化 upsert。
+- 🟡 **drain 定时触发已补（2026-07-25）**：原缺口=没人周期触发 drain 端点、入队卡永不生成（部署文档也漏）。已用 DB 侧 pg_cron+pg_net（迁移 `0040_anki_drain_cron`，已应用生产库）每 2 分钟 POST drain，秘钥/URL 存 RLS 锁死 `_anki_drain_config`（cowork 已配、秘钥不入 git）。实测 pg_net→Zeabur 链路通（收到 app 401）。**只差产品方在 Zeabur 设 `ANKI_DRAIN_SECRET`==DB secret + 重启**，之后卡片生成即通。部署文档 §5.1 已记。
 - [ ] **drain 孤儿 15 分钟阈值**待部署侧确认 Zeabur 容器超时行为后调。
 - 🅿️ **残留在途竞态收口 = 未来优化，不阻塞内测**（2026-07-25 产品方判定）：processing 中（正调千问）换/删语料 → 在途任务写回把旧语料的 generated_answer 盖到已指向新语料的卡上，卡背对不上当前语料。低频（生成几秒窗口内换语料）+ 有界（一张卡背面对不上、不崩不丢不越权、内容仍忠于旧语料、再换/下轮生成即覆盖）+ 非安全问题。修法=drain 领取记 corpus_id/版本号、写回前校验未变（取消令牌）。冒烟已验 15min 孤儿回收兜「卡死 processing」，此窄缝除外。**已记入交接文档 `prompt-给Anki会话-登记交接与待办.md` B14。**
 - [ ] 补关键不变式测试（换删语料原子/enqueue 幂等/懒物化/drain 状态机/backKind 一致）。
