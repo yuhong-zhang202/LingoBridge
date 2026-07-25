@@ -9,12 +9,10 @@ import { getSupabase, ensureSession } from '../supabase'
 import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 
 /**
- * 故事链路月额度（自然月）。
- * ⚠️【内测前必调回 10】当前 100 是产品方自测临时放开（18d96fd），设计值是 10。
- *    内测开人前务必改回，否则每人每月可建 100 条语料、AI 费用为设计值的 10 倍。
- *    配套：IELTS_MONTHLY_LIMIT（practice-sessions.ts）同为临时 100，一并调回。
+ * 故事链路月额度（自然月）。设计值 10（2026-07-25 内测前已从自测临时值 100 调回）。
+ * 配套：IELTS_MONTHLY_LIMIT（practice-sessions.ts）同为 10。
  */
-export const STORY_MONTHLY_LIMIT = 100
+export const STORY_MONTHLY_LIMIT = 10
 
 /** 当月 1 日 0 点（本地时区）的 ISO 字符串。 */
 function monthStartISO(): string {
