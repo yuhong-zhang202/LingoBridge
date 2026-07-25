@@ -230,7 +230,7 @@ function FaceShell({ children, flip3d, back, inert }: {
       inert={inert}
     >
       <div className="absolute left-0 top-0 bottom-0 w-[5px] z-[1]" style={{ background: STRIP }} aria-hidden="true" />
-      <div className="px-[22px] py-[22px] min-h-[460px] lg:px-10 lg:py-10 lg:min-h-[520px] flex flex-col">{children}</div>
+      <div className="px-[22px] py-[22px] min-h-[420px] lg:px-10 lg:py-10 lg:min-h-[480px] flex flex-col">{children}</div>
     </div>
   )
 }
@@ -300,7 +300,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement }: Props
   }
 
   return (
-    <div className="w-full max-w-[440px] lg:max-w-[720px] mx-auto select-none">
+    <div className="w-full max-w-[400px] lg:max-w-[640px] mx-auto select-none">
       <div
         style={{ transform: `translateX(${dx}px) rotate(${dx * 0.03}deg)`, transition: animated && !reduced ? 'transform 0.2s ease' : 'none' }}
         onClick={toggleFlip}

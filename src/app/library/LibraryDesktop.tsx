@@ -47,7 +47,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample }: LibraryViewProps) {
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -139,9 +139,11 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。有卡→/anki/review，空态→/question-bank。 */}
         <Link
           href="/anki/review"
-          aria-label={ankiHasCards
-            ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
-            : '题卡复习，当季暂无题卡'}
+          aria-label={ankiLoading
+            ? '题库速览，加载中'
+            : ankiHasCards
+              ? `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
+              : '题库速览，当季暂无题卡'}
           className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
         >
           <Card variant="gradient" className="px-[26px] py-[22px] flex items-center gap-7 active:scale-[0.99] transition-transform mb-4">
@@ -173,12 +175,14 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             {/* 中段·文案 + 题面预览 */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题卡复习</h2>
+                <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                 <Tag label="当季·新" variant="green" />
               </div>
-              {ankiHasCards ? (
+              {ankiLoading ? (
+                <p className="text-[13px] text-v2-text-muted mt-1.5">加载中…</p>
+              ) : ankiHasCards ? (
                 <p className="text-[13px] text-v2-text-secondary mt-1.5">
-                  当季 {ankiSeasonCount} 道 · 待复习 <span className="text-brand-primary-dark font-bold text-[16px]">{ankiDueCount}</span> 张
+                  当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[16px]">{ankiDueCount}</span> 张
                 </p>
               ) : (
                 <p className="text-[13px] text-v2-text-secondary mt-1.5">当季暂无题卡</p>

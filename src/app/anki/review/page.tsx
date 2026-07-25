@@ -2,16 +2,18 @@
  * @module   AnkiReviewPage
  * @desc     Anki 题卡 SRS 复习宿主页 —— 套用 /review 骨架（顶栏关闭 + 进度条/点、翻卡、左右滑评级、Leitner 排下次）。
  *           拉当季题卡 → QuestionFlashCard 逐张翻面/滑动/逐点编辑。
- *   牌堆构成（S3）：并行拉当季 part1 + part2 两份列表，按 RPC 返回顺序 concat 成一副牌（part1 段在前、
+ *   牌堆构成（S3）：并行拉当季 part1 + part2 两份列表，按 RPC 返回顺序 concat 成完整牌堆（part1 段在前、
  *     part2 段在后）；part3 子卡由 get_anki_cards 随其 part2 父卡成组、已排好序（见 0034/0039），前端【不重排】、
  *     直接沿用返回顺序渲染，保成组不被打散。part3 卡背走静态 analysis.example（CardBack 已支持）。
- *   ⚠️ 本批只做卡片本身 + 交互：外围导航（素材库入口 / 全部|已回答 筛选 / 同批语料分组）尚未接，
- *      故 scope 暂用固定默认（全部），待下批筛选接入后由查询参数驱动。
+ *   分段 Tab（全部 / Part 1 / Part 2，默认「全部」）：从完整牌堆按 card.part 派生 visibleQueue —— 「全部」= 整副牌
+ *     （与素材库 Hero 计数「当季 N 张」一致、所见即所得），Part 1 取 part===1，Part 2 取 part===2 或 3（part3 子卡
+ *     跟随父 part2 一并展示、成组顺序不打散）。翻卡/评级只作用在 visibleQueue 上；切 Tab 把卡索引重置到该段第一张。
+ *     scope（全部|已回答）仍固定默认（全部），待下批筛选接入后由查询参数驱动。
  * @author   LingoBridge
  * @created  2026-07-24
  */
 'use client'
-import { type JSX, useState, useEffect, useCallback } from 'react'
+import { type JSX, useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
@@ -25,13 +27,23 @@ import type { AnkiCard } from '@/lib/anki/list'
 // 外围导航未接前的临时默认（下批筛选接入后改由查询参数驱动）
 const DEFAULT_SCOPE = 'all' as const
 
+// 分段 Tab：全部 / Part 1 / Part 2（part3 子卡跟随 part2、不单列）；默认「全部」= 与 Hero 计数一致
+type PartTab = 'all' | 1 | 2
+const PART_TABS: readonly { id: PartTab; label: string }[] = [
+  { id: 'all', label: '全部' },
+  { id: 1, label: 'Part 1' },
+  { id: 2, label: 'Part 2' },
+]
+
 export default function AnkiReviewPage(): JSX.Element {
   const router = useRouter()
   // 「补语料」跳 /recording（会加载页）走 navigate 亮进度条；关闭复习走 router.back()（回退，非前进加载页）
   const { navigate } = useNav()
   const [queue, setQueue] = useState<AnkiCard[]>([])
   const [current, setCurrent] = useState(0)
-  const [total, setTotal] = useState(0)
+  // 每个段的原始张数（完成语「这轮过了 N 张」按当前段计；不含没记住后追加到队尾的重练卡）
+  const [totals, setTotals] = useState<{ all: number; 1: number; 2: number }>({ all: 0, 1: 0, 2: 0 })
+  const [activePart, setActivePart] = useState<PartTab>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,7 +60,8 @@ export default function AnkiReviewPage(): JSX.Element {
         if (cancelled) return
         const cards = [...p1, ...p2]
         setQueue(cards)
-        setTotal(cards.length)
+        // fetchAnkiCards(1) 只回 part1；fetchAnkiCards(2) 回 part2 + 其 part3 子卡（已成组）；「全部」= 整副牌
+        setTotals({ all: cards.length, 1: p1.length, 2: p2.length })
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : '加载失败，请重试')
       } finally {
@@ -58,24 +71,41 @@ export default function AnkiReviewPage(): JSX.Element {
     return () => { cancelled = true }
   }, [])
 
+  // 当前 Tab 可见牌堆：从完整 queue 按 part 派生（Part 1 → part===1；Part 2 → part===2 或 3，part3 跟随父 part2
+  // 成组，filter 不改相对顺序故成组不被打散）。翻卡/评级/进度全作用在 visibleQueue 上。
+  const visibleQueue = useMemo(
+    () => queue.filter((c) => {
+      if (activePart === 'all') return true
+      if (activePart === 1) return c.part === 1
+      return c.part === 2 || c.part === 3
+    }),
+    [queue, activePart],
+  )
+
+  // 切 Tab：把卡索引重置到该 part 第一张
+  const switchPart = useCallback((p: PartTab): void => {
+    setActivePart(p)
+    setCurrent(0)
+  }, [])
+
   const handleGrade = useCallback((remembered: boolean): void => {
-    const card = queue[current]
+    const card = visibleQueue[current]
     if (!card) return
     void gradeAnkiCard(card.questionId, remembered).catch(() => {}) // 静默失败，不打断复习
-    if (!remembered) setQueue((q) => [...q, card]) // 没记住：排到队尾本轮再练
+    if (!remembered) setQueue((q) => [...q, card]) // 没记住：排到队尾本轮再练（同 part 的卡 filter 后仍落该 tab 队尾）
     setCurrent((c) => c + 1)
-  }, [queue, current])
+  }, [visibleQueue, current])
   const [gradeOne] = useAsyncAction(handleGrade)
 
-  // 逐点编辑：写库成功后本地把该点覆盖并入当前卡 editedAnswer（稀疏覆盖），令卡背即时反映
+  // 逐点编辑（已下线、仅兼容仍传入的宿主 prop）：按 questionId 定位当前可见卡回写覆盖，避免 index 落在完整 queue 上错位
   const handleEditPoint = useCallback(async (idx: number, en: string): Promise<void> => {
-    const card = queue[current]
+    const card = visibleQueue[current]
     if (!card) return
     await patchAnkiPoint(card.questionId, idx, en)
     const merged = applyEditOverride(parseEditOverrides(card.editedAnswer), idx, en)
     const next = serializeEditOverrides(merged)
-    setQueue((q) => q.map((c, i) => (i === current ? { ...c, editedAnswer: next === '' ? null : next } : c)))
-  }, [queue, current])
+    setQueue((q) => q.map((c) => (c.questionId === card.questionId ? { ...c, editedAnswer: next === '' ? null : next } : c)))
+  }, [visibleQueue, current])
 
   // 空点态「补一句语料就能生成」（B3）：跳「给这道题补语料」的定向录音流 —— /recording?qid 会串起
   // 录音→转写→restructure（qid 走雅思流）→ upsertMatch 把新语料绑定到该题→分析，正是给该题补料的完整路径。
@@ -84,7 +114,7 @@ export default function AnkiReviewPage(): JSX.Element {
   }, [navigate])
 
   const close = (): void => router.back()
-  const done = !loading && !error && queue.length > 0 && current >= queue.length
+  const done = !loading && !error && visibleQueue.length > 0 && current >= visibleQueue.length
 
   return (
     <div className="relative h-dvh bg-bg-page flex flex-col overflow-hidden">
@@ -94,16 +124,16 @@ export default function AnkiReviewPage(): JSX.Element {
           <button onClick={close} aria-label="关闭复习" className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center">
             <X size={15} className="text-v2-text-muted" />
           </button>
-          {!loading && !error && queue.length > 0 && current < queue.length && (
-            <span className="text-[13px] text-v2-text-muted">{current + 1} / {queue.length}</span>
+          {!loading && !error && visibleQueue.length > 0 && current < visibleQueue.length && (
+            <span className="text-[13px] text-v2-text-muted">{current + 1} / {visibleQueue.length}</span>
           )}
         </div>
-        {!loading && !error && queue.length > 0 && current < queue.length && (
+        {!loading && !error && visibleQueue.length > 0 && current < visibleQueue.length && (
           <div className="px-5">
             <div className="mt-1 h-1 rounded-full bg-bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full bg-brand-primary transition-[width] duration-300"
-                style={{ width: `${(current / queue.length) * 100}%` }}
+                style={{ width: `${(current / visibleQueue.length) * 100}%` }}
               />
             </div>
           </div>
@@ -119,20 +149,46 @@ export default function AnkiReviewPage(): JSX.Element {
           <div className="flex-1 flex items-center justify-center">
             <EmptyState title="当季没有题卡" subtitle="去题库把想练的题「存对子」，就会出现在这里" ctaLabel="返回" onCta={close} />
           </div>
-        ) : done ? (
-          <div className="flex-1 flex items-center justify-center">
-            <EmptyState title="复习完成 🎉" subtitle={`这轮过了 ${total} 张卡片`} ctaLabel="完成" onCta={close} />
-          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <QuestionFlashCard
-              key={`${queue[current].questionId}-${current}`}
-              card={queue[current]}
-              onGrade={(r) => void gradeOne(r)}
-              onEditPoint={handleEditPoint}
-              onSupplement={handleSupplement}
-            />
-          </div>
+          <>
+            {/* 分段 Tab（全部 / Part 1 / Part 2）：复用 LibraryDesktop 四类 Tab 的分段范式（bg-bg-muted 外层 + 选中
+                bg-white font-semibold shadow / 未选 text-v2-text-muted），居中、不挤占卡片。默认「全部」与 Hero 计数一致。 */}
+            <div className="flex justify-center pb-5">
+              <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit">
+                {PART_TABS.map((t) => (
+                  <button
+                    key={String(t.id)}
+                    type="button"
+                    onClick={() => switchPart(t.id)}
+                    aria-pressed={activePart === t.id}
+                    className={`text-[13px] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${activePart === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {visibleQueue.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState title="这个 Part 暂无题卡" subtitle="切到另一个 Part 看看，或去题库把想练的题「存对子」" orbSize={100} />
+              </div>
+            ) : done ? (
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState title="复习完成 🎉" subtitle={`这轮过了 ${totals[activePart]} 张卡片`} ctaLabel="完成" onCta={close} />
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <QuestionFlashCard
+                  key={`${visibleQueue[current].questionId}-${activePart}-${current}`}
+                  card={visibleQueue[current]}
+                  onGrade={(r) => void gradeOne(r)}
+                  onEditPoint={handleEditPoint}
+                  onSupplement={handleSupplement}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

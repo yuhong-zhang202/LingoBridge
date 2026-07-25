@@ -37,7 +37,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, ankiSeasonCount, ankiDueCount, ankiSample }: LibraryViewProps) {
+export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -177,9 +177,11 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 TODO(桌面)：移动优先，桌面 hub（LibraryDesktop）暂未补题卡入口，待产品方看过位置后再做。 */}
             <Link
               href="/anki/review"
-              aria-label={ankiHasCards
-                ? `题卡复习，当季 ${ankiSeasonCount} 道，待复习 ${ankiDueCount} 张，开始刷题卡`
-                : '题卡复习，当季暂无题卡'}
+              aria-label={ankiLoading
+                ? '题库速览，加载中'
+                : ankiHasCards
+                  ? `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
+                  : '题库速览，当季暂无题卡'}
               className="block animate-fade-up"
               style={{ animationDelay: '0.06s' }}
             >
@@ -230,12 +232,14 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 {/* 右侧文字 */}
                 <div className="flex-1 min-w-0 relative z-[1]">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题卡复习</h2>
+                    <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                     <Tag label="当季·新" variant="green" />
                   </div>
-                  {ankiHasCards ? (
+                  {ankiLoading ? (
+                    <p className="text-[13px] text-v2-text-muted mt-[5px]">加载中…</p>
+                  ) : ankiHasCards ? (
                     <p className="text-[13px] text-v2-text-secondary mt-[5px]">
-                      当季 {ankiSeasonCount} 道 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张
+                      当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张
                     </p>
                   ) : (
                     <p className="text-[13px] text-v2-text-secondary mt-[5px]">

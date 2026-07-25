@@ -39,8 +39,11 @@ export default function LibraryPage() {
   // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2 的【全部】
   // 卡（scope='all'）后本地派生三口径（一次 all 拉取即够，请求数与改前的两次 answered 拉取相同、无新增 DB
   // 函数/端点）：
-  //   - ankiSeasonCount = 当季可刷主题总数（part1+part2 所有题，含用户没碰过的默认卡）——设定是「所有题都能刷」，
-  //     新用户也能直接刷；
+  //   - ankiSeasonCount = 当季全部可刷卡片总数（part1 + part2 + part2 带的 part3 子卡，含用户没碰过的默认卡）——
+  //     方案 A：与 /anki/review「全部」段牌堆一致、所见即所得（Hero 显 N 张 = 点开牌堆张数）。单位是「张」（含 part3
+  //     子卡，是卡片不是题目），非「道」；
+
+
   //   - ankiDueCount    = 用户【已答】卡里到期的张数（只数 isAnswered 卡、按其真实 due_at；默认卡 due_at 被
   //     coalesce 成 now 且 isAnswered=false，滤掉即等价于旧 scope='answered' 口径，不回归）；
   //   - ankiSample      = 已答卡首题优先，否则当季首题；仅当季真 0 题才为 null（空态不显预览）。
@@ -48,6 +51,9 @@ export default function LibraryPage() {
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
   const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
+  // 题卡 Hero 加载态：初值 true，异步拉取 finally 置 false。Hero 据此三态分流（加载中→「加载中…」，
+  // 完成有题→计数，完成 0 题→「当季暂无题卡」），避免拉取返回前 count=0 被误判成空态。
+  const [ankiLoading, setAnkiLoading]         = useState(true)
 
   // 三类收藏：SWR 单源（各自首拉顺带触发一次幂等迁移）
   const { phrases, isLoading: phrasesLoading } = useSavedPhrases()
@@ -112,15 +118,18 @@ export default function LibraryPage() {
           fetchAnkiCards(1, 'all'),
           fetchAnkiCards(2, 'all'),
         ])
-        const mains = [...p1, ...p2].filter(c => c.part !== 3) // part3 是子题、不单列入口
-        const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义）
+        const all = [...p1, ...p2]                              // 全部可刷卡（part1+part2+part3 子卡）
+        const mains = all.filter(c => c.part !== 3)             // 待复习/样本口径仍只看主题卡（part3 是子卡，不单独计到期）
+        const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义，口径不变）
         const now = Date.now()
-        setAnkiSeasonCount(mains.length)                        // 当季可刷主题总数（所有 part1+2 题）
+        setAnkiSeasonCount(all.length)                          // 方案 A：当季全部可刷卡片总数（含 part3 子卡），= review「全部」牌堆张数
         setAnkiDueCount(answeredMains.filter(c => new Date(c.dueAt).getTime() <= now).length)
         const sample = answeredMains[0] ?? mains[0]             // 已答首题优先，否则当季首题
         setAnkiSample(sample ? { part: sample.part, text: sample.questionText } : null)
       } catch (e) {
         console.warn('[LibraryPage] 获取题卡概况失败，Hero 走空态', e)
+      } finally {
+        setAnkiLoading(false)
       }
     })()
 
@@ -147,7 +156,7 @@ export default function LibraryPage() {
   }, [fetchStories])
 
   // 收藏卡与语料任一未就绪都算加载中，避免收藏 tab 先闪空态再填充
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample }
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
 
   return (
     <>

@@ -27,4 +27,6 @@ export interface LibraryViewProps {
   ankiSeasonCount: number
   ankiDueCount: number
   ankiSample: AnkiHeroSample | null
+  /** 题卡 Hero 加载态：true 时 Hero 显「加载中…」，避免拉取返回前 count=0 被误判为空态。 */
+  ankiLoading: boolean
 }
