@@ -20,7 +20,7 @@ import useDebouncedValue from '@/hooks/useDebouncedValue'
 import { getAccount } from '@/lib/auth'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
-import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
+import { HERO_TITLE_DESC_MOBILE, HERO_PAIR_DESC_MOBILE, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
 
 type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
@@ -217,8 +217,9 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                         : HERO_EMPTY_FALLBACK}
                   </p>
                   {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
-                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2.5">{HERO_TITLE_DESC}</p>
-                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
+                  {/* 移动端用短版（右列窄、全文挤）：意思同桌面全文、字数精简 */}
+                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2.5">{HERO_TITLE_DESC_MOBILE}</p>
+                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC_MOBILE}</p>
 
                   <div
                     className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"

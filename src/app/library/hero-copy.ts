@@ -12,10 +12,14 @@
 export const HERO_TITLE_DESC = '当季最新题库，卡片式多轮滚动，帮你快速熟悉当季最新口语题库。'
 
 /**
- * 可见文案2（下沉到复习卡下方）：一句话讲清结对的价值。
+ * 可见文案2（Hero 卡内计数下方）：一句话讲清结对的价值。
  * 产品方定：可见处只放这句短说明；「怎么操作（在哪点拼图图标、两种模式）」的详细指引放问号 tooltip（HERO_HELP_TEXT）。
  */
 export const HERO_PAIR_DESC = '选择题目与语料结对，卡片分析将围绕语料展开，针对性更强更高效'
+
+/** 移动端短版（Hero 右列窄、全文挤）：意思不变、文字精简。桌面仍用全文。 */
+export const HERO_TITLE_DESC_MOBILE = '当季最新题库，多轮滚动刷卡，快速混个眼熟'
+export const HERO_PAIR_DESC_MOBILE = '题目结对语料后，卡片分析围着你的故事讲'
 
 /** 计数取不到 / 当季 0 时的兜底（永不出现「当季暂无题卡」——当季恒有题）。 */
 export const HERO_EMPTY_FALLBACK = '当季题卡 · 随时刷'
