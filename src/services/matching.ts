@@ -13,42 +13,16 @@ import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { OBSERVATION_ADJACENCY } from '@/lib/observation-adjacency'
-import type { MatchedPoint } from '@/lib/types'
+import type { MatchedPoint, FunnelMatchedQuestion, FunnelMatchResult } from '@/lib/types'
+
+// FunnelMatchedQuestion / FunnelMatchResult 已下沉到中性的 @/lib/types（避免 db 层反向依赖本 service）。
+// 此处 re-export 保留原 `@/services/matching` 导入路径的兼容（route / 测试仍从这里取类型）。
+export type { FunnelMatchedQuestion, FunnelMatchResult }
 
 /** 召回题数低于此值就进入邻居增援层补题（含 L1/L2 已召回到少量题的情况，非仅完全为空） */
 const NEIGHBOR_MIN = 3
 /** 邻居增援层累计到此题数即停止继续借相邻观察点 */
 const NEIGHBOR_TARGET = 5
-
-export interface FunnelMatchedQuestion {
-  id: string
-  part: 1 | 2 | 3
-  question_text: string
-  question_text_zh: string | null
-  cue_card_title: string | null
-  cue_card_title_zh: string | null
-  is_new: boolean
-  topic_only: boolean
-  matched_point: string
-  pointName: string
-  dimension: string
-  isPrimaryMatch: boolean
-  relevanceScore?: number
-  relevanceReason?: string
-}
-
-export interface FunnelMatchResult {
-  primary: MatchedPoint | null
-  secondary: MatchedPoint | null
-  questions: FunnelMatchedQuestion[]
-  count: number
-  matchedViaSecondary: boolean
-  /** 主/副皆空时经「邻居观察点」兜底层召回到题（第三层） */
-  matchedViaNeighbor: boolean
-  /** 邻居兜底层实际借用（贡献了题）的相邻观察点，按借用顺序，供前端「换个角度」文案 */
-  neighborPointsUsed: MatchedPoint[]
-  noMatch: boolean
-}
 
 /**
  * matchByStory 内两次 AI 调用（萃取 + 重排）各自的真实用量 + 真实耗时回调。

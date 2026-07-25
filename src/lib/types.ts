@@ -228,6 +228,43 @@ export interface MatchResult {
   count: number
 }
 
+// ── 三层漏斗匹配（matchByStory）的返回 DTO ──
+// 放在中性的 types 层而非 services/matching：db 层（match-snapshots）要按此类型读写快照，
+// 若定义留在 services 会形成 db→services 的反向分层依赖（仅类型、无运行时环，但属分层气味）。
+// services/matching.ts 从这里 import 并 re-export，保留原 `@/services/matching` 导入路径的兼容。
+
+/** 漏斗召回并排名后的单道题（含匹配来源标记与可选的相关性分/理由）。 */
+export interface FunnelMatchedQuestion {
+  id: string
+  part: 1 | 2 | 3
+  question_text: string
+  question_text_zh: string | null
+  cue_card_title: string | null
+  cue_card_title_zh: string | null
+  is_new: boolean
+  topic_only: boolean
+  matched_point: string
+  pointName: string
+  dimension: string
+  isPrimaryMatch: boolean
+  relevanceScore?: number
+  relevanceReason?: string
+}
+
+/** matchByStory 的完整结果：主/副观察点 + 三层漏斗召回题 + 各层命中标记。 */
+export interface FunnelMatchResult {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  questions: FunnelMatchedQuestion[]
+  count: number
+  matchedViaSecondary: boolean
+  /** 主/副皆空时经「邻居观察点」兜底层召回到题（第三层） */
+  matchedViaNeighbor: boolean
+  /** 邻居兜底层实际借用（贡献了题）的相邻观察点，按借用顺序，供前端「换个角度」文案 */
+  neighborPointsUsed: MatchedPoint[]
+  noMatch: boolean
+}
+
 // ── feedback 收藏 ──
 export interface SessionPolish {
   original: string

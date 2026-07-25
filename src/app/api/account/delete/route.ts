@@ -104,7 +104,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 与头像/费用日志的 best-effort 纪律【刻意不同】：原文删不掉却把账号删了 = 留下无主的原文孤儿
     //（无重试、无审计、再也关联不到用户），是被遗忘权的实质失守。故这里【不吞异常】——抛出即由外层 catch
     // 映射为 500，用户可重试；且本步排在下面 admin.deleteUser 之前，失败即阻断后续，绝不留原文孤儿。
-    await deleteUserRawLogs(userId)
+    // ⚠️ 传 corpusIds：两表 user_id 允许 null（ALS 取不到时写 null），只按 user_id 删会漏掉 user_id=null 但
+    //    corpus_id 指向该用户语料的原文行——故补按 corpus_id 删一遍（corpusIds 在上面删 corpus 前已查得，仍在内存里）。
+    await deleteUserRawLogs(userId, corpusIds)
 
     // 费用日志去标识化（best-effort，非硬删）：api_usage_logs（0021 起带 user_id/corpus_id）是聚合用量/成本、
     // 不含用户原文——被遗忘权靠断掉个人链接即满足，而非删行。硬删会让离职用户的成本从总额蒸发、账目失真。

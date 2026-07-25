@@ -62,6 +62,14 @@ const ALL_BLANK = pts([
   { idx: 1, en: null, noMaterial: true },
 ])
 
+// ⚠️ 测试真空提示（防遗忘·钉在这里）：
+//   本文件只守【app 侧 backKindOf「渲染哪种背面」】。与它解耦的另一件事——【SQL 侧 is_answered「是否已回答」】
+//   的语义，在 get_anki_cards RPC（迁移 0036）里算，尤其含「corpus_id=null 在途竞态下安全降级为未回答」
+//   这条不变式（0036 头部详述），jest 完全碰不到（不连真库、纯 mock RPC 返回）。
+//   现状：**该语义暂无任何自动化真库覆盖**——真库冒烟 scripts/anki-smoke/anki-write-smoke.mjs 只断言写路径
+//   （懒物化 upsert 幂等 / swap 换语料清答案 / unbind 解绑），并未断言 is_answered 各态。
+//   故：**改 0036 / get_anki_cards 的 is_answered 逻辑后，必须手动在真库核验 is_answered 各态**
+//   （有语料 / 有 edited / 全留空生成 / corpus_id=null 竞态降级），别指望本文件或现有冒烟兜住。
 describe('listAnkiCards · backKind 对分点式点数组的判定', () => {
   beforeEach(() => jest.clearAllMocks())
 

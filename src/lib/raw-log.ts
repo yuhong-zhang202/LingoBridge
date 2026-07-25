@@ -130,13 +130,25 @@ export async function appendRawLog(record: RawRecord): Promise<void> {
  * 不受 env.rawLogEnabled 约束：无论当前是否在留证，历史留证都得能删干净。
  * 本函数会向上抛错，由调用方（account/delete）以 best-effort try/catch 兜住、不中断删号。
  *
- * @param userId  被删除账号的 user id
- * @sideEffect    用 service_role 删 llm_raw_logs / asr_raw_logs 中该 user 的所有行（绕 RLS）
+ * ⚠️ 两遍删除（堵 ALS-null 逃逸）：两表 user_id 允许 null——写入时从 AsyncLocalStorage 取，取不到写 null
+ *   （见 appendRawLog + 0020 注释）。只按 user_id 删会漏掉「user_id=null 但 corpus_id 指向该用户语料」的行，
+ *   而这些行同样含该用户的故事/转写原文；且 GC（0020 pg_cron）只删 retained=false 的超期行，故 retained=true
+ *   + user_id=null 的原文可能永久留存。故删号时【再按 corpus_id 删一遍】该用户名下所有语料对应的行。
+ *
+ * @param userId     被删除账号的 user id
+ * @param corpusIds  该用户名下所有 corpus.id（删号路由在删 corpus 前已查得）；为空则只按 user_id 删
+ * @sideEffect       用 service_role 删 llm_raw_logs / asr_raw_logs 中该 user 的所有行（绕 RLS）
  */
-export async function deleteUserRawLogs(userId: string): Promise<void> {
+export async function deleteUserRawLogs(userId: string, corpusIds: string[] = []): Promise<void> {
   const supabase = getSupabaseServer()
   for (const table of ['llm_raw_logs', 'asr_raw_logs'] as const) {
+    // 第一遍：按 user_id 删（ALS 取到 user_id 的行）
     const { error } = await supabase.from(table).delete().eq('user_id', userId)
     if (error) throw error
+    // 第二遍：按 corpus_id 删（堵 user_id=null 但 corpus_id 指向该用户语料的行）
+    if (corpusIds.length > 0) {
+      const { error: cErr } = await supabase.from(table).delete().in('corpus_id', corpusIds)
+      if (cErr) throw cErr
+    }
   }
 }

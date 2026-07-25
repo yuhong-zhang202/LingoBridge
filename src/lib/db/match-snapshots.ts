@@ -9,7 +9,7 @@
 import 'server-only'
 
 import { getSupabaseServer } from '../supabase-server'
-import type { FunnelMatchResult } from '@/services/matching'
+import type { FunnelMatchResult } from '@/lib/types'
 
 /** 一段语料的匹配存档：整份结果 + 冻结时的正文哈希与算法口径版本（供命中判定） */
 export interface MatchSnapshot {

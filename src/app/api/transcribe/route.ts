@@ -31,7 +31,8 @@ const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 //   · 并发 4 —— 不取满 5。我方 release 的时刻早于豆包服务端计数回落，取满 5 仍会因时序抖动撞限；留 1 个余量。
 //   · 队列 20 —— 吞吐 ≈ 4 / 3s ≈ 1.33 req/s，排在第 20 位约需等 15s，正好与下面的等待上限对齐：
 //     队列再长也只是让人白等到超时，没有意义。绝不无界排队（否则高峰期耗尽连接、拖垮整个服务）。
-//   · 等待 15s —— 转写本身约 3s，再等 15s 已是体验下限。且 15(排队) + 10(转码) + 30(ASR 超时) = 55s < maxDuration 60s。
+//   · 等待 15s —— 转写本身约 3s，再等 15s 已是体验下限。全链路 15(排队) + 10(转码) + 30(ASR 超时) ≈ 55s，
+//     仅为「各环节上限相加」的参考量、非硬上限：真实超时上限 = Zeabur 网关超时（下方 maxDuration 在 Zeabur 不生效，见其注释）。
 //
 // ⚠️ 进程内状态，多实例失效 —— 详见 lib/concurrency-gate 顶部说明。
 const ASR_MAX_CONCURRENT = 4
@@ -45,7 +46,9 @@ const asrGate = createConcurrencyGate({
 
 // ffmpeg 需要 Node.js 运行时（不支持 Edge）
 export const runtime = 'nodejs'
-// 给排队（≤15s）+ 转码（≤10s）+ 豆包识别（≤30s）留足时间
+// ⚠️ maxDuration 是 Vercel 的 route segment 语义，当前部署（Zeabur 容器 + 香港 VPS，非 Vercel）下【不生效、是 no-op】。
+//    真实超时上限 = Zeabur 网关超时（见 docs/部署交接-香港PaaS.md）；此处 60 不是本接口的实际执行上限，别据它推算。
+//    保留而不删：无害 no-op，且若将来改回 Vercel 仍需要它；删属部署面变更，要单独验证（与 next.config.mjs 的 outputFileTracing* 同理）。
 export const maxDuration = 60
 
 /** AppError 类型守卫（code + message 字段） */

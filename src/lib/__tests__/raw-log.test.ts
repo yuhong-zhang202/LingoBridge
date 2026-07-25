@@ -25,6 +25,7 @@ jest.mock('@/lib/raw-log-context', () => ({ getRawLogContext: () => mockGetRawLo
 // 假 supabase client：记录 insert / delete 的表名与载荷。
 const insertMock = jest.fn<Promise<{ error: unknown }>, [unknown]>()
 const eqMock = jest.fn<Promise<{ error: unknown }>, [string, string]>()
+const inMock = jest.fn<Promise<{ error: unknown }>, [string, string[]]>()
 const fromMock = jest.fn((table: string) => ({
   insert: (row: unknown) => {
     insertCalls.push({ table, row })
@@ -35,10 +36,16 @@ const fromMock = jest.fn((table: string) => ({
       deleteCalls.push({ table, col, val })
       return eqMock(col, val)
     },
+    // 第二遍删除（按 corpus_id 批量）——堵 user_id=null 的原文孤儿
+    in: (col: string, vals: string[]) => {
+      inDeleteCalls.push({ table, col, vals })
+      return inMock(col, vals)
+    },
   }),
 }))
 const insertCalls: Array<{ table: string; row: unknown }> = []
 const deleteCalls: Array<{ table: string; col: string; val: string }> = []
+const inDeleteCalls: Array<{ table: string; col: string; vals: string[] }> = []
 jest.mock('@/lib/supabase-server', () => ({ getSupabaseServer: () => ({ from: fromMock }) }))
 
 import { appendRawLog, deleteUserRawLogs, type LLMRawRecord, type AsrRawRecord } from '@/lib/raw-log'
@@ -71,8 +78,10 @@ const ASR_RECORD: AsrRawRecord = {
 beforeEach(() => {
   insertCalls.length = 0
   deleteCalls.length = 0
+  inDeleteCalls.length = 0
   insertMock.mockReset().mockResolvedValue({ error: null })
   eqMock.mockReset().mockResolvedValue({ error: null })
+  inMock.mockReset().mockResolvedValue({ error: null })
   fromMock.mockClear()
   mockGetRawLogContext.mockReset().mockReturnValue({ userId: 'u1', corpusId: 'c1' })
   mockEnv.rawLogEnabled = true
@@ -156,5 +165,24 @@ describe('deleteUserRawLogs — 彻底删', () => {
   it('删除报错向上抛（供删号 best-effort 兜住）', async () => {
     eqMock.mockResolvedValueOnce({ error: { message: 'boom' } })
     await expect(deleteUserRawLogs('u9')).rejects.toBeDefined()
+  })
+
+  it('传 corpusIds 时补按 corpus_id 删一遍两表（堵 user_id=null 的原文孤儿）', async () => {
+    await deleteUserRawLogs('u9', ['c1', 'c2'])
+    // 第一遍仍按 user_id 删两表
+    expect(deleteCalls).toEqual([
+      { table: 'llm_raw_logs', col: 'user_id', val: 'u9' },
+      { table: 'asr_raw_logs', col: 'user_id', val: 'u9' },
+    ])
+    // 第二遍按 corpus_id 批量删两表
+    expect(inDeleteCalls).toEqual([
+      { table: 'llm_raw_logs', col: 'corpus_id', vals: ['c1', 'c2'] },
+      { table: 'asr_raw_logs', col: 'corpus_id', vals: ['c1', 'c2'] },
+    ])
+  })
+
+  it('corpusIds 为空（默认）时不触发 corpus_id 那遍', async () => {
+    await deleteUserRawLogs('u9')
+    expect(inDeleteCalls).toEqual([])
   })
 })

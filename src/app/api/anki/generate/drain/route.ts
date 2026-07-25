@@ -256,7 +256,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (jobs.length === 0) return NextResponse.json({ claimed: 0, processed: 0 })
 
     await runBuckets(jobs, ANKI_DRAIN_CONCURRENCY)
-    return NextResponse.json({ claimed: jobs.length, processed: jobs.length })
+
+    // 死信可观测出口：本轮处理后顺带查一次当前 failed（死信）总数随响应返回。
+    // 口径取「当前死信总量」而非「本轮新增死信数」——因为死信一旦落库便不再被后续 drain 领取，
+    // 只报本轮新增会让既有堆积在事后不可见；报总量则 cron 每次调用的响应/日志都能看到堆积规模，
+    // 无需再手查表（原本卡背静默不生成只能手查库）。单条 count(*) 索引扫描、开销可忽略。
+    // 查询失败不阻断 drain 主流程：failedCount 取不到时记 null，只影响可观测、不影响已完成的处理。
+    const { count: failedCount, error: failedErr } = await getSupabaseServer()
+      .from('anki_generation_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'failed')
+    if (failedErr) logErr('[anki drain] 查死信总数失败（不阻断）', failedErr)
+    return NextResponse.json({ claimed: jobs.length, processed: jobs.length, failed: failedCount ?? null })
   } catch (e) {
     logErr('[anki drain]', e)
     return NextResponse.json({ error: 'drain 失败' }, { status: 500 })
