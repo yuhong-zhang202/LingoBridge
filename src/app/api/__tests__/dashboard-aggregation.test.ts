@@ -27,8 +27,8 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 
 const mockGetSupabase = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
 
-/** 八条查询的标识（与 route 内 Promise.all 的八个位置一一对应） */
-type QueryKey = 'allTime' | 'month' | 'lastMonth' | 'today' | 'range' | 'recent' | 'costly' | 'failed'
+/** 十条查询的标识（与 route 内 Promise.all 的十个位置一一对应） */
+type QueryKey = 'allTime' | 'month' | 'lastMonth' | 'today' | 'range' | 'recent' | 'costly' | 'failed' | 'practice' | 'profiles'
 
 /** 各查询的预置返回行；未指定的键按空表处理 */
 type Spec = Partial<Record<QueryKey, unknown[]>>
@@ -47,19 +47,26 @@ const PG_MAX_ROWS = 1000
 type Captured = { select: string; gte: string[]; lt: string[]; eq: string[]; limit: number | null }
 
 /**
- * 按查询特征反推它是七条中的哪一条。
+ * 按查询特征反推它是十条中的哪一条。
  * 【不能】按 from() 调用顺序分派 —— 分页后同一条逻辑查询会多次 from()，各条的翻页交错、顺序不再稳定。
+ * ⚠️ today / range 查询自 2026-07-25 起 select 也带 user_id（今日活跃去重 / 每日趋势活跃去重需要），
+ *    故不能再靠「有 user_id 就是 allTime」分派；改为先按 practice/profiles 独有列，再按 service 分族，
+ *    族内用 latency_ms（range 独有）区分 range 与 today，无 service 的三条费用卡查询走末尾旧逻辑。
  * @param q  该次查询捕获到的 select/过滤/limit 特征
  */
 function classify(q: Captured): QueryKey {
-  if (q.select.includes('user_id')) return 'allTime'
+  if (q.select.includes('is_review')) return 'practice'   // practice_sessions 独有列
+  if (q.select === 'id') return 'profiles'                 // profiles 只 select id（今日新增注册计数）
   if (q.select.includes('service')) {
     // 失败明细是唯一带 .eq('status','error') 的一条，仅靠 select/limit 与「最贵」区分不开
     if (q.eq.includes('error')) return 'failed'
     if (q.limit === 30) return 'recent'
     if (q.limit !== null) return 'costly'
-    return 'range'
+    // range 与 today 都带 service + user_id；range 独有 latency_ms（today 不取延迟列）
+    return q.select.includes('latency_ms') ? 'range' : 'today'
   }
+  // 以下三条无 service：allTime（带 user_id 全时段归因）/ 上月（带 lt）/ 本月
+  if (q.select.includes('user_id')) return 'allTime'
   if (q.lt.length > 0) return 'lastMonth'
   return q.gte[0] === TODAY_START_ISO ? 'today' : 'month'
 }
@@ -302,6 +309,78 @@ describe('GET /api/dashboard · 聚合口径', () => {
     const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
     const body = await res.json()
     expect(body.errorRate).toBe(50)
+  })
+})
+
+/**
+ * ⑪ Tier1 今日经营口径（2026-07-25 新增）—— 首屏四数卡的数据源守卫：
+ *   · 今日活跃（注册去重）/ 匿名试用会话数（匿名 user_id 去重、绝不与注册相加）；
+ *   · 今日练习场次（practice_sessions 今日子集，按 is_review 拆新练/复练）；
+ *   · 今日系统故障按环节（缺 phase 的用 service 兜底成环节名）+ 空录音单列（不算故障）；
+ *   · 今日新增注册（profiles 今日 count）；
+ *   · 每日参与度趋势（活跃只数注册去重、匿名不掺入 + 练习场次按天 count）。
+ */
+describe('GET /api/dashboard · Tier1 今日经营口径', () => {
+  test('今日活跃/匿名会话/练习/故障按环节/新增注册/参与度趋势', async () => {
+    // 今日行（select 带 user_id/is_anonymous/status/service/metadata）：
+    //   注册 u1(×2)/u2；匿名 anon1/anon2；transcribe 系统故障 ×2（u1、anon1）；
+    //   无 phase 系统故障 ×1（u2，用 service 'qwen_plus' 兜底成「千问 Plus」）；空录音 ×1（anon2，不算故障）。
+    const todayRows = [
+      { estimated_cost_cny: 1,   user_id: 'u1',    is_anonymous: false, status: 'success', service: 'qwen_plus',  metadata: { phase: 'coach' } },
+      { estimated_cost_cny: 1,   user_id: 'u1',    is_anonymous: false, status: 'success', service: 'qwen_plus',  metadata: { phase: 'coach' } },
+      { estimated_cost_cny: 1,   user_id: 'u2',    is_anonymous: false, status: 'success', service: 'qwen_plus',  metadata: { phase: 'analysis' } },
+      { estimated_cost_cny: 0.5, user_id: 'anon1', is_anonymous: true,  status: 'success', service: 'doubao_asr', metadata: { phase: 'transcribe' } },
+      { estimated_cost_cny: 0.5, user_id: 'anon2', is_anonymous: true,  status: 'success', service: 'doubao_asr', metadata: { phase: 'transcribe' } },
+      { estimated_cost_cny: 0,   user_id: 'u1',    is_anonymous: false, status: 'error',   service: 'doubao_asr', metadata: { phase: 'transcribe' } },
+      { estimated_cost_cny: 0,   user_id: 'anon1', is_anonymous: true,  status: 'error',   service: 'doubao_asr', metadata: { phase: 'transcribe' } },
+      { estimated_cost_cny: 0,   user_id: 'u2',    is_anonymous: false, status: 'error',   service: 'qwen_plus',  metadata: null },
+      { estimated_cost_cny: 0.6, user_id: 'anon2', is_anonymous: true,  status: 'error',   service: 'doubao_asr', metadata: { phase: 'transcribe', error_kind: 'user_input' } },
+    ]
+    // 练习场次：今日 3 场（新练 2 + 复练 1），另有一场在区间内但非今日（不计今日、但计入趋势）。
+    const practiceRows = [
+      { is_review: false, created_at: '2026-07-18T01:00:00Z' },
+      { is_review: false, created_at: '2026-07-18T01:30:00Z' },
+      { is_review: true,  created_at: '2026-07-18T01:40:00Z' },
+      { is_review: false, created_at: '2026-07-15T01:00:00Z' },
+    ]
+    // 区间行（带归属列）：驱动「每日活跃」——只数注册去重，匿名 anon1 不计入活跃。
+    const rangeRows = [
+      { service: 'qwen_plus',  estimated_cost_cny: 1,   latency_ms: 100, status: 'success', created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach' },      user_id: 'u1',    is_anonymous: false },
+      { service: 'qwen_plus',  estimated_cost_cny: 1,   latency_ms: 100, status: 'success', created_at: '2026-07-18T02:00:00Z', metadata: { phase: 'coach' },      user_id: 'u2',    is_anonymous: false },
+      { service: 'doubao_asr', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success', created_at: '2026-07-18T02:00:00Z', metadata: { phase: 'transcribe' }, user_id: 'anon1', is_anonymous: true },
+    ]
+    wireSupabase({ today: todayRows, practice: practiceRows, profiles: [{ id: 'p1' }, { id: 'p2' }], range: rangeRows })
+
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    // 活跃与匿名会话：注册去重 {u1,u2}=2；匿名去重 {anon1,anon2}=2，两者绝不相加
+    expect(body.registeredActiveToday).toBe(2)
+    expect(body.anonSessionsToday).toBe(2)
+
+    // 练习场次：今日 3 场 = 新练 2 + 复练 1（07-15 那场非今日、不计）
+    expect(body.practiceNew).toBe(2)
+    expect(body.practiceReview).toBe(1)
+    expect(body.practiceTotal).toBe(3)
+
+    // 今日系统故障按环节（降序）：语音转写 2（u1+anon1）、千问 Plus 1（u2 无 phase 用 service 兜底）；空录音不算故障
+    expect(body.todayFailuresByPhase).toEqual([
+      { phase: '语音转写', count: 2 },
+      { phase: '千问 Plus', count: 1 },
+    ])
+    expect(body.todayFailuresTotal).toBe(3)
+    expect(body.emptyRecordingToday).toBe(1)   // 仅 anon2 的空录音
+
+    // 今日新增注册
+    expect(body.newRegistrationsToday).toBe(2)
+
+    // 每日参与度趋势：7/18 当天活跃只数注册去重 {u1,u2}=2（anon1 不掺入），练习场次 3
+    const d18 = body.engagementTrend.find((d: { date: string }) => d.date === '7/18')
+    expect(d18.activeUsers).toBe(2)
+    expect(d18.practiceSessions).toBe(3)
+
+    // 留存 / 假空率本轮为 pending 占位
+    expect(body.retentionPending).toBe(true)
+    expect(body.fakeEmptyPending).toBe(true)
   })
 })
 

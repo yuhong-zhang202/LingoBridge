@@ -155,7 +155,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       const text = await runWithRawLogContext({ userId, corpusId: null }, () =>
         transcribeAudio(wavBlob),
       )
-      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous })
+      // metadata.phase='transcribe'：让看板按环节归位这个最高频环节的耗时/故障，不再落 other 桶。
+      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'transcribe' } })
       return NextResponse.json({ text })
     } finally {
       // 名额必须归还：无论成功、超额早退还是抛错。漏了就是永久泄漏，闸门会越关越死。
@@ -180,7 +181,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       latency_ms: Date.now() - t0,
       status: 'error',
       ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
-      ...(isUserInputError ? { metadata: { [ERROR_KIND_KEY]: ERROR_KIND_USER_INPUT } } : {}),
+      // phase='transcribe' 始终打，让转写失败按环节归位；空录音再叠 error_kind=user_input（不计系统故障）。
+      metadata: isUserInputError
+        ? { phase: 'transcribe', [ERROR_KIND_KEY]: ERROR_KIND_USER_INPUT }
+        : { phase: 'transcribe' },
     })
     logErr('[transcribe API]', e)
     // 不回传内部 message；仅保留受控的 AppError.code（客户端据此区分如 EMPTY_TRANSCRIPT 的友好提示）

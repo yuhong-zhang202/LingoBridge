@@ -1,17 +1,20 @@
 'use client'
 /**
  * @module   dashboard/page
- * @desc     API 用量看板 — 开发者工具页，不含 TabBar/TopBar，展示三方 API 费用与性能
+ * @desc     Admin 经营看板 — 首屏 Hero 四数卡（今日活跃/练习/故障/成本，今日口径）+ Tier2 折叠分组
+ *           （增长/故障明细/耗时/趋势/成本细节/原始日志，所选区间口径）。不含 TabBar/TopBar，仅管理员可见。
  * @author   LingoBridge
  * @created  2026-06-04
  */
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
+import HeroMetrics    from '@/components/dashboard/HeroMetrics'
+import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
+import EngagementTrendChart from '@/components/dashboard/EngagementTrendChart'
 import CostCards     from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
-import TodayStatusBar from '@/components/dashboard/TodayStatusBar'
 import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
 import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
 import { apiFetch } from '@/lib/api-client'
@@ -35,6 +38,12 @@ type DashboardData = {
   allTimeCost: number; allTimeCalls: number
   monthCost: number;  monthCalls: number; monthChange: number | null
   todayCost:  number; todayCalls: number
+  // ── Tier1 今日经营口径 ──
+  registeredActiveToday: number; anonSessionsToday: number
+  practiceNew: number; practiceReview: number; practiceTotal: number
+  todayFailuresByPhase: Array<{ phase: string; count: number }>
+  todayFailuresTotal: number; emptyRecordingToday: number
+  newRegistrationsToday: number
   avgDailyCalls: number; p50Latency: number; p95Latency: number; errorRate: number; avgDailyCost: number
   failedCost: number; estimateRatio: number; dailyBudget: number
   serviceTotals: ServiceTotal[]
@@ -44,6 +53,9 @@ type DashboardData = {
   loggedInCost: number
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   dailyFailures: Array<{ date: string; failures: number }>
+  engagementTrend: Array<{ date: string; activeUsers: number; practiceSessions: number }>
+  retentionPending: boolean
+  fakeEmptyPending: boolean
   phaseLatency: PhaseLatency[]
   latencyTrend: TrendPhase[]
   latencyCutoff: string
@@ -63,6 +75,7 @@ const RANGE_LABEL: Record<Range, string> = { '7d': '7天', '14d': '14天', '30d'
 // 取 v2-text-muted token 值（#7C6B5E，on surface 5.09:1 达 AA），替换原 #A89990（2.75:1 不达标）。
 const AXIS_TICK_FILL = '#7C6B5E'
 
+// 迷你统计条（含【日均调用】）—— 归入 F 组「原始日志排障」，从首屏踢出（日均调用曾在首屏误导，pm 点名）。
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
   // 中位数而非均值：同输入长度不同的调用延迟能差 3 倍，均值谁也不代表（P95 保留，答"最坏能多坏"）
@@ -175,7 +188,36 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
 }
 
 /**
- * API 用量看板主页
+ * 增长组的小统计卡（今日新增注册 / 匿名活跃）：主数字 + 标签 + 一句口径说明。
+ * @param label  卡标题
+ * @param value  主数字
+ * @param note   口径说明小字
+ */
+function GrowthStat({ label, value, note }: { label: string; value: number; note: string }) {
+  return (
+    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
+      <div className="text-[11px] text-v2-text-muted mb-1">{label}</div>
+      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{value}</div>
+      <div className="text-[10px] text-v2-text-muted mt-1.5">{note}</div>
+    </div>
+  )
+}
+
+/** 「下一步接入」空态占位（留存 / 假空率本轮未实现真数据，不硬编错数） */
+function PendingPlaceholder({ title, reason }: { title: string; reason: string }) {
+  return (
+    <div className="flex-1 min-w-[140px] bg-black/[0.02] rounded-[12px] border border-dashed border-black/[0.1] px-4 py-3">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-[11px] text-v2-text-muted">{title}</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
+      </div>
+      <div className="text-[10px] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
+    </div>
+  )
+}
+
+/**
+ * Admin 经营看板主页
  */
 export default function DashboardPage() {
   const [range, setRange]               = useState<Range>('7d')
@@ -222,11 +264,11 @@ export default function DashboardPage() {
       {/* 顶部标题 */}
       <div className="mb-6">
         <div className="text-[11px] text-v2-text-muted tracking-[1.5px] uppercase mb-1">LINGOBRIDGE</div>
-        <h1 className="text-[22px] font-bold text-v2-text-primary">API 用量看板</h1>
+        <h1 className="text-[22px] font-bold text-v2-text-primary">经营看板</h1>
       </div>
 
       {denied && (
-        <div className="text-v2-text-muted text-[14px] py-10 text-center">无权访问：成本看板仅对管理员开放。</div>
+        <div className="text-v2-text-muted text-[14px] py-10 text-center">无权访问：经营看板仅对管理员开放。</div>
       )}
 
       {loading && !denied && <div className="text-v2-text-muted text-[14px] py-10 text-center">加载中…</div>}
@@ -242,46 +284,24 @@ export default function DashboardPage() {
       )}
 
       {data && !loading && !denied && !error && (<>
-        {/* 今日状况条：内测期"今天有没有出事"的唯一入口，故置于费用卡之上。
-            时间窗固定为今日 + 近 7 日基线，不随下方区间选择器变 */}
-        <TodayStatusBar status={data.todayStatus} todayCost={data.todayCost}
-          dailyBudget={data.dailyBudget} latencyWarnMs={data.latencyWarnMs} />
+        {/* ── 首屏 Hero 四数卡（今日口径，不随下方区间变）── */}
+        <HeroMetrics data={{
+          registeredActiveToday: data.registeredActiveToday,
+          anonSessionsToday:     data.anonSessionsToday,
+          practiceNew:           data.practiceNew,
+          practiceReview:        data.practiceReview,
+          practiceTotal:         data.practiceTotal,
+          todayFailuresByPhase:  data.todayFailuresByPhase,
+          todayFailuresTotal:    data.todayFailuresTotal,
+          emptyRecordingToday:   data.emptyRecordingToday,
+          todayCost:             data.todayCost,
+          avgDailyCost7:         data.todayStatus.avgDailyCost7,
+          dailyBudget:           data.dailyBudget,
+        }} />
 
-        {/* 三张费用卡 */}
-        <section aria-label="费用总览">
-          <h2 className="sr-only">费用总览</h2>
-          <CostCards data={data} />
-          {/* USD 副行汇率脚注：写死估算，非实时 */}
-          <div className="text-[10px] text-v2-text-muted mt-1.5">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
-        </section>
-
-        {/* 迷你统计条 */}
-        <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mt-4 mb-5 overflow-hidden">
-          {MINI_STATS(data).map(s => (
-            <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
-              <div className="text-[11px] text-v2-text-muted mb-0.5">{s.label}</div>
-              <div className="text-[14px] font-semibold text-v2-text-primary">{s.value}</div>
-            </div>
-          ))}
-        </section>
-
-        {/* 口径注脚：区分「日历口径」的费用卡与「所选区间口径」的迷你条 / 图表，避免误读 */}
-        <div className="text-[10px] text-v2-text-muted -mt-3 mb-5">
-          口径说明：上方三张费用卡为日历口径（今日 / 本月 / 累计，按东八区日历边界）；本条迷你统计及以下图表均为所选区间（{RANGE_LABEL[range]}）口径。
-        </div>
-
-        {/* 时间选择器 + 筛选出口 */}
-        <div className="flex items-center justify-between mb-3 gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-[14px] font-semibold text-v2-text-primary flex-shrink-0">详细趋势</h2>
-            {/* 筛选可发现性：点占比联动后给一个显式「全部」出口，否则用户不知如何清除 dim 状态 */}
-            {selectedService && (
-              <button onClick={() => setSelected(null)}
-                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[11px] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
-                <span aria-hidden="true">×</span>清除筛选 · 全部
-              </button>
-            )}
-          </div>
+        {/* ── Tier2 区间选择器 + 口径注脚（只作用于下方展开区；Tier1 四数卡为今日口径）── */}
+        <div className="flex items-center justify-between mb-2 gap-3">
+          <div className="text-[13px] font-semibold text-v2-text-primary">明细（可展开）</div>
           <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5 flex-shrink-0" role="group" aria-label="时间范围">
             {RANGES.map(r => (
               <button key={r} onClick={() => setRange(r)} aria-pressed={range === r}
@@ -291,40 +311,99 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-
-        {/* 趋势图 + 饼图 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
-            {hasRangeData
-              ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
-              : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
-          </section>
-          <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
-            <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} />
-          </section>
+        <div className="text-[10px] text-v2-text-muted mb-3">
+          口径说明：上方四数卡为今日口径（按东八区日历边界）；以下展开区的所有图表与统计均为所选区间（{RANGE_LABEL[range]}）口径。
         </div>
 
-        {/* 预算线口径注脚：日预算线为内测占位参照，非真实告警阈值 */}
-        <div className="text-[10px] text-v2-text-muted -mt-2 mb-4">
-          注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在顶部染红点提示，不触发任何告警推送。
-        </div>
+        {/* A · 增长（默认展开） */}
+        <CollapsibleSection title="A · 增长" subtitle="今日新增 · 留存（下一步）" defaultOpen>
+          <div className="flex gap-2.5 flex-wrap">
+            <GrowthStat label="今日新增注册" value={data.newRegistrationsToday} note="profiles 今日 created_at 计数" />
+            <GrowthStat label="今日匿名活跃" value={data.anonSessionsToday} note="匿名会话数 · 含重复访问 · 非去重真人" />
+            {data.retentionPending && (
+              <PendingPlaceholder title="次日 / 7 日留存" reason="需 user_id 跨天配对，口径较重，本轮先占位。" />
+            )}
+            {data.fakeEmptyPending && (
+              <PendingPlaceholder title="假空率" reason="需读 flow_events 判断空录音真伪，本轮先占位。" />
+            )}
+          </div>
+          {/* 转化率不编：仅给「今日新增注册」与「今日匿名活跃」两个数供自行对照，避免硬编错误口径 */}
+          <div className="text-[10px] text-v2-text-muted mt-3">
+            注：暂不给「匿名→注册」转化率——需匹配匿名与注册的复杂口径，先给上面两个数供人工对照。
+          </div>
+        </CollapsibleSection>
 
-        {/* 按环节成本 / 失败率 */}
-        <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+        {/* B · 故障明细 */}
+        <CollapsibleSection title="B · 故障明细" subtitle="每日系统故障（不含空录音）">
+          <DailyFailureChart data={data.dailyFailures} />
+        </CollapsibleSection>
 
-        {/* 各环节耗时（分布 / 趋势）：与上一块同为"按环节"视角，紧贴着放 */}
-        <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
-          cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
+        {/* C · 耗时 */}
+        <CollapsibleSection title="C · 各环节耗时" subtitle="分布 / 趋势">
+          <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
+            cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
+        </CollapsibleSection>
 
-        {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
-        <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
+        {/* D · 趋势（活跃 + 场次双线） */}
+        <CollapsibleSection title="D · 参与度趋势" subtitle="活跃人数 + 练习场次">
+          {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
+            ? <EngagementTrendChart data={data.engagementTrend} />
+            : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
+        </CollapsibleSection>
 
-        {/* 今日调用分布 + 每日失败次数并排（两张小图，通栏各占一行会失衡） */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4">
+        {/* E · 成本细节 */}
+        <CollapsibleSection title="E · 成本细节" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户">
+          {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
+          <CostCards data={data} />
+          <div className="text-[10px] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
+
+          {/* 费用趋势 + 按服务占比 */}
+          <div className="flex items-center justify-end mb-2">
+            {/* 筛选可发现性：点占比联动后给显式「全部」出口，否则用户不知如何清除 dim 状态 */}
+            {selectedService && (
+              <button onClick={() => setSelected(null)}
+                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[11px] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
+                <span aria-hidden="true">×</span>清除筛选 · 全部
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
+              {hasRangeData
+                ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
+                : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
+            </section>
+            <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
+              <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} />
+            </section>
+          </div>
+          <div className="text-[10px] text-v2-text-muted mb-4">
+            注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在卡片染色提示，不触发任何告警推送。
+          </div>
+
+          {/* 按环节成本 / 失败率 */}
+          <PhaseBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+          {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
+          <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
+        </CollapsibleSection>
+
+        {/* F · 原始日志排障 */}
+        <CollapsibleSection title="F · 原始日志排障" subtitle="性能指标 · 小时分布 · 调用明细">
+          {/* 迷你统计条（含日均调用，从首屏移入此处） */}
+          <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mb-4 overflow-hidden">
+            {MINI_STATS(data).map(s => (
+              <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
+                <div className="text-[11px] text-v2-text-muted mb-0.5">{s.label}</div>
+                <div className="text-[14px] font-semibold text-v2-text-primary">{s.value}</div>
+              </div>
+            ))}
+          </section>
+
+          {/* 今日调用分布（小时） */}
+          <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
             <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
             {hasTodayData ? (<>
-              {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附 sr-only 数据表兜底（与同页另两图一致） */}
+              {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附 sr-only 数据表兜底（与同页另图一致） */}
               <div role="img"
                 aria-label={`今日调用按小时分布柱状图，全天共 ${todayTotalCalls} 次调用，峰值 ${todayPeakHour.hour} 共 ${todayPeakHour.calls} 次。详细数据见下方数据表。`}>
                 <ResponsiveContainer width="100%" height={100}>
@@ -353,24 +432,20 @@ export default function DashboardPage() {
               <div className="text-v2-text-muted text-[12px] h-[100px] flex items-center justify-center">今日暂无调用</div>
             )}
           </section>
-          <section aria-label="每日失败次数" className="bg-white rounded-[16px] border border-black/[0.05] p-4">
-            <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">每日失败次数（仅系统故障）</h2>
-            <DailyFailureChart data={data.dailyFailures} />
-          </section>
-        </div>
 
-        {/* 调用明细表格（最近 / 最贵 / 失败可切换，失败视图是上方柱图的下钻出口） */}
-        <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs} />
+          {/* 调用明细表格（最近 / 最贵 / 失败可切换，失败视图是每日故障图的下钻出口） */}
+          <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs} />
 
-        {/* 底部单价参考 */}
-        <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
-          <div className="text-[11px] text-v2-text-muted leading-relaxed">
-            单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
+          {/* 底部单价参考 */}
+          <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
+            <div className="text-[11px] text-v2-text-muted leading-relaxed">
+              单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
+            </div>
+            <div className="text-[10px] text-v2-text-muted mt-1.5">
+              * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
+            </div>
           </div>
-          <div className="text-[10px] text-v2-text-muted mt-1.5">
-            * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
-          </div>
-        </div>
+        </CollapsibleSection>
       </>)}
     </main>
   )

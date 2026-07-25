@@ -17,17 +17,21 @@ const SERVICE_META: Record<string, { name: string; color: string }> = {
   qwen_plus:     { name: '千问 Plus',     color: '#6FA8C8' },
 }
 
-// 环节（phase）中文名：各 route 在 metadata.phase 打的标签。无 phase 的行（如 transcribe）归入 other。
+// 环节（phase）中文名：各 route 在 metadata.phase 打的标签。
+// transcribe（最高频环节）自 2026-07-25 起补打 phase，其失败不再落 other 桶、可按环节归位；
+// matching 是 /api/matching catch 处无法判定挂在哪步时的兜底 phase，补此键避免前端显示生字符串 'matching'。
 const PHASE_META: Record<string, string> = {
   extraction:  '观察点萃取',
   ranking:     '题目重排',
+  matching:    '匹配',
   analysis:    '侧重点分析',
   coach:       '教练对话',
   phrases:     '词组生成',
   pronounce:   '发音提示',
   restructure: '语料整理',
   polish:      '单句润色',
-  other:       '其他（含语音转写）',
+  transcribe:  '语音转写',
+  other:       '其他',
 }
 
 // 部署形态：Zeabur + 腾讯云香港 VPS（next start 常驻进程）。DB 存 UTC，"今日"/日界/小时桶一律按东八区（UTC+8，无夏令时）折算，
@@ -159,11 +163,23 @@ type LogMeta = { phase?: string; cost_source?: string; error_kind?: string } | n
 // 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
 // user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
 type AttribRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
-/** 纯金额行：月/上月/今日三张费用卡只需成本一列 */
+/** 纯金额行：月/上月费用卡只需成本一列 */
 type CostRow = { estimated_cost_cny: number }
+// 今日行：既算今日费用卡，又供「今日活跃/匿名会话」（按 user_id 去重分类）与「今日故障按环节」，
+// 故一并取归属列 + status + metadata + service（无 phase 时按 service 兜底成环节名）。
+type TodayRow = {
+  estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null
+  status: string; service: string; metadata: LogMeta
+}
+// 练习场次行：今日新练/复练拆分（今日子集）+ 每日趋势场次序列共用这一次区间查询。
+type PracticeRow = { is_review: boolean; created_at: string }
+/** 注册档行：今日新增注册按 created_at 过滤后计数（只取 id，绝不 join 任何个人信息） */
+type ProfileRow = { id: string }
 type RangeRow = {
   service: string; estimated_cost_cny: number; latency_ms: number
   status: string; created_at: string; metadata: LogMeta
+  // 每日趋势的「活跃人数」按 user_id 去重需要归属列（只用于去重计数，不返回明细）
+  user_id: string | null; is_anonymous: boolean | null
 }
 type RecentRow = {
   id: string; created_at: string; service: string; endpoint: string
@@ -201,11 +217,24 @@ function hkDayKey(iso: string): string {
 }
 
 /**
+ * 今日故障归属的「环节中文名」：优先 metadata.phase 经 PHASE_META 映射；
+ * 缺 phase 的历史行（如 2026-07-25 补埋点前的 transcribe 失败）用 service 兜底成一个可读桶名，
+ * 绝不落进无意义的生 key。仅用于「今日故障按环节」分组展示。
+ * @param row  今日日志行（用到 metadata.phase 与 service）
+ */
+function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
+  const phase = row.metadata?.phase
+  if (phase) return PHASE_META[phase] ?? phase
+  return SERVICE_META[row.service]?.name ?? row.service
+}
+
+/**
  * 聚合 api_usage_logs，返回看板所需全部统计数据
  * @param req  GET 请求，支持 ?range=7d|14d|30d
- * @returns    三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
- *             每日趋势、每日失败次数、各环节耗时（分布 + 趋势）、今日状况、小时分布、
- *             最近 / 最贵 / 失败三份调用明细
+ * @returns    Tier1 今日经营（活跃注册/匿名会话数/练习新练复练/故障按环节/空录音/新增注册）、
+ *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
+ *             每日费用趋势 + 每日参与度趋势（活跃+场次）、每日失败次数、各环节耗时（分布 + 趋势）、
+ *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；留存/假空率本轮为 pending 占位
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -225,10 +254,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const lastMonthStart = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth() - 1, 1)
     const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
 
-    // ── 8 条并行查询 ──
-    // 前 5 条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
-    // 后 3 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
-    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes, failedRes] = await Promise.all([
+    // ── 10 条并行查询 ──
+    // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
+    // 其余 3 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
+    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes, failedRes, practiceRes, profilesRes] = await Promise.all([
       // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
       // 这条永不设时间下界、行数只增不减，是最先撞 1000 行上限、也是少报最严重的一条。
       fetchAllRows<AttribRow>(() => supabase
@@ -249,15 +278,15 @@ export async function GET(req: Request): Promise<NextResponse> {
         .lt('created_at', monthStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
-      fetchAllRows<CostRow>(() => supabase
+      fetchAllRows<TodayRow>(() => supabase
         .from('api_usage_logs')
-        .select('estimated_cost_cny')
+        .select('estimated_cost_cny, user_id, is_anonymous, status, service, metadata')
         .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       fetchAllRows<RangeRow>(() => supabase
         .from('api_usage_logs')
-        .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata')
+        .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata, user_id, is_anonymous')
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
@@ -282,10 +311,25 @@ export async function GET(req: Request): Promise<NextResponse> {
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: false })
         .limit(FAILED_LOG_N),
+      // 练习场次（区间内）：今日新练/复练拆分取其今日子集、每日趋势场次取全区间，一次查询两用。
+      fetchAllRows<PracticeRow>(() => supabase
+        .from('practice_sessions')
+        .select('is_review, created_at')
+        .gte('created_at', rangeStartDate.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
+      // 今日新增注册：profiles 今日 created_at 计数。只取 id，隐私红线 —— 绝不 join 邮箱/姓名。
+      fetchAllRows<ProfileRow>(() => supabase
+        .from('profiles')
+        .select('id')
+        .gte('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })),
     ])
 
     const firstErr = allTimeRes.error ?? monthRes.error ?? lastMonthRes.error
       ?? todayRes.error ?? rangeRes.error ?? recentRes.error ?? costlyRes.error ?? failedRes.error
+      ?? practiceRes.error ?? profilesRes.error
     if (firstErr) {
       return NextResponse.json({ error: firstErr.message }, { status: 500 })
     }
@@ -293,6 +337,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 分页触顶 = 数据不完整、看板在少报。绝不静默：打日志 + 随响应返回标记。
     const dataTruncated = allTimeRes.truncated || monthRes.truncated
       || lastMonthRes.truncated || todayRes.truncated || rangeRes.truncated
+      || practiceRes.truncated || profilesRes.truncated
     if (dataTruncated) {
       logErr('[dashboard API]', new Error(
         `api_usage_logs 分页触顶（${MAX_PAGES} 页 × ${PAGE_SIZE} 行），统计已被截断、金额偏低；该把汇总下推到 DB 端了`,
@@ -304,6 +349,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const lmRows  = lastMonthRes.data
     const tdRows  = todayRes.data
     const rngRows = rangeRes.data
+    const practiceRows     = practiceRes.data
+    const profilesTdRows   = profilesRes.data
     const recent  = (recentRes.data ?? []) as RecentRow[]
     const costly  = (costlyRes.data ?? []) as RecentRow[]
     const failed  = (failedRes.data ?? []) as RecentRow[]
@@ -319,6 +366,50 @@ export async function GET(req: Request): Promise<NextResponse> {
       : null
     const todayCost  = r2(tdRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
     const todayCalls = tdRows.length
+
+    // ── 今日活跃（注册）与匿名试用会话数 ──
+    // 复用「按用户成本」同款分类逻辑：先把今日每个 user_id 归成匿名 / 注册（同一 user_id 只要有一条
+    // is_anonymous=true 即整体标匿名），再各自去重计数。user_id 为空的行（老行/无归属）无法归到人，跳过。
+    //   · registeredActiveToday = COUNT(DISTINCT 非匿名 user_id) —— 北极星「今日活跃真人」。
+    //   · anonSessionsToday    = COUNT(DISTINCT 匿名 user_id)   —— 是「会话数」不是去重真人：
+    //     匿名登录每次新开会分到新 user_id，故它含重复访问、绝不与注册活跃相加。
+    const todayUserAnon = new Map<string, boolean>()
+    for (const row of tdRows) {
+      if (row.user_id == null) continue
+      const prev = todayUserAnon.get(row.user_id) ?? false
+      todayUserAnon.set(row.user_id, prev || row.is_anonymous === true)
+    }
+    let registeredActiveToday = 0
+    let anonSessionsToday      = 0
+    for (const isAnon of todayUserAnon.values()) {
+      if (isAnon) anonSessionsToday++
+      else        registeredActiveToday++
+    }
+
+    // ── 今日练习场次（新练 / 复练拆分）：practice_sessions 今日子集，按 is_review 分。 ──
+    const todayTsForPractice = todayStart.getTime()
+    const practiceTdRows   = practiceRows.filter(r => new Date(r.created_at).getTime() >= todayTsForPractice)
+    const practiceReview   = practiceTdRows.filter(r => r.is_review).length
+    const practiceNew      = practiceTdRows.length - practiceReview
+    const practiceTotal    = practiceTdRows.length
+
+    // ── 今日系统故障按环节 + 空录音（不算故障）──
+    // 只数系统故障（isSystemError，与顶部错误率同口径）；按环节名分组降序。
+    // emptyRecordingToday 单列：空录音是用户输入问题（error_kind=user_input），钱花了但服务是好的，不算故障。
+    const todayFailPhaseMap = new Map<string, number>()
+    for (const row of tdRows) {
+      if (!isSystemError(row)) continue
+      const name = todayPhaseName(row)
+      todayFailPhaseMap.set(name, (todayFailPhaseMap.get(name) ?? 0) + 1)
+    }
+    const todayFailuresByPhase = Array.from(todayFailPhaseMap.entries())
+      .map(([phase, count]) => ({ phase, count }))
+      .sort((a, b) => b.count - a.count)
+    const todayFailuresTotal  = todayFailuresByPhase.reduce((s, p) => s + p.count, 0)
+    const emptyRecordingToday = tdRows.filter(r => r.metadata?.error_kind === ERROR_KIND_USER_INPUT).length
+
+    // ── 今日新增注册（profiles 今日 created_at count）──
+    const newRegistrationsToday = profilesTdRows.length
 
     // ── 迷你统计（基于 range 窗口） ──
     const successRows = rngRows.filter(r => r.status === 'success')
@@ -453,6 +544,29 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
 
+    // ── 每日参与度趋势（活跃人数 + 练习场次，与 dailyData 同一日期轴）──
+    // 活跃人数：每天在 api_usage_logs 里【去重的注册 user_id】数（与北极星「今日活跃·注册」同口径，
+    //   刻意只数注册、不掺匿名——掺进来会与「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃）。
+    // 练习场次：每天 practice_sessions 计数（新练+复练合计）。
+    const activeUsersByDay = new Map<string, Set<string>>()
+    for (const row of rngRows) {
+      if (row.is_anonymous !== false || row.user_id == null) continue   // 只计注册（is_anonymous=false）且能归属的行
+      const key = hkDayKey(row.created_at)
+      const set = activeUsersByDay.get(key)
+      if (set) set.add(row.user_id)
+      else activeUsersByDay.set(key, new Set([row.user_id]))
+    }
+    const practiceByDay = new Map<string, number>()
+    for (const row of practiceRows) {
+      const key = hkDayKey(row.created_at)
+      practiceByDay.set(key, (practiceByDay.get(key) ?? 0) + 1)
+    }
+    const engagementTrend = dayBuckets.map(({ key, date }) => ({
+      date,
+      activeUsers:      activeUsersByDay.get(key)?.size ?? 0,
+      practiceSessions: practiceByDay.get(key) ?? 0,
+    }))
+
     // ── 各环节耗时（分布 + 趋势）──
     // 只取成功调用（失败常瞬时返回，混入会把 P50 拉低成假象）且只取口径断点之后的行（见 LATENCY_CUTOFF_TS）。
     const latencyRows = rngRows.filter(r =>
@@ -537,6 +651,16 @@ export async function GET(req: Request): Promise<NextResponse> {
       monthChange,
       todayCost,
       todayCalls,
+      // ── Tier1 今日经营口径（今日日历边界，不随下方区间选择器变）──
+      registeredActiveToday,
+      anonSessionsToday,
+      practiceNew,
+      practiceReview,
+      practiceTotal,
+      todayFailuresByPhase,
+      todayFailuresTotal,
+      emptyRecordingToday,
+      newRegistrationsToday,
       avgDailyCalls,
       p50Latency,
       p95Latency,
@@ -552,6 +676,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       loggedInCost:  r2(loggedInCost),
       dailyData,
       dailyFailures,
+      // Tier2 每日参与度趋势（活跃人数 + 练习场次），所选区间口径
+      engagementTrend,
+      // Tier2 留存 / 假空率：本轮只给占位。留存需 user_id 跨天配对、假空率需读 flow_events，
+      // 口径较重，先返回 pending 让前端做「下一步接入」空态，不硬编错数误导判断。
+      retentionPending: true,
+      fakeEmptyPending: true,
       phaseLatency,
       latencyTrend,
       // 耗时两视图的数据起点（口径断点）：前端在区块标题右侧标出，避免被误读成"只有这几天有调用"
