@@ -7,6 +7,7 @@
  */
 'use client'
 import { useEffect } from 'react'
+import GradientButton from '@/components/GradientButton'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -93,13 +94,24 @@ export default function ConfirmDialog({
           >
             {cancelText}
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className={`px-4 py-2 rounded-full text-[13px] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${danger ? 'bg-error' : 'bg-brand-primary'}`}
-          >
-            {loading ? loadingText : confirmText}
-          </button>
+          {danger ? (
+            // 破坏性操作保留红底纯色填充（bg-error），作为视觉警示——产品方明确要求不归位到渐变描边
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="px-4 py-2 rounded-full text-[13px] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-error"
+            >
+              {loading ? loadingText : confirmText}
+            </button>
+          ) : (
+            <GradientButton
+              onClick={onConfirm}
+              loading={loading}
+              className="px-4 py-2 rounded-full text-[13px] font-medium disabled:cursor-not-allowed"
+            >
+              {loading ? loadingText : confirmText}
+            </GradientButton>
+          )}
         </div>
       </div>
     </div>

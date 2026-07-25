@@ -20,6 +20,7 @@ import QuotaReached from '@/components/QuotaReached'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import GradientButton from '@/components/GradientButton'
 import type { RestructureViewProps } from './types'
 
 /** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText, summary? }。summary 为可选（旧 handoff 无此键）。 */
@@ -206,12 +207,12 @@ function RestructureContent() {
     return (
       <div className="min-h-dvh bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
         <p className="text-[15px] text-v2-text-secondary leading-relaxed">没找到这条语料，可能已被删除或链接失效了。</p>
-        <button
+        <GradientButton
           onClick={() => router.push('/')}
-          className="px-6 py-2.5 rounded-full bg-brand-primary text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
+          className="px-6 py-2.5 rounded-full text-[14px] font-medium"
         >
           回到首页
-        </button>
+        </GradientButton>
       </div>
     )
   }

@@ -6,7 +6,7 @@
  * @created  2026-05-28
  */
 'use client'
-import type { ReactNode, CSSProperties } from 'react'
+import type { ReactNode } from 'react'
 import { Target, Type, ChevronDown, Check, Star } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
@@ -16,15 +16,11 @@ import Tag from '@/components/Tag'
 import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import Card from '@/components/Card'
+import GradientButton from '@/components/GradientButton'
 import Skeleton from '@/components/Skeleton'
 import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
 import { BRAND_GRADIENT_SOFT } from '@/lib/constants'
 import type { AnalysisViewProps } from './types'
-
-const LIGHTER_BORDER: CSSProperties = {
-  background: `linear-gradient(white,white) padding-box, ${BRAND_GRADIENT_SOFT} border-box`,
-  border: '1.5px solid transparent',
-}
 
 /** 词组分组配色：按组循环（暖橙 / 标准绿 / 雾青蓝），浅柔色调。
  *  暖橙复用 brand-primary；绿沿用全局标准强调绿；雾青为新增 token。*/
@@ -261,13 +257,12 @@ export default function AnalysisMobile({
             </GradCard>
             </div>{/* /两栏 wrapper */}
 
-            <button
-              className="flex items-center justify-center gap-1.5 w-full px-5 py-2.5 rounded-full text-[14px] font-semibold text-v2-text-secondary active:scale-[0.97] transition-transform duration-150 lg:max-w-[480px] lg:mx-auto"
-              style={LIGHTER_BORDER}
+            <GradientButton
               onClick={onStartPractice}
+              className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[14px] font-medium lg:max-w-[480px] lg:mx-auto"
             >
               开始练习 →
-            </button>
+            </GradientButton>
           </>
         )}
       </div>
