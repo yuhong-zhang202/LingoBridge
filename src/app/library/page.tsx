@@ -7,7 +7,7 @@
  */
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { listMyCorpus, getCorpusPointCodes, deleteCorpus } from '@/lib/db/corpus'
+import { listMyCorpus, getCorpusPointCodes } from '@/lib/db/corpus'
 import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
@@ -34,8 +34,9 @@ function codeToLabel(code: string): DimensionLabel | undefined {
 export default function LibraryPage() {
   const [stories, setStories]       = useState<MyStory[]>([])
   const [dueCount, setDueCount]     = useState(0)
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState<string | null>(null)
+  // 当季对子数（corpusId 非空的卡）：从下方 anki「全部」拉取派生（无新增请求），供「语料匹配」tab / hub 计数。
+  // 语料匹配 tab 自身进入时另拉一次 answered 明细（见 CorpusMatchesTab），此处仅为 hub 概览数。
+  const [pairCount, setPairCount]   = useState(0)
 
   // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2 的【全部】
   // 卡（scope='all'）后本地派生三口径（一次 all 拉取即够，请求数与改前的两次 answered 拉取相同、无新增 DB
@@ -58,7 +59,7 @@ export default function LibraryPage() {
   const [ankiLoading, setAnkiLoading]         = useState(true)
 
   // 三类收藏：SWR 单源（各自首拉顺带触发一次幂等迁移）
-  const { phrases, isLoading: phrasesLoading } = useSavedPhrases()
+  const { phrases } = useSavedPhrases()
   const { words } = useSavedWords()
   const { pronunciations } = useSavedPronunciations()
   const wordsCount = words.length
@@ -125,6 +126,7 @@ export default function LibraryPage() {
           fetchAnkiCards(2, 'all'),
         ])
         const all = [...p1, ...p2]                              // 全部可刷卡（part1+part2+part3 子卡）
+        setPairCount(all.filter(c => c.corpusId !== null).length) // 当季对子数（corpusId 非空）；part3 子卡恒无 corpus，自然排除
         const mains = all.filter(c => c.part !== 3)             // 待复习/样本口径仍只看主题卡（part3 是子卡，不单独计到期）
         const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义，口径不变）
         const now = Date.now()
@@ -139,30 +141,13 @@ export default function LibraryPage() {
       }
     })()
 
-    // 我的语料：Supabase 异步读
+    // 我的语料：Supabase 异步读，仅用于 hub「已攒下 N 条」总计（语料匹配 tab 已改为自持对子数据，不再依赖此列表）
     fetchStories()
       .then(setStories)
-      .catch((e: unknown) => {
-        console.error('[LibraryPage] 加载语料失败', e)
-        setError('加载语料失败，请重试')
-      })
-      .finally(() => setLoading(false))
+      .catch((e: unknown) => console.error('[LibraryPage] 加载语料失败', e))
   }, [fetchStories])
 
-  const onDeleteStory = useCallback((id: string) => {
-    setStories(prev => prev.filter(s => s.id !== id))
-    deleteCorpus(id).catch(e => console.error('[LibraryPage] 删除语料失败', e))
-  }, [])
-
-  // 批量删除后静默重拉（不翻 loading，避免 MyStoriesTab 连同确认框/结果 Toast 一起被卸载）
-  const onRefresh = useCallback(() => {
-    fetchStories()
-      .then(setStories)
-      .catch(e => console.error('[LibraryPage] 刷新语料失败', e))
-  }, [fetchStories])
-
-  // 收藏卡与语料任一未就绪都算加载中，避免收藏 tab 先闪空态再填充
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, loading: loading || phrasesLoading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
 
   return (
     <>

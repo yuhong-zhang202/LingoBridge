@@ -13,9 +13,6 @@ import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
-import Skeleton from '@/components/Skeleton'
-import EmptyState from '@/components/EmptyState'
-import OfflineState from '@/components/OfflineState'
 import IconButton from '@/components/IconButton'
 import Toast from '@/components/Toast'
 import SearchBox from '@/components/library/SearchBox'
@@ -25,7 +22,7 @@ import { getAccount } from '@/lib/auth'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
-import MyStoriesTab from '@/components/library/MyStoriesTab'
+import CorpusMatchesTab from '@/app/library/CorpusMatchesTab'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
 import { HERO_TITLE_DESC, HERO_PAIR_TITLE, HERO_PAIR_STEPS, HERO_PAIR_TAIL, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
@@ -37,7 +34,9 @@ type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
 const DECK_SHADOW = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 const TAB_IDS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
-/** 已接入多选删除的 tab：其垃圾桶走 Portal 槽（由 tab 组件渲染工具栏）；其余 tab 垃圾桶弹占位 Toast。后续批次接入 pron/stories 时加到这里即可。 */
+/** 「工具栏走 Portal 槽」的 tab：cards/phrases/pron 由各 tab 组件渲染多选删除工具栏；stories（语料匹配）
+ *  是对子只读 tab、不做删除（创始人拍板不做解绑 UI），列此仅为让其工具栏槽保持空 → 右侧不出垃圾桶按钮。
+ *  未列入的 tab 会退到占位「多选删除即将上线」Toast。 */
 const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
 /** useSearchParams 需在 Suspense 内；本页 page.tsx 不便改，故边界内建于此。 */
@@ -49,7 +48,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, onRefresh, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -118,7 +117,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
     { id: 'cards',   label: '收藏卡片', count: cards.length },
     { id: 'phrases', label: '词组收藏', count: wordsCount },
     { id: 'pron',    label: '发音',     count: pronCount },
-    { id: 'stories', label: '我的语料', count: stories.length },
+    { id: 'stories', label: '语料匹配', count: pairCount },
   ] as const
 
   return (
@@ -275,35 +274,9 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-        {tab === 'stories' && (
-          loading ? (
-            // 加载态容器挂 aria-busy（不 hidden 才能被播报）；骨架为 Card+Skeleton、无文本，SR 不会读出内容
-            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3" aria-busy="true">
-              {[0, 1, 2].map((i) => (
-                <Card key={i} variant="gradient" className="p-4">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <Skeleton className="w-16 h-5 rounded-full" />
-                    <Skeleton className="w-4 h-4 rounded-full" />
-                  </div>
-                  <Skeleton className="w-full h-[14px]" />
-                  <Skeleton className="w-[88%] h-[14px] mt-2" />
-                  <Skeleton className="w-[60%] h-[14px] mt-2" />
-                  <div className="flex items-center gap-2 mt-2.5">
-                    <Skeleton className="w-14 h-[22px] rounded-full" />
-                    <Skeleton className="w-24 h-3" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : error ? (
-            typeof navigator !== 'undefined' && !navigator.onLine
-              ? <OfflineState onRetry={() => window.location.reload()} />
-              // 错误文案需带下一步动作（复用 EmptyState 的重试 CTA）
-              : <EmptyState title="语料没加载出来" subtitle={error} ctaLabel="重试" onCta={() => window.location.reload()} orbSize={100} />
-          ) : (
-            <MyStoriesTab stories={stories} onDelete={onDeleteStory} onRefresh={onRefresh} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />
-          )
-        )}
+        {/* 语料匹配 tab（对子只读展示）：自持数据/加载/空态；不接多选删除（创始人拍板不做解绑 UI），
+            故不用 toolbarSlotRef/onSelectingChange —— 工具栏槽保持空，本 tab 右侧仅搜索。 */}
+        {tab === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
       </main>
 
       {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}

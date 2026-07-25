@@ -18,11 +18,8 @@ export interface LibraryViewProps {
   wordsCount: number
   pronCount: number
   dueCount: number
-  loading: boolean
-  error: string | null
-  onDeleteStory: (id: string) => void
-  /** 静默重拉语料列表（批量删除后刷新，不翻 loading 以免卸载列表组件） */
-  onRefresh: () => void
+  /** 当季对子数（anki_cards 里 corpusId 非空的卡）—— 供「语料匹配」tab 胶囊 / 移动 hub 入口卡计数。 */
+  pairCount: number
   /** 题卡 Hero 数据（Anki 当季题卡入口，见 LibraryMobile「题卡 Hero」）—— 语义待产品方确认，见 page.tsx 注释。 */
   ankiSeasonCount: number
   ankiDueCount: number

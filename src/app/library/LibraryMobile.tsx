@@ -10,12 +10,9 @@ import Link from 'next/link'
 import { Search, X, ChevronLeft, ChevronRight, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
-import Card from '@/components/Card'
 import Tag from '@/components/Tag'
-import Skeleton from '@/components/Skeleton'
-import OfflineState from '@/components/OfflineState'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
-import MyStoriesTab from '@/components/library/MyStoriesTab'
+import CorpusMatchesTab from '@/app/library/CorpusMatchesTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import LoginPrompt from '@/app/profile/_components/LoginPrompt'
@@ -29,7 +26,7 @@ import type { LibraryViewProps } from './types'
 type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
 
 const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
-  stories: '我的语料',
+  stories: '语料匹配',
   cards:   '收藏卡片',
   words:   '词组收藏',
   pron:    '发音',
@@ -39,7 +36,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, loading, error, onDeleteStory, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -58,7 +55,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   }, [])
 
   const totalCount = stories.length + cards.length + wordsCount + pronCount
-  const matchedTotal = stories.reduce((sum, s) => sum + (s.matchedCount ?? 0), 0)
   const latestCard = cards[0]
   // 题卡 Hero：当季有题即导向刷题（设定是「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
   // （off-season）才走空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态，不给死胡同）。
@@ -120,33 +116,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 relative z-10">
-            {view === 'stories' && (
-              loading
-                ? (
-                  <div className="flex flex-col gap-3 pt-3" aria-busy="true">
-                    {[0, 1, 2].map((i) => (
-                      <Card key={i} variant="gradient" className="p-4">
-                        <div className="flex items-center justify-between mb-2.5">
-                          <Skeleton className="w-16 h-5 rounded-full" />
-                          <Skeleton className="w-4 h-4 rounded-full" />
-                        </div>
-                        <Skeleton className="w-full h-[14px]" />
-                        <Skeleton className="w-[88%] h-[14px] mt-2" />
-                        <Skeleton className="w-[60%] h-[14px] mt-2" />
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <Skeleton className="w-14 h-[22px] rounded-full" />
-                          <Skeleton className="w-24 h-3" />
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )
-                : error
-                  ? (typeof navigator !== 'undefined' && !navigator.onLine
-                      ? <OfflineState onRetry={() => window.location.reload()} />
-                      : <p className="text-[13px] text-error text-center pt-16">{error}</p>)
-                  : <MyStoriesTab stories={stories} onDelete={onDeleteStory} searchQuery={searchQuery} />
-            )}
+            {view === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} />}
             {view === 'cards' && <CollectedCardsTab cards={cards} searchQuery={searchQuery} />}
             {view === 'words' && <SavedWordsTab searchQuery={searchQuery} />}
             {view === 'pron'  && <PronunciationTab searchQuery={searchQuery} />}
@@ -426,7 +396,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </button>
             </div>
 
-            {/* 6) 我的语料 */}
+            {/* 6) 语料匹配（对子入口） */}
             <button
               type="button"
               onClick={() => goView('stories')}
@@ -437,10 +407,10 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 <Mic2 size={15} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-v2-text-secondary">我的语料</p>
-                <p className="text-[11px] text-v2-text-muted mt-[0.5px]">已匹配 {matchedTotal} 道题 · 可回看与重练</p>
+                <p className="text-[13px] font-medium text-v2-text-secondary">语料匹配</p>
+                <p className="text-[11px] text-v2-text-muted mt-[0.5px]">已结 {pairCount} 对 · 题目配你的故事</p>
               </div>
-              <span className="text-[13px] font-semibold text-v2-text-muted">{stories.length}</span>
+              <span className="text-[13px] font-semibold text-v2-text-muted">{pairCount}</span>
               <ChevronRight size={16} className="text-v2-text-muted" />
             </button>
           </div>
