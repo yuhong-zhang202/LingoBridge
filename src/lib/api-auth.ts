@@ -149,7 +149,13 @@ async function loadIdentity(
   const now = Date.now()
   const cached = identityCache.get(userId)
   if (cached && now - cached.at < IDENTITY_TTL_MS) {
-    return { email: cached.email, isAnonymous: cached.isAnonymous }
+    // 单向短路（关「注册后 ≤TTL 误判窗口」）：缓存说「匿名」但新 token 的 claim 已是「注册」——
+    // 匿名→注册单调不可逆、claim 经 ES256 验签不可伪造，说明升级刚完成、缓存是旧快照 → 绕过缓存
+    // 走下方权威查询刷新。反方向（缓存注册、claim 匿名）不短路：旧匿名 token 不该把人降级。
+    const staleAnon = cached.isAnonymous && !fallback.isAnonymous
+    if (!staleAnon) {
+      return { email: cached.email, isAnonymous: cached.isAnonymous }
+    }
   }
   try {
     const { data, error } = await getSupabaseServer().auth.admin.getUserById(userId)
