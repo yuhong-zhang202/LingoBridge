@@ -95,11 +95,16 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
             <div className="min-w-0">
               <p className="text-[14px] font-semibold text-v2-text-primary">发音纠错</p>
               <p className="text-[12px] text-v2-text-secondary leading-relaxed mt-0.5">
-                点句子里任意一个单词，把被听错的词记下来，之后专门练。
+                单词被听错了？点它，填上你真正想说的词，记下来专门练。
               </p>
             </div>
           </div>
         </div>
+
+        {/* 两功能的联动提示：先纠发音、再换说法，优化时会用你真正想说的词，不误判成错误 */}
+        <p className="text-[11px] text-v2-text-muted leading-relaxed mt-4 px-0.5">
+          小技巧：先把听错的词纠正，再点 ✨ 换个说法——它会按你<span className="text-v2-text-secondary">真正想说的词</span>来优化，不会把听错的词当成语法或用词错误。
+        </p>
 
         <GradientButton
           onClick={onClose}
