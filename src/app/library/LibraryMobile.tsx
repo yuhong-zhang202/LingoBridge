@@ -126,7 +126,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           <TopBar title="素材库" />
 
           {/* 移动端 hub */}
-          <div className="flex-1 min-h-0 overflow-y-auto relative z-10" style={{ padding: '8px 24px 0' }}>
+          {/* 顶部留出更多呼吸（标题与 TopBar 拉开、整页内容整体下移，平衡底部空白） */}
+          <div className="flex-1 min-h-0 overflow-y-auto relative z-10" style={{ padding: '32px 24px 0' }}>
 
             {/* 1) 标题区 */}
             <div className="animate-fade-up" style={{ margin: '6px 2px 16px', animationDelay: '0.02s' }}>
