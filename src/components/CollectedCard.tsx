@@ -10,7 +10,7 @@
  * @created  2026-07-05
  */
 'use client'
-import { type JSX, useEffect, useRef } from 'react'
+import { type JSX, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Shuffle, Volume2, Check } from 'lucide-react'
 import Chip from '@/components/Chip'
@@ -57,22 +57,35 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing: number 
 }
 
 /** 句子框 + 播放按钮（复刻 FeedbackCard 非 plain：原句白底、优化绿底） */
+/** 超过此字数视为「长句」，默认折叠 3 行 +「查看更多」展开（与 SwapCorpusDialog 的 CorpusSummary 同范式）。 */
+const SENTENCE_CLAMP_CHARS = 60
+
 /**
- * 句子框（原句/优化）：定高卡内由父层 flex 分配高度（className 传 flex-1 min-h-0），
- * 超长句子在【框内】滚动下滑（产品方定稿：不是整卡滚，是原句/优化句各自框内滚）；
- * 播放按钮绝对定位钉在框右下、不随文本滚走。
+ * 句子框（原句/优化）：超长句子默认 line-clamp-3 +「查看更多/收起」切换——收藏卡新版出来前的
+ * 过渡方案（产品方定稿：不做框内滚动；默认折叠态所有卡行数一致、组件观感统一，展开是用户主动行为）。
+ * 播放按钮绝对定位钉在框右下。
  */
-function SentenceBlock({ text, variant, className = '' }: { text: string; variant: 'original' | 'ai'; className?: string }) {
+function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 'ai' }) {
   const isAi = variant === 'ai'
+  const [expanded, setExpanded] = useState(false)
+  const isLong = text.length > SENTENCE_CLAMP_CHARS
   const box = isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]'
   return (
-    <div className={`relative rounded-[14px] ${box} flex flex-col ${className}`}>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2.5">
-        <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>
-          {text}
-        </p>
-      </div>
-      {/* 命中区扩到 40×40（右下对齐 + p-2.5 使图标可视位置仍等效 right-2.5 bottom-2.5）；钉框右下不随滚 */}
+    <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
+      <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${isLong && !expanded ? 'line-clamp-3' : ''}`}>
+        {text}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
+          aria-expanded={expanded}
+          className="mt-1 min-h-[32px] text-[12px] font-medium text-brand-primary-dark active:opacity-60"
+        >
+          {expanded ? '收起' : '查看更多'}
+        </button>
+      )}
+      {/* 命中区扩到 40×40（右下对齐 + p-2.5 使图标可视位置仍等效 right-2.5 bottom-2.5） */}
       <button
         onClick={() => speak(text)}
         aria-label="播放"
@@ -107,13 +120,13 @@ export default function CollectedCard({
   }, [selecting])
 
   // 整卡：一层渐变描边（_OPAQUE 垫白底挡红）+ 圆角 16 + overflow-hidden，一次裹住卡内容 + 拼句行。
-  // 统一定高（移动 340 / 桌面 300，值只落在这一处 class）：长句卡不再撑破网格，超出部分卡内滚动。
+  // 高度自然（不定高、不卡内滚——产品方定稿）：长句默认 line-clamp-3 +「查看更多」，折叠态各卡行数一致。
   // 选中态：换成主题色实线描边（并显式补 bg-white，否则去掉渐变内联样式后内壁会透出页面底色）。
   const body = (
     <div
       ref={bodyRef}
       className={
-        `relative rounded-[16px] overflow-hidden flex flex-col h-[340px] lg:h-[300px] ` +
+        `relative rounded-[16px] overflow-hidden ` +
         (selected ? 'bg-white border-2 border-brand-primary' : '')
       }
       style={selected ? undefined : GRADIENT_BORDER_STYLE_FULL_OPAQUE}
@@ -130,20 +143,20 @@ export default function CollectedCard({
           {selected && <Check size={14} strokeWidth={3} className="text-white" />}
         </div>
       )}
-      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距）：定高下纵向 flex——标签行钉住、
-          两个句子框 flex-1 平分余高，超长句子在【各自框内】滚动下滑（产品方定稿：非整卡滚）。 */}
-      <div className="flex-1 min-h-0 flex flex-col px-[16px] pt-[14px] pb-[14px]">
-        <div className="mb-1.5 shrink-0">
+      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距）：自然高度；长句由 SentenceBlock 内
+          line-clamp-3 +「查看更多」控制，折叠态各卡行数一致。 */}
+      <div className="px-[16px] pt-[14px] pb-[18px]">
+        <div className="mb-1.5">
           <InfoTag text="原句" letterSpacing={2} />
         </div>
-        <SentenceBlock text={card.originalSentence} variant="original" className="flex-1 min-h-0" />
-        <div className="mt-3 mb-1.5 shrink-0">
+        <SentenceBlock text={card.originalSentence} variant="original" />
+        <div className="mt-5 mb-1.5">
           <InfoTag text="优化" letterSpacing={5} />
         </div>
-        <SentenceBlock text={card.aiOptimized} variant="ai" className="flex-1 min-h-0" />
+        <SentenceBlock text={card.aiOptimized} variant="ai" />
         {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
         {!canPlay && (
-          <div className="flex items-center justify-between mt-3 shrink-0">
+          <div className="flex items-center justify-between mt-3">
             <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
             <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
           </div>
@@ -152,7 +165,7 @@ export default function CollectedCard({
 
       {/* 拼句练习入口行：中性虚线分隔 + 左日期右 Chip；与卡内容同在一条描边内 */}
       {canPlay && (
-        <div className="shrink-0 px-[16px] pt-[11px] pb-[14px] bg-white border-t border-dashed border-black/[0.08] flex items-center justify-between">
+        <div className="px-[16px] pt-[11px] pb-[14px] bg-white border-t border-dashed border-black/[0.08] flex items-center justify-between">
           <span className="text-[11px] text-v2-text-muted">{card.collectedAt}</span>
           <Link href={`/library/collected/${card.id}/practice`}>
             <Chip variant="gradient" size="sm" className="text-[12px] px-[14px] py-[7px] gap-1.5">

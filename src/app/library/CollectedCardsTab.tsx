@@ -118,11 +118,12 @@ export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingCh
         {searching && sel.visibleItems.length === 0 ? (
           <EmptyState title={searchEmptyTitle(searchQuery ?? '')} subtitle="换个关键词试试" />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-start">
             {/* content-visibility:auto —— 视口外的卡跳过渲染/布局，上百张时滚动更顺；
-                contain-intrinsic-size 用 auto + 卡定高 300px 占位（对齐 CollectedCard lg:h-[300px]），滚动条不跳。 */}
+                contain-intrinsic-size 用 auto + 典型折叠态高度 260px 占位（卡回自然高度、clamp 3 行），滚动条不跳。
+                items-start：卡自然高度，单卡展开「查看更多」时不拉伸同行邻卡。 */}
             {sel.visibleItems.map(card => (
-              <div key={card.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_300px]">
+              <div key={card.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_260px]">
                 <CollectedCard
                   card={card}
                   enableSwipe={false}
