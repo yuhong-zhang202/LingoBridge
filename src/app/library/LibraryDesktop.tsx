@@ -68,9 +68,6 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
       .then(acct => setIsAnon(!!acct?.isAnonymous))
       .catch(() => setIsAnon(false))
   }, [])
-  // 「今日复习」胶囊（→ /anki/review?mode=due）：仅注册且确有到期卡才显；加载中 / 0 张 / 匿名一律藏
-  // （匿名连计数行「待复习」段也不显——due 队列只含已答卡，匿名恒空，入口只会通向空态）。与移动端同口径。
-  const showDuePill = !ankiLoading && !isAnon && ankiDueCount > 0
   // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
   // 当前活跃 tab 是否处于选择模式（由各 tab 组件通知）：用于禁用同排搜索图标
@@ -141,8 +138,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
 
         {/* 题卡复习入口（hub 区第一张卡）—— 与移动端「题卡 Hero」同范式镜像。交互结构（修嵌套交互）：
             卡片本体不再整卡包 Link——标题行（含可点问号气泡 HeroHelpTip）在 Link 外；主体命中区（叠卡 + 计数 +
-            说明）是一枚大 Link；右侧 CTA 列两枚真实 Link 胶囊上下堆叠（开始刷题卡 → /anki/review；今日复习 →
-            /anki/review?mode=due，仅注册且有到期卡时显示）。叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。
+            说明）是一枚大 Link；右侧一枚真实 Link CTA 胶囊（开始刷题卡 → /anki/review；「今日复习」入口收进
+            review 页一级筛选，不在 Hero 另开）。叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。
             href 恒指 /anki/review（review 页对 0 题自有空态）。 */}
         <Card variant="gradient" className="px-[26px] py-[22px] mb-4">
           {/* 标题行（Link 外：HeroHelpTip 是可点气泡，嵌 Link 内是交互嵌套） */}
@@ -209,8 +206,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               </div>
             </Link>
 
-            {/* 右段·CTA 列：两枚真实 Link 胶囊上下堆叠（命中区 ≥44px） */}
-            <div className="flex flex-col items-stretch gap-2.5 flex-shrink-0">
+            {/* 右段·CTA：一枚真实 Link 胶囊（命中区 ≥44px） */}
+            <div className="flex flex-col items-stretch flex-shrink-0">
               <Link
                 href="/anki/review"
                 className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
@@ -219,17 +216,6 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                 <span className="text-v2-text-secondary">开始刷题卡</span>
                 <span className="text-brand-primary-dark">›</span>
               </Link>
-              {showDuePill && (
-                <Link
-                  href="/anki/review?mode=due"
-                  aria-label={`今日复习，${ankiDueCount} 张到期题卡`}
-                  className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
-                  style={GRADIENT_BORDER_STYLE}
-                >
-                  <span className="text-v2-text-secondary">今日复习 <span className="text-brand-primary-dark font-bold">{ankiDueCount}</span></span>
-                  <span className="text-brand-primary-dark">›</span>
-                </Link>
-              )}
             </div>
           </div>
         </Card>

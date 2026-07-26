@@ -59,9 +59,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   // 题卡 Hero：当季有题即导向刷题（设定是「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
   // （off-season）才走空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态，不给死胡同）。
   const ankiHasCards = ankiSeasonCount > 0
-  // 「今日复习」胶囊（→ /anki/review?mode=due）：仅注册且确有到期卡才显；加载中 / 0 张 / 匿名一律藏
-  // （匿名连计数行「待复习」段也不显——due 队列只含已答卡，匿名恒空，入口只会通向空态）。
-  const showDuePill = !ankiLoading && !isAnon && ankiDueCount > 0
 
   return (
     <div
@@ -150,8 +147,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 （GRADIENT_BORDER_STYLE / SOFT / SOFT_SM / lib-deck-float / lib-hero-pulse），整体放大一档。
                 reduced-motion 由 globals.css 全局关停（同词组 Hero，不逐元素处理）。
                 交互结构（修嵌套交互）：卡片本体是 div、不再整卡包 Link——标题行（含可点问号气泡 HeroHelpTip）
-                在 Link 外；主体命中区（叠卡 + 计数行 + 两句说明）是一枚大 Link；CTA 行两枚真实 Link 胶囊
-                （开始刷题卡 → /anki/review；今日复习 → /anki/review?mode=due，仅注册且有到期卡时显示）。 */}
+                在 Link 外；主体命中区（叠卡 + 计数行 + 两句说明）是一枚大 Link；CTA 行一枚真实 Link 胶囊
+                （开始刷题卡 → /anki/review；「今日复习」入口收进 review 页一级筛选，不在 Hero 另开）。 */}
             <div className="animate-fade-up" style={{ animationDelay: '0.06s' }}>
               <div
                 className="rounded-[18px] p-[20px] pl-4 relative overflow-hidden"
@@ -236,8 +233,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   </div>
                 </Link>
 
-                {/* CTA 行：两枚真实 Link 胶囊（命中区 ≥44px；375px 下挤不下时允许「今日复习」换行左对齐） */}
-                <div className="flex flex-wrap items-center gap-x-2 mt-2 relative z-[1]">
+                {/* CTA 行：一枚真实 Link 胶囊（命中区 ≥44px） */}
+                <div className="flex items-center mt-2 relative z-[1]">
                   <Link
                     href="/anki/review"
                     className="inline-flex items-center gap-[3px] min-h-[44px] text-[13px] font-semibold rounded-full px-4 py-2 active:scale-[0.97] transition-transform"
@@ -246,17 +243,6 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     <span className="text-v2-text-secondary">开始刷题卡</span>
                     <span className="text-brand-primary-dark">›</span>
                   </Link>
-                  {showDuePill && (
-                    <Link
-                      href="/anki/review?mode=due"
-                      aria-label={`今日复习，${ankiDueCount} 张到期题卡`}
-                      className="inline-flex items-center gap-[3px] min-h-[44px] text-[13px] font-semibold rounded-full px-4 py-2 active:scale-[0.97] transition-transform"
-                      style={GRADIENT_BORDER_STYLE}
-                    >
-                      <span className="text-v2-text-secondary">今日复习 <span className="text-brand-primary-dark font-bold">{ankiDueCount}</span></span>
-                      <span className="text-brand-primary-dark">›</span>
-                    </Link>
-                  )}
                 </div>
               </div>
             </div>
