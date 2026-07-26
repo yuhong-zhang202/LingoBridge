@@ -57,15 +57,22 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing: number 
 }
 
 /** 句子框 + 播放按钮（复刻 FeedbackCard 非 plain：原句白底、优化绿底） */
-function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 'ai' }) {
+/**
+ * 句子框（原句/优化）：定高卡内由父层 flex 分配高度（className 传 flex-1 min-h-0），
+ * 超长句子在【框内】滚动下滑（产品方定稿：不是整卡滚，是原句/优化句各自框内滚）；
+ * 播放按钮绝对定位钉在框右下、不随文本滚走。
+ */
+function SentenceBlock({ text, variant, className = '' }: { text: string; variant: 'original' | 'ai'; className?: string }) {
   const isAi = variant === 'ai'
   const box = isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]'
   return (
-    <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
-      <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>
-        {text}
-      </p>
-      {/* 命中区扩到 40×40（右下对齐 + p-2.5 使图标可视位置仍等效 right-2.5 bottom-2.5） */}
+    <div className={`relative rounded-[14px] ${box} flex flex-col ${className}`}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2.5">
+        <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>
+          {text}
+        </p>
+      </div>
+      {/* 命中区扩到 40×40（右下对齐 + p-2.5 使图标可视位置仍等效 right-2.5 bottom-2.5）；钉框右下不随滚 */}
       <button
         onClick={() => speak(text)}
         aria-label="播放"
@@ -123,27 +130,24 @@ export default function CollectedCard({
           {selected && <Check size={14} strokeWidth={3} className="text-white" />}
         </div>
       )}
-      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距）：定高下占满余高、超出卡内滚动，
-          底部叠一条白色渐隐提示「下面还有内容」（不拦截点击） */}
-      <div className="relative flex-1 min-h-0">
-        <div className="h-full overflow-y-auto overscroll-contain px-[16px] pt-[14px] pb-[18px]">
-          <div className="mb-1.5">
-            <InfoTag text="原句" letterSpacing={2} />
-          </div>
-          <SentenceBlock text={card.originalSentence} variant="original" />
-          <div className="mt-5 mb-1.5">
-            <InfoTag text="优化" letterSpacing={5} />
-          </div>
-          <SentenceBlock text={card.aiOptimized} variant="ai" />
-          {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
-          {!canPlay && (
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
-              <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
-            </div>
-          )}
+      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距）：定高下纵向 flex——标签行钉住、
+          两个句子框 flex-1 平分余高，超长句子在【各自框内】滚动下滑（产品方定稿：非整卡滚）。 */}
+      <div className="flex-1 min-h-0 flex flex-col px-[16px] pt-[14px] pb-[14px]">
+        <div className="mb-1.5 shrink-0">
+          <InfoTag text="原句" letterSpacing={2} />
         </div>
-        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent" />
+        <SentenceBlock text={card.originalSentence} variant="original" className="flex-1 min-h-0" />
+        <div className="mt-3 mb-1.5 shrink-0">
+          <InfoTag text="优化" letterSpacing={5} />
+        </div>
+        <SentenceBlock text={card.aiOptimized} variant="ai" className="flex-1 min-h-0" />
+        {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
+        {!canPlay && (
+          <div className="flex items-center justify-between mt-3 shrink-0">
+            <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
+            <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+          </div>
+        )}
       </div>
 
       {/* 拼句练习入口行：中性虚线分隔 + 左日期右 Chip；与卡内容同在一条描边内 */}
