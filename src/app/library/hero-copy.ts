@@ -17,9 +17,9 @@ export const HERO_TITLE_DESC = '当季最新题库，卡片式多轮滚动，帮
  */
 export const HERO_PAIR_DESC = '选择题目与语料结对，卡片分析将围绕语料展开，针对性更强更高效'
 
-/** 移动端短版（Hero 右列窄、全文挤）：意思不变、文字精简。桌面仍用全文。 */
-export const HERO_TITLE_DESC_MOBILE = '当季最新题库，多轮滚动刷卡，快速混个眼熟'
-export const HERO_PAIR_DESC_MOBILE = '题目结对语料后，卡片分析围着你的故事讲'
+/** 移动端短版（Hero 右列窄）：压到各一行、卡高与词组闪卡持平——真机反馈原两行版把卡撑得过高、不协调。桌面仍用全文。 */
+export const HERO_TITLE_DESC_MOBILE = '当季新题，滚动刷眼熟'
+export const HERO_PAIR_DESC_MOBILE = '绑上语料，答法更贴你'
 
 /** 计数取不到 / 当季 0 时的兜底（永不出现「当季暂无题卡」——当季恒有题）。 */
 export const HERO_EMPTY_FALLBACK = '当季题卡 · 随时刷'
