@@ -9,6 +9,125 @@ import { X, Check } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import type { PolishResult } from '@/lib/types'
 
+/** 解释区一条改动项 */
+interface NoteItem {
+  /** 类型前缀（仅语法段有，如「时态」）；无则 undefined */
+  type?: string
+  /** 原片段（弱化显示） */
+  from: string
+  /** 改法（最重显示） */
+  to: string
+  /** 无箭头无法切分时的整行原文（此时 from/to 留空，raw 直接展示） */
+  raw?: string
+}
+
+/** 解释区一段（语法 / 词组） */
+interface NoteSection {
+  kind: 'grammar' | 'phrase'
+  items: NoteItem[]
+}
+
+// 段头容错集：模型可能带全角/半角冒号或用长名
+const GRAMMAR_HEADS = new Set(['语法', '语法：', '语法:'])
+const PHRASE_HEADS = new Set(['词组', '词组：', '词组:', '词组表达优化', '表达'])
+
+/**
+ * 把 note 契约字符串解析成两段结构；无法识别契约格式时返回 null（调用方回退整段 <p>）
+ * @param note  模型输出的单 string（内部以 \n 组织成「语法」「词组」两段）
+ * @returns     命中契约 → 非空 NoteSection 数组；未命中 / 解析后皆空 → null
+ */
+function parseNote(note: string): NoteSection[] | null {
+  const lines = note.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
+  // 无任何行命中段头 → 判定非契约格式，交回调用方按普通段落渲染
+  const hasHead = lines.some((l) => GRAMMAR_HEADS.has(l) || PHRASE_HEADS.has(l))
+  if (!hasHead) return null
+
+  const grammar: NoteItem[] = []
+  const phrase: NoteItem[] = []
+  let current: 'grammar' | 'phrase' | null = null
+
+  for (const line of lines) {
+    if (GRAMMAR_HEADS.has(line)) {
+      current = 'grammar'
+      continue
+    }
+    if (PHRASE_HEADS.has(line)) {
+      current = 'phrase'
+      continue
+    }
+    if (current === null) continue // 段头之前的游离行，忽略
+    const arrowIdx = line.search(/→|->/)
+    if (arrowIdx < 0) {
+      // 无箭头：整行 raw 兜底展示
+      ;(current === 'grammar' ? grammar : phrase).push({ from: '', to: '', raw: line })
+      continue
+    }
+    const arrowLen = line[arrowIdx] === '→' ? 1 : 2
+    const left = line.slice(0, arrowIdx).trim()
+    const to = line.slice(arrowIdx + arrowLen).trim()
+    if (current === 'grammar') {
+      // 语法段左侧再按第一个中/英文冒号切「类型 / 原片段」
+      const colonIdx = left.search(/：|:/)
+      if (colonIdx >= 0) {
+        grammar.push({ type: left.slice(0, colonIdx).trim(), from: left.slice(colonIdx + 1).trim(), to })
+      } else {
+        grammar.push({ from: left, to })
+      }
+    } else {
+      phrase.push({ from: left, to })
+    }
+  }
+
+  const sections: NoteSection[] = []
+  if (grammar.length > 0) sections.push({ kind: 'grammar', items: grammar })
+  if (phrase.length > 0) sections.push({ kind: 'phrase', items: phrase })
+  // 解析后两段皆空 → 回退整段 <p>
+  return sections.length > 0 ? sections : null
+}
+
+/** 一条改动项渲染：前端补装饰圆点 + 类型/原/箭头/改 分色 */
+function NoteItemRow({ item }: { item: NoteItem }): JSX.Element {
+  return (
+    <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+      <span className="text-warm-taupe select-none">·</span>
+      <span className="flex-1 min-w-0">
+        {item.raw !== undefined ? (
+          <span className="text-v2-text-muted">{item.raw}</span>
+        ) : (
+          <>
+            {item.type && <span className="text-v2-text-secondary font-medium">{item.type}：</span>}
+            <span className="text-v2-text-muted">{item.from}</span>
+            <span className="text-warm-taupe mx-1">→</span>
+            <span className="text-v2-text-primary font-medium">{item.to}</span>
+          </>
+        )}
+      </span>
+    </div>
+  )
+}
+
+/** note 解释区：契约命中 → 两段渲染；未命中 → 整段普通 <p>（= 原状） */
+function NoteBlock({ note }: { note: string }): JSX.Element {
+  const sections = parseNote(note)
+  if (!sections) {
+    return <p className="text-[12px] text-v2-text-muted leading-[1.45] px-1">{note}</p>
+  }
+  return (
+    <div className="px-1 flex flex-col gap-[7px]">
+      {sections.map((sec) => (
+        <div key={sec.kind} className="flex flex-col gap-[3px]">
+          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">
+            {sec.kind === 'grammar' ? '语法' : '词组表达优化'}
+          </span>
+          {sec.items.map((item, i) => (
+            <NoteItemRow key={i} item={item} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface RephrasePopupProps {
   loading: boolean
   result: PolishResult | null
@@ -55,7 +174,7 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
               <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
               <p className="text-[13px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
             </div>
-            {result.note && <p className="text-[12px] text-v2-text-muted leading-[1.45] px-1">{result.note}</p>}
+            {result.note && <NoteBlock note={result.note} />}
           </div>
         ) : (
           <div className="flex items-center gap-1.5 px-1 py-1.5">
