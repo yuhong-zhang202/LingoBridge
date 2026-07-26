@@ -59,6 +59,9 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
   // 题卡 Hero：当季有题即导向刷题（设定是「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
   // （off-season）才走空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态，不给死胡同）。
   const ankiHasCards = ankiSeasonCount > 0
+  // 「今日复习」胶囊（→ /anki/review?mode=due）：仅注册且确有到期卡才显；加载中 / 0 张 / 匿名一律藏
+  // （匿名连计数行「待复习」段也不显——due 队列只含已答卡，匿名恒空，入口只会通向空态）。
+  const showDuePill = !ankiLoading && !isAnon && ankiDueCount > 0
 
   return (
     <div
@@ -146,19 +149,12 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {/* 2) 题卡 Hero（题卡首位·重点）—— 复用词组闪卡 Hero 的手写范式与常量
                 （GRADIENT_BORDER_STYLE / SOFT / SOFT_SM / lib-deck-float / lib-hero-pulse），整体放大一档。
                 reduced-motion 由 globals.css 全局关停（同词组 Hero，不逐元素处理）。
-                TODO(桌面)：移动优先，桌面 hub（LibraryDesktop）暂未补题卡入口，待产品方看过位置后再做。 */}
-            <Link
-              href="/anki/review"
-              aria-label={ankiLoading
-                ? '题库速览，加载中'
-                : ankiHasCards
-                  ? `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
-                  : '题库速览，随时开始刷当季题卡'}
-              className="block animate-fade-up"
-              style={{ animationDelay: '0.06s' }}
-            >
+                交互结构（修嵌套交互）：卡片本体是 div、不再整卡包 Link——标题行（含可点问号气泡 HeroHelpTip）
+                在 Link 外；主体命中区（叠卡 + 计数行 + 两句说明）是一枚大 Link；CTA 行两枚真实 Link 胶囊
+                （开始刷题卡 → /anki/review；今日复习 → /anki/review?mode=due，仅注册且有到期卡时显示）。 */}
+            <div className="animate-fade-up" style={{ animationDelay: '0.06s' }}>
               <div
-                className="rounded-[18px] p-[20px] pl-4 flex items-center gap-[18px] relative overflow-hidden active:scale-[0.99] transition-transform"
+                className="rounded-[18px] p-[20px] pl-4 relative overflow-hidden"
                 style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 16 }}
               >
                 {/* 右上暖光（轻柔脉动，同词组 Hero） */}
@@ -172,65 +168,98 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   aria-hidden="true"
                 />
 
-                {/* 题卡叠卡（放大 84×104，上下浮动）；正面显 Part N + 题面首行 */}
-                <div
-                  className="relative w-[84px] h-[104px] flex-shrink-0"
-                  style={{ animation: 'lib-deck-float 4s ease-in-out infinite' }}
-                  aria-hidden="true"
-                >
-                  <div
-                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
-                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(-3px,3px) rotate(-9deg)' }}
-                  />
-                  <div
-                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
-                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(4px,1px) rotate(5deg)' }}
-                  />
-                  <div
-                    className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
-                    style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'rotate(-2deg)' }}
-                  >
-                    <span className="text-[9px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
-                    <div className="w-[24px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
-                    <span
-                      className="text-[8.5px] leading-tight text-v2-text-secondary text-center break-words"
-                      style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                    >
-                      {ankiSample?.text ?? '当季题卡'}
-                    </span>
-                  </div>
+                {/* 标题行（Link 外：HeroHelpTip 是可点气泡，嵌 Link 内是交互嵌套） */}
+                <div className="flex items-center gap-2 relative z-[1]">
+                  <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
+                  <Tag label="当季·新" variant="green" />
+                  <HeroHelpTip text={HERO_HELP_TEXT} />
                 </div>
 
-                {/* 右侧文字（标题 + 计数 + 说明文案，说明文案紧跟计数行在 Hero 卡内）；问号气泡讲不同模式下如何结对 */}
-                <div className="flex-1 min-w-0 relative z-[1]">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-[17px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
-                    <Tag label="当季·新" variant="green" />
-                    <HeroHelpTip text={HERO_HELP_TEXT} />
-                  </div>
-                  {/* 计数：真实当季张数；0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
-                  <p className="text-[12px] text-v2-text-muted mt-[5px]">
-                    {ankiLoading
-                      ? '加载中…'
-                      : ankiHasCards
-                        ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
-                        : HERO_EMPTY_FALLBACK}
-                  </p>
-                  {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
-                  {/* 移动端用短版（右列窄、全文挤）：意思同桌面全文、字数精简 */}
-                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2.5">{HERO_TITLE_DESC_MOBILE}</p>
-                  <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC_MOBILE}</p>
-
+                {/* 主体命中区：叠卡 + 计数行 + 两句说明，一枚大 Link */}
+                <Link
+                  href="/anki/review"
+                  aria-label={ankiLoading
+                    ? '题库速览，加载中'
+                    : ankiHasCards
+                      ? isAnon
+                        ? `题库速览，当季 ${ankiSeasonCount} 张，开始刷题卡`
+                        : `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
+                      : '题库速览，随时开始刷当季题卡'}
+                  className="flex items-center gap-[18px] mt-2 relative z-[1] active:scale-[0.99] transition-transform"
+                >
+                  {/* 题卡叠卡（放大 84×104，上下浮动）；正面显 Part N + 题面首行 */}
                   <div
-                    className="inline-flex items-center gap-[3px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
+                    className="relative w-[84px] h-[104px] flex-shrink-0"
+                    style={{ animation: 'lib-deck-float 4s ease-in-out infinite' }}
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
+                      style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(-3px,3px) rotate(-9deg)' }}
+                    />
+                    <div
+                      className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-muted"
+                      style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'translate(4px,1px) rotate(5deg)' }}
+                    />
+                    <div
+                      className="absolute w-[68px] h-[90px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
+                      style={{ boxShadow: SOFT_SM, top: 7, left: 8, transform: 'rotate(-2deg)' }}
+                    >
+                      <span className="text-[9px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                      <div className="w-[24px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
+                      <span
+                        className="text-[8.5px] leading-tight text-v2-text-secondary text-center break-words"
+                        style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                      >
+                        {ankiSample?.text ?? '当季题卡'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 右侧文字（计数 + 说明文案）；标题行已移出到 Link 外 */}
+                  <div className="flex-1 min-w-0">
+                    {/* 计数：真实当季张数；匿名不显「待复习」段（due 队列只含已答卡，匿名恒空）；
+                        0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
+                    <p className="text-[12px] text-v2-text-muted">
+                      {ankiLoading
+                        ? '加载中…'
+                        : ankiHasCards
+                          ? isAnon
+                            ? <>当季 {ankiSeasonCount} 张</>
+                            : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
+                          : HERO_EMPTY_FALLBACK}
+                    </p>
+                    {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
+                    {/* 移动端用短版（右列窄、全文挤）：意思同桌面全文、字数精简 */}
+                    <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2.5">{HERO_TITLE_DESC_MOBILE}</p>
+                    <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC_MOBILE}</p>
+                  </div>
+                </Link>
+
+                {/* CTA 行：两枚真实 Link 胶囊（命中区 ≥44px；375px 下挤不下时允许「今日复习」换行左对齐） */}
+                <div className="flex flex-wrap items-center gap-x-2 mt-2 relative z-[1]">
+                  <Link
+                    href="/anki/review"
+                    className="inline-flex items-center gap-[3px] min-h-[44px] text-[13px] font-semibold rounded-full px-4 py-2 active:scale-[0.97] transition-transform"
                     style={GRADIENT_BORDER_STYLE}
                   >
                     <span className="text-v2-text-secondary">开始刷题卡</span>
                     <span className="text-brand-primary-dark">›</span>
-                  </div>
+                  </Link>
+                  {showDuePill && (
+                    <Link
+                      href="/anki/review?mode=due"
+                      aria-label={`今日复习，${ankiDueCount} 张到期题卡`}
+                      className="inline-flex items-center gap-[3px] min-h-[44px] text-[13px] font-semibold rounded-full px-4 py-2 active:scale-[0.97] transition-transform"
+                      style={GRADIENT_BORDER_STYLE}
+                    >
+                      <span className="text-v2-text-secondary">今日复习 <span className="text-brand-primary-dark font-bold">{ankiDueCount}</span></span>
+                      <span className="text-brand-primary-dark">›</span>
+                    </Link>
+                  )}
                 </div>
               </div>
-            </Link>
+            </div>
 
             {/* 3) 复习闪卡 Hero */}
             <Link href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>

@@ -9,12 +9,16 @@
  *     （与素材库 Hero 计数「当季 N 张」一致、所见即所得），Part 1 取 part===1，Part 2 取 part===2 或 3（part3 子卡
  *     跟随父 part2 一并展示、成组顺序不打散）。翻卡/评级只作用在 visibleQueue 上；切 Tab 把卡索引重置到该段第一张。
  *     scope（全部|已回答）仍固定默认（全部），待下批筛选接入后由查询参数驱动。
+ *   今日复习（?mode=due，素材库 Hero「今日复习」胶囊深链）：只拉两 part 的 answered 卡，进入时快照 now，
+ *     取「已答 + 到期（dueAt<=now）」的主卡（part≠3，与 Hero 待复习计数口径一致——library/page.tsx 只数主卡）
+ *     按 dueAt 升序成队；不渲染分段 Tab（activePart 恒 'all'）。空队/完成态各自指路回全部题卡（router.replace
+ *     防回退落空态）；评级/重练/401/错误分支全部复用现状。
  * @author   LingoBridge
  * @created  2026-07-24
  */
 'use client'
-import { type JSX, useState, useEffect, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { type JSX, Suspense, useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
@@ -38,8 +42,23 @@ const PART_TABS: readonly { id: PartTab; label: string }[] = [
   { id: 2, label: 'Part 2' },
 ]
 
+/**
+ * 页面壳：App Router 要求 useSearchParams 在 Suspense 边界内（否则 next build 报错），
+ * 实际内容抽为 AnkiReviewContent，此处仅包一层 Suspense。
+ * @returns 复习页（Suspense 边界内渲染实际内容）
+ */
 export default function AnkiReviewPage(): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <AnkiReviewContent />
+    </Suspense>
+  )
+}
+
+function AnkiReviewContent(): JSX.Element {
   const router = useRouter()
+  // 今日复习模式（?mode=due）：只复习到期的已答主卡（见模块头）；派生成布尔再进 effect 依赖，避免 params 对象每次导航换引用
+  const dueMode = useSearchParams().get('mode') === 'due'
   // 空点态指路跳 /question-bank 走 navigate 亮进度条；关闭复习走 router.back()（回退，非前进加载页）
   const { navigate } = useNav()
   const [queue, setQueue] = useState<AnkiCard[]>([])
@@ -65,22 +84,42 @@ export default function AnkiReviewPage(): JSX.Element {
     setLoading(true)
     setError(null)
     setAuthRequired(false)
+    // mode 切换（due ↔ 全部走 router.replace，组件不卸载）时重拉牌堆，卡索引一并归零
+    setCurrent(0)
     void (async () => {
       try {
         // 先确保有会话（无则匿名登录）：GET 已匿名放行，匿名 token 存在才能拿到当季全库默认卡；
         // 深链直达本页的首访者否则无 Authorization 头 → 401 误入注册引导态。
         await ensureSession()
-        // part1 + part2 两副牌并行拉，按 RPC 返回顺序 concat（part1 在前、part2 在后）；
-        // part3 子卡已随其 part2 父卡在 p2 内成组排好，不在前端重排、直接沿用顺序，保成组。
-        const [p1, p2] = await Promise.all([
-          fetchAnkiCards(1, DEFAULT_SCOPE),
-          fetchAnkiCards(2, DEFAULT_SCOPE),
-        ])
-        if (cancelled) return
-        const cards = [...p1, ...p2]
-        setQueue(cards)
-        // fetchAnkiCards(1) 只回 part1；fetchAnkiCards(2) 回 part2 + 其 part3 子卡（已成组）；「全部」= 整副牌
-        setTotals({ all: cards.length, 1: p1.length, 2: p2.length })
+        if (dueMode) {
+          // 今日复习：只拉已答卡，取到期主卡。排除 part3 = 与 Hero「待复习」计数口径一致（library/page.tsx
+          // 只数主卡，part3 子卡不单独计到期）。匿名深链 answered 恒空 → 自然落入场空态，不专门拦截。
+          const [p1, p2] = await Promise.all([
+            fetchAnkiCards(1, 'answered'),
+            fetchAnkiCards(2, 'answered'),
+          ])
+          if (cancelled) return
+          // 快照语义：本轮队列以进入时为准，不动态插入中途新到期的卡
+          const now = Date.now()
+          const due = [...p1, ...p2]
+            .filter((c) => c.part !== 3 && c.isAnswered && new Date(c.dueAt).getTime() <= now)
+            .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
+          setQueue(due)
+          // due 模式不渲染分段 Tab（activePart 恒 'all'），1/2 段计数用不到、置 0；all = 进入时快照数（完成语用）
+          setTotals({ all: due.length, 1: 0, 2: 0 })
+        } else {
+          // part1 + part2 两副牌并行拉，按 RPC 返回顺序 concat（part1 在前、part2 在后）；
+          // part3 子卡已随其 part2 父卡在 p2 内成组排好，不在前端重排、直接沿用顺序，保成组。
+          const [p1, p2] = await Promise.all([
+            fetchAnkiCards(1, DEFAULT_SCOPE),
+            fetchAnkiCards(2, DEFAULT_SCOPE),
+          ])
+          if (cancelled) return
+          const cards = [...p1, ...p2]
+          setQueue(cards)
+          // fetchAnkiCards(1) 只回 part1；fetchAnkiCards(2) 回 part2 + 其 part3 子卡（已成组）；「全部」= 整副牌
+          setTotals({ all: cards.length, 1: p1.length, 2: p2.length })
+        }
       } catch (e) {
         if (cancelled) return
         // 按 status 分流：401 → 注册引导态；其余（500 / 网络，status=0）→ 加载失败 + 重试。
@@ -91,7 +130,7 @@ export default function AnkiReviewPage(): JSX.Element {
       }
     })()
     return () => { cancelled = true }
-  }, [reloadKey])
+  }, [reloadKey, dueMode])
 
   // 当前 Tab 可见牌堆：从完整 queue 按 part 派生（Part 1 → part===1；Part 2 → part===2 或 3，part3 跟随父 part2
   // 成组，filter 不改相对顺序故成组不被打散）。翻卡/评级/进度全作用在 visibleQueue 上。
@@ -187,27 +226,40 @@ export default function AnkiReviewPage(): JSX.Element {
           </div>
         ) : queue.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <EmptyState title="当季没有题卡" subtitle="去题库把想练的题「存对子」，就会出现在这里" ctaLabel="返回" onCta={close} />
+            {dueMode ? (
+              // due 入场空态：CTA 用 replace 跳全部题卡（防「返回」又落回空态）。普通空列表不传 alert。
+              <EmptyState
+                title="今天没有要复习的题卡"
+                subtitle="刷过的题卡到期后会出现在这里，先去题库速览混个眼熟吧"
+                ctaLabel="去刷题卡"
+                onCta={() => router.replace('/anki/review')}
+              />
+            ) : (
+              <EmptyState title="当季没有题卡" subtitle="去题库把想练的题「存对子」，就会出现在这里" ctaLabel="返回" onCta={close} />
+            )}
           </div>
         ) : (
           <>
             {/* 分段 Tab（全部 / Part 1 / Part 2）：复用 LibraryDesktop 四类 Tab 的分段范式（bg-bg-muted 外层 + 选中
-                bg-white font-semibold shadow / 未选 text-v2-text-muted），居中、不挤占卡片。默认「全部」与 Hero 计数一致。 */}
-            <div className="flex justify-center pb-5">
-              <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit">
-                {PART_TABS.map((t) => (
-                  <button
-                    key={String(t.id)}
-                    type="button"
-                    onClick={() => switchPart(t.id)}
-                    aria-pressed={activePart === t.id}
-                    className={`text-[13px] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${activePart === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+                bg-white font-semibold shadow / 未选 text-v2-text-muted），居中、不挤占卡片。默认「全部」与 Hero 计数一致。
+                due 模式不渲染 Tab（队列已是「到期」单一口径，activePart 恒 'all'）。 */}
+            {!dueMode && (
+              <div className="flex justify-center pb-5">
+                <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit">
+                  {PART_TABS.map((t) => (
+                    <button
+                      key={String(t.id)}
+                      type="button"
+                      onClick={() => switchPart(t.id)}
+                      aria-pressed={activePart === t.id}
+                      className={`text-[13px] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${activePart === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {visibleQueue.length === 0 ? (
               <div className="flex-1 flex items-center justify-center">
@@ -215,7 +267,17 @@ export default function AnkiReviewPage(): JSX.Element {
               </div>
             ) : done ? (
               <div className="flex-1 flex items-center justify-center">
-                <EmptyState title="复习完成 🎉" subtitle={`这轮过了 ${totals[activePart]} 张卡片`} ctaLabel="完成" onCta={close} />
+                {dueMode ? (
+                  // 完成语按进入时快照数（totals.all），不含「没记住」追加到队尾的重练卡
+                  <EmptyState
+                    title="今日复习完成 🎉"
+                    subtitle={`这轮过了 ${totals.all} 张，到期的卡明天会再来找你`}
+                    ctaLabel="去刷全部题卡"
+                    onCta={() => router.replace('/anki/review')}
+                  />
+                ) : (
+                  <EmptyState title="复习完成 🎉" subtitle={`这轮过了 ${totals[activePart]} 张卡片`} ctaLabel="完成" onCta={close} />
+                )}
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center">

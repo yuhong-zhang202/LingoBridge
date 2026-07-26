@@ -68,6 +68,9 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
       .then(acct => setIsAnon(!!acct?.isAnonymous))
       .catch(() => setIsAnon(false))
   }, [])
+  // 「今日复习」胶囊（→ /anki/review?mode=due）：仅注册且确有到期卡才显；加载中 / 0 张 / 匿名一律藏
+  // （匿名连计数行「待复习」段也不显——due 队列只含已答卡，匿名恒空，入口只会通向空态）。与移动端同口径。
+  const showDuePill = !ankiLoading && !isAnon && ankiDueCount > 0
   // 当前 tab 的多选工具栏 Portal 落点：与 tab 栏同一行右对齐（工具栏状态仍归各 tab 组件所有）
   const toolbarSlotRef = useRef<HTMLDivElement | null>(null)
   // 当前活跃 tab 是否处于选择模式（由各 tab 组件通知）：用于禁用同排搜索图标
@@ -136,70 +139,100 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
           <LoginPrompt variant="slim" className="mb-4" />
         )}
 
-        {/* 题卡复习入口（hub 区第一张卡）—— 桌面照移动端「题卡 Hero」范式放大：全宽横向三段式（叠卡 / 文案预览 / CTA）。
-            叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。有卡→/anki/review，空态→/question-bank。 */}
-        <Link
-          href="/anki/review"
-          aria-label={ankiLoading
-            ? '题库速览，加载中'
-            : ankiHasCards
-              ? `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
-              : '题库速览，随时开始刷当季题卡'}
-          className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
-        >
-          <Card variant="gradient" className="px-[26px] py-[22px] flex items-center gap-7 active:scale-[0.99] transition-transform mb-4">
-            {/* 左段·叠卡视觉（两张背卡错位旋转 + 一张正面卡显 Part N + 分隔线 + 题面 3 行截断） */}
-            <div className="relative w-[96px] h-[120px] flex-shrink-0" aria-hidden="true">
-              <div
-                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
-                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(-3px,3px) rotate(-9deg)' }}
-              />
-              <div
-                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
-                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(4px,1px) rotate(5deg)' }}
-              />
-              <div
-                className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
-                style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'rotate(-2deg)' }}
-              >
-                <span className="text-[10px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
-                <div className="w-[26px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
-                <span
-                  className="text-[10px] leading-tight text-v2-text-secondary text-center break-words"
-                  style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+        {/* 题卡复习入口（hub 区第一张卡）—— 与移动端「题卡 Hero」同范式镜像。交互结构（修嵌套交互）：
+            卡片本体不再整卡包 Link——标题行（含可点问号气泡 HeroHelpTip）在 Link 外；主体命中区（叠卡 + 计数 +
+            说明）是一枚大 Link；右侧 CTA 列两枚真实 Link 胶囊上下堆叠（开始刷题卡 → /anki/review；今日复习 →
+            /anki/review?mode=due，仅注册且有到期卡时显示）。叠卡桌面静态、不迁移动端浮动动效（密面板风更克制）。
+            href 恒指 /anki/review（review 页对 0 题自有空态）。 */}
+        <Card variant="gradient" className="px-[26px] py-[22px] mb-4">
+          {/* 标题行（Link 外：HeroHelpTip 是可点气泡，嵌 Link 内是交互嵌套） */}
+          <div className="flex items-center gap-2">
+            <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
+            <Tag label="当季·新" variant="green" />
+            <HeroHelpTip text={HERO_HELP_TEXT} />
+          </div>
+
+          <div className="flex items-center gap-7 mt-2">
+            {/* 主体命中区：叠卡 + 计数行 + 两句说明，一枚大 Link */}
+            <Link
+              href="/anki/review"
+              aria-label={ankiLoading
+                ? '题库速览，加载中'
+                : ankiHasCards
+                  ? isAnon
+                    ? `题库速览，当季 ${ankiSeasonCount} 张，开始刷题卡`
+                    : `题库速览，当季 ${ankiSeasonCount} 张，待复习 ${ankiDueCount} 张，开始刷题卡`
+                  : '题库速览，随时开始刷当季题卡'}
+              className="flex flex-1 min-w-0 items-center gap-7 active:scale-[0.99] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
+            >
+              {/* 左段·叠卡视觉（两张背卡错位旋转 + 一张正面卡显 Part N + 分隔线 + 题面 3 行截断） */}
+              <div className="relative w-[96px] h-[120px] flex-shrink-0" aria-hidden="true">
+                <div
+                  className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
+                  style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(-3px,3px) rotate(-9deg)' }}
+                />
+                <div
+                  className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-muted"
+                  style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'translate(4px,1px) rotate(5deg)' }}
+                />
+                <div
+                  className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
+                  style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'rotate(-2deg)' }}
                 >
-                  {ankiSample?.text ?? '当季题卡'}
-                </span>
+                  <span className="text-[10px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                  <div className="w-[26px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
+                  <span
+                    className="text-[10px] leading-tight text-v2-text-secondary text-center break-words"
+                    style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                  >
+                    {ankiSample?.text ?? '当季题卡'}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* 中段·文案（标题 + 计数 + 说明文案，说明文案紧跟计数行在 Hero 卡内）；问号气泡讲不同模式下如何结对 */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
-                <Tag label="当季·新" variant="green" />
-                <HeroHelpTip text={HERO_HELP_TEXT} />
+              {/* 中段·文案（计数 + 说明文案）；标题行已移出到 Link 外 */}
+              <div className="flex-1 min-w-0">
+                {/* 计数：真实当季张数；匿名不显「待复习」段（due 队列只含已答卡，匿名恒空）；
+                    0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
+                <p className="text-[12px] text-v2-text-muted">
+                  {ankiLoading
+                    ? '加载中…'
+                    : ankiHasCards
+                      ? isAnon
+                        ? <>当季 {ankiSeasonCount} 张</>
+                        : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
+                      : HERO_EMPTY_FALLBACK}
+                </p>
+                {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
+                <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
+                <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
               </div>
-              {/* 计数：真实当季张数；0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
-              <p className="text-[12px] text-v2-text-muted mt-1.5">
-                {ankiLoading
-                  ? '加载中…'
-                  : ankiHasCards
-                    ? <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
-                    : HERO_EMPTY_FALLBACK}
-              </p>
-              {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
-            </div>
+            </Link>
 
-            {/* 右段·CTA */}
-            <span className="inline-flex items-center gap-[3px] rounded-full px-6 py-3 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
-              <span className="text-v2-text-secondary">开始刷题卡</span>
-              <span className="text-brand-primary-dark">›</span>
-            </span>
-          </Card>
-        </Link>
+            {/* 右段·CTA 列：两枚真实 Link 胶囊上下堆叠（命中区 ≥44px） */}
+            <div className="flex flex-col items-stretch gap-2.5 flex-shrink-0">
+              <Link
+                href="/anki/review"
+                className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
+                style={GRADIENT_BORDER_STYLE}
+              >
+                <span className="text-v2-text-secondary">开始刷题卡</span>
+                <span className="text-brand-primary-dark">›</span>
+              </Link>
+              {showDuePill && (
+                <Link
+                  href="/anki/review?mode=due"
+                  aria-label={`今日复习，${ankiDueCount} 张到期题卡`}
+                  className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
+                  style={GRADIENT_BORDER_STYLE}
+                >
+                  <span className="text-v2-text-secondary">今日复习 <span className="text-brand-primary-dark font-bold">{ankiDueCount}</span></span>
+                  <span className="text-brand-primary-dark">›</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </Card>
 
         {/* 今日复习 hero —— 复用 /review 入口 */}
         <Link href="/review" className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2">
