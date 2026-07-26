@@ -36,7 +36,7 @@ export default function PracticeDesktop({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
-  onRetryTranscribe, onUseTextInput, onSubmitText, onCancelText,
+  onRetryTranscribe, onSubmitText, onCancelText,
 }: PracticeViewProps): JSX.Element {
 
   // 键盘：Space 空闲=开始录音 / 录音=发送；Esc 录音时取消。弹窗打开或焦点在输入框时不响应，避免误触

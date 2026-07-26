@@ -31,7 +31,7 @@ export default function PracticeMobile({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
-  onRetryTranscribe, onUseTextInput, onSubmitText, onCancelText,
+  onRetryTranscribe, onSubmitText, onCancelText,
 }: PracticeViewProps): JSX.Element {
   // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
   const { account } = useAccount()
