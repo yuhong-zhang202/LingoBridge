@@ -70,6 +70,9 @@ function PracticeContent(): JSX.Element {
   //    ?simTranscribe=fail → 强制走「失败双选(重试转写/文字输入)」；=busy → 强制走「排队自动重试(顶部进度条)」。
   //    需显式带 URL 参数，普通用户不受影响；正式清理时可整段删除。
   const simTranscribe = params.get('simTranscribe')
+  // ⚠️ 测试钩子：?previewIntro=1 → 强制弹「功能引导卡」（绕过 localStorage 已读标记，供真机验文案，
+  //    不写标记、关掉可反复调）。需显式带参，普通用户不受影响；正式清理时可整段删除。
+  const previewIntro = params.get('previewIntro') === '1'
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -377,8 +380,9 @@ function PracticeContent(): JSX.Element {
   useEffect(() => {
     if (phase !== 'idle' || introCheckedRef.current) return
     introCheckedRef.current = true
-    if (!hasSeenPracticeIntro()) setShowIntro(true)
-  }, [phase])
+    // ⚠️ 测试钩子 previewIntro：绕过已读标记强制弹，供真机验文案（关掉即 markPracticeIntroSeen，但不影响再次带参）
+    if (previewIntro || !hasSeenPracticeIntro()) setShowIntro(true)
+  }, [phase, previewIntro])
 
   const onStartRecord = useCallback(() => {
     if (phase !== 'idle') return
