@@ -65,10 +65,11 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
       <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'}`}>
         {text}
       </p>
+      {/* 命中区扩到 40×40（右下对齐 + p-2.5 使图标可视位置仍等效 right-2.5 bottom-2.5） */}
       <button
         onClick={() => speak(text)}
         aria-label="播放"
-        className="absolute right-2.5 bottom-2.5 active:opacity-50 transition-opacity"
+        className="absolute right-0 bottom-0 min-w-[40px] min-h-[40px] flex items-end justify-end p-2.5 active:opacity-50 transition-opacity"
       >
         <Volume2 size={13} className="text-v2-text-muted" />
       </button>
@@ -99,12 +100,13 @@ export default function CollectedCard({
   }, [selecting])
 
   // 整卡：一层渐变描边（_OPAQUE 垫白底挡红）+ 圆角 16 + overflow-hidden，一次裹住卡内容 + 拼句行。
+  // 统一定高（移动 340 / 桌面 300，值只落在这一处 class）：长句卡不再撑破网格，超出部分卡内滚动。
   // 选中态：换成主题色实线描边（并显式补 bg-white，否则去掉渐变内联样式后内壁会透出页面底色）。
   const body = (
     <div
       ref={bodyRef}
       className={
-        `relative rounded-[16px] overflow-hidden ` +
+        `relative rounded-[16px] overflow-hidden flex flex-col h-[340px] lg:h-[300px] ` +
         (selected ? 'bg-white border-2 border-brand-primary' : '')
       }
       style={selected ? undefined : GRADIENT_BORDER_STYLE_FULL_OPAQUE}
@@ -121,28 +123,32 @@ export default function CollectedCard({
           {selected && <Check size={14} strokeWidth={3} className="text-white" />}
         </div>
       )}
-      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距） */}
-      <div className="px-[16px] pt-[14px] pb-[18px]">
-        <div className="mb-1.5">
-          <InfoTag text="原句" letterSpacing={2} />
-        </div>
-        <SentenceBlock text={card.originalSentence} variant="original" />
-        <div className="mt-5 mb-1.5">
-          <InfoTag text="优化" letterSpacing={5} />
-        </div>
-        <SentenceBlock text={card.aiOptimized} variant="ai" />
-        {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
-        {!canPlay && (
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
-            <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+      {/* 卡内容主体（复刻 feedback 非 plain 版式与间距）：定高下占满余高、超出卡内滚动，
+          底部叠一条白色渐隐提示「下面还有内容」（不拦截点击） */}
+      <div className="relative flex-1 min-h-0">
+        <div className="h-full overflow-y-auto overscroll-contain px-[16px] pt-[14px] pb-[18px]">
+          <div className="mb-1.5">
+            <InfoTag text="原句" letterSpacing={2} />
           </div>
-        )}
+          <SentenceBlock text={card.originalSentence} variant="original" />
+          <div className="mt-5 mb-1.5">
+            <InfoTag text="优化" letterSpacing={5} />
+          </div>
+          <SentenceBlock text={card.aiOptimized} variant="ai" />
+          {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
+          {!canPlay && (
+            <div className="flex items-center justify-between mt-3">
+              <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
+              <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+            </div>
+          )}
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white to-transparent" />
       </div>
 
       {/* 拼句练习入口行：中性虚线分隔 + 左日期右 Chip；与卡内容同在一条描边内 */}
       {canPlay && (
-        <div className="px-[16px] pt-[11px] pb-[14px] bg-white border-t border-dashed border-black/[0.08] flex items-center justify-between">
+        <div className="shrink-0 px-[16px] pt-[11px] pb-[14px] bg-white border-t border-dashed border-black/[0.08] flex items-center justify-between">
           <span className="text-[11px] text-v2-text-muted">{card.collectedAt}</span>
           <Link href={`/library/collected/${card.id}/practice`}>
             <Chip variant="gradient" size="sm" className="text-[12px] px-[14px] py-[7px] gap-1.5">

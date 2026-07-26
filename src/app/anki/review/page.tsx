@@ -9,7 +9,7 @@
  *     ?mode=due（深链/刷新保持），切换重置卡索引并按新口径重建队列；二级「全部 / Part 1 / Part 2」两种模式下
  *     都显示，与一级组合生效（due 快照队列同样按 activePart 过滤）。「今日复习」标签带到期数 N（快照口径见下）；
  *     匿名无 SRS、到期恒空 → 隐藏一级切换（恒全部题库），匿名深链 ?mode=due 仍自然落空态（现状兜底保留）。
- *   二级分段 Tab（全部 / Part 1 / Part 2，默认「全部」）：从当前队列按 card.part 派生 visibleQueue —— 「全部」=
+ *   二级 Part 筛选 Chip（全部 / Part 1 / Part 2，默认「全部」，与题库页同款胶囊）：从当前队列按 card.part 派生 visibleQueue —— 「全部」=
  *     整副牌（与素材库 Hero 计数「当季 N 张」一致、所见即所得），Part 1 取 part===1，Part 2 取 part===2 或 3
  *     （part3 子卡跟随父 part2 一并展示、成组顺序不打散）。翻卡/评级只作用在 visibleQueue 上；切 Tab 把卡索引
  *     重置到该段第一张。
@@ -25,6 +25,7 @@ import { type JSX, Suspense, useState, useEffect, useCallback, useMemo } from 'r
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
+import Chip from '@/components/Chip'
 import EmptyState from '@/components/EmptyState'
 import QuestionFlashCard from '@/components/anki/QuestionFlashCard'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
@@ -35,7 +36,7 @@ import { fetchAnkiCards, gradeAnkiCard, patchAnkiPoint, AnkiFetchError } from '@
 import { parseEditOverrides, applyEditOverride, serializeEditOverrides } from '@/lib/anki/answer-points'
 import type { AnkiCard } from '@/lib/anki/list'
 
-// 二级分段 Tab：全部 / Part 1 / Part 2（part3 子卡跟随 part2、不单列）；默认「全部」= 与 Hero 计数一致
+// 二级 Part 筛选 Chip：全部 / Part 1 / Part 2（part3 子卡跟随 part2、不单列）；默认「全部」= 与 Hero 计数一致
 type PartTab = 'all' | 1 | 2
 const PART_TABS: readonly { id: PartTab; label: string }[] = [
   { id: 'all', label: '全部' },
@@ -259,11 +260,12 @@ function AnkiReviewContent(): JSX.Element {
           </div>
         ) : (
           <>
-            {/* 一级分段（全部题库 / 今日复习 N）：mode 页内切换，样式复用二级 Part Tab 的分段范式（bg-bg-muted 外层
-                + 选中 bg-white font-semibold shadow），一级在上、二级在下分主次。匿名隐藏——匿名无 SRS、到期恒空，
-                不给一个只通向空态的入口（匿名深链 ?mode=due 仍自然落下方 due 空态兜底）。 */}
+            {/* 一级分段（全部题库 / 今日复习 N）：mode 页内切换，分段 Tab 范式（bg-bg-muted 外层 + 选中 bg-white
+                font-semibold shadow）；二级 Part 筛选已降级为 Chip 胶囊，一级 Tab / 二级 Chip 视觉分主次。
+                匿名隐藏——匿名无 SRS、到期恒空，不给一个只通向空态的入口（匿名深链 ?mode=due 仍自然落下方
+                due 空态兜底）。 */}
             {!isAnonymous && (
-              <div className="flex justify-center pb-3">
+              <div className="flex justify-center pb-2.5">
                 <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit">
                   {MODE_TABS.map((t) => (
                     <button
@@ -298,22 +300,23 @@ function AnkiReviewContent(): JSX.Element {
               </div>
             ) : (
               <>
-                {/* 二级分段 Tab（全部 / Part 1 / Part 2）：复用 LibraryDesktop 四类 Tab 的分段范式，居中、不挤占卡片。
+                {/* 二级筛选（全部 / Part 1 / Part 2）：Chip 胶囊，与题库页 Part 筛选同款（QuestionListTabMobile
+                    ghost + active，md 默认尺寸、不覆盖字号/内边距）——视觉降一级与一级分段 Tab 分主次。
+                    after: 伪元素把命中区纵向扩到约 44px（Chip 本体约 26px 高），可视尺寸不变。
                     默认「全部」与 Hero 计数一致。两种模式下都显示，与一级组合生效（due 快照队列同样按 part 过滤）。 */}
-                <div className="flex justify-center pb-5">
-                  <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px] w-fit">
-                    {PART_TABS.map((t) => (
-                      <button
-                        key={String(t.id)}
-                        type="button"
-                        onClick={() => switchPart(t.id)}
-                        aria-pressed={activePart === t.id}
-                        className={`text-[13px] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${activePart === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex justify-center gap-2 pb-5" role="group" aria-label="按 Part 筛选">
+                  {PART_TABS.map((t) => (
+                    <Chip
+                      key={String(t.id)}
+                      variant="ghost"
+                      active={activePart === t.id}
+                      ariaPressed={activePart === t.id}
+                      onClick={() => switchPart(t.id)}
+                      className="relative after:absolute after:-inset-y-[9px] after:-inset-x-[2px] after:content-['']"
+                    >
+                      {t.label}
+                    </Chip>
+                  ))}
                 </div>
 
                 {visibleQueue.length === 0 ? (

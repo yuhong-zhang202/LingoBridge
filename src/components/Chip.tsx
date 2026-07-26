@@ -17,6 +17,8 @@ interface ChipProps {
   variant?: 'gradient' | 'ghost' | 'default'
   size?: 'sm' | 'md'
   className?: string
+  /** 透传给 button 的 aria-pressed（筛选/切换场景标注按压态）；不传 = undefined 不渲染该属性 */
+  ariaPressed?: boolean
 }
 
 const SIZES = {
@@ -33,8 +35,9 @@ const BASE = 'rounded-full inline-flex items-center gap-1 transition-all duratio
  * @param variant   样式变体，默认 gradient
  * @param size      尺寸，默认 md（sm 用于紧凑动作 chip）
  * @param className 额外 class
+ * @param ariaPressed 透传 aria-pressed（不传则不渲染该属性，对现有调用零影响）
  */
-export default function Chip({ children, onClick, active, variant = 'gradient', size = 'md', className }: ChipProps) {
+export default function Chip({ children, onClick, active, variant = 'gradient', size = 'md', className, ariaPressed }: ChipProps) {
   const useGradient = variant === 'gradient' || (variant === 'ghost' && active)
 
   if (useGradient) {
@@ -42,6 +45,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
       <button
         type="button"
         onClick={onClick}
+        aria-pressed={ariaPressed}
         className={cn(BASE, SIZES[size], 'bg-white text-v2-text-secondary font-semibold', className)}
         style={GRADIENT_BORDER_STYLE}
       >
@@ -58,6 +62,7 @@ export default function Chip({ children, onClick, active, variant = 'gradient', 
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={ariaPressed}
       className={cn(BASE, SIZES[size], variantClass, className)}
     >
       {children}
