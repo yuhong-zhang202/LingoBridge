@@ -141,8 +141,11 @@ export async function coachReply(
     ...messages.map((m) => ({ role: m.role, content: m.content })),
   ]
 
+  // 教练回复兜底超时：90s（原 30s 曾把偶发慢回复直接切断）。实测 p95≈5s、189 次仅 1 次触 30s，
+  // 90s 只作极端卡死的保命闸、正常永不触发，避免"想得慢一点就被掐断、用户白等还失败"。
+  // Zeabur 容器无 serverless 函数时限，客户端 apiFetch 亦无更短超时，故此值即实际上限。
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  const timeout = setTimeout(() => controller.abort(), 90_000)
 
   try {
     const res = await fetch(`${env.dashscopeBaseUrl}/chat/completions`, {
