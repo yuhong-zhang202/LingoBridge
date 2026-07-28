@@ -1,6 +1,6 @@
 /**
  * @module   practice
- * @desc     练习对话服务 — 千问 qwen-plus 扮演教练 Lior，结合语料、紧扣侧重点引导，前半打磨主体后半自然融入 Part 3
+ * @desc     练习对话服务 — 千问 qwen-plus 扮演教练 Lior，结合语料、紧扣侧重点引导，前半打磨主体，后半按题库真实 Part 3 追问（无真实 Part 3 则不硬造、只把主答收尾）
  * @author   LingoBridge
  * @created  2026-06-03
  */
@@ -50,7 +50,7 @@ export async function buildScaffold(
   }
 }
 
-/** 教练 Lior 的系统提示（英文；结合语料、紧扣侧重点、前半打磨主体后半融入 Part 3） */
+/** 教练 Lior 的系统提示（英文；结合语料、紧扣侧重点、前半打磨主体，后半按题库真实 Part 3 追问，无真实 Part 3 则不硬造、只收尾主答） */
 function buildSystemPrompt(s: PracticeScaffold): string {
   const beats = s.focusPoints.map((f) => `- ${f}`).join('\n')
   const angles = s.part3Questions.length

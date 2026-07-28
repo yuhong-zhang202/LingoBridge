@@ -212,7 +212,7 @@ async function authUser(req: Request): Promise<{ id: string; email: string | nul
  * @param req  进入的请求（读 Authorization 头）
  * @returns    { userId } 当前登录用户 id
  * @throws     ApiAuthError(401) —— 缺 token 或 token 无效
- * @sideEffect 调 admin.auth.getUser(token) 校验 token（service_role client）
+ * @sideEffect 本地验签 access token（verifyAccessToken，ES256+JWKS），再用 service_role 查权威身份（getUserById）/ 吊销名单 / 内测白名单
  */
 export async function requireUser(req: Request): Promise<{ userId: string }> {
   const user = await authUser(req)
@@ -225,7 +225,7 @@ export async function requireUser(req: Request): Promise<{ userId: string }> {
  * @param req  进入的请求（读 Authorization 头）
  * @returns    { userId, isAnonymous } 当前用户 id 与是否匿名会话
  * @throws     ApiAuthError(401) —— 缺 token 或 token 无效
- * @sideEffect 调 admin.auth.getUser(token) 校验 token 并读 is_anonymous（service_role client）
+ * @sideEffect 本地验签 access token（verifyAccessToken），再用 service_role 查权威身份（getUserById 读 is_anonymous）/ 吊销名单 / 白名单
  */
 export async function requireUserAllowAnon(req: Request): Promise<{ userId: string; isAnonymous: boolean }> {
   const user = await authUser(req)
@@ -272,7 +272,7 @@ export async function assertCorpusOwner(userId: string, corpusId: string): Promi
  * @param req  进入的请求
  * @returns    { userId, email } 管理员账号信息
  * @throws     ApiAuthError(401) token 无效 / ApiAuthError(403) 非白名单邮箱
- * @sideEffect 调 admin.auth.getUser(token) 校验 token（service_role client）
+ * @sideEffect 本地验签 access token（verifyAccessToken），再用 service_role 查权威身份（getUserById 读 email）/ 吊销名单 / 内测白名单
  */
 export async function requireAdmin(req: Request): Promise<{ userId: string; email: string }> {
   const user = await authUser(req)

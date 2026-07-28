@@ -66,17 +66,6 @@ function PracticeContent(): JSX.Element {
   const storyId = params.get('storyId') ?? ''
   const level = params.get('level') ?? '6.0'
   const isReview = params.get('review') === '1'
-  // ⚠️ 测试钩子：模拟转写异常，供真机验"失败备选方案"（你这边转写不失败、无法自然触发）。
-  //    ?simTranscribe=fail → 强制走「失败双选(重试转写/文字输入)」；=busy → 强制走「排队自动重试(顶部进度条)」。
-  //    需显式带 URL 参数，普通用户不受影响；正式清理时可整段删除。
-  const simTranscribe = params.get('simTranscribe')
-  // ⚠️ 测试钩子：?simReplyFail=1 → 强制让「教练回复」失败，走「回复失败(再试一次)」态，供真机验重试文案 +
-  //    「重试不追加第二条用户气泡」（正常网络下回复几乎不失败、无法自然触发）。恒失败：连点再试也一直失败，
-  //    可验 attempt≥2 的措辞切换。需显式带参，普通用户不受影响；正式清理时可整段删除。
-  const simReplyFail = params.get('simReplyFail') === '1'
-  // ⚠️ 测试钩子：?previewIntro=1 → 强制弹「功能引导卡」（绕过 localStorage 已读标记，供真机验文案，
-  //    不写标记、关掉可反复调）。需显式带参，普通用户不受影响；正式清理时可整段删除。
-  const previewIntro = params.get('previewIntro') === '1'
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -198,8 +187,6 @@ function PracticeContent(): JSX.Element {
    *  403/402 照旧先行 return 不进失败态；其余错误 → replyFailed（用当前 messages 可再重发，不追加用户气泡）。
    *  首发（sendReply）与「再试一次」（onRetryReply）共用此下游；catch 不再 setError（避免脏字符串残留）。 */
   const requestReply = useCallback(async (msgs: PracticeMessage[]) => {
-    // ⚠️ 测试钩子：跳过真实请求，直接演示回复失败态（?simReplyFail=1，恒失败，可验 attempt≥2 措辞）
-    if (simReplyFail) { setReplyFailAttempt(n => n + 1); setPhase('replyFailed'); return }
     try {
       const res = await apiFetch('/api/practice', {
         method: 'POST',
@@ -222,7 +209,7 @@ function PracticeContent(): JSX.Element {
       setReplyFailAttempt(n => n + 1)
       setPhase('replyFailed')
     }
-  }, [router, simReplyFail])
+  }, [router])
 
   /** 拿到用户这轮文本后：追加用户气泡 → 走 requestReply 取教练回复。转写成功与文字输入共用。 */
   const sendReply = useCallback((text: string) => {
@@ -260,9 +247,6 @@ function PracticeContent(): JSX.Element {
   const runTranscribeAttempt = useCallback(async () => {
     const blob = pendingBlobRef.current
     if (!blob) { setPhase('idle'); return }   // 兜底：无 blob 不该走到这
-    // ⚠️ 测试钩子：跳过真实请求，直接演示失败双选 / 排队重试（?simTranscribe=fail|busy）
-    if (simTranscribe === 'fail') { setPhase('transcribeFailed'); return }
-    if (simTranscribe === 'busy') { scheduleRetry(0); return }
     try {
       // 每次现构 FormData：body 被消费过不可复用（重试/文字取消后重发都要新构一份）
       const form = new FormData()
@@ -302,7 +286,7 @@ function PracticeContent(): JSX.Element {
       // 网络中断等：留 blob，进失败双选
       setPhase('transcribeFailed')
     }
-  }, [router, scheduleRetry, sendReply, simTranscribe])
+  }, [router, scheduleRetry, sendReply])
   runTranscribeAttemptRef.current = runTranscribeAttempt
 
   /** 一轮起点：停录 → 无 blob 则「没听清」回 idle；否则存 blob、重置重试计数、起首次转写。 */
@@ -332,26 +316,6 @@ function PracticeContent(): JSX.Element {
     setPhase('transcribing')
     void runTranscribeAttempt()
   }, [clearRetryTimer, runTranscribeAttempt])
-
-  /** 失败态「改用文字输入」→ 进 textInput（blob 先留着，取消回失败态还能重试转写）。 */
-  const onUseTextInput = useCallback(() => {
-    clearRetryTimer()
-    setPhase('textInput')
-  }, [clearRetryTimer])
-
-  /** 文字输入「发送」：trim 非空 → 清 blob（这轮改走文字）→ 与转写成功走完全同一下游 sendReply。 */
-  const onSubmitText = useCallback((text: string) => {
-    const trimmed = text.trim()
-    if (!trimmed) return
-    clearRetryTimer()
-    pendingBlobRef.current = null
-    void sendReply(trimmed)
-  }, [clearRetryTimer, sendReply])
-
-  /** 文字输入「返回」→ 回失败双选（blob 仍在，可再选重试转写）。 */
-  const onCancelText = useCallback(() => {
-    setPhase('transcribeFailed')
-  }, [])
 
   const handlePolish = useCallback(async (sentence: string, aiQuestion?: string) => {
     setShowPolish(true)
@@ -406,9 +370,8 @@ function PracticeContent(): JSX.Element {
   useEffect(() => {
     if (phase !== 'idle' || introCheckedRef.current) return
     introCheckedRef.current = true
-    // ⚠️ 测试钩子 previewIntro：绕过已读标记强制弹，供真机验文案（关掉即 markPracticeIntroSeen，但不影响再次带参）
-    if (previewIntro || !hasSeenPracticeIntro()) setShowIntro(true)
-  }, [phase, previewIntro])
+    if (!hasSeenPracticeIntro()) setShowIntro(true)
+  }, [phase])
 
   const onStartRecord = useCallback(() => {
     if (phase !== 'idle') return
@@ -508,9 +471,6 @@ function PracticeContent(): JSX.Element {
     onCancelRecord,
     onSend: () => void handleUserTurn(),
     onRetryTranscribe,
-    onUseTextInput,
-    onSubmitText,
-    onCancelText,
     onRetryReply,
     replyFailAttempt,
     onWordTap,

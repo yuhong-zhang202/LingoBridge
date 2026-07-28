@@ -23,7 +23,6 @@ import PronounceCapturePopup from './_components/PronounceCapturePopup'
 import InlineTopProgress from './_components/InlineTopProgress'
 import TranscribeFailCard from './_components/TranscribeFailCard'
 import ReplyFailCard from './_components/ReplyFailCard'
-import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
 export default function PracticeMobile({
@@ -32,7 +31,7 @@ export default function PracticeMobile({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
-  onRetryTranscribe, onSubmitText, onCancelText,
+  onRetryTranscribe,
   onRetryReply, replyFailAttempt,
 }: PracticeViewProps): JSX.Element {
   // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
@@ -133,8 +132,6 @@ export default function PracticeMobile({
           <TranscribeFailCard onRetry={onRetryTranscribe} />
         ) : phase === 'replyFailed' ? (
           <ReplyFailCard onRetry={onRetryReply} attempt={replyFailAttempt} />
-        ) : phase === 'textInput' ? (
-          <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
         ) : (
         <>
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}

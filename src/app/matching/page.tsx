@@ -29,9 +29,6 @@ function MatchingContent() {
   const { navigate } = useNav()
   const params = useSearchParams()
   const corpusId = params.get('corpusId') ?? ''
-  // ⚠️ 测试钩子：URL 带 ?previewSwapDialog=1 时，用占位数据直接弹换语料弹窗，供真机看 UI
-  // （正常靠存对子 409 触发，产品方无第二条语料触发不了）。需显式带参、普通用户不受影响。日后清理连同此注释一并删。
-  const previewSwapDialog = params.get('previewSwapDialog') === '1'
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,17 +54,7 @@ function MatchingContent() {
   // 切换 Tab 时收起折叠
   useEffect(() => { setExpanded(false) }, [activeTab])
 
-  // ⚠️ 测试钩子：预览模式挂载即用占位「当前语料」弹出换语料弹窗；新语料 summary 由渲染处填占位。
   useEffect(() => {
-    if (!previewSwapDialog) return
-    setSwap({ questionId: '__preview__', current: { id: '__preview_current__', summary: '（示例）去年夏天回老家，陪爷爷在院子里修那台老座钟的下午' } })
-  }, [previewSwapDialog])
-
-  useEffect(() => {
-    // ⚠️ 测试钩子：预览模式只弹换语料弹窗、不取匹配数据 —— 短路掉下方「缺 corpusId 报错态」与「403 回首页」
-    // 两条路径。否则带 ?previewSwapDialog=1（无有效 corpusId，或命中未捕获同意的 403）会在弹窗渲染前先被
-    // 错误态盖住 / 被重定向踢回首页（产品方反馈「带参却跳回首页、开关没触发」的根因）。日后清理连同此注释删。
-    if (previewSwapDialog) { setLoading(false); return }
     if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
     let cancelled = false
     const ac = new AbortController()
@@ -106,7 +93,7 @@ function MatchingContent() {
       }
     })()
     return () => { cancelled = true; ac.abort() }
-  }, [corpusId, retryKey, router, previewSwapDialog])
+  }, [corpusId, retryKey, router])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {
@@ -289,11 +276,10 @@ function MatchingContent() {
       {swap && (
         <SwapCorpusDialog
           currentCorpus={swap.current}
-          // ⚠️ 测试钩子：预览模式给新语料占位概括；正常模式匹配页拿不到概括 → null 走弹窗内中性占位
-          newCorpus={{ id: corpusId, summary: previewSwapDialog ? '（示例）上周末第一次带朋友去爬山，五点起床赶在日出前登顶' : null }}
+          // 匹配页拿不到新语料概括 → null 走弹窗内中性占位
+          newCorpus={{ id: corpusId, summary: null }}
           swapping={swapping}
-          // ⚠️ 测试钩子：预览模式不真发 PUT（题/语料都是占位），点「换成新语料」只收起弹窗
-          onSwap={() => { if (previewSwapDialog) { setSwap(null); return } void handleConfirmSwap() }}
+          onSwap={() => void handleConfirmSwap()}
           onKeepCurrent={() => { if (!swapping) setSwap(null) }}
         />
       )}

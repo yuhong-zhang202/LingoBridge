@@ -25,7 +25,6 @@ import PronounceCapturePopup from './_components/PronounceCapturePopup'
 import InlineTopProgress from './_components/InlineTopProgress'
 import TranscribeFailCard from './_components/TranscribeFailCard'
 import ReplyFailCard from './_components/ReplyFailCard'
-import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
 /** 舞台高度：满屏减去外壳 72px 顶栏（绑定视口，让消息列表内部滚动、输入条钉底） */
@@ -37,7 +36,7 @@ export default function PracticeDesktop({
   popupRef, orbRef, bottomRef, pronounceRef,
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
-  onRetryTranscribe, onSubmitText, onCancelText,
+  onRetryTranscribe,
   onRetryReply, replyFailAttempt,
 }: PracticeViewProps): JSX.Element {
 
@@ -50,20 +49,18 @@ export default function PracticeDesktop({
   const { account } = useAccount()
   const avatarUrl = account?.avatarUrl ?? null
 
-  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText, onRetryReply })
-  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText, onRetryReply }
+  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onRetryReply })
+  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onRetryReply }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
       const s = latest.current
-      // ① Esc 就近关浮层（换说法弹窗 / 发音纠错卡，含其输入框内也能关）→ 录音时取消 →
-      //    文字输入态返回失败双选（TextInputBar 的 textarea 已自处理并 stopPropagation，此处是失焦兜底）→ 否则不退页
+      // ① Esc 就近关浮层（换说法弹窗 / 发音纠错卡，含其输入框内也能关）→ 录音时取消 → 否则不退页
       if (e.key === 'Escape') {
         if (s.showPolish) { s.onClosePolish(); return }
         if (s.capture) { s.onCloseCapture(); return }
         if (s.phase === 'recording') { s.onCancelRecord(); return }
-        if (s.phase === 'textInput') { s.onCancelText(); return }
         return
       }
       // 失败态 Enter → 重试转写（焦点在「重试转写」按钮上时交还原生激活，不重复触发）
@@ -183,8 +180,6 @@ export default function PracticeDesktop({
             <TranscribeFailCard onRetry={onRetryTranscribe} />
           ) : phase === 'replyFailed' ? (
             <ReplyFailCard onRetry={onRetryReply} attempt={replyFailAttempt} />
-          ) : phase === 'textInput' ? (
-            <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
           ) : (
             <>
               {nearLimit && (
