@@ -106,6 +106,8 @@ function PracticeContent(): JSX.Element {
   // 录音 blob 留存：转写失败/文字取消后要用同一段重发。⚠️ Request body 被消费过不能复用，
   // 每次发请求都现构 FormData（见 runTranscribeAttempt）；此处只留 Blob 本体。
   const pendingBlobRef = useRef<Blob | null>(null)
+  // 本段录音的采集信号（供服务端「假空率」判真空/假空）：与 blob 同寿命，重试链现构 FormData 时一并带上。
+  const pendingAudioMetaRef = useRef<{ peakLevel: number; durationMs: number } | null>(null)
   const retryAttemptRef = useRef(0)          // 已重试次数（不含首发）
   const retryStartRef = useRef(0)            // 首发时间戳，用于累计等待上限判定
   const retryTimerRef = useRef<number | null>(null)  // 待触发的重试 setTimeout id
@@ -253,6 +255,14 @@ function PracticeContent(): JSX.Element {
       form.append('audio', blob, 'turn.webm')
       // scene='practice'：练习转写（对话轮次）。仅供服务端打 phase 埋点区分看板归位，不影响转写行为。
       form.append('scene', 'practice')
+      // 采集信号（可选增强）：仅服务端在「空录音失败」时落 metadata.audio 供假空率判定，不影响转写/重试。
+      // 拿不到（异常/旧客户端）时不传，服务端容错。blobBytes 直接取 blob.size。
+      const audioMeta = pendingAudioMetaRef.current
+      if (audioMeta) {
+        form.append('peakLevel', String(audioMeta.peakLevel))
+        form.append('durationMs', String(audioMeta.durationMs))
+        form.append('blobBytes', String(blob.size))
+      }
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗。
@@ -292,15 +302,16 @@ function PracticeContent(): JSX.Element {
   /** 一轮起点：停录 → 无 blob 则「没听清」回 idle；否则存 blob、重置重试计数、起首次转写。 */
   const handleUserTurn = useCallback(async () => {
     setPhase('transcribing')
-    const blob = await stop()
-    if (!blob) {
+    const rec = await stop()
+    if (!rec) {
       // 空录音是唯一保留「再说一遍」的场景
       setError('没听清，要不要再说一遍？')
       setPhase('idle')
       return
     }
     setError(null)
-    pendingBlobRef.current = blob
+    pendingBlobRef.current = rec.blob
+    pendingAudioMetaRef.current = { peakLevel: rec.peakLevel, durationMs: rec.durationMs }
     retryAttemptRef.current = 0
     retryStartRef.current = Date.now()
     void runTranscribeAttempt()

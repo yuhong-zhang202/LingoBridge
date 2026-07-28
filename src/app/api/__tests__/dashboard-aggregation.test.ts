@@ -609,3 +609,49 @@ describe('GET /api/dashboard · 超 1000 行分页汇总', () => {
     expect(body.dataTruncated).toBe(false)
   })
 })
+
+/**
+ * 假空率：区间内空录音（error_kind=user_input）里带 audio 采集信号的行，按 peak 阈值判真空/假空。
+ * 只把带 audio 字段的空录音计入分母（口径生效前的老空录音无该字段、排除不误算）；
+ * 无带信号样本 → fakeEmpty=null + pending=true，前端保留「待接入」不显误导 0%。
+ */
+describe('GET /api/dashboard · 假空率（空录音真伪）', () => {
+  /** 造一行区间内的空录音（user_input）日志，可带/不带 audio 采集信号 */
+  function emptyRow(createdAt: string, audio?: { peak: number; durMs: number; bytes: number }) {
+    return {
+      service: 'doubao_asr', estimated_cost_cny: 0.0001, latency_ms: 100, status: 'error',
+      created_at: createdAt,
+      metadata: { phase: 'transcribe_practice', error_kind: 'user_input', ...(audio ? { audio } : {}) },
+      user_id: 'u1', is_anonymous: false,
+    }
+  }
+
+  test('带信号的空录音按阈值(0.15)判真伪：峰值高=假空、峰值低=真空，率+样本量 n 正确', async () => {
+    const rangeRows = [
+      emptyRow('2026-07-15T02:00:00Z', { peak: 0.42, durMs: 3200, bytes: 8000 }), // 假空（采到声音却空）
+      emptyRow('2026-07-15T03:00:00Z', { peak: 0.20, durMs: 2800, bytes: 6000 }), // 假空
+      emptyRow('2026-07-15T04:00:00Z', { peak: 0.05, durMs: 1500, bytes: 4000 }), // 真空（用户真没出声）
+      emptyRow('2026-07-15T05:00:00Z'),                                            // 老数据无 audio → 不计入分母
+      // 非空录音的系统故障（无 user_input）：绝不计入假空率
+      { service: 'qwen_plus', estimated_cost_cny: 1, latency_ms: 100, status: 'error',
+        created_at: '2026-07-15T06:00:00Z', metadata: { phase: 'coach' }, user_id: 'u2', is_anonymous: false },
+    ]
+    wireSupabase({ range: rangeRows })
+
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    // 分母只算 3 条带 audio 的空录音（老数据那条与系统故障那条都排除）；假空 2 / 3 = 66.67%
+    expect(body.fakeEmpty).toEqual({ rate: 66.67, n: 3, fakeCount: 2 })
+    expect(body.fakeEmptyPending).toBe(false)
+    expect(body.fakeEmptyThreshold).toBe(0.15)
+  })
+
+  test('区间内只有无 audio 的老空录音：降级为 pending，不显误导 0%', async () => {
+    wireSupabase({ range: [emptyRow('2026-07-15T02:00:00Z'), emptyRow('2026-07-15T03:00:00Z')] })
+
+    const body = await (await GET(new Request('http://localhost/api/dashboard?range=7d'))).json()
+
+    expect(body.fakeEmpty).toBeNull()
+    expect(body.fakeEmptyPending).toBe(true)
+  })
+})

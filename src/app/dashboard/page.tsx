@@ -56,12 +56,17 @@ type DashboardData = {
   loggedInCost: number
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   dailyFailures: Array<{ date: string; failures: number }>
-  engagementTrend: Array<{ date: string; activeUsers: number; practiceSessions: number }>
+  // newReg：每日新增注册线（迁移 0044 未跑/降级时整列 null，图表不渲染该线）。
+  engagementTrend: Array<{ date: string; activeUsers: number; practiceSessions: number; newReg?: number | null }>
   // 注册用户留存：null = 迁移未跑 / RPC 出错的降级态（前端显「待接入」）。
   // rate 为 0-100 百分比（无成熟群组时 null，如 D7 现未满 7 天）；n 为该指标分母（成熟群组总人数）。
   retention: { d1Rate: number | null; d1N: number; d7Rate: number | null; d7N: number } | null
   retentionPending: boolean
+  // 假空率（区间内空录音里 peak≥阈值=采到声音却转写空 的占比）：null = 无带 audio 信号的空录音（口径生效前无数据），
+  // 前端显「待接入」；有数则 rate（0-100 百分比）+ n（带信号的空录音总数）+ fakeCount（其中判为假空的条数）。
+  fakeEmpty: { rate: number; n: number; fakeCount: number } | null
   fakeEmptyPending: boolean
+  fakeEmptyThreshold: number
   phaseLatency: PhaseLatency[]
   latencyTrend: TrendPhase[]
   latencyCutoff: string
@@ -285,7 +290,28 @@ function RetentionStat({ retention }: { retention: NonNullable<DashboardData['re
   )
 }
 
-/** 「下一步接入」空态占位（留存 RPC 未接入 / 假空率本轮未实现真数据，不硬编错数） */
+/**
+ * 假空率卡（区间内空录音里「采到声音却转写空」的占比）：复用 GrowthStat/RetentionStat 卡样式。
+ * 主区放假空率 + 样本量 n（n 必显，避免小样本被误读）；副行给假空条数；口径小字注明判据。
+ * @param fakeEmpty  route 返回的假空率结构（此处已确保非 null；null 降级态在调用处走 PendingPlaceholder）
+ * @param threshold  峰值阈值（0~1），口径小字展示用
+ */
+function FakeEmptyStat({ fakeEmpty, threshold }: { fakeEmpty: NonNullable<DashboardData['fakeEmpty']>; threshold: number }) {
+  return (
+    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
+      <div className="text-[11px] text-v2-text-muted mb-1">假空率</div>
+      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">
+        {fakeEmpty.rate}% · n={fakeEmpty.n}
+      </div>
+      <div className="text-[11px] text-v2-text-secondary mt-2">
+        疑似采集问题：<span className="tabular-nums">{fakeEmpty.fakeCount}</span> / {fakeEmpty.n} 段空录音
+      </div>
+      <div className="text-[10px] text-v2-text-muted mt-1.5">峰值音量≥{threshold} 却转写空 = 疑似采集问题 · 阈值待标定</div>
+    </div>
+  )
+}
+
+/** 「下一步接入」空态占位（留存 RPC 未接入 / 假空率无带信号样本，不硬编错数） */
 function PendingPlaceholder({ title, reason }: { title: string; reason: string }) {
   return (
     <div className="flex-1 min-w-[140px] bg-black/[0.02] rounded-[12px] border border-dashed border-black/[0.1] px-4 py-3">
@@ -409,9 +435,9 @@ export default function DashboardPage() {
             {data.retention
               ? <RetentionStat retention={data.retention} />
               : <PendingPlaceholder title="次日 / 7 日留存" reason="留存 RPC（get_retention_stats）尚未接入，待部署方跑迁移 0043 后自动显示真实数据。" />}
-            {data.fakeEmptyPending && (
-              <PendingPlaceholder title="假空率" reason="需读 flow_events 判断空录音真伪，本轮先占位。" />
-            )}
+            {data.fakeEmpty
+              ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
+              : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
           </div>
           {/* 转化率不编：仅给「今日新增注册」与「今日匿名活跃」两个数供自行对照，避免硬编错误口径 */}
           <div className="text-[10px] text-v2-text-muted mt-3">

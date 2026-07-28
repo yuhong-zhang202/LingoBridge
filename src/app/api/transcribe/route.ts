@@ -13,9 +13,9 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
-import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
+import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT, ERROR_KIND_USER_INPUT } from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
-import { isAppError, errorLogMeta, errorKindMeta } from '@/types/errors'
+import { isAppError, errorLogMeta, errorKindMeta, classifyErrorKind } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
@@ -58,6 +58,28 @@ const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
 const SCENE_PHASE: Record<string, string> = {
   story:    'transcribe_story',
   practice: 'transcribe_practice',
+}
+
+/** 空录音的采集信号（假空率原料）：客户端可选上报，仅在「空录音失败」时落 metadata.audio。 */
+type AudioSignals = { peak: number; durMs: number; bytes: number }
+
+/**
+ * 从 FormData 解析空录音采集信号（peakLevel/durationMs/blobBytes）。
+ * 三个字段是【可选增强】：任一缺失（旧客户端不传）或非数值即整体返回 null，服务端不写、不报错。
+ * 只读取、不参与任何转写/计次/error_kind 分支。
+ * @param form  已解析的 multipart 表单
+ * @returns     三信号齐备且均为有限数时返回；否则 null
+ */
+function parseAudioSignals(form: FormData): AudioSignals | null {
+  const peakRaw  = form.get('peakLevel')
+  const durRaw   = form.get('durationMs')
+  const bytesRaw = form.get('blobBytes')
+  if (typeof peakRaw !== 'string' || typeof durRaw !== 'string' || typeof bytesRaw !== 'string') return null
+  const peak  = Number(peakRaw)
+  const durMs = Number(durRaw)
+  const bytes = Number(bytesRaw)
+  if (!Number.isFinite(peak) || !Number.isFinite(durMs) || !Number.isFinite(bytes)) return null
+  return { peak, durMs, bytes }
 }
 
 /** 「人多」的三种来源：本地队列满 / 本地等待超时 / 仍被豆包判并发超限 */
@@ -105,6 +127,9 @@ export async function POST(req: Request): Promise<NextResponse> {
   // phase 埋点值：解析出 FormData 的 scene 后按 SCENE_PHASE 定值；解析前（如鉴权失败）保持兜底 'transcribe'。
   // 声明在 try 外，让 catch 的失败记账拿到与成功路径一致的 phase。
   let phase = 'transcribe'
+  // 空录音采集信号（假空率原料）：解析出 FormData 后赋值，仅 catch 里「空录音失败」时落 metadata.audio。
+  // 声明在 try 外让 catch 读得到；解析前（鉴权/表单未到）保持 null。
+  let audioSignals: AudioSignals | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
     attribution = { userId, isAnonymous }
@@ -117,6 +142,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     // scene 只影响 phase 埋点值，不参与任何业务分支；非法/缺省保持 'transcribe'
     const scene = form.get('scene')
     if (typeof scene === 'string' && SCENE_PHASE[scene]) phase = SCENE_PHASE[scene]
+    // 采集信号只读取暂存，落库时机在 catch 的「空录音失败」分支；解析失败/缺失保持 null。不参与任何业务分支。
+    audioSignals = parseAudioSignals(form)
     const file = form.get('audio')
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: '缺少音频文件' }, { status: 400 })
@@ -181,6 +208,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 计费口径不变：仅 EMPTY_TRANSCRIPT（豆包完整处理整段音频、只是没识别出人声）按真实时长记，其余记 0。
     const isUserInputError = isAppError(e) && e.code === 'EMPTY_TRANSCRIPT'
     const failedDurationS  = isUserInputError ? (billedDurationS ?? 0) : 0
+    // 「空录音」= 归因为 user_input（含 EMPTY_TRANSCRIPT 与豆包静音码 20000003，见 classifyErrorKind）。
+    // 仅这类失败、且客户端上报了采集信号时，把三信号落 metadata.audio 供看板算假空率（峰值高却转写空=疑似采集问题）。
+    // 只加 metadata 字段：不碰上面 failedDurationS 计费、不碰 error_kind、不碰下方响应码/计次。
+    const isEmptyRecording = classifyErrorKind(e) === ERROR_KIND_USER_INPUT
+    const audioMeta = isEmptyRecording && audioSignals
+      ? { audio: { peak: audioSignals.peak, durMs: audioSignals.durMs, bytes: audioSignals.bytes } }
+      : {}
     await logApiUsage({
       service: 'doubao_asr',
       endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash',
@@ -198,6 +232,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         phase,
         ...errorLogMeta(e),
         ...errorKindMeta(e),
+        ...audioMeta,
       },
     })
     logErr('[transcribe API]', e)

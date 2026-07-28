@@ -75,13 +75,18 @@ function RecordingContent(): JSX.Element {
     const ac = new AbortController()
     abortRef.current = ac
     try {
-      const blob = await stop()
-      if (!blob) throw new Error('没有录到声音，请重试')
+      const rec = await stop()
+      if (!rec) throw new Error('没有录到声音，请重试')
+      const blob = rec.blob
       if (blob.size > 10 * 1024 * 1024) throw new Error('录音过长，请分段录制') // ENGINEERING §9
       const form = new FormData()
       form.append('audio', blob, 'recording.webm')
       // scene='story'：语料转写（录音→整理语料链路）。仅供服务端打 phase 埋点区分看板归位，不影响转写行为。
       form.append('scene', 'story')
+      // 采集信号（可选增强）：仅服务端在「空录音失败」时落 metadata.audio 供假空率判定，不影响转写行为。
+      form.append('peakLevel', String(rec.peakLevel))
+      form.append('durationMs', String(rec.durationMs))
+      form.append('blobBytes', String(blob.size))
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
       const res = await apiFetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
       // 服务端同意闸拒绝（未捕获同意）：这两个 AI 路由的 403 只可能是缺同意。回首页触发同意弹窗，

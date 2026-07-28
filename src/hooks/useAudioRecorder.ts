@@ -7,13 +7,25 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 
+/**
+ * 一段录音的结果 + 采集信号（供「假空率」区分真空/假空）：
+ *   · peakLevel  录音期间 audioLevel 的峰值（0~1）。高=采到了真实声音，低=用户真没出声。
+ *   · durationMs 录音起（recorder.start）止（onstop）的墙钟时长。
+ * 两个信号在服务端仅在「空录音失败」时落 metadata.audio、看板据此判采集问题，绝不影响转写本身。
+ */
+interface RecordingResult {
+  blob: Blob
+  peakLevel: number
+  durationMs: number
+}
+
 interface UseAudioRecorderReturn {
   audioLevel: number
   isRecording: boolean
   /** 开始录音（getUserMedia + MediaRecorder） */
   start: () => Promise<void>
-  /** 停止录音，返回录到的音频 Blob（无录音时返回 null） */
-  stop: () => Promise<Blob | null>
+  /** 停止录音，返回音频 Blob + 本段采集信号（peakLevel/durationMs）；无录音时返回 null */
+  stop: () => Promise<RecordingResult | null>
 }
 
 /**
@@ -34,6 +46,10 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   // 泄漏的循环在已卸载组件上持续 setAudioLevel，触发 Maximum update depth）。
   const startingRef = useRef(false)
   const mountedRef = useRef(true)
+  // 本段录音的采集信号（供「假空率」判真空/假空）：peakRef 在 tick 里累计 audioLevel 峰值，
+  // startTsRef 记录起录墙钟时刻，stop 时算 durationMs。均在 start 时重置，不进 cleanup（onstop 要读末值）。
+  const peakRef = useRef(0)
+  const startTsRef = useRef(0)
 
   const cleanup = useCallback(() => {
     if (animRef.current) cancelAnimationFrame(animRef.current)
@@ -64,10 +80,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       analyser.fftSize = 256
       src.connect(analyser)
       const data = new Uint8Array(analyser.frequencyBinCount)
+      peakRef.current = 0   // 新一段录音：清掉上段的峰值
       const tick = () => {
         analyser.getByteFrequencyData(data)
         const avg = data.reduce((a, b) => a + b, 0) / data.length
-        setAudioLevel(avg / 255)
+        const level = avg / 255
+        if (level > peakRef.current) peakRef.current = level   // 追踪本段峰值
+        setAudioLevel(level)
         animRef.current = requestAnimationFrame(tick)
       }
       tick()
@@ -79,6 +98,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
       recorder.start()
+      startTsRef.current = Date.now()   // 起录墙钟时刻，供 stop 算 durationMs
       recorderRef.current = recorder
       setIsRecording(true)
     } catch {
@@ -89,7 +109,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     }
   }, [cleanup])
 
-  const stop = useCallback((): Promise<Blob | null> => {
+  const stop = useCallback((): Promise<RecordingResult | null> => {
     return new Promise((resolve) => {
       const recorder = recorderRef.current
       if (!recorder) {
@@ -98,8 +118,11 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       }
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        // 峰值/时长在 cleanup 前定格：cleanup 只 cancel tick、不重置这两个 ref，故先后读均可，此处先读更直白
+        const peakLevel  = peakRef.current
+        const durationMs = startTsRef.current > 0 ? Date.now() - startTsRef.current : 0
         cleanup()
-        resolve(blob.size > 0 ? blob : null)
+        resolve(blob.size > 0 ? { blob, peakLevel, durationMs } : null)
       }
       recorder.stop()
     })

@@ -69,6 +69,13 @@ const TREND_PHASE_N = 3
 /** 失败明细视图取前 N 条（区间内按时间倒序）：自带 limit、天然在分页上限内 */
 const FAILED_LOG_N = 100
 
+// 假空率峰值阈值（0~1，对齐 useAudioRecorder 的 audioLevel = 频域均值/255 口径）：
+// 空录音行里，录音峰值 ≥ 此阈值 = 采到了真实声音却转写为空 → 疑似采集/上传/ASR 问题（假空）；
+// 峰值 < 此阈值 = 用户真没出声（真空、良性）。
+// ⚠️ 待真实数据标定：现取 0.15 为初值（凭 audioLevel 经验：静音贴近 0、正常说话峰值可达 0.3+），
+// 埋点铺开、攒够真实空录音样本后再据 peak 分布回调，不追求现在精准。
+const FAKE_EMPTY_PEAK_THRESHOLD = 0.15
+
 /** 保留两位小数 */
 function r2(n: number): number {
   return Math.round(n * 100) / 100
@@ -168,6 +175,9 @@ function parseRange(raw: string | null): number {
 type LogMeta = {
   phase?: string; cost_source?: string; error_kind?: string
   error_code?: string; error_message?: string; logId?: string
+  // 空录音采集信号（假空率原料）：仅 transcribe 空录音失败行、且客户端上报时才有；
+  // 口径生效（2026-07-28）前的历史空录音行无此键，看板据此排除、不误判真空/假空。
+  audio?: { peak?: number; durMs?: number; bytes?: number } | null
 } | null
 // 全时段归因行：累计总花费卡与「按用户成本 Top-N」共用这一次全量查询，避免再开一条查询。
 // user_id 是 UUID（0021 迁移补的归属列），补字段前的老行 / 无归属调用为 null。
@@ -400,7 +410,7 @@ function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
  *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
  *             每日费用趋势 + 每日参与度趋势（活跃+场次+新增注册）、每日失败次数、各环节耗时（分布 + 趋势）、
  *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；注册用户留存（D1/D7 池化，get_retention_stats RPC，
- *             迁移未跑时优雅降级 null）；假空率本轮为 pending 占位
+ *             迁移未跑时优雅降级 null）；假空率（区间内空录音 peak≥阈值占比，无带信号样本时 pending 降级）
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -627,6 +637,23 @@ export async function GET(req: Request): Promise<NextResponse> {
     // ⚠️ 口径刻意与 errorRate 不同：这里【全量】统计 error 行，用户输入问题（空录音）同样计入 ——
     //    豆包被调用过、音频被处理过，钱是真花了。摘出错误率不等于当作没花钱。
     const failedCost    = r2(rngRows.filter(r => r.status === 'error').reduce((s, r) => s + r.estimated_cost_cny, 0))
+
+    // ── 假空率（区间窗口）：空录音里"采到了声音却转写空"的占比 ──
+    // 空录音 = error_kind=user_input（EMPTY_TRANSCRIPT / 豆包静音 20000003，见 transcribe route）。
+    // 只把带 audio 采集信号（口径生效后）的空录音计入分母：老数据无 audio 字段，无从判真伪，排除不误算。
+    //   · 假空 = peak ≥ 阈值（采到真实声音却转写空 → 疑似采集/上传/ASR 问题）
+    //   · 真空 = peak < 阈值（用户真没出声，良性）
+    // n（分母）为 0（区间内无带信号的空录音）→ 置 null + pending，前端保留「待接入」，不显误导的 0%。
+    const emptyAudioRows = rngRows.filter(r =>
+      r.metadata?.error_kind === ERROR_KIND_USER_INPUT
+      && r.metadata.audio != null
+      && typeof r.metadata.audio.peak === 'number')
+    const fakeEmptyN     = emptyAudioRows.length
+    const fakeEmptyCount = emptyAudioRows.filter(r => (r.metadata!.audio!.peak as number) >= FAKE_EMPTY_PEAK_THRESHOLD).length
+    const fakeEmptyPending = fakeEmptyN === 0
+    const fakeEmpty = fakeEmptyPending
+      ? null
+      : { rate: r2(fakeEmptyCount / fakeEmptyN * 100), n: fakeEmptyN, fakeCount: fakeEmptyCount }
 
     // ── 估算占比（本期成本 X% 为估算）：cost_source='estimate' 的成本 ÷ 本期总成本 ──
     // 缺 cost_source 的行（如 transcribe，按真实时长计）不计入估算，避免高估估算占比。
@@ -893,8 +920,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       // retentionPending：留存 RPC 未接入的降级标记（现语义 = 迁移未跑/出错，而非「功能未实现」），
       // 供前端降级判断与既有口径断言沿用。retention 有数即 false。
       retentionPending: retention === null,
-      // 假空率仍为占位：需读 flow_events 判空录音真伪，口径较重，本轮不做。
-      fakeEmptyPending: true,
+      // 假空率（区间窗口）：空录音里 peak≥阈值（采到声音却转写空）的占比 + 样本量 n。
+      // fakeEmpty=null 且 fakeEmptyPending=true = 区间内无带 audio 信号的空录音（口径生效前无数据），前端显「待接入」。
+      fakeEmpty,
+      fakeEmptyPending,
+      // 假空判据阈值（前端口径小字用；待真实数据标定）。
+      fakeEmptyThreshold: FAKE_EMPTY_PEAK_THRESHOLD,
       phaseLatency,
       latencyTrend,
       // 耗时两视图的数据起点（口径断点）：前端在区块标题右侧标出，避免被误读成"只有这几天有调用"

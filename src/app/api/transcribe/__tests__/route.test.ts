@@ -77,11 +77,17 @@ const gateMock = jest.requireMock('@/lib/concurrency-gate') as {
 /**
  * 造一个带音频文件的 multipart 请求
  * @param scene  可选场景标（'story'/'practice'/非法值）；缺省不带 = 旧客户端行为
+ * @param audio  可选采集信号（peakLevel/durationMs/blobBytes）；缺省不带 = 旧客户端行为
  */
-function audioReq(scene?: string): Request {
+function audioReq(scene?: string, audio?: { peakLevel: number; durationMs: number; blobBytes: number }): Request {
   const form = new FormData()
   form.append('audio', new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'audio/webm' }), 'a.webm')
   if (scene !== undefined) form.append('scene', scene)
+  if (audio) {
+    form.append('peakLevel', String(audio.peakLevel))
+    form.append('durationMs', String(audio.durationMs))
+    form.append('blobBytes', String(audio.blobBytes))
+  }
   return new Request('http://localhost/api/transcribe', {
     method: 'POST',
     headers: { authorization: 'Bearer t' },
@@ -185,6 +191,55 @@ describe('转写失败记账 · 区分「用户输入问题」与「系统故障
     expect(arg.estimated_cost_cny).toBe(0)
     // 即便 ASR 前失败，失败记账仍带 phase（不带 scene → 兜底 'transcribe'）+ 三键（无 error_kind → 系统故障口径不变）
     expect(arg.metadata).toEqual({ phase: 'transcribe', error_code: 'unknown', error_message: 'ffmpeg 挂了' })
+  })
+})
+
+describe('假空率采集信号 · 仅空录音失败落 metadata.audio', () => {
+  test('EMPTY_TRANSCRIPT + 客户端上报采集信号：metadata.audio 落库（peak/durMs/bytes），其余键不变', async () => {
+    mockTranscribe.mockRejectedValue({ code: 'EMPTY_TRANSCRIPT', message: '没识别到内容' })
+
+    await POST(audioReq('practice', { peakLevel: 0.42, durationMs: 3200, blobBytes: 8888 }))
+
+    // 空录音（user_input）+ 带信号 → metadata.audio 落库；scene=practice → phase=transcribe_practice；计费/error_kind 照旧
+    expect(logApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+      metadata: {
+        phase: 'transcribe_practice',
+        error_code: 'EMPTY_TRANSCRIPT',
+        error_message: '没识别到内容',
+        error_kind: 'user_input',
+        audio: { peak: 0.42, durMs: 3200, bytes: 8888 },
+      },
+    }))
+  })
+
+  test('豆包静音码 20000003（也是空录音）+ 采集信号：同样落 metadata.audio', async () => {
+    mockTranscribe.mockRejectedValue({ code: '20000003', message: 'silence audio' })
+
+    await POST(audioReq('story', { peakLevel: 0.05, durationMs: 1500, blobBytes: 4096 }))
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as { metadata: Record<string, unknown> }
+    expect(arg.metadata.error_kind).toBe('user_input')
+    expect(arg.metadata.audio).toEqual({ peak: 0.05, durMs: 1500, bytes: 4096 })
+  })
+
+  test('系统故障（上游超时）即便带采集信号：不落 metadata.audio（仅空录音才落）', async () => {
+    mockTranscribe.mockRejectedValue(new Error('上游超时'))
+
+    await POST(audioReq('practice', { peakLevel: 0.42, durationMs: 3200, blobBytes: 8888 }))
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as { metadata: Record<string, unknown> }
+    // 非 user_input 失败绝不落 audio：假空率只统计空录音
+    expect(arg.metadata.audio).toBeUndefined()
+  })
+
+  test('EMPTY_TRANSCRIPT 但客户端没上报采集信号（旧客户端）：metadata 不含 audio 键', async () => {
+    mockTranscribe.mockRejectedValue({ code: 'EMPTY_TRANSCRIPT', message: '没识别到内容' })
+
+    await POST(audioReq('practice'))
+
+    const arg = (logApiUsage as jest.Mock).mock.calls[0][0] as { metadata: Record<string, unknown> }
+    expect(arg.metadata.audio).toBeUndefined()
   })
 })
 
