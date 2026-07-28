@@ -70,6 +70,10 @@ function PracticeContent(): JSX.Element {
   //    ?simTranscribe=fail → 强制走「失败双选(重试转写/文字输入)」；=busy → 强制走「排队自动重试(顶部进度条)」。
   //    需显式带 URL 参数，普通用户不受影响；正式清理时可整段删除。
   const simTranscribe = params.get('simTranscribe')
+  // ⚠️ 测试钩子：?simReplyFail=1 → 强制让「教练回复」失败，走「回复失败(再试一次)」态，供真机验重试文案 +
+  //    「重试不追加第二条用户气泡」（正常网络下回复几乎不失败、无法自然触发）。恒失败：连点再试也一直失败，
+  //    可验 attempt≥2 的措辞切换。需显式带参，普通用户不受影响；正式清理时可整段删除。
+  const simReplyFail = params.get('simReplyFail') === '1'
   // ⚠️ 测试钩子：?previewIntro=1 → 强制弹「功能引导卡」（绕过 localStorage 已读标记，供真机验文案，
   //    不写标记、关掉可反复调）。需显式带参，普通用户不受影响；正式清理时可整段删除。
   const previewIntro = params.get('previewIntro') === '1'
@@ -90,6 +94,9 @@ function PracticeContent(): JSX.Element {
   // isAnon 竞态推导——竞态会让匿名用户误显示注册的「本月额度已用完」谎报。null=不弹。
   // /api/transcribe 402 是匿名 only、不带 reason → readQuotaReason 返回 null → 默认 'trial'，语义正确。
   const [quotaVariant, setQuotaVariant] = useState<'trial' | 'ielts' | null>(null)
+  // 教练回复失败次数：每进一次 replyFailed +1（用当前 messages 重发、末条已是用户气泡，绝不追加第二条）；
+  // 开启新一轮（sendReply 追加新用户发言）或回复成功回 idle 时归 0。≥2 时失败卡换更强的「网络不稳」措辞。
+  const [replyFailAttempt, setReplyFailAttempt] = useState(0)
 
   // 功能引导：首次进入、教练开场白就绪（phase='idle'）时弹一次。绑 idle 而非「一进页面」——
   // 那时还没用户气泡（两功能作用于用户气泡），且天然避开额度(402)/同意(403)拦截层（那两种 phase 到不了 idle）。
@@ -187,15 +194,16 @@ function PracticeContent(): JSX.Element {
   //     → scheduleRetry（503 排队重试）→ sendReply（拿到文本后追加用户气泡 + 取教练回复）———
   //     文字输入与转写成功共用 sendReply 这同一条下游。
 
-  /** 拿到用户这轮文本后：追加用户气泡 → POST /api/practice → 追加教练回复。转写成功与文字输入共用。 */
-  const sendReply = useCallback(async (text: string) => {
-    const next: PracticeMessage[] = [...messagesRef.current, { role: 'user', content: text }]
-    setMessages(next)
-    setPhase('replying')
+  /** 用给定 messages（末条须为用户气泡）POST /api/practice 取教练回复：成功追加教练回复回 idle；
+   *  403/402 照旧先行 return 不进失败态；其余错误 → replyFailed（用当前 messages 可再重发，不追加用户气泡）。
+   *  首发（sendReply）与「再试一次」（onRetryReply）共用此下游；catch 不再 setError（避免脏字符串残留）。 */
+  const requestReply = useCallback(async (msgs: PracticeMessage[]) => {
+    // ⚠️ 测试钩子：跳过真实请求，直接演示回复失败态（?simReplyFail=1，恒失败，可验 attempt≥2 措辞）
+    if (simReplyFail) { setReplyFailAttempt(n => n + 1); setPhase('replyFailed'); return }
     try {
       const res = await apiFetch('/api/practice', {
         method: 'POST',
-        json: { scaffold: scaffoldRef.current, messages: next },
+        json: { scaffold: scaffoldRef.current, messages: msgs },
       })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在对话失败态。
       if (res.status === 403) { router.push('/'); return }
@@ -206,13 +214,31 @@ function PracticeContent(): JSX.Element {
       }
       if (!res.ok) throw new Error('对话失败')
       const data = (await res.json()) as { reply: string }
-      setMessages([...next, { role: 'assistant', content: data.reply }])
+      setMessages([...msgs, { role: 'assistant', content: data.reply }])
+      setReplyFailAttempt(0)
       setPhase('idle')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '出错了，请重试')
-      setPhase('idle')
+    } catch {
+      // 网络/服务错误：不 setError（脏字符串会残留在 idle 提示区），改进 replyFailed 给「再试一次」
+      setReplyFailAttempt(n => n + 1)
+      setPhase('replyFailed')
     }
-  }, [router])
+  }, [router, simReplyFail])
+
+  /** 拿到用户这轮文本后：追加用户气泡 → 走 requestReply 取教练回复。转写成功与文字输入共用。 */
+  const sendReply = useCallback((text: string) => {
+    const next: PracticeMessage[] = [...messagesRef.current, { role: 'user', content: text }]
+    setMessages(next)
+    setReplyFailAttempt(0)   // 新一轮用户发言：清掉上一轮的失败计数
+    setPhase('replying')
+    void requestReply(next)
+  }, [requestReply])
+
+  /** 回复失败态「再试一次」：用当前 messages（末条已是用户气泡）重发，成功只追加教练回复，绝不追加第二条用户气泡。 */
+  const onRetryReply = useCallback(() => {
+    setError(null)
+    setPhase('replying')
+    void requestReply(messagesRef.current)
+  }, [requestReply])
 
   /** 503（人多）后安排下一次重试：到重试上限/累计等待上限则进失败态；否则 queued + 定时重发。 */
   const scheduleRetry = useCallback((retryAfterSec: number) => {
@@ -485,6 +511,8 @@ function PracticeContent(): JSX.Element {
     onUseTextInput,
     onSubmitText,
     onCancelText,
+    onRetryReply,
+    replyFailAttempt,
     onWordTap,
     onPolish,
     onReopenPolish: () => { if (polishResult) setShowPolish(true) },

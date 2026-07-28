@@ -24,6 +24,7 @@ import VoiceBar from './_components/VoiceBar'
 import PronounceCapturePopup from './_components/PronounceCapturePopup'
 import InlineTopProgress from './_components/InlineTopProgress'
 import TranscribeFailCard from './_components/TranscribeFailCard'
+import ReplyFailCard from './_components/ReplyFailCard'
 import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
@@ -37,6 +38,7 @@ export default function PracticeDesktop({
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
   onRetryTranscribe, onSubmitText, onCancelText,
+  onRetryReply, replyFailAttempt,
 }: PracticeViewProps): JSX.Element {
 
   // 键盘：Space 空闲=开始录音 / 录音=发送；Esc 录音时取消。弹窗打开或焦点在输入框时不响应，避免误触
@@ -48,8 +50,8 @@ export default function PracticeDesktop({
   const { account } = useAccount()
   const avatarUrl = account?.avatarUrl ?? null
 
-  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText })
-  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText }
+  const latest = useRef({ phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText, onRetryReply })
+  latest.current = { phase, showPolish, capture, onStartRecord, onCancelRecord, onSend, onClosePolish, onCloseCapture, onRetryTranscribe, onCancelText, onRetryReply }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
@@ -68,6 +70,11 @@ export default function PracticeDesktop({
       if (e.key === 'Enter' && s.phase === 'transcribeFailed') {
         if (t?.closest('button, a, [role="button"]')) return
         e.preventDefault(); s.onRetryTranscribe(); return
+      }
+      // 回复失败态 Enter → 再试一次（同样焦点在「再试一次」按钮上时交还原生激活，不重复触发）
+      if (e.key === 'Enter' && s.phase === 'replyFailed') {
+        if (t?.closest('button, a, [role="button"]')) return
+        e.preventDefault(); s.onRetryReply(); return
       }
       // 其余键：输入框内让位、弹窗开时不响应
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -174,6 +181,8 @@ export default function PracticeDesktop({
             </div>
           ) : phase === 'transcribeFailed' ? (
             <TranscribeFailCard onRetry={onRetryTranscribe} />
+          ) : phase === 'replyFailed' ? (
+            <ReplyFailCard onRetry={onRetryReply} attempt={replyFailAttempt} />
           ) : phase === 'textInput' ? (
             <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
           ) : (

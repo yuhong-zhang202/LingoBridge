@@ -18,6 +18,8 @@ export type PracticePhase =
   | 'transcribeFailed'
   /** 用户改用文字输入：底部换 textarea，提交后与转写成功走完全相同的下游（sendReply） */
   | 'textInput'
+  /** 教练回复失败（POST /api/practice 非额度/同意类错误）：底部给「再试一次」，用当前 messages 重发、不追加用户气泡 */
+  | 'replyFailed'
 
 /** 发音捕捉态：点某个词后挂在该气泡下方的纠错卡数据 */
 export interface PracticeCapture {
@@ -67,6 +69,10 @@ export interface PracticeViewProps {
   onSubmitText: (text: string) => void
   /** 文字输入态：返回失败双选（→ transcribeFailed） */
   onCancelText: () => void
+  /** 回复失败态：用当前 messages（末条为用户气泡）重发，成功只追加教练回复、绝不再追加用户气泡 */
+  onRetryReply: () => void
+  /** 已进回复失败态的次数（≥2 换更强安抚文案），默认 1 */
+  replyFailAttempt?: number
   onWordTap: (word: string, content: string, index: number) => void
   onPolish: (content: string, index: number) => void
   onReopenPolish: () => void

@@ -22,6 +22,7 @@ import VoiceBar from './_components/VoiceBar'
 import PronounceCapturePopup from './_components/PronounceCapturePopup'
 import InlineTopProgress from './_components/InlineTopProgress'
 import TranscribeFailCard from './_components/TranscribeFailCard'
+import ReplyFailCard from './_components/ReplyFailCard'
 import TextInputBar from './_components/TextInputBar'
 import type { PracticeViewProps } from './types'
 
@@ -32,6 +33,7 @@ export default function PracticeMobile({
   onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
   onRetryTranscribe, onSubmitText, onCancelText,
+  onRetryReply, replyFailAttempt,
 }: PracticeViewProps): JSX.Element {
   // 用户气泡头像（共享缓存，无额外请求）；未上传/匿名时为 null，UserBubble 回退 OrbWarm
   const { account } = useAccount()
@@ -129,6 +131,8 @@ export default function PracticeMobile({
           </div>
         ) : phase === 'transcribeFailed' ? (
           <TranscribeFailCard onRetry={onRetryTranscribe} />
+        ) : phase === 'replyFailed' ? (
+          <ReplyFailCard onRetry={onRetryReply} attempt={replyFailAttempt} />
         ) : phase === 'textInput' ? (
           <TextInputBar onSubmit={onSubmitText} onCancel={onCancelText} />
         ) : (
