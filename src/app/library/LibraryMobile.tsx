@@ -36,7 +36,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -115,7 +115,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 relative z-10">
-            {view === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} />}
+            {view === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} onCountChange={onCorpusCountChange} />}
             {view === 'cards' && <CollectedCardsTab cards={cards} searchQuery={searchQuery} />}
             {view === 'words' && <SavedWordsTab searchQuery={searchQuery} />}
             {view === 'pron'  && <PronunciationTab searchQuery={searchQuery} />}

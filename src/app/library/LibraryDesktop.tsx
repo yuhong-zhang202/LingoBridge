@@ -48,7 +48,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -288,7 +288,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {/* 语料匹配 tab（对子展示 + 多选删语料）：自持数据/加载/空态；桌面多选删除工具栏 Portal 到右侧槽，
             删语料即解绑（绑定的 anki 卡 corpus_id 经 FK set null 退回题目分析）。 */}
-        {tab === 'stories' && <CorpusMatchesTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
+        {tab === 'stories' && <CorpusMatchesTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} onCountChange={onCorpusCountChange} />}
       </main>
 
       {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}

@@ -41,12 +41,15 @@ import type { AnkiCard } from '@/lib/anki/list'
  * onSelectingChange：通知外层（LibraryDesktop）选择模式变化，用于禁用同排的搜索图标。
  * searchQuery：桌面搜索词（防抖后）；移动端不传 → 恒不过滤。
  * onSearchCountsChange：上报实时（匹配数, 总数）供桌面 tab 胶囊显示「匹配/总数」；移动端不传。
+ * onCountChange：上报当前对子总数（pairs.length，不受搜索/待删影响），供素材库徽标（tab 胶囊 / 移动 hub）
+ *   即时回落 —— 删对子后本 tab 更新 pairs → 上报 → 徽标同步，无需刷新。桌面/移动都传。
  */
 interface Props {
   toolbarSlotRef?: React.RefObject<HTMLDivElement | null>
   onSelectingChange?: (selecting: boolean) => void
   searchQuery?: string
   onSearchCountsChange?: (counts: SearchCounts) => void
+  onCountChange?: (n: number) => void
 }
 
 /** 对子题面：Part2 展示 cue card 标题（更贴合该题问法），其余用题面本身。 */
@@ -70,7 +73,7 @@ function isBackReady(card: AnkiCard): boolean {
   return card.backKind === 'generated' || card.backKind === 'edited'
 }
 
-export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
+export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange, onCountChange }: Props) {
   // 点对子卡跳 /analysis（AI 分析页）走 navigate 当帧亮顶部进度条，消跳转白屏
   const { navigate } = useNav()
   const [pairs, setPairs] = useState<AnkiCard[]>([])
@@ -138,6 +141,12 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
   useEffect(() => {
     onSearchCountsChange?.({ matched: sel.visibleItems.length, total: sel.items.length - sel.pendingCount })
   }, [sel.visibleItems.length, sel.items.length, sel.pendingCount, onSearchCountsChange])
+
+  // 上报对子总数（pairs.length，与徽标 answered 口径一致，不随搜索/待删波动）供素材库徽标即时回落。
+  // 加载完 / 删除后 pairs 变化即触发，无需刷新。删除的 setPairs 已在真删成功后调用（fire-and-forget）。
+  useEffect(() => {
+    onCountChange?.(pairs.length)
+  }, [pairs.length, onCountChange])
 
   // Portal 落点在 LibraryDesktop 的 DOM 里，首帧 ref.current 尚未挂载；挂载后翻标志重渲染。移动端不传 ref → 恒 null → 无工具栏。
   const [slotReady, setSlotReady] = useState(false)

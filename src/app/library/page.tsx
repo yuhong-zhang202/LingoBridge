@@ -34,8 +34,9 @@ function codeToLabel(code: string): DimensionLabel | undefined {
 export default function LibraryPage() {
   const [stories, setStories]       = useState<MyStory[]>([])
   const [dueCount, setDueCount]     = useState(0)
-  // 当季对子数（corpusId 非空的卡）：从下方 anki「全部」拉取派生（无新增请求），供「语料匹配」tab / hub 计数。
-  // 语料匹配 tab 自身进入时另拉一次 answered 明细（见 CorpusMatchesTab），此处仅为 hub 概览数。
+  // 当季对子数（corpusId 非空且已答的卡）：首屏从下方 anki「全部」拉取派生（无新增请求）、与「语料匹配」tab
+  // 的 answered 口径一致，供 tab 胶囊 / hub 徽标显示。进过 tab 后由 CorpusMatchesTab 经 onCorpusCountChange
+  // 回上报最新 pairs.length（删对子即回落，无需刷新）；未进过 tab 则沿用此首屏派生值（hub 一进来即有数）。
   const [pairCount, setPairCount]   = useState(0)
 
   // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2 的【全部】
@@ -126,7 +127,10 @@ export default function LibraryPage() {
           fetchAnkiCards(2, 'all'),
         ])
         const all = [...p1, ...p2]                              // 全部可刷卡（part1+part2+part3 子卡）
-        setPairCount(all.filter(c => c.corpusId !== null).length) // 当季对子数（corpusId 非空）；part3 子卡恒无 corpus，自然排除
+        // 当季对子数（corpusId 非空 + 已答）：加 isAnswered 过滤复现 tab 的 scope='answered' 口径，两处徽标基数统一、
+        // 避免打开 tab 前后跳变（part3 子卡恒无 corpus，自然排除）。绑对子必先答题，正常不会有「有 corpus 却未答」的卡，
+        // 加此过滤仅为口径严格对齐、消除理论边界差异。
+        setPairCount(all.filter(c => c.corpusId !== null && c.isAnswered).length)
         const mains = all.filter(c => c.part !== 3)             // 待复习/样本口径仍只看主题卡（part3 是子卡，不单独计到期）
         const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义，口径不变）
         const now = Date.now()
@@ -147,7 +151,7 @@ export default function LibraryPage() {
       .catch((e: unknown) => console.error('[LibraryPage] 加载语料失败', e))
   }, [fetchStories])
 
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, pairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange: setPairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
 
   return (
     <>
