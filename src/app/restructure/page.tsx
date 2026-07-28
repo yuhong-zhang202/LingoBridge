@@ -19,7 +19,7 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpus, type CorpusBrief } from '@/lib/anki/cards-client'
+import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -242,7 +242,7 @@ function RestructureContent() {
   const handleConfirmSwapAnki = useCallback(async (): Promise<void> => {
     if (!qid || !ankiSwap) return
     setAnkiSwapping(true)
-    const ok = await swapAnkiCorpus(qid, ankiSwap.newStoryId)
+    const ok = await swapAnkiCorpusClient(qid, ankiSwap.newStoryId)
     setAnkiSwapping(false)
     setAnkiSwap(null)
     if (ok) { setAnkiSaveState('saved'); setAnkiToast('已换成新语料，正在重新生成') }

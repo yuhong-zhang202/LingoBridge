@@ -11,7 +11,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
-import { saveExtraction } from '@/lib/db/corpus'
+import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -19,7 +19,7 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpus, type CorpusBrief } from '@/lib/anki/cards-client'
+import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import type { FunnelResult, PartTab, MatchingViewProps } from './types'
@@ -49,6 +49,9 @@ function MatchingContent() {
   const [ankiGate, setAnkiGate] = useState(false)
   const [swap, setSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
   const [swapping, setSwapping] = useState(false)
+  // 本页会话语料（corpusId）的一句话概括：整理时已同源产出并写入 corpus.summary，此处按 id 拉出，
+  // 供 409 换语料弹窗把「新语料」显示成真概括而非中性占位（弹窗才会用到，但预拉一次免开窗时闪动）。
+  const [newCorpusSummary, setNewCorpusSummary] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   // 切换 Tab 时收起折叠
@@ -94,6 +97,17 @@ function MatchingContent() {
     })()
     return () => { cancelled = true; ac.abort() }
   }, [corpusId, retryKey, router])
+
+  // 拉本页会话语料的概括，填 409 换语料弹窗的「新语料」。失败静默降级为 null（弹窗回退中性占位），
+  // 绝不阻塞匹配主流程。语料实体已在整理步落库（含 summary），此处只读一次。
+  useEffect(() => {
+    if (!corpusId) return
+    let cancelled = false
+    getCorpusById(corpusId)
+      .then((c) => { if (!cancelled) setNewCorpusSummary(c?.summary ?? null) })
+      .catch((e: unknown) => console.warn('[MatchingPage] 拉语料概括失败，换语料弹窗走占位', e))
+    return () => { cancelled = true }
+  }, [corpusId])
 
   // 动态 Part 标签：只显示有结果的 Part
   const availableTabs = useMemo<PartTab[]>(() => {
@@ -214,7 +228,7 @@ function MatchingContent() {
   const handleConfirmSwap = async (): Promise<void> => {
     if (!swap || !corpusId) return
     setSwapping(true)
-    const ok = await swapAnkiCorpus(swap.questionId, corpusId)
+    const ok = await swapAnkiCorpusClient(swap.questionId, corpusId)
     setSwapping(false)
     if (ok) {
       setSavedIds((s) => new Set(s).add(swap.questionId))
@@ -272,12 +286,12 @@ function MatchingContent() {
       {quotaShown && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
       {/* 匿名点存题卡（401）：注册引导小模态；关闭回本页（匹配结果不丢） */}
       {ankiGate && <AnkiRegisterGate onClose={() => setAnkiGate(false)} />}
-      {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 本页会话语料，客户端无其概括 → summary null 走占位 */}
+      {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 本页会话语料，概括按 corpusId 预拉自 corpus.summary */}
       {swap && (
         <SwapCorpusDialog
           currentCorpus={swap.current}
-          // 匹配页拿不到新语料概括 → null 走弹窗内中性占位
-          newCorpus={{ id: corpusId, summary: null }}
+          // 新语料概括来自 corpus.summary（整理步产出）；拉取失败/空则 null，弹窗回退中性占位
+          newCorpus={{ id: corpusId, summary: newCorpusSummary }}
           swapping={swapping}
           onSwap={() => void handleConfirmSwap()}
           onKeepCurrent={() => { if (!swapping) setSwap(null) }}

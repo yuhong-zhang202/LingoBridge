@@ -91,12 +91,14 @@ export async function saveAnkiPair(questionId: string, corpusId: string): Promis
 }
 
 /**
- * 换语料：把某题的题卡改绑新语料（PUT /api/anki/cards/corpus，清旧答案 + 重排队生成）。
+ * 换语料【客户端】：把某题的题卡改绑新语料（PUT /api/anki/cards/corpus，清旧答案 + 重排队生成）。
+ * 命名带 Client 后缀，与服务端同名原子操作 `@/lib/db/anki-cards-server` 的 `swapAnkiCorpus`（返 cardId）区分，
+ * 避免两处同名混淆——本函数只发请求、收敛为 boolean 供调用方 toast。
  * @param  questionId  题目 id
  * @param  corpusId    新语料 id
  * @returns            是否成功（失败交调用方 toast 通用文案）
  */
-export async function swapAnkiCorpus(questionId: string, corpusId: string): Promise<boolean> {
+export async function swapAnkiCorpusClient(questionId: string, corpusId: string): Promise<boolean> {
   try {
     const res = await apiFetch('/api/anki/cards/corpus', { method: 'PUT', json: { questionId, corpusId } })
     return res.ok

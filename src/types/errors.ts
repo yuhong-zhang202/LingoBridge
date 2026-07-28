@@ -92,7 +92,12 @@ export function isAppError(e: unknown): e is AppError {
   return typeof e === 'object' && e !== null && 'code' in e && 'message' in e
 }
 
-/** 失败记账三键：全部取自供应商响应（错误码 / 状态描述 / 日志 ID），无用户录音文本、无 PII，落库安全。 */
+/**
+ * 失败记账三键：主用于 transcribe 供应商链路，三键取自供应商响应（错误码 / 状态描述 X-Api-Message / 日志 ID），
+ * 该链路无用户录音文本、无 PII。但本函数也被 practice/matching 等通用兜底 catch 复用，那里 error_message
+ * 来自任意 Error.message（截断落库），可能含未受控文本（SDK 内部报错、被 catch 的第三方异常描述等）——
+ * 故「无 PII」是 transcribe 供应商键的保证，不是本类型对所有调用点的普适保证。
+ */
 export type ErrorLogMeta = {
   error_code: string
   error_message?: string
@@ -101,8 +106,11 @@ export type ErrorLogMeta = {
 
 /**
  * 从 catch 到的错误萃取失败记账三键，供各 route 的 status:'error' 记账统一附带到 metadata。
- * 让成本看板一眼区分「并发超限 / 真故障」，并给运维留一个可回溯的日志 ID。三键均来自供应商响应头/结构，
- * 绝无用户内容：error_message 是供应商状态描述（如豆包 X-Api-Message）、非用户原文。
+ * 让成本看板一眼区分「并发超限 / 真故障」，并给运维留一个可回溯的日志 ID。
+ * 在 transcribe 供应商链路，三键均来自供应商响应头/结构、error_message 是供应商状态描述（如豆包 X-Api-Message）、
+ * 非用户原文，无 PII。注意：本函数也被 practice/matching 等【通用兜底 catch】复用，此时 error_message 直接取
+ * 任意 Error.message（截断 ≤200 字落库），内容不受控、可能含 SDK/第三方内部报错文本——非 transcribe 链路时
+ * 不应假设 error_message 一定无敏感信息。
  *   · error_code    = isAppError(e) ? e.code : 'unknown'（豆包把上游 X-Api-Status-Code 放进 AppError.code）
  *   · error_message = 错误 message，截断 ≤200 字防超长；无 message 则省略
  *   · logId         = AppError.cause.logId（豆包 X-Tt-Logid），可空则省略
