@@ -417,9 +417,9 @@ export default function DashboardPage() {
           <div className="text-[10px] text-v2-text-muted mt-3">
             注：暂不给「匿名→注册」转化率——需匹配匿名与注册的复杂口径，先给上面两个数供人工对照。
           </div>
-          {/* 参与度趋势（活跃 + 场次双线）并入本组 */}
+          {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
           <div className="mt-4">
-            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 活跃人数 + 练习场次</div>
+            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 活跃人数 + 练习场次 + 新增注册</div>
             {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
               ? <EngagementTrendChart data={data.engagementTrend} />
               : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}

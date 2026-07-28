@@ -257,6 +257,42 @@ async function fetchRegistration(
   }
 }
 
+// 每日真注册数 RPC（0044_daily_registrations）返回行：reg_day 为东八区注册日（PostgREST 对 date 列回
+// 'YYYY-MM-DD' 串），cnt 为当日真注册数；只含窗口内【有注册的天】，没注册的天不返回、由 route 补 0。
+type DailyRegRow = { reg_day: string; cnt: number | string }
+
+/**
+ * 调 get_daily_registrations RPC 取窗口内每日【真注册】数，转成「日桶键→当日注册数」映射，
+ * 键格式与下方 dayBuckets / dailyData 日期轴一致（`年-月(0基)-日`），供每日参与度趋势并入第三条线「新增注册」。
+ * 口径权威源 auth.users（非 profiles——含匿名各一行会虚高）。
+ * 迁移 0044 未跑 / RPC 出错时【优雅降级】返回 null，调用方据此让该线整条置 null、前端不渲染
+ *（不画一条全 0 / 断裂的线误导），绝不让整个看板 500。降级风格与 fetchRegistration 一致。
+ * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
+ * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
+ * @returns           「日桶键→当日真注册数」映射；不可用时 null
+ */
+async function fetchDailyRegistrations(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  windowDays: number,
+): Promise<Map<string, number> | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_daily_registrations', { p_window_days: windowDays })
+    if (error) return null
+    const rows = (Array.isArray(data) ? data : []) as DailyRegRow[]
+    const map = new Map<string, number>()
+    for (const row of rows) {
+      // reg_day 是 date 类型（PostgREST 回 'YYYY-MM-DD'）→ 日桶键 `年-月(0基)-日`，与 dayBuckets 的 key 口径对齐。
+      // 取前 10 字符再拆，防个别环境回带时间的串（如 'YYYY-MM-DDT..'）把日拆成 NaN 而静默丢数据。
+      const [y, m, d] = row.reg_day.slice(0, 10).split('-').map(Number)
+      if (!y || !m || !d) continue
+      map.set(`${y}-${m - 1}-${d}`, Number(row.cnt))
+    }
+    return map
+  } catch {
+    return null
+  }
+}
+
 /**
  * 这条失败是不是「系统故障」（用于错误率口径）。
  *
@@ -324,7 +360,7 @@ function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
  * @param req  GET 请求，支持 ?range=7d|14d|30d
  * @returns    Tier1 今日经营（活跃注册/匿名会话数/练习新练复练/故障按环节/空录音/新增注册）、
  *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
- *             每日费用趋势 + 每日参与度趋势（活跃+场次）、每日失败次数、各环节耗时（分布 + 趋势）、
+ *             每日费用趋势 + 每日参与度趋势（活跃+场次+新增注册）、每日失败次数、各环节耗时（分布 + 趋势）、
  *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；注册用户留存（D1/D7 池化，get_retention_stats RPC，
  *             迁移未跑时优雅降级 null）；假空率本轮为 pending 占位
  */
@@ -349,6 +385,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 留存 / 真注册两个 RPC 与下方 10 条查询并发跑（独立于 Promise.all，自带降级、绝不 reject 拖垮主看板）。
     const retentionPromise    = fetchRetention(supabase, rangeDays)
     const registrationPromise = fetchRegistration(supabase, rangeDays)
+    // 每日新增注册（趋势图第三条线）：与主查询并发、自带降级；null = 迁移 0044 未跑/出错，前端不渲染该线。
+    const dailyRegPromise     = fetchDailyRegistrations(supabase, rangeDays)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -647,10 +685,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
     const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
 
-    // ── 每日参与度趋势（活跃人数 + 练习场次，与 dailyData 同一日期轴）──
-    // 活跃人数：每天在 api_usage_logs 里【去重的注册 user_id】数（与北极星「今日活跃·注册」同口径，
+    // ── 每日参与度趋势（活跃人数 + 练习场次 + 新增注册，与 dailyData 同一日期轴）──
+    // 活跃人数：每天在 api_usage_logs 里【去重的注册 user_id】数（与北极星「今日活跃·注册」同口径,
     //   刻意只数注册、不掺匿名——掺进来会与「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃）。
     // 练习场次：每天 practice_sessions 计数（新练+复练合计）。
+    // 新增注册：每天真注册数（get_daily_registrations RPC，0044；口径 = auth.users 非匿名·有邮箱）。
+    //   dailyReg 为 null（迁移未跑/RPC 出错）时该字段整条置 null，前端不渲染这条线（不画全 0 线误导）。
     const activeUsersByDay = new Map<string, Set<string>>()
     for (const row of rngRows) {
       if (row.is_anonymous !== false || row.user_id == null) continue   // 只计注册（is_anonymous=false）且能归属的行
@@ -664,10 +704,13 @@ export async function GET(req: Request): Promise<NextResponse> {
       const key = hkDayKey(row.created_at)
       practiceByDay.set(key, (practiceByDay.get(key) ?? 0) + 1)
     }
+    // 每日新增注册映射（RPC 并发结果）：null = 迁移未跑/出错，下方 newReg 整条置 null，前端降级不画该线。
+    const dailyReg = await dailyRegPromise
     const engagementTrend = dayBuckets.map(({ key, date }) => ({
       date,
       activeUsers:      activeUsersByDay.get(key)?.size ?? 0,
       practiceSessions: practiceByDay.get(key) ?? 0,
+      newReg:           dailyReg ? (dailyReg.get(key) ?? 0) : null,
     }))
 
     // ── 各环节耗时（分布 + 趋势）──
@@ -786,7 +829,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       loggedInCost:  r2(loggedInCost),
       dailyData,
       dailyFailures,
-      // Tier2 每日参与度趋势（活跃人数 + 练习场次），所选区间口径
+      // Tier2 每日参与度趋势（活跃人数 + 练习场次 + 新增注册），所选区间口径。
+      // 每项 newReg = 当日真注册数（0044 RPC）；整条 newReg 为 null 即降级态，前端不渲染这条线。
       engagementTrend,
       // Tier2 留存：get_retention_stats RPC（0043）算注册用户 D1/D7 池化留存 + 样本量。
       retention,
