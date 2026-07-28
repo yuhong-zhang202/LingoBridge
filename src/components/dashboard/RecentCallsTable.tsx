@@ -13,6 +13,7 @@
  */
 import { useState } from 'react'
 import { formatCny } from '@/lib/format-cost'
+import { classifyErrorKindFromLog } from '@/types/errors'
 
 type Log = { id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
@@ -89,26 +90,58 @@ function phaseName(log: Log): string {
 }
 
 /**
- * 失败「错误类型」四分类统一中文（与 error_kind 四分类一一对应；老数据诚实标未记录、不瞎猜）：
- *   · error_kind='user_input'→ 空录音（空录音 / 静音等用户输入问题、非故障）
- *   · error_kind='capacity'  → 容量繁忙（豆包并发超限、人多稍等、非故障）
- *   · error_kind='network'   → 网络中断（ECONNRESET / aborted 等客户端网络重置、非后端故障）
- *   · 无上述 kind 但有 error_code（真失败，记账三键已落）→ 系统故障（不再按 service 分「转写失败」，
- *     ECONNRESET/静音已分别归 network/user_input，落到这里的豆包失败就是真故障，统一标「系统故障」）
- *   · 无 error_code（埋点前老数据，无法归因）→ —（原因未记录）
+ * 失败「错误类型」四分类统一中文（用【有效kind】：存了 error_kind 就用存的，没存则按落库
+ * error_code/error_message 用 classifyErrorKindFromLog 重算 —— 与看板 route 的 effectiveErrorKind 同源同口径）。
+ * 老失败行（分类上线前记的）有 code 无 kind，重算后归对类，不再一律错标「系统故障」：
+ *   · 有效kind='user_input'→ 空录音（空录音 / 静音等用户输入问题、非故障；含老 20000003 / no valid speech）
+ *   · 有效kind='capacity'  → 容量繁忙（豆包并发超限、人多稍等、非故障）
+ *   · 有效kind='network'   → 网络中断（ECONNRESET / aborted 等客户端网络重置、非后端故障；含老 ECONNRESET）
+ *   · 重算仍为 null 但有 error_code/error_message（真失败、记账三键已落）→ 系统故障（唯一告警项）
+ *   · 既无有效kind 又无 code/message（埋点前更老数据，无法归因）→ —（原因未记录，诚实兜底、不瞎猜）
  * 前三类走非告警淡色，只有系统故障才亮告警红——一眼区分「该紧张 vs 不用紧张」。
  * @param log  失败行
  */
 function failureType(log: Log): { text: string; tone: 'info' | 'warn' | 'error' | 'muted' } {
-  const kind = log.metadata?.error_kind
+  const kind = log.metadata?.error_kind ?? classifyErrorKindFromLog(log.metadata?.error_code, log.metadata?.error_message)
   if (kind === 'user_input') return { text: '空录音', tone: 'warn' }
   if (kind === 'capacity')   return { text: '容量繁忙', tone: 'info' }
   if (kind === 'network')    return { text: '网络中断', tone: 'info' }
-  // error_code 存在 = 新链路已记账（即便是裸 Error 的 'unknown' 也算「有记录的真失败」）；缺失 = 埋点前老数据。
-  if (log.metadata?.error_code !== undefined) {
+  // 重算仍无 kind：有 code/message = 真失败（即便裸 Error 的 'unknown' 也算「有记录」）→ 系统故障；全无 = 更老数据。
+  if (log.metadata?.error_code !== undefined || log.metadata?.error_message !== undefined) {
     return { text: '系统故障', tone: 'error' }
   }
   return { text: '— 原因未记录', tone: 'muted' }
+}
+
+/**
+ * 失败「错误原因」人话（中文主字）：把供应商生代码/生 message 翻成一句人能读懂的原因，
+ * 生代码退成更淡更小的技术副字（不丢信息）。判定顺序即优先级，与四分类共用同一批语义信号但更细
+ * （如 network 内部再分「连接重置」/「请求被中止」）。
+ *   · EMPTY_TRANSCRIPT                         → 没听清（空录音）
+ *   · 20000003 / no valid speech / silence     → 没采集到清晰人声（静音/空录音）
+ *   · 45000292 / ASR_BUSY                       → 并发繁忙（人多稍等）
+ *   · This operation was aborted（coach 等）    → 请求被中止（超时或网络中断）
+ *   · ECONNRESET / ECONNABORTED / 含 aborted    → 网络连接被重置（多为客户端网络不稳或上传中断）
+ *   · 其余但有 error_code（真·系统故障）        → 服务端/供应商报错（生 code 见下方副字）
+ *   · 命不中（无 code/message 可依）            → null（调用处退回原生串显示，别丢信息）
+ * @param log  失败行
+ * @returns    人话原因；无从翻译时 null
+ */
+function humanReason(log: Log): string | null {
+  const code = log.metadata?.error_code
+  const msg  = (log.metadata?.error_message ?? '').toLowerCase()
+  if (code === 'EMPTY_TRANSCRIPT') return '没听清（空录音）'
+  if (code === '20000003' || msg.includes('no valid speech') || msg.includes('silence audio')) {
+    return '没采集到清晰人声（静音/空录音）'
+  }
+  if (code === '45000292' || code === 'ASR_BUSY') return '并发繁忙（人多稍等）'
+  if (msg.includes('this operation was aborted')) return '请求被中止（超时或网络中断）'
+  if (code === 'ECONNRESET' || code === 'ECONNABORTED' || msg.includes('aborted')) {
+    return '网络连接被重置（多为客户端网络不稳或上传中断）'
+  }
+  // 其余有 code 的真失败给通用人话（'unknown' 无实义、不当人话主字）；彻底无从依据则退回原生串
+  if (code !== undefined && code !== 'unknown') return '服务端/供应商报错'
+  return null
 }
 /** 错误类型徽标：明确分类 chip（一眼分排队 / 空录音 / 真失败 / 未记录） */
 function TypeChip({ log }: { log: Log }) {
@@ -180,10 +213,13 @@ export default function RecentCallsTable({
                 return (
                   <tr key={log.id} className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
                     <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{phaseName(log)}</td>
-                    {/* 错误类型：明确中文分类 chip 领头（排队 / 空录音 / 转写失败 / 未记录），
-                        error_code + 供应商 message 退成技术副字（hover title 看全文），一眼分「排队 vs 真失败」 */}
+                    {/* 错误类型：分类 chip 领头 → 人话原因（主字，中文一句看懂）→ error_code + 供应商 message
+                        退成更淡更小的技术副字（hover title 看全文），一眼分「排队 vs 真失败」+ 知道到底出了啥 */}
                     <td className="px-3 py-2" title={log.metadata?.error_message ?? undefined}>
                       <TypeChip log={log} />
+                      {humanReason(log) && (
+                        <div className="text-[10px] text-v2-text-secondary mt-0.5">{humanReason(log)}</div>
+                      )}
                       {log.metadata?.error_code !== undefined && log.metadata.error_code !== 'unknown' && (
                         <div className="text-[9px] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
                           {log.metadata.error_code}

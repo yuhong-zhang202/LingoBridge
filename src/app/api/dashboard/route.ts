@@ -10,6 +10,7 @@ import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY, ERROR_KIND_NETWORK } from '@/lib/constants'
+import { classifyErrorKindFromLog } from '@/types/errors'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -356,13 +357,28 @@ async function fetchActiveRegistered(
  *     连接被掐断不是后端故障；用户关页/切网本会产生，混进错误率同样污染真实故障信号。
  * 只有【错误率】这一个口径按此过滤；失败成本 / 按环节 errorCost 一律照旧全量统计 error 行
  * （钱确实花了，产品方拍板：从错误率摘出、留在失败成本里）。
- * 历史行没有该键 → 归为系统故障，口径变化不追溯改写历史数据。
- * @param row  日志行（只用到 status 与 metadata.error_kind）
+ * 归因取【有效kind】而非只看 error_kind 键（见 effectiveErrorKind）：error_kind 只对分类上线后的
+ * 新失败生效，分类上线前的老失败行有 error_code/error_message 但无 error_kind，只看键会全掉进「系统故障」
+ * 兜底被错标（老 ECONNRESET 本是网络中断、老 20000003 本是空录音）；重算把它们摘回正确类、故障数变准。
+ * 只有既无 kind 又无 code/message 的更老数据才真落系统故障（诚实兜底），口径变化不追溯改写历史数据。
+ * @param row  日志行（用到 status、metadata.error_kind、以及重算所需的 error_code/error_message）
  */
 function isSystemError(row: { status: string; metadata: LogMeta }): boolean {
-  const kind = row.metadata?.error_kind
+  const kind = effectiveErrorKind(row.metadata)
   return row.status === 'error'
     && kind !== ERROR_KIND_USER_INPUT && kind !== ERROR_KIND_CAPACITY && kind !== ERROR_KIND_NETWORK
+}
+
+/**
+ * 一行失败的【有效归因 kind】：存了 metadata.error_kind 就用存的（新失败记账时已定），没存则按落库的
+ * error_code/error_message 用 classifyErrorKindFromLog 重算（老失败行归对类，见 isSystemError 说明）。
+ * 既无 kind 又重算不出（无 code/message 的更老数据）时返回 null → 调用处按「系统故障 / 未记录」兜底。
+ * 与 RecentCallsTable 失败明细表的展示口径同源，保证「看板计数」与「明细逐行分类」永远一致。
+ * @param meta  日志行 metadata（用到 error_kind / error_code / error_message）
+ * @returns     有效四分类之一（string kind | null）
+ */
+function effectiveErrorKind(meta: LogMeta): string | null {
+  return meta?.error_kind ?? classifyErrorKindFromLog(meta?.error_code, meta?.error_message)
 }
 
 /** 豆包 ASR 是唯一「只做语音转写」的 service：无 phase 的豆包行 100% 是埋点前的转写调用（非某个未知环节）。 */
