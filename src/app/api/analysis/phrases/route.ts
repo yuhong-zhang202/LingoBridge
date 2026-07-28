@@ -14,7 +14,7 @@ import { getQuestionById } from '@/lib/db/questions'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
-import { errorLogMeta } from '@/types/errors'
+import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
@@ -93,7 +93,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值 'phrases'），避免空 metadata 掉进看板 other 桶、辨不出环节。
     // 此处只接 AI/系统故障（缺 questionId、题目不存在在前面已 400/404 早退），故不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'phrases', ...errorLogMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'phrases', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[phrases API]', e)
     return NextResponse.json({ error: '生成词组失败' }, { status: 500 })
   }

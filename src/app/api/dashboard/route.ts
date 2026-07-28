@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
-import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY } from '@/lib/constants'
+import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY, ERROR_KIND_NETWORK } from '@/lib/constants'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -207,6 +207,8 @@ type RecentRow = {
  *   · 用户输入问题 —— metadata.error_kind='user_input'（如没有人声的空录音）。服务本身是好的。
  *   · 容量繁忙 —— metadata.error_kind='capacity'（豆包并发超限 45000292，对用户返回 503 ASR_BUSY）。
  *     「人多稍等」不是故障；高峰期排队本会大量产生，混进错误率会把真实故障信号淹成一片红。
+ *   · 网络中断 —— metadata.error_kind='network'（ECONNRESET / aborted 等客户端网络重置/请求中断）。
+ *     连接被掐断不是后端故障；用户关页/切网本会产生，混进错误率同样污染真实故障信号。
  * 只有【错误率】这一个口径按此过滤；失败成本 / 按环节 errorCost 一律照旧全量统计 error 行
  * （钱确实花了，产品方拍板：从错误率摘出、留在失败成本里）。
  * 历史行没有该键 → 归为系统故障，口径变化不追溯改写历史数据。
@@ -214,7 +216,8 @@ type RecentRow = {
  */
 function isSystemError(row: { status: string; metadata: LogMeta }): boolean {
   const kind = row.metadata?.error_kind
-  return row.status === 'error' && kind !== ERROR_KIND_USER_INPUT && kind !== ERROR_KIND_CAPACITY
+  return row.status === 'error'
+    && kind !== ERROR_KIND_USER_INPUT && kind !== ERROR_KIND_CAPACITY && kind !== ERROR_KIND_NETWORK
 }
 
 /** 豆包 ASR 是唯一「只做语音转写」的 service：无 phase 的豆包行 100% 是埋点前的转写调用（非某个未知环节）。 */

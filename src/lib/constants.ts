@@ -208,6 +208,13 @@ export const ERROR_KIND_USER_INPUT = 'user_input'
  * 免得高峰期排队把真实故障信号污染成一片红。看板 isSystemError 据此从错误率摘出。
  */
 export const ERROR_KIND_CAPACITY = 'capacity'
+/**
+ * 网络中断（客户端网络重置 / 请求被中断）：ECONNRESET、ECONNABORTED、AbortError、message 含 'aborted' 等。
+ * 服务本身是好的，是客户端与服务端之间的连接被掐断（用户关页/切网/上游 abort），不是后端故障。
+ * 与 user_input / capacity 同层——计入失败成本，但不计入系统错误率，免得客户端网络抖动污染真实故障信号。
+ * 看板 isSystemError 据此从错误率摘出、失败明细单列「网络中断」，与「系统故障」的告警红区分开。
+ */
+export const ERROR_KIND_NETWORK = 'network'
 
 /** 维度 id → 中文显示标签 */
 export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {

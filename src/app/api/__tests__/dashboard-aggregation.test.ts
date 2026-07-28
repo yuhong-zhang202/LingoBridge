@@ -302,6 +302,35 @@ describe('GET /api/dashboard · 聚合口径', () => {
     expect(body.phaseTotals.find((p: { phase: string }) => p.phase === 'other')).toBeUndefined()
   })
 
+  test('容量繁忙 / 网络中断不计入错误率，但仍计入失败成本', async () => {
+    // 5 次调用：2 成功、1 系统故障（¥0.3）、1 容量繁忙（capacity，¥0.6）、1 网络中断（network，¥0.4）。
+    // 期望：错误率只认那 1 次系统故障（1/5 = 20%，不是把 capacity/network 也算进去的 3/5=60%）；
+    //       失败成本三笔 error 全算（0.3 + 0.6 + 0.4 = 1.3，钱都花了）。
+    const rangeRows = [
+      { service: 'qwen_plus', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach' } },
+      { service: 'qwen_plus', estimated_cost_cny: 0.5, latency_ms: 100, status: 'success',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach' } },
+      { service: 'qwen_plus', estimated_cost_cny: 0.3, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach' } },
+      { service: 'doubao_asr', estimated_cost_cny: 0.6, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'transcribe', error_kind: 'capacity' } },
+      { service: 'qwen_plus', estimated_cost_cny: 0.4, latency_ms: 10, status: 'error',
+        created_at: '2026-07-18T01:00:00Z', metadata: { phase: 'coach', error_kind: 'network' } },
+    ]
+    wireSupabase({ range: rangeRows })
+    const res = await GET(new Request('http://localhost/api/dashboard?range=7d'))
+    const body = await res.json()
+    // 错误率只数系统故障：1/5 = 20%
+    expect(body.errorRate).toBe(20)
+    // 失败成本全量三笔 error
+    expect(body.failedCost).toBe(1.3)
+    // coach 环节：4 次调用、只 1 次系统故障（network 那条不算）、errorCost 含 network 那笔
+    const coach = body.phaseTotals.find((p: { phase: string }) => p.phase === 'coach')
+    expect(coach.errors).toBe(1)
+    expect(coach.errorCost).toBe(0.7)
+  })
+
   test('历史数据不追溯：无 error_kind 的老 error 行一律按系统故障计', async () => {
     const rangeRows = [
       { service: 'doubao_asr', estimated_cost_cny: 0, latency_ms: 10, status: 'error',

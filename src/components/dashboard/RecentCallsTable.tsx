@@ -52,7 +52,7 @@ function SourceTag({ src }: { src?: string }) {
 // 最近/最贵视图列序（含成功行，故保留「状态」）。失败视图列序独立、见 FAILED_COLS。
 const BASE_COLS = ['时间', '服务', '接口', '用量', '费用', '延迟', '状态']
 // 失败视图列序（pm 方案 §2.1 + 创始人「错误类型写清楚」）：环节提到最前、时间挪到最右，删状态/接口/用量；
-// 第二列「错误类型」= 明确中文分类（排队 / 空录音 / 转写失败 / 系统故障 / 未记录），error_code 退成技术副字。
+// 第二列「错误类型」= 四分类统一中文（空录音 / 容量繁忙 / 网络中断 / 系统故障 / 未记录），error_code 退成技术副字。
 const FAILED_COLS = ['环节', '错误类型', '服务', '延迟', '费用', '时间']
 const SHOW = 20
 type Mode = 'recent' | 'costly' | 'failed'
@@ -61,9 +61,10 @@ const MODE_LABEL: Record<Mode, string> = { recent: '最近', costly: '最贵', f
 const EMPTY_TEXT: Record<Mode, string> = {
   recent: '暂无调用记录', costly: '暂无调用记录', failed: '本期无失败调用',
 }
-// 错误类型分类的四种色调 → chip 样式：
-//   info（排队·人多，非故障）= 冷静绿；warn（空录音，用户输入）= 暖橙；
-//   error（真·转写/系统故障）= 红；muted（原因未记录，老数据）= 灰。
+// 错误类型分类的四种色调 → chip 样式（一眼分「该紧张 vs 不用紧张」）：
+//   info（容量繁忙 / 网络中断，非故障）= 冷静绿；warn（空录音，用户输入问题）= 暖橙；
+//   error（系统故障，唯一告警项）= 红；muted（原因未记录，埋点前老数据）= 灰。
+//   前三类（user_input / capacity / network）一律走淡色/非告警色，只有系统故障才亮告警红。
 const TYPE_TONE_CLASS: Record<'info' | 'warn' | 'error' | 'muted', string> = {
   info:  'bg-brand-accent/15 text-v2-text-secondary',
   warn:  'bg-warning/15 text-warning-text',
@@ -88,22 +89,24 @@ function phaseName(log: Log): string {
 }
 
 /**
- * 失败「错误类型」明确中文分类（创始人要求：标清排队 vs 真失败，老数据诚实标未记录、不瞎猜）：
- *   · error_kind='capacity'  → 排队·人多（豆包并发繁忙、非故障）
- *   · error_kind='user_input'→ 空录音（用户输入问题、非故障）
- *   · 无 kind 但有 error_code（新的真失败，记账三键已落）→ 豆包=转写失败 / 其余=系统故障
+ * 失败「错误类型」四分类统一中文（与 error_kind 四分类一一对应；老数据诚实标未记录、不瞎猜）：
+ *   · error_kind='user_input'→ 空录音（空录音 / 静音等用户输入问题、非故障）
+ *   · error_kind='capacity'  → 容量繁忙（豆包并发超限、人多稍等、非故障）
+ *   · error_kind='network'   → 网络中断（ECONNRESET / aborted 等客户端网络重置、非后端故障）
+ *   · 无上述 kind 但有 error_code（真失败，记账三键已落）→ 系统故障（不再按 service 分「转写失败」，
+ *     ECONNRESET/静音已分别归 network/user_input，落到这里的豆包失败就是真故障，统一标「系统故障」）
  *   · 无 error_code（埋点前老数据，无法归因）→ —（原因未记录）
+ * 前三类走非告警淡色，只有系统故障才亮告警红——一眼区分「该紧张 vs 不用紧张」。
  * @param log  失败行
  */
 function failureType(log: Log): { text: string; tone: 'info' | 'warn' | 'error' | 'muted' } {
   const kind = log.metadata?.error_kind
-  if (kind === 'capacity')   return { text: '排队·人多', tone: 'info' }
   if (kind === 'user_input') return { text: '空录音', tone: 'warn' }
+  if (kind === 'capacity')   return { text: '容量繁忙', tone: 'info' }
+  if (kind === 'network')    return { text: '网络中断', tone: 'info' }
   // error_code 存在 = 新链路已记账（即便是裸 Error 的 'unknown' 也算「有记录的真失败」）；缺失 = 埋点前老数据。
   if (log.metadata?.error_code !== undefined) {
-    return log.service === 'doubao_asr'
-      ? { text: '转写失败', tone: 'error' }
-      : { text: '系统故障', tone: 'error' }
+    return { text: '系统故障', tone: 'error' }
   }
   return { text: '— 原因未记录', tone: 'muted' }
 }

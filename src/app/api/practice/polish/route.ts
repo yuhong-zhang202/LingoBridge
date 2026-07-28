@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
-import { errorLogMeta } from '@/types/errors'
+import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
@@ -55,8 +55,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值 'polish'），避免空 metadata 掉进看板 other 桶、辨不出环节。
-    // 此处只接 AI/系统故障（sentence 空/超长在前面已 400 早退），故不补 error_kind（缺键即系统故障）。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'polish', ...errorLogMeta(e) } })
+    // 再经 errorKindMeta 做四分类归因：命中 network（到千问 ECONNRESET/aborted）等则摘出、非系统故障；
+    // 其余（缺键）按系统故障计入错误率。sentence 空/超长在前面已 400 早退、不进本分支。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'polish', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[polish API]', e)
     return NextResponse.json({ error: '优化失败' }, { status: 500 })
   }

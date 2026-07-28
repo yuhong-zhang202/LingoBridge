@@ -5,10 +5,82 @@
  * @created  2026-06-03
  */
 
+import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY, ERROR_KIND_NETWORK } from '@/lib/constants'
+
 export type AppError = {
   code: string
   message: string
   cause?: unknown
+}
+
+/** 失败归因四分类的取值（= metadata.error_kind；null = 系统故障，唯一计入系统错误率的一类） */
+export type ErrorKind =
+  | typeof ERROR_KIND_USER_INPUT
+  | typeof ERROR_KIND_CAPACITY
+  | typeof ERROR_KIND_NETWORK
+  | null
+
+/** 豆包「无有效人声 / 静音」错误码（用户录了没法处理的输入，服务本身是好的）。 */
+const DOUBAO_SILENCE_CODE = '20000003'
+/** 豆包并发超限错误码（transcription 层把上游 X-Api-Status-Code 原样放进 AppError.code）。 */
+const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
+
+/**
+ * 失败归因分类器：把 catch 到的未知错误归入四类之一，集中编码判定规则，供各 route 的
+ * status:'error' 记账统一调用（DRY——判定只此一处，别在每个 route 复制粘贴）。
+ * 返回值即 metadata.error_kind 的取值；null = 系统故障（供应商 5xx / 意外异常），是唯一
+ * 计入系统错误率、需要警觉的一类。其余三类计入失败成本、但从错误率摘出（见 constants ERROR_KIND_* 注释）。
+ *
+ * 判定容错：错误码从 AppError.code / e.code / e.cause.code 三处任取，message 与 name 也都试，任一命中即归类。
+ *   · user_input：AppError 'EMPTY_TRANSCRIPT'，或豆包码 20000003，或 message 含 'no valid speech' / 'silence audio'；
+ *   · capacity  ：豆包并发超限码 45000292，或 AppError 'ASR_BUSY'（沿用 transcribe 原 isCapacityError 语义）；
+ *   · network   ：错误码 ∈ {ECONNRESET, ECONNABORTED}，或 name === 'AbortError'，或 message 含 'aborted'
+ *                （涵盖 'This operation was aborted'）——客户端网络重置 / 请求中断，非后端故障；
+ *   · null      ：其余，真·系统故障。
+ * 判定顺序即优先级：user_input → capacity → network → 系统故障。
+ * @param e  catch 到的未知错误
+ * @returns  四分类之一（'user_input' | 'capacity' | 'network' | null）
+ */
+export function classifyErrorKind(e: unknown): ErrorKind {
+  const code = String(
+    (isAppError(e) ? e.code : undefined)
+      ?? (e as { code?: unknown } | null)?.code
+      ?? (e as { cause?: { code?: unknown } } | null)?.cause?.code
+      ?? '',
+  )
+  const message = String((e as { message?: unknown } | null)?.message ?? '').toLowerCase()
+  const name = String((e as { name?: unknown } | null)?.name ?? '')
+
+  // ① 用户输入：空录音 / 静音（服务好、这份输入没法处理）
+  if (code === 'EMPTY_TRANSCRIPT' || code === DOUBAO_SILENCE_CODE
+    || message.includes('no valid speech') || message.includes('silence audio')) {
+    return ERROR_KIND_USER_INPUT
+  }
+  // ② 容量繁忙：豆包并发超限 / ASR_BUSY（人多稍等、非故障）
+  if (code === DOUBAO_CONCURRENCY_LIMIT_CODE || code === 'ASR_BUSY') {
+    return ERROR_KIND_CAPACITY
+  }
+  // ③ 网络中断：连接重置 / 请求被中断（客户端网络问题、非后端故障）
+  if (code === 'ECONNRESET' || code === 'ECONNABORTED'
+    || name === 'AbortError' || message.includes('aborted')) {
+    return ERROR_KIND_NETWORK
+  }
+  // ④ 其余：真·系统故障（缺键即系统故障，看板据此计入错误率）
+  return null
+}
+
+/**
+ * 失败归因 error_kind 的 metadata 片段（各 route 的 status:'error' 记账统一 `...errorKindMeta(e)`）：
+ * 命中四分类前三类（user_input / capacity / network）→ { error_kind: '<kind>' }；
+ * 系统故障（classifyErrorKind 返回 null）→ {}（不写键）。
+ * 「缺键 = 系统故障」是全看板既定口径（见 constants ERROR_KIND_* 注释 + dashboard isSystemError）：
+ * 刻意不写 null 键，让新系统故障行与埋点前无键的历史行同形、metadata 保持干净。
+ * @param e  catch 到的未知错误
+ * @returns  metadata 片段（命中前三类才含 error_kind 键，否则为空对象）
+ */
+export function errorKindMeta(e: unknown): { error_kind?: string } {
+  const kind = classifyErrorKind(e)
+  return kind === null ? {} : { error_kind: kind }
 }
 
 /**

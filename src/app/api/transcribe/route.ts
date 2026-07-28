@@ -13,12 +13,9 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
-import {
-  ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT,
-  ERROR_KIND_KEY, ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY,
-} from '@/lib/constants'
+import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
-import { isAppError, errorLogMeta } from '@/types/errors'
+import { isAppError, errorLogMeta, errorKindMeta } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
@@ -181,12 +178,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     //   · 费用：钱确实花了（按真实时长记，与成功路径同一公式）——记 0 会让"失败成本"永远看不到这笔白烧；
     //   · 归因：打 error_kind=user_input，成本看板据此把它排除在系统错误率之外，但仍计入失败成本。
     // 其余失败（转码报错 / 并发被拒 / 网络中断）豆包没跑完整趟，一律记 0，绝不拿音频时长虚增成本。
+    // 计费口径不变：仅 EMPTY_TRANSCRIPT（豆包完整处理整段音频、只是没识别出人声）按真实时长记，其余记 0。
     const isUserInputError = isAppError(e) && e.code === 'EMPTY_TRANSCRIPT'
-    // 并发超限（45000292）= 「人多稍等」，非系统故障：打 error_kind=capacity，让看板从错误率摘出（见 constants）。
-    const isCapacityError  = isAppError(e) && e.code === DOUBAO_CONCURRENCY_LIMIT_CODE
     const failedDurationS  = isUserInputError ? (billedDurationS ?? 0) : 0
-    // 失败归因 error_kind：空录音→user_input，并发超限→capacity，其余系统故障不打（缺键即系统故障）。
-    const errorKind = isUserInputError ? ERROR_KIND_USER_INPUT : isCapacityError ? ERROR_KIND_CAPACITY : null
     await logApiUsage({
       service: 'doubao_asr',
       endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash',
@@ -198,11 +192,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
       // phase 始终打（按环节归位；scene 已解析则为 transcribe_story/transcribe_practice，否则兜底 'transcribe'）；
       // error_code/error_message/logId 三键来自豆包响应、无用户内容；
-      // 再按情形叠 error_kind（user_input / capacity，均不计系统故障）。
+      // 再经 errorKindMeta 叠四分类归因（空录音/静音→user_input、并发超限→capacity、网络中断→network，
+      // 均不计系统故障；系统故障=缺键）。只影响归类，不碰上面 billedDurationS 计费与下方响应码/计次。
       metadata: {
         phase,
         ...errorLogMeta(e),
-        ...(errorKind ? { [ERROR_KIND_KEY]: errorKind } : {}),
+        ...errorKindMeta(e),
       },
     })
     logErr('[transcribe API]', e)

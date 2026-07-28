@@ -27,7 +27,7 @@ import { getCorpusByIdServer } from '@/lib/db/corpus-server'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { generateAnkiAnswer } from '@/lib/ai/anki-answer'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
-import { errorLogMeta } from '@/types/errors'
+import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import {
   ANKI_DRAIN_BATCH,
@@ -109,7 +109,7 @@ async function failJob(job: ClaimedJob, kind: FailureKind, err: string, t0: numb
     status: 'error',
     user_id: job.user_id,
     corpus_id: job.corpus_id ?? undefined,
-    metadata: { phase: 'anki_answer', kind, error: err.slice(0, 200), ...errorLogMeta(cause) },
+    metadata: { phase: 'anki_answer', kind, error: err.slice(0, 200), ...errorLogMeta(cause), ...errorKindMeta(cause) },
   })
 }
 

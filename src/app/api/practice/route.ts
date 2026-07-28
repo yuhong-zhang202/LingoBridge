@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
-import { errorLogMeta } from '@/types/errors'
+import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
@@ -100,8 +100,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     // 失败行补 phase：本 catch 包住 analysis（仅首轮建脚手架）+ coach（每轮）两步，从 catch 处无法判定
     // 挂在哪步，故用端点定义相 'coach'（每次请求必经、看板即「教练对话」）作兜底，好过空 metadata 掉进 other 桶。
-    // 此处只接 AI/系统故障（缺 questionId、额度超限在前面已 400/402 早退），故不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'coach', ...errorLogMeta(e) } })
+    // 再经 errorKindMeta 做四分类归因：命中 network（到千问 ECONNRESET/aborted、含教练 30s abort）等则摘出、
+    // 非系统故障；其余（缺键）按系统故障计入错误率。缺 questionId、额度超限在前面已 400/402 早退、不进本分支。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'coach', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[practice API]', e)
     return NextResponse.json({ error: '对话失败' }, { status: 500 })
   }
