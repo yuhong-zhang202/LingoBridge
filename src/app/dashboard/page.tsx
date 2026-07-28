@@ -45,6 +45,8 @@ type DashboardData = {
   todayFailuresByPhase: Array<{ phase: string; count: number }>
   todayFailuresTotal: number; emptyRecordingToday: number
   newRegistrationsToday: number
+  // true = 真注册 RPC 未接入、newRegistrationsToday 为 profiles 降级值（含匿名·虚高），卡上标注待迁移
+  newRegistrationsPending: boolean
   avgDailyCalls: number; p50Latency: number; p95Latency: number; errorRate: number; avgDailyCost: number
   failedCost: number; estimateRatio: number; dailyBudget: number
   serviceTotals: ServiceTotal[]
@@ -55,6 +57,9 @@ type DashboardData = {
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   dailyFailures: Array<{ date: string; failures: number }>
   engagementTrend: Array<{ date: string; activeUsers: number; practiceSessions: number }>
+  // 注册用户留存：null = 迁移未跑 / RPC 出错的降级态（前端显「待接入」）。
+  // rate 为 0-100 百分比（无成熟群组时 null，如 D7 现未满 7 天）；n 为该指标分母（成熟群组总人数）。
+  retention: { d1Rate: number | null; d1N: number; d7Rate: number | null; d7N: number } | null
   retentionPending: boolean
   fakeEmptyPending: boolean
   phaseLatency: PhaseLatency[]
@@ -247,7 +252,40 @@ function GrowthStat({ label, value, note }: { label: string; value: number; note
   )
 }
 
-/** 「下一步接入」空态占位（留存 / 假空率本轮未实现真数据，不硬编错数） */
+/**
+ * 单条留存指标的展示串：rate + 样本量 n（n 必显，避免小样本 100% 被误读）。
+ * rate=null（该指标无成熟群组，如 D7 现未满 7 天）→ 显未成熟提示而非 0%，避免误导。
+ * @param rate     0-100 百分比（1 位小数），null = 未成熟
+ * @param n        分母（成熟群组总人数）
+ * @param immature rate=null 时展示的未成熟说明
+ */
+function retentionText(rate: number | null, n: number, immature: string): string {
+  if (rate === null) return immature
+  return `${rate}% · n=${n}`
+}
+
+/**
+ * 留存卡（注册用户 D1/D7 池化留存）：复用 GrowthStat 的卡片样式，主区放 D1、副行放 D7。
+ * @param retention  route 返回的留存结构（此处已确保非 null；null 降级态在调用处走 PendingPlaceholder）
+ */
+function RetentionStat({ retention }: { retention: NonNullable<DashboardData['retention']> }) {
+  // D7 未成熟（rate=null 且现无成熟群组）：明确「07-29 起」而非笼统"暂无"，让人知道何时有数
+  const d7Immature = retention.d7N === 0 ? '需≥7天数据（07-29 起）' : '暂无'
+  return (
+    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
+      <div className="text-[11px] text-v2-text-muted mb-1">次日留存（D1）</div>
+      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">
+        {retentionText(retention.d1Rate, retention.d1N, '需≥1天数据')}
+      </div>
+      <div className="text-[11px] text-v2-text-secondary mt-2">
+        7日留存（D7）：<span className="tabular-nums">{retentionText(retention.d7Rate, retention.d7N, d7Immature)}</span>
+      </div>
+      <div className="text-[10px] text-v2-text-muted mt-1.5">只算注册用户 · 按首次活跃日分群 · 东八区</div>
+    </div>
+  )
+}
+
+/** 「下一步接入」空态占位（留存 RPC 未接入 / 假空率本轮未实现真数据，不硬编错数） */
 function PendingPlaceholder({ title, reason }: { title: string; reason: string }) {
   return (
     <div className="flex-1 min-w-[140px] bg-black/[0.02] rounded-[12px] border border-dashed border-black/[0.1] px-4 py-3">
@@ -362,12 +400,15 @@ export default function DashboardPage() {
         {/* A · 增长与参与（默认展开）：原「增长」+「参与度趋势」并组 */}
         <CollapsibleSection title="A · 增长与参与" subtitle="今日新增 · 活跃场次 · 留存（下一步）" defaultOpen>
           <div className="flex gap-2.5 flex-wrap">
-            <GrowthStat label="今日新增注册" value={data.newRegistrationsToday} note="profiles 今日 created_at 计数" />
+            <GrowthStat label="今日新增注册" value={data.newRegistrationsToday}
+              note={data.newRegistrationsPending
+                ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
+                : '只计真注册（非匿名·有邮箱），东八区'} />
             {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
             <GrowthStat label="今日匿名活跃" value={data.anonSessionsToday} note="去重身份 · 按设备持久 · 非唯一真人" />
-            {data.retentionPending && (
-              <PendingPlaceholder title="次日 / 7 日留存" reason="需 user_id 跨天配对，口径较重，本轮先占位。" />
-            )}
+            {data.retention
+              ? <RetentionStat retention={data.retention} />
+              : <PendingPlaceholder title="次日 / 7 日留存" reason="留存 RPC（get_retention_stats）尚未接入，待部署方跑迁移 0043 后自动显示真实数据。" />}
             {data.fakeEmptyPending && (
               <PendingPlaceholder title="假空率" reason="需读 flow_events 判断空录音真伪，本轮先占位。" />
             )}

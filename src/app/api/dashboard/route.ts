@@ -196,6 +196,67 @@ type RecentRow = {
   latency_ms: number; status: string; metadata: LogMeta
 }
 
+// 留存 RPC（0043_retention_stats）返回的单行形状：PostgREST 对 numeric 可能回字符串以保精度，故读取处 Number() 兜底。
+type RetentionRow = { d1_rate: number | string | null; d1_n: number; d7_rate: number | string | null; d7_n: number }
+/** 前端消费的留存结构：rate 为 0-100 百分比（无成熟群组时 null），n 为该指标分母（成熟群组总人数）。 */
+type RetentionStats = { d1Rate: number | null; d1N: number; d7Rate: number | null; d7N: number }
+
+/**
+ * 调 get_retention_stats RPC 取注册用户留存（D1/D7 池化率 + 样本量）。
+ * 迁移 0043 未跑 / RPC 出错时【优雅降级】返回 null（前端显「待接入」），绝不让整个看板 500。
+ * @param supabase       service_role 客户端（RPC 内 security definer 读 auth.users）
+ * @param windowDays     窗口天数（与看板 range 联动的 7/14/30）
+ * @returns              留存结构；不可用时 null
+ */
+async function fetchRetention(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  windowDays: number,
+): Promise<RetentionStats | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_retention_stats', { p_window_days: windowDays })
+    if (error) return null
+    const row = Array.isArray(data) ? (data[0] as RetentionRow | undefined) : (data as RetentionRow | null)
+    if (!row) return null
+    return {
+      d1Rate: row.d1_rate == null ? null : Number(row.d1_rate),
+      d1N:    row.d1_n,
+      d7Rate: row.d7_rate == null ? null : Number(row.d7_rate),
+      d7N:    row.d7_n,
+    }
+  } catch {
+    // supabase.rpc 缺失 / 网络异常等一律降级；留存是次要看板指标，不拖垮主看板。
+    return null
+  }
+}
+
+// 真注册统计 RPC（0043_retention_stats 的兄弟函数）返回的单行形状。
+type RegistrationRow = { today_count: number; window_count: number }
+/** 真注册数：今日 + 窗口内（口径 = auth.users 非匿名·有邮箱，非 profiles）。 */
+type RegistrationStats = { todayCount: number; windowCount: number }
+
+/**
+ * 调 get_registration_stats RPC 取【真注册】新增数（今日 + 窗口内）。
+ * 口径权威源 auth.users（非 profiles——profiles 含匿名各一行会把匿名算进注册、虚高）。
+ * 迁移 0043 未跑 / RPC 出错时返回 null，调用方回退 profiles 计数并在卡上标注「含匿名·待迁移生效」。
+ * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
+ * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
+ * @returns           真注册数；不可用时 null
+ */
+async function fetchRegistration(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  windowDays: number,
+): Promise<RegistrationStats | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_registration_stats', { p_window_days: windowDays })
+    if (error) return null
+    const row = Array.isArray(data) ? (data[0] as RegistrationRow | undefined) : (data as RegistrationRow | null)
+    if (!row) return null
+    return { todayCount: row.today_count, windowCount: row.window_count }
+  } catch {
+    return null
+  }
+}
+
 /**
  * 这条失败是不是「系统故障」（用于错误率口径）。
  *
@@ -264,7 +325,8 @@ function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
  * @returns    Tier1 今日经营（活跃注册/匿名会话数/练习新练复练/故障按环节/空录音/新增注册）、
  *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
  *             每日费用趋势 + 每日参与度趋势（活跃+场次）、每日失败次数、各环节耗时（分布 + 趋势）、
- *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；留存/假空率本轮为 pending 占位
+ *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；注册用户留存（D1/D7 池化，get_retention_stats RPC，
+ *             迁移未跑时优雅降级 null）；假空率本轮为 pending 占位
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -283,6 +345,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const monthStart     = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth(), 1)
     const lastMonthStart = hkDayStartUtc(nowHk.getUTCFullYear(), nowHk.getUTCMonth() - 1, 1)
     const rangeStartDate = new Date(todayStart.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000)
+
+    // 留存 / 真注册两个 RPC 与下方 10 条查询并发跑（独立于 Promise.all，自带降级、绝不 reject 拖垮主看板）。
+    const retentionPromise    = fetchRetention(supabase, rangeDays)
+    const registrationPromise = fetchRegistration(supabase, rangeDays)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -439,8 +505,13 @@ export async function GET(req: Request): Promise<NextResponse> {
     const todayFailuresTotal  = todayFailuresByPhase.reduce((s, p) => s + p.count, 0)
     const emptyRecordingToday = tdRows.filter(r => r.metadata?.error_kind === ERROR_KIND_USER_INPUT).length
 
-    // ── 今日新增注册（profiles 今日 created_at count）──
-    const newRegistrationsToday = profilesTdRows.length
+    // ── 今日新增注册（真注册口径优先）──
+    // 真注册 = auth.users 非匿名·有邮箱（get_registration_stats RPC）。原 profiles 计数把匿名也算进来、虚高
+    // （实测 7/28 profiles 13 / 真注册 3）。RPC 未接入（迁移未跑）时回退 profiles 计数并置 pending，
+    // 前端据此在卡上标注「含匿名·待迁移生效」，不静默显错数。
+    const registration = await registrationPromise
+    const newRegistrationsToday   = registration ? registration.todayCount : profilesTdRows.length
+    const newRegistrationsPending = registration === null
 
     // ── 迷你统计（基于 range 窗口） ──
     const successRows = rngRows.filter(r => r.status === 'success')
@@ -675,6 +746,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       calls: hourlyMap.get(h) ?? 0,
     }))
 
+    // 留存 RPC 结果（与主查询并发、自带降级）：null = 迁移未跑/出错，前端显降级态。
+    const retention = await retentionPromise
+
     return NextResponse.json({
       allTimeCost,
       allTimeCalls,
@@ -692,7 +766,11 @@ export async function GET(req: Request): Promise<NextResponse> {
       todayFailuresByPhase,
       todayFailuresTotal,
       emptyRecordingToday,
+      // 今日新增注册：真注册口径（RPC 可用时）；windowCount 供未来窗口口径用，本轮前端只渲染 today。
       newRegistrationsToday,
+      newRegistrationsWindow: registration?.windowCount ?? null,
+      // true = RPC 未接入、newRegistrationsToday 为 profiles 降级值（含匿名），前端卡标注「含匿名·待迁移生效」。
+      newRegistrationsPending,
       avgDailyCalls,
       p50Latency,
       p95Latency,
@@ -710,9 +788,12 @@ export async function GET(req: Request): Promise<NextResponse> {
       dailyFailures,
       // Tier2 每日参与度趋势（活跃人数 + 练习场次），所选区间口径
       engagementTrend,
-      // Tier2 留存 / 假空率：本轮只给占位。留存需 user_id 跨天配对、假空率需读 flow_events，
-      // 口径较重，先返回 pending 让前端做「下一步接入」空态，不硬编错数误导判断。
-      retentionPending: true,
+      // Tier2 留存：get_retention_stats RPC（0043）算注册用户 D1/D7 池化留存 + 样本量。
+      retention,
+      // retentionPending：留存 RPC 未接入的降级标记（现语义 = 迁移未跑/出错，而非「功能未实现」），
+      // 供前端降级判断与既有口径断言沿用。retention 有数即 false。
+      retentionPending: retention === null,
+      // 假空率仍为占位：需读 flow_events 判空录音真伪，口径较重，本轮不做。
       fakeEmptyPending: true,
       phaseLatency,
       latencyTrend,
