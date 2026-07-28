@@ -30,13 +30,14 @@ interface Props {
   onGrade: (remembered: boolean) => void
 }
 
-// 记忆进度圆点（box 1~5）
+// 记忆进度圆点（box 1~7，与 SRS 引擎 srs.ts MAX_BOX=7 对齐、与题卡 MemoryDots 一致；
+// 曾只画 5 点、box 6/7 无从体现，现补齐 7 点消除该档位坑）
 function Dots({ box }: { box: number }): JSX.Element {
   return (
     <div className="flex items-center justify-center gap-2 mt-[22px]">
       <span className="text-[11px] text-v2-text-muted">记忆进度</span>
       <span className="flex gap-[5px]">
-        {[1, 2, 3, 4, 5].map(i => (
+        {[1, 2, 3, 4, 5, 6, 7].map(i => (
           <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-warm-line'}`} />
         ))}
       </span>
