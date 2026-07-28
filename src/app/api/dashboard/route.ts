@@ -293,6 +293,44 @@ async function fetchDailyRegistrations(
   }
 }
 
+// 每日活跃注册数 RPC（0045_active_registered）返回行：day 为东八区活跃日（PostgREST 对 date 列回
+// 'YYYY-MM-DD' 串），cnt 为当日活跃注册去重数；只含窗口内【有活跃的天】，没活跃的天不返回、由 route 补 0。
+type DailyActiveRow = { day: string; cnt: number | string }
+
+/**
+ * 调 get_active_registered_stats RPC 取窗口内每日【活跃注册】去重数，转成「日桶键→当日活跃注册数」映射，
+ * 键格式与下方 dayBuckets / dailyData 日期轴一致（`年-月(0基)-日`）。供两处权威口径消费：
+ *   · 趋势图「活跃人数」线（每天取该映射值）；
+ *   · 北极星「今日活跃·注册」（route 从映射取当天键那格）。
+ * 口径权威源 auth.users（非 api_usage_logs.is_anonymous 标记——旧 stale JWT bug 会写错、失真）。
+ * 迁移 0045 未跑 / RPC 出错时【优雅降级】返回 null，调用方回退旧 is_anonymous 标记口径（不 500），
+ * 降级风格与 fetchDailyRegistrations 一致。
+ * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
+ * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
+ * @returns           「日桶键→当日活跃注册数」映射；不可用时 null
+ */
+async function fetchActiveRegistered(
+  supabase: ReturnType<typeof getSupabaseServer>,
+  windowDays: number,
+): Promise<Map<string, number> | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_active_registered_stats', { p_window_days: windowDays })
+    if (error) return null
+    const rows = (Array.isArray(data) ? data : []) as DailyActiveRow[]
+    const map = new Map<string, number>()
+    for (const row of rows) {
+      // day 是 date 类型（PostgREST 回 'YYYY-MM-DD'）→ 日桶键 `年-月(0基)-日`，与 dayBuckets 的 key 口径对齐。
+      // 取前 10 字符再拆，防个别环境回带时间的串把日拆成 NaN 而静默丢数据（同 fetchDailyRegistrations）。
+      const [y, m, d] = row.day.slice(0, 10).split('-').map(Number)
+      if (!y || !m || !d) continue
+      map.set(`${y}-${m - 1}-${d}`, Number(row.cnt))
+    }
+    return map
+  } catch {
+    return null
+  }
+}
+
 /**
  * 这条失败是不是「系统故障」（用于错误率口径）。
  *
@@ -387,6 +425,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const registrationPromise = fetchRegistration(supabase, rangeDays)
     // 每日新增注册（趋势图第三条线）：与主查询并发、自带降级；null = 迁移 0044 未跑/出错，前端不渲染该线。
     const dailyRegPromise     = fetchDailyRegistrations(supabase, rangeDays)
+    // 每日活跃注册（权威口径，供「今日活跃·注册」+ 趋势「活跃人数」线）：与主查询并发、自带降级；
+    // null = 迁移 0045 未跑/出错，两处回退旧 is_anonymous 标记口径（见下方消费处）。
+    const activeRegPromise    = fetchActiveRegistered(supabase, rangeDays)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -502,24 +543,36 @@ export async function GET(req: Request): Promise<NextResponse> {
     const todayCalls = tdRows.length
 
     // ── 今日活跃（注册）与匿名试用会话数 ──
-    // 复用「按用户成本」同款分类逻辑：先把今日每个 user_id 归成匿名 / 注册（同一 user_id 只要有一条
-    // is_anonymous=true 即整体标匿名），再各自去重计数。user_id 为空的行（老行/无归属）无法归到人，跳过。
-    //   · registeredActiveToday = COUNT(DISTINCT 非匿名 user_id) —— 北极星「今日活跃真人」。
+    // 先把今日每个 user_id 按 is_anonymous 标记归成匿名 / 注册（同一 user_id 只要有一条 is_anonymous=true
+    // 即整体标匿名），再各自去重计数。user_id 为空的行（老行/无归属）无法归到人，跳过。此处两个计数是：
     //   · anonSessionsToday    = COUNT(DISTINCT 匿名 user_id)   —— 是「去重身份」不是去重真人：
     //     匿名 user_id 按设备持久（同一设备重复访问仍是同一 id、会被去重），但同一真人换设备 / 清缓存会分到
     //     新 id，故它高估真人数（非唯一真人）、绝不与注册活跃相加。前端措辞据此写「去重身份·按设备持久·非唯一真人」。
+    //     匿名无权威表可依，维持此标记口径不变。
+    //   · registeredActiveFallback = COUNT(DISTINCT 非匿名 user_id) —— 仅作【降级兜底】：
+    //     注册活跃的权威值改由 0045 RPC（读 auth.users）算，见下方 registeredActiveToday。
+    //     旧口径靠 api_usage_logs.is_anonymous 标记，而该标记正是旧 stale JWT bug 会写错的不可靠字段。
     const todayUserAnon = new Map<string, boolean>()
     for (const row of tdRows) {
       if (row.user_id == null) continue
       const prev = todayUserAnon.get(row.user_id) ?? false
       todayUserAnon.set(row.user_id, prev || row.is_anonymous === true)
     }
-    let registeredActiveToday = 0
-    let anonSessionsToday      = 0
+    let registeredActiveFallback = 0
+    let anonSessionsToday        = 0
     for (const isAnon of todayUserAnon.values()) {
       if (isAnon) anonSessionsToday++
-      else        registeredActiveToday++
+      else        registeredActiveFallback++
     }
+    // 今日活跃·注册【权威口径优先】：get_active_registered_stats RPC（0045，读 auth.users）取当天格；
+    // RPC 缺失/出错（activeReg=null，迁移 0045 未跑）→ 回退上面按 is_anonymous 标记去重的 registeredActiveFallback。
+    // 匿名会话数（anonSessionsToday）不变——匿名本就"非唯一真人"、无权威表可依，维持旧标记口径。
+    // 今日日桶键：与 dayBuckets/hkDayKey 同格式（`年-月(0基)-日`），用香港墙上时钟的今日。
+    const activeReg = await activeRegPromise
+    const todayBucketKey = `${nowHk.getUTCFullYear()}-${nowHk.getUTCMonth()}-${nowHk.getUTCDate()}`
+    const registeredActiveToday = activeReg
+      ? (activeReg.get(todayBucketKey) ?? 0)
+      : registeredActiveFallback
 
     // ── 今日练习场次（新练 / 复练拆分）：practice_sessions 今日子集，按 is_review 分。 ──
     const todayTsForPractice = todayStart.getTime()
@@ -686,8 +739,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
 
     // ── 每日参与度趋势（活跃人数 + 练习场次 + 新增注册，与 dailyData 同一日期轴）──
-    // 活跃人数：每天在 api_usage_logs 里【去重的注册 user_id】数（与北极星「今日活跃·注册」同口径,
-    //   刻意只数注册、不掺匿名——掺进来会与「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃）。
+    // 活跃人数【权威口径优先】：每天活跃注册去重数（get_active_registered_stats RPC，0045；口径 =
+    //   auth.users 非匿名·有邮箱，与北极星「今日活跃·注册」同源）。刻意只数注册、不掺匿名——掺进来会与
+    //   「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃。
+    //   RPC 缺失/出错（activeReg=null）→ 回退旧 is_anonymous 标记去重（activeUsersByDay），不 500。
     // 练习场次：每天 practice_sessions 计数（新练+复练合计）。
     // 新增注册：每天真注册数（get_daily_registrations RPC，0044；口径 = auth.users 非匿名·有邮箱）。
     //   dailyReg 为 null（迁移未跑/RPC 出错）时该字段整条置 null，前端不渲染这条线（不画全 0 线误导）。
@@ -708,7 +763,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const dailyReg = await dailyRegPromise
     const engagementTrend = dayBuckets.map(({ key, date }) => ({
       date,
-      activeUsers:      activeUsersByDay.get(key)?.size ?? 0,
+      // 活跃人数：权威 RPC（activeReg）可用时取当天格；null（迁移未跑/出错）回退旧标记去重 activeUsersByDay。
+      activeUsers:      activeReg ? (activeReg.get(key) ?? 0) : (activeUsersByDay.get(key)?.size ?? 0),
       practiceSessions: practiceByDay.get(key) ?? 0,
       newReg:           dailyReg ? (dailyReg.get(key) ?? 0) : null,
     }))
