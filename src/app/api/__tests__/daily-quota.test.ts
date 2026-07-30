@@ -39,6 +39,7 @@ jest.mock('@/lib/consent-server', () => ({
 jest.mock('@/lib/db/questions', () => ({ getQuestionById: jest.fn() }))
 jest.mock('@/lib/db/corpus-server', () => ({
   getCorpusByIdServer: jest.fn(),
+  getCorpusPrimaryPointCodeServer: jest.fn(),
   bumpDailyUsageServer: jest.fn(),
   bumpAnonRestructureTodayServer: jest.fn(),
 }))

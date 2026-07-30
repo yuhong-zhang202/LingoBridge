@@ -12,7 +12,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
-import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { getCorpusByIdServer, getCorpusPrimaryPointCodeServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
@@ -90,6 +90,15 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '题目不存在' }, { status: 404 })
     }
 
+    // 维度标签取「用户语料匹配到的维度」：读匹配时挑定的主观察点维度，取不到再回落题目第一个观察点维度。
+    // 只影响展示用的 dimension 字段，不进 AI 入参；读库失败静默回落，不 500、不阻塞分析主流程。
+    let dimension: DimensionLabel | null = null
+    if (storyId) {
+      const primaryCode = await getCorpusPrimaryPointCodeServer(storyId)
+      dimension = dimFromCode(primaryCode ?? undefined)
+    }
+    if (dimension === null) dimension = dimFromCode(q.observation_points[0])
+
     // Part 2：完整 cue card 喂 AI，展示用短标题
     const enForAI = q.question_text
     const enForDisplay = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
@@ -111,7 +120,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         part: q.part,
         en: enForDisplay,
         zh: zhForDisplay,
-        dimension: dimFromCode(q.observation_points[0]),
+        dimension,
         isNew: q.is_new,
       },
       analysis,

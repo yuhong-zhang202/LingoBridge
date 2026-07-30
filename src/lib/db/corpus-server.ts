@@ -172,3 +172,33 @@ export async function getCorpusSummaryServer(id: string): Promise<string | null>
     return null
   }
 }
+
+/**
+ * 按 corpusId 读取匹配时挑定的「主观察点」code（corpus_point_links.role='primary' → observation_points.code）。
+ * 供分析页维度标签显示「用户语料匹配到的维度」而非题目第一个观察点维度。
+ * 使用 service_role client 绕 RLS；归属由调用方（analysis route 已 assertCorpusOwner）把关，本函数只读。
+ * 容错优先：无 primary 行 / 查询出错一律返回 null，让上游回落题目维度，绝不抛、不阻塞分析主流程。
+ * @param  corpusId  corpus UUID
+ * @returns          主观察点 code（如 EMO_04），无 / 出错时 null
+ */
+export async function getCorpusPrimaryPointCodeServer(corpusId: string): Promise<string | null> {
+  if (!corpusId) return null
+  try {
+    const { data, error } = await getSupabaseServer()
+      .from('corpus_point_links')
+      .select('observation_points(code)')
+      .eq('corpus_id', corpusId)
+      .eq('role', 'primary')
+      .maybeSingle()
+    if (error) throw error
+    // corpus_point_links → observation_points 是 many-to-one，Supabase 嵌套返回「对象」而非数组；
+    // 兼容 对象/数组/空（与客户端 getCorpusPointCodes 同口径）。
+    const op = (data as { observation_points: { code: string } | { code: string }[] | null } | null)
+      ?.observation_points
+    if (!op) return null
+    return Array.isArray(op) ? (op[0]?.code ?? null) : op.code
+  } catch (err) {
+    console.error('[corpus-server] getCorpusPrimaryPointCodeServer failed', err)
+    return null
+  }
+}
