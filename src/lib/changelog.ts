@@ -20,9 +20,20 @@ export interface ChangelogEntry {
 /** 最新在前；发版时在数组开头加新条目 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    // 版本号沿用现有 semver 方案（vX.Y.Z）——isNewerVersion / 铃铛红点按段数值比较，
-    // 不能用日期串（'2026-07-25' 解析成 NaN 会破坏红点逻辑）。首页公告卡（ChangelogAnnouncement）
-    // 只取本条（CHANGELOG[0]）主动弹一次；内容占位，产品方后续自行编辑。
+    // 版本号用 semver（vX.Y.Z）——isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
+    // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.9.0',
+    date: '2026-07-31',
+    title: '练习反馈升级',
+    notes: [
+      '句子优化解释分「语法」「词组」两栏，直指改进点',
+      '反馈卡片：练习优化的句子连同解释存入素材库，随时复习',
+      '教练对话更贴近真实考官：Part 2 完整长答后自然延伸至 Part 3',
+      '题库速览新增「今日复习」与 Part 分级筛选',
+      '素材库与首页焕新，开放邮箱注册',
+    ],
+  },
+  {
     version: 'v0.8.0',
     date: '2026-07-25',
     title: '题库速览上线',
