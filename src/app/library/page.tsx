@@ -77,6 +77,7 @@ export default function LibraryPage() {
       aiOptimized: p.optimized,
       collectedAt: formatRelativeTime(p.createdAt),
       keywords: undefined,
+      note: p.note,
     })),
     [phrases],
   )

@@ -12,8 +12,9 @@
 'use client'
 import { type JSX, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Shuffle, Volume2, Check } from 'lucide-react'
+import { Shuffle, Volume2, Check, ChevronDown } from 'lucide-react'
 import Chip from '@/components/Chip'
+import PolishNote from '@/components/PolishNote'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
 import { chunkSentence } from '@/lib/phrase-chunk'
 import { BRAND_GRADIENT_SOFT, GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
@@ -97,6 +98,30 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
   )
 }
 
+/**
+ * 「看解释」折叠控件：默认折叠，点击展开 note 两段式解释（PolishNote）。
+ * ⚠️ 必须 stopPropagation——否则冒泡到 SwipeToDelete（移动端）/ 覆盖复选按钮（桌面选择模式）会误触。
+ * 触发器带 ChevronDown 图标区别于句子的纯文字「查看更多」，避免两个展开控件视觉打架。
+ * 展开后全量显示 note，不二次截断；展开态不加内部 hairline（网格紧、下方已有拼句虚线）。
+ */
+function ExplanationDisclosure({ note }: { note: string }): JSX.Element {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        className="min-h-[44px] flex items-center gap-1 text-[12px] font-medium text-brand-primary-dark active:opacity-60"
+      >
+        {open ? '收起' : '看解释'}
+        <ChevronDown size={13} className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="mt-1"><PolishNote note={note} /></div>}
+    </div>
+  )
+}
+
 export default function CollectedCard({
   card,
   enableSwipe,
@@ -154,6 +179,8 @@ export default function CollectedCard({
           <InfoTag text="优化" letterSpacing={5} />
         </div>
         <SentenceBlock text={card.aiOptimized} variant="ai" />
+        {/* 「换个说法」解释区：默认折叠「看解释」；空 note 连触发器一起不渲染（宿主层拦空——parseNote('') 会渲染空 <p>） */}
+        {card.note && card.note.trim() && <ExplanationDisclosure note={card.note} />}
         {/* 不可拼句时，卡尾显示日期（feedback 同款日期行） */}
         {!canPlay && (
           <div className="flex items-center justify-between mt-3">

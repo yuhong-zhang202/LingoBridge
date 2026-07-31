@@ -147,6 +147,7 @@ export default function FeedbackDesktop({
                   part={partLabel(item.p.part)}
                   originalSentence={item.p.original}
                   aiOptimized={item.p.optimized}
+                  note={item.p.note}
                   keywords={[]}
                   date={today}
                   compact

@@ -60,6 +60,8 @@ export interface CollectedCard {
   aiOptimized: string
   collectedAt: string
   keywords?: string[]
+  /** 「换个说法」两段式解释（语法/词组）；折叠「看解释」展开显示。空则不显触发器 */
+  note?: string
 }
 
 export interface PracticedTopic {

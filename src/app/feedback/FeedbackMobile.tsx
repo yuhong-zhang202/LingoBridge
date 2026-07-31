@@ -100,6 +100,7 @@ export default function FeedbackMobile({
                 part={partLabel(current.part)}
                 originalSentence={current.original}
                 aiOptimized={current.optimized}
+                note={current.note}
                 keywords={[]}
                 date={today}
                 compact

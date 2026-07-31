@@ -2,6 +2,7 @@
 import { Bookmark, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Tag from '@/components/Tag'
+import PolishNote from '@/components/PolishNote'
 import { GRADIENT_BORDER_STYLE_FULL, BRAND_GRADIENT_SOFT } from '@/lib/constants'
 
 interface FeedbackCardProps {
@@ -10,6 +11,8 @@ interface FeedbackCardProps {
   aiOptimized: string
   keywords: string[]
   date: string
+  /** 「换个说法」两段式解释（语法/词组）；有内容才在优化句下方渲染。空串/空白由本组件拦掉不渲染 */
+  note?: string
   onCollect?: () => void
   onSkip?: () => void
   collected?: boolean
@@ -73,7 +76,7 @@ function SentenceBlock({ text, variant, plain }: { text: string; variant: 'origi
 }
 
 export default function FeedbackCard(props: FeedbackCardProps) {
-  const { originalSentence, aiOptimized, keywords, date, collected, compact, className, roundedBottom = true, plain } = props
+  const { originalSentence, aiOptimized, keywords, date, note, collected, compact, className, roundedBottom = true, plain } = props
 
   return (
     <div
@@ -102,6 +105,13 @@ export default function FeedbackCard(props: FeedbackCardProps) {
       </div>
 
       <SentenceBlock text={aiOptimized} variant="ai" plain={plain} />
+
+      {/* 「换个说法」解释区：全宽内联常显；空 note 连分隔线一起不渲染（宿主层拦空——parseNote('') 会渲染空 <p>） */}
+      {note && note.trim() && (
+        <div className="mt-4 pt-4 border-t border-black/[0.06]">
+          <PolishNote note={note} />
+        </div>
+      )}
 
       {/* 关键词 + 日期行：两者皆空时整行(连同 mt-3)不渲染，不占空间——避免收藏卡(date='')留一截空白 */}
       {(keywords.length > 0 || date) && (
