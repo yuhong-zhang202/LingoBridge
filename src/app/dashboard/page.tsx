@@ -39,7 +39,7 @@ type TodayStatus  = {
 }
 type DashboardData = {
   allTimeCost: number; allTimeCalls: number
-  monthCost: number;  monthCalls: number; monthChange: number | null
+  monthCost: number;  monthCalls: number; monthChange: number | null; monthLabel: string
   todayCost:  number; todayCalls: number
   // ── Tier1 今日经营口径 ──
   registeredActiveToday: number; anonSessionsToday: number
@@ -622,12 +622,14 @@ export default function DashboardPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
             <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
+              {/* 时间范围标注：趋势/饼图均为所选区间（近 N 天）口径，与上方费用卡（全部历史/本月/今日）不同源 */}
+              <div className="text-[11px] text-v2-text-muted mb-1">费用趋势 · 近 {Number(range.slice(0, -1))} 天</div>
               {hasRangeData
                 ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
                 : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
             </section>
             <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
-              <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} />
+              <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} rangeDays={Number(range.slice(0, -1))} />
             </section>
           </div>
           <div className="text-[10px] text-v2-text-muted mb-4">

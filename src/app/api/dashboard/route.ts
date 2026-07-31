@@ -444,6 +444,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     const allTimeCalls  = allRows.length
     const monthCost     = r2(mRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
     const monthCalls    = mRows.length
+    // 「本月」标签取【东八区月份】（与 monthCost 的 monthStart 同源 nowHk.getUTCMonth）——
+    // 修客户端 new Date().getMonth() 的时区错标：跨月又跨时区时（如东八区已 8 月、浏览器本地仍 7 月），
+    // 客户端月份会把「本月(8月)」错标成「7月」。标签必须服务端算、与数字口径一致。
+    const monthLabel    = `${nowHk.getUTCMonth() + 1}月`
     const lastMonthCost = lmRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
     const monthChange   = lastMonthCost > 0
       ? r2((monthCost - lastMonthCost) / lastMonthCost * 100)
@@ -798,6 +802,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       allTimeCost,
       allTimeCalls,
       monthCost,
+      monthLabel,
       monthCalls,
       monthChange,
       todayCost,

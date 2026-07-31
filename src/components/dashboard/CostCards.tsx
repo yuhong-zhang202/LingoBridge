@@ -11,7 +11,7 @@ const USD_RATE = 7.2
 
 type CostCardData = {
   allTimeCost: number; allTimeCalls: number
-  monthCost: number;  monthCalls: number; monthChange: number | null
+  monthCost: number;  monthCalls: number; monthChange: number | null; monthLabel: string
   todayCost:  number; todayCalls: number
 }
 
@@ -21,19 +21,24 @@ type Sub = { text: string; tone: SubTone }
 
 const CARDS: Array<{
   key: string; icon: string; accent: string
-  getLabel: () => string
+  getLabel: (d: CostCardData) => string
+  /** 时间范围标注：说清这张卡数的是哪段时间（消「饼图=近N天区间」与费用卡口径混淆） */
+  range: string
   getCost: (d: CostCardData) => number
   getSub: (d: CostCardData) => Sub
 }> = [
   {
     key: 'allTime', icon: '📊', accent: '#D4875A',
     getLabel: () => '累计总花费',
+    range: '全部历史',
     getCost:  (d: CostCardData) => d.allTimeCost,
     getSub:   (d: CostCardData) => ({ text: `共 ${d.allTimeCalls} 次调用`, tone: 'neutral' }),
   },
   {
     key: 'month', icon: '📅', accent: '#7BA699',
-    getLabel: () => `${new Date().getMonth() + 1}月花费`,
+    // 标签用服务端东八区月份（d.monthLabel），不用客户端 new Date()——见 route.ts monthLabel 注释
+    getLabel: (d: CostCardData) => `${d.monthLabel}花费`,
+    range: '本月 1 日至今 · 东八区',
     getCost:  (d: CostCardData) => d.monthCost,
     getSub:   (d: CostCardData): Sub =>
       d.monthChange !== null
@@ -45,6 +50,7 @@ const CARDS: Array<{
   {
     key: 'today', icon: '⚡', accent: '#9A7DB8',
     getLabel: () => '今日花费',
+    range: '今日 · 东八区',
     getCost:  (d: CostCardData) => d.todayCost,
     getSub:   (d: CostCardData) => ({ text: `共 ${d.todayCalls} 次调用`, tone: 'neutral' }),
   },
@@ -74,7 +80,7 @@ export default function CostCards({ data }: { data: CostCardData }) {
               <div className="flex items-center gap-1.5 mb-2">
                 {/* 纯装饰 emoji：读屏会把它念成"条形图"之类的名字，对旁边的卡片标签是纯干扰 */}
                 <span className="text-[14px]" aria-hidden="true">{card.icon}</span>
-                <span className="text-[11px] text-v2-text-muted">{card.getLabel()}</span>
+                <span className="text-[11px] text-v2-text-muted">{card.getLabel(data)}</span>
               </div>
               <div className="text-[26px] font-bold text-v2-text-primary leading-tight">
                 ¥{formatCnyNumber(cost)}
@@ -88,6 +94,8 @@ export default function CostCards({ data }: { data: CostCardData }) {
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: card.accent }} />
                 <span className={`text-[11px] font-medium ${SUB_TONE_CLASS[sub.tone]}`}>{sub.text}</span>
               </div>
+              {/* 时间范围标注：三张卡口径各不同（全部历史 / 本月 / 今日），与下方饼图·趋势的「近 N 天区间」不是一回事，逐卡标清防混淆 */}
+              <div className="text-[10px] text-v2-text-muted mt-1.5">{card.range}</div>
             </div>
           </div>
         )

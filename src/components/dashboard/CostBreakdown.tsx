@@ -9,7 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { formatCny } from '@/lib/format-cost'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
-type Props = { totals: ServiceTotal[]; selected: string | null; onSelect: (s: string | null) => void }
+type Props = { totals: ServiceTotal[]; selected: string | null; onSelect: (s: string | null) => void; rangeDays: number }
 
 /** 占比百分比（保留 1 位）；总额为 0 时返回 0，避免除零 */
 function pct(cost: number, total: number): number {
@@ -22,11 +22,13 @@ function pct(cost: number, total: number): number {
  * @param selected  当前选中的服务 key（null = 全选）
  * @param onSelect  切换筛选回调
  */
-export default function CostBreakdown({ totals, selected, onSelect }: Props) {
+export default function CostBreakdown({ totals, selected, onSelect, rangeDays }: Props) {
   const total = totals.reduce((s, t) => s + t.cost, 0)
 
   return (
     <div className="flex flex-col h-full">
+      {/* 时间范围标注：饼图口径 = 所选区间（近 N 天），与上方费用卡（全部历史/本月/今日）不同源，标清防混淆 */}
+      <div className="text-[11px] text-v2-text-muted mb-1">按服务 · 近 {rangeDays} 天</div>
       {/* SVG 饼图对读屏不可读：role+aria-label 概述占比，明细走下方 sr-only 数据表 */}
       <div role="img"
         aria-label={
