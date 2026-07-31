@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { upsertReview } from '@/lib/db/anki-cards-server'
 import { requireRegistered, authErrorResponse } from '@/lib/api-auth'
+import { logReviewEvent } from '@/lib/review-events'
 
 /** POST：SRS 复习。 */
 export async function POST(req: Request): Promise<NextResponse> {
@@ -26,6 +27,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'remembered 必须为布尔值' }, { status: 400 })
     }
     const result = await upsertReview(userId, questionId, body.remembered)
+    // 看板逐次复习信号（0046 review_events）：SRS 落库成功后追加一行。logReviewEvent 内部吞掉所有
+    // 异常、绝不抛，故 await 它不会拖垮主流程、也不改任何现有返回结构。
+    await logReviewEvent(userId, 'anki')
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)

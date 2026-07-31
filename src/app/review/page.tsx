@@ -12,6 +12,8 @@ import EmptyState from '@/components/EmptyState'
 import FlashCard from '@/components/review/FlashCard'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { listDueCards, gradeCard } from '@/lib/db/phrase-cards'
+import { apiFetch } from '@/lib/api-client'
+import { logErr } from '@/lib/log'
 import type { PhraseCard } from '@/lib/types'
 
 export default function ReviewPage(): JSX.Element {
@@ -43,6 +45,11 @@ export default function ReviewPage(): JSX.Element {
     const card = queue[current]
     if (!card) return
     void gradeCard(card, remembered).catch(() => {})         // 静默失败，不打断复习
+    // 看板逐次复习信号（0046 review_events）：词组复习由客户端直改 phrase_cards、不经服务端，故这里
+    // 另发一次 fire-and-forget 上报补记事件（表 RLS 无策略、须走服务端）。绝不 await/不弹 Toast/失败静默——
+    // 埋点旁路绝不阻断或改变复习体验。apiFetch 自动带 Bearer 头，否则 requireRegistered 会 401。
+    void apiFetch('/api/review-events', { method: 'POST', json: { kind: 'phrase' } })
+      .catch((e) => logErr('[review] report event failed', e))
     if (!remembered) setQueue(q => [...q, { ...card, box: 1 }])  // 没记住：排到队尾本轮再练（从第 1 格起）
     setCurrent(c => c + 1)
   }, [queue, current])
