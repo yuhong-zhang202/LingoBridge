@@ -1,7 +1,7 @@
 /**
  * @module   PolishNote
  * @desc     「换个说法」note 解释区公用组件 —— 把模型输出的单 string note 解析成
- *           「语法」「词组表达优化」两段并前端补装饰（圆点 + 原词弱化→改法加重 + 淡箭头）。
+ *           「语法：」「词组优化：」两段并前端补装饰（圆点 + 原词弱化→改法加重 + 淡箭头）。
  *           命中契约格式 → 两段渲染；未命中（老格式）→ 整段普通 <p> 兜底不崩。
  *           供练习页「换个说法」弹窗、反馈卡、素材库收藏卡三处共用；样式与原弹窗内实现逐字一致。
  * @author   LingoBridge
@@ -53,7 +53,7 @@ export default function PolishNote({ note, className }: PolishNoteProps): JSX.El
       {sections.map((sec) => (
         <div key={sec.kind} className="flex flex-col gap-[3px]">
           <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">
-            {sec.kind === 'grammar' ? '语法' : '词组表达优化'}
+            {sec.kind === 'grammar' ? '语法：' : '词组优化：'}
           </span>
           {sec.items.map((item, i) => (
             <NoteItemRow key={i} item={item} />

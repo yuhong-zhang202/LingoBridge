@@ -3,7 +3,7 @@
  * @desc     首页桌面端营销落地页视图 —— 现有版式原样搬入、改接 props 的纯展示组件（视觉/文案一字不改）：
  *           Hero（打字机标题 + Orb）+ 能力三卡 + 匹配漏斗四步 + Leo 对话示意 + 信息复用 Tab 舞台。
  *           桌面专用的静态常量（FEATURES / MATCH_STEPS / LEO_DIALOGUE / RESTRUCTURE_POINTS / REUSE）
- *           与展示性子组件（SectionHead / InertBlock / PreviewSentence·Anki·Pron / tintClass）随视图内聚于此。
+ *           与展示性子组件（SectionHead / InertBlock / PreviewQuestionBank·Anki·Pron / tintClass）随视图内聚于此。
  *           数据与副作用由 page.tsx 外壳经 props 下发；桌面文案含占位，见各处 TODO。
  * @author   LingoBridge
  * @created  2026-05-15
@@ -17,7 +17,6 @@ import Orb from '@/components/Orb'
 import TopNav from '@/components/TopNav'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
-import Chip from '@/components/Chip'
 import GradientButton from '@/components/GradientButton'
 import PartTag from '@/components/PartTag'
 import Reveal from '@/components/Reveal'
@@ -31,9 +30,9 @@ import type { HomeViewProps } from './types'
 // TODO: 文案待确认 —— 以下桌面营销模块文案取自参考稿占位，非最终产品文案
 // 模块二：能力三卡
 const FEATURES: { Icon: LucideIcon; img?: string; tint: 'primary' | 'accent'; title: string; lead: string; desc: string }[] = [
-  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配题目', lead: '你的故事，就是你的素材库', desc: '讲一段真实经历，我们帮你反向匹配到最贴合的当季雅思真题，不用再去题海里瞎撞。' },
-  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '重组语料',     lead: '陪你把故事说顺、说地道',   desc: '和对话伙伴 Leo 一起聊这段经历，说得不够好就当场优化、再说一遍——练的是真正开口的能力，不是背答案。' },
-  { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '信息复用',     lead: '练过的东西，不会白练',     desc: '对话里优化过的好句子、分析出的相关词组、读错的发音，都能存进素材库，用几分钟小练习反复巩固。' },
+  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配',     lead: '你的故事，就是你的素材库', desc: '分享一段日常，精准匹配当季最新雅思口语题，从此告别题海。' },
+  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '练习对话',     lead: '熟悉语料表达，模拟真实对话',   desc: '考官将结合语料和题目分析与你练习口语表达，帮助你熟悉语料，碰到 Part 2 题目将自然延伸讨论 Part 3。' },
+  { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '专属留痕',     lead: '个性化保留你的语言风格',   desc: '无论是题目分析中收藏的词组，还是练习对话中反映出的语法错误或发音偏差，都可以真实保留在素材库，随时可翻看练习。' },
 ]
 
 // 步骤号圆圈：白底 + 深灰编号(v2-text-secondary，与「点击说话」等渐变描边元素同色)，外环官方品牌渐变描边（橙→绿，DESIGN.md §渐变规范），
@@ -56,7 +55,7 @@ const LEO_DIALOGUE = [
 const RESTRUCTURE_POINTS = [
   { title: '句子不满意？点「优化反馈」',   desc: '看看更地道的说法，简单记忆之后自己再重新表达一遍，形成「输入-输出」的循环，而不是照读答案。' },
   { title: '读错的单词，点一下就能收藏',   desc: '发音被听错的词会被记下来，练习结束后能在素材库里做针对性的发音纠错练习。' },
-  { title: '练完会有一叠反馈卡片',         desc: '都是这次对话里被优化过的好句子——眼熟的左滑跳过，想留下的右滑收藏进语料。' },
+  { title: '练完给你一叠反馈卡片',         desc: '每一句都点出语法错在哪、哪个词组更地道，配好原句和优化版；一张张收进素材库随时复习。' },
 ] as const
 
 const tintClass = (t: 'primary' | 'accent'): string =>
@@ -83,22 +82,22 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow?: string; title: ReactNo
   )
 }
 
-/** 模块五 Tab 舞台内的三张真实 UI 缩略卡（拼句 SentenceOrderGame / Anki FlashCard / 发音 PronunciationCard 同款样式） */
-function PreviewSentence() {
+/** 模块五 Tab 舞台内的真实 UI 缩略卡（题库速览 QuestionFlashCard / Anki FlashCard / 发音 PronunciationCard 同款样式） */
+/** 题库速览假件：复刻题卡正面（左渐变条+Part标+英文整题+翻面提示），与词组闪卡 PreviewAnki 区分——整题题卡。 */
+function PreviewQuestionBank() {
   return (
-    <div className="relative w-[300px] -rotate-1 bg-white rounded-[16px] border border-black/[0.05] shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)] px-4 py-4">
-      <p className="text-[10.5px] text-v2-text-muted text-center">拼出更地道的说法</p>
-      <div className="mt-3 pb-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2 border-b-2 border-dashed border-brand-primary-light">
-        <Chip variant="default" size="sm" className="border-success text-success bg-success/10">We</Chip>
-        <Chip variant="default" size="sm" className="border-success text-success bg-success/10">ended</Chip>
-        <Chip variant="default" size="sm">up</Chip>
-        <Chip variant="default" size="sm">talking</Chip>
+    <div className="relative w-[290px] -rotate-1 bg-white rounded-[16px] border border-black/[0.05] shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)] overflow-hidden pl-5 pr-4 py-4">
+      <div aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: BRAND_GRADIENT_VERTICAL }} />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <Tag variant="gray" label="Part 2" className="text-[9px] px-[6px] py-[2px]" />
+          <span className="text-[9.5px] text-v2-text-muted">Places</span>
+        </div>
+        <Tag variant="green" label="当季·新" className="text-[9px] px-[6px] py-[2px]" />
       </div>
-      <p className="text-[10px] text-v2-text-muted text-center mt-3 mb-1.5">词库</p>
-      <div className="flex justify-center gap-1.5">
-        <Chip variant="default" size="sm">for</Chip>
-        <Chip variant="default" size="sm">hours</Chip>
-      </div>
+      <p className="text-[13.5px] font-semibold text-v2-text-primary leading-[1.5]" lang="en">Describe a place you like to visit.</p>
+      <p className="text-[10px] text-brand-accent mt-2.5">想想你会怎么答？</p>
+      <p className="text-[9.5px] text-v2-text-muted mt-3 flex items-center gap-1"><RotateCw size={10} />点击翻面看答题要点</p>
     </div>
   )
 }
@@ -150,11 +149,52 @@ function PreviewPron() {
   )
 }
 
-/** 三种复用练习：Tab 舞台数据（对应收藏类型 + 真实 UI 预览 + 光晕色） */
-const REUSE: { tab: string; collected: string; title: string; desc: string; glow: string; Preview: () => JSX.Element }[] = [
-  { tab: '拼句练习', collected: '收藏的句子', title: '拼句练习', desc: '收藏的句子会被拆成词块，打乱后让你按顺序拼回去，练的是语序和用词的肌肉记忆。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewSentence },
-  { tab: '词组闪卡', collected: '收藏的词组', title: '词组闪卡', desc: '收藏的词组按间隔重复的节奏安排复习提醒，帮你把一时记住的生词变成长期记忆。（与「题库速览」的整题题卡是两回事——这里练的是词组）', glow: 'rgba(168,210,196,0.42)', Preview: PreviewAnki },
-  { tab: '发音教学', collected: '读错的发音', title: '发音教学', desc: '告诉你被系统听成了什么、和正确发音的区别在哪，针对性练到能被准确识别为止。', glow: 'rgba(240,188,160,0.40)', Preview: PreviewPron },
+/** 反馈卡片假件：缩略版收藏卡（原句框 + 绿色优化框 + 两段式语法/词组解释）。用绿色优化框当辨识记号、区别于发音卡的渐变整框。 */
+function PreviewFeedbackCard() {
+  return (
+    <div className="relative w-[290px] -rotate-1 bg-white rounded-[16px] border border-black/[0.05] shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)] px-4 py-3.5">
+      <p className="text-[10px] text-v2-text-muted mb-[5px]">原句</p>
+      <div className="rounded-[12px] bg-white border border-black/[0.07] px-3 py-2">
+        <p className="text-[12px] text-v2-text-secondary leading-relaxed" lang="en">After work I feel very tired.</p>
+      </div>
+      <p className="text-[10px] text-v2-text-muted mt-2.5 mb-[5px]">更地道的说法</p>
+      <div className="rounded-[12px] bg-tag-success-bg border border-tag-success-border px-3 py-2">
+        <p className="text-[12px] text-v2-text-primary leading-relaxed" lang="en">By the end of the day I&apos;m usually worn out.</p>
+      </div>
+      <div className="mt-3 pt-3 border-t border-black/[0.05] flex flex-col gap-[7px]">
+        <div className="flex flex-col gap-[3px]">
+          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">语法：</span>
+          <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+            <span className="text-warm-taupe select-none">·</span>
+            <span className="flex-1 min-w-0"><span className="text-v2-text-muted" lang="en">feel very tired</span><span className="text-warm-taupe mx-1">→</span><span className="text-v2-text-primary font-medium" lang="en">&apos;m worn out</span></span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-[3px]">
+          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">词组优化：</span>
+          <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+            <span className="text-warm-taupe select-none">·</span>
+            <span className="flex-1 min-w-0"><span className="text-v2-text-muted" lang="en">After work</span><span className="text-warm-taupe mx-1">→</span><span className="text-v2-text-primary font-medium" lang="en">By the end of the day</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** 素材库 Tab 舞台数据（自带完整眉标 eyebrow + 真实 UI 预览 + 光晕色） */
+const REUSE: { tab: string; eyebrow: string; title: string; desc: ReactNode; glow: string; Preview: () => JSX.Element }[] = [
+  { tab: '题库速览', eyebrow: '当季 · 官方最新题库', title: '题库速览',
+    desc: '当季最新的口语题库做成一张张题卡，卡片式滚动随手刷眼熟；绑上你的语料，卡背的答法就围着你自己的故事展开。',
+    glow: 'rgba(240,188,160,0.40)', Preview: PreviewQuestionBank },
+  { tab: '词组闪卡', eyebrow: '对应 · 收藏的词组', title: '词组闪卡',
+    desc: '在题目分析页按你的雅思目标水平挑到的地道词组，收藏后按间隔重复的节奏提醒复习，把一时记住变成长期记忆。',
+    glow: 'rgba(168,210,196,0.42)', Preview: PreviewAnki },
+  { tab: '发音教学', eyebrow: '对应 · 读错的发音', title: '发音教学',
+    desc: '练习对话里发音错误的单词，点击并记录正确的单词；在素材库中可一对一进行发音纠错。',
+    glow: 'rgba(240,188,160,0.40)', Preview: PreviewPron },
+  { tab: '反馈卡片', eyebrow: '对应 · 练习优化的句子', title: '反馈卡片',
+    desc: <>练习对话里点 <Sparkles size={13} className="inline align-[-2px] text-brand-primary" /> 优化过的句子，都会逐句点出语法错在哪、哪个词组更地道，配上原句与优化版；一张张收进素材库，想复习随时翻。</>,
+    glow: 'rgba(188,210,168,0.42)', Preview: PreviewFeedbackCard },
 ]
 
 export default function HomeDesktop({
@@ -247,7 +287,7 @@ export default function HomeDesktop({
                     </>
                   )}
                   <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
-                    {!ieltsMode ? '不用背模板。把发生过的事讲出来，我们帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。' : '聊聊你的看法'}
+                    {!ieltsMode ? '分享日常生活，就能精准匹配当季最新的雅思口语题，不用再硬串语料、背模板。' : '聊聊你的看法'}
                   </p>
                   {ieltsMode && !exhausted && (
                     <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
@@ -356,7 +396,7 @@ export default function HomeDesktop({
               </div>
             </section>
 
-            {/* ===== 模块四：重组语料怎么运作（Leo 对话示意 + 三点） ===== */}
+            {/* ===== 模块四：练习对话怎么运作（Leo 对话示意 + 三点） ===== */}
             {/* TODO: 文案待确认 —— Leo 对话为占位示意；如需可复用真实 AiBubble/UserBubble 组件渲染 */}
             <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
               <Reveal>
@@ -406,7 +446,7 @@ export default function HomeDesktop({
                         {i + 1}
                       </div>
                       <div>
-                        <h4 className="text-[15px] font-semibold text-v2-text-primary">{title}</h4>
+                        <h4 className="text-[15px] font-semibold text-v2-text-primary">{title}{i === 0 && <Sparkles size={14} className="inline align-[-2px] ml-1 text-brand-primary" />}</h4>
                         <p className="mt-1 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
                       </div>
                     </Reveal>
@@ -420,8 +460,8 @@ export default function HomeDesktop({
             <section className="min-h-[calc(100dvh_-_72px)] flex flex-col justify-center py-16">
               <Reveal>
                 <SectionHead
-                  title={<>收藏的内容，去<span className="text-brand-primary">素材库</span>继续巩固</>}
-                  sub="三种不同的练习，分别对应你收藏的三类东西"
+                  title={<><span className="text-brand-primary">素材库</span>，越练越熟</>}
+                  sub="当季官方题库随手刷，收藏的词组、读错的发音、优化过的句子，也都能收进素材库反复巩固。"
                 />
               </Reveal>
 
@@ -449,7 +489,7 @@ export default function HomeDesktop({
                     <ActivePreview />
                   </InertBlock>
                   <div>
-                    <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">对应 · {REUSE[reuseTab].collected}</p>
+                    <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">{REUSE[reuseTab].eyebrow}</p>
                     <h3 className="text-[26px] font-bold text-v2-text-primary tracking-tight">{REUSE[reuseTab].title}</h3>
                     <p className="mt-3.5 text-[15px] text-v2-text-secondary leading-[1.8] max-w-[400px]">{REUSE[reuseTab].desc}</p>
                   </div>
