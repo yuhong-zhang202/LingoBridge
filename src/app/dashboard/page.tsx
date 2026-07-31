@@ -7,7 +7,9 @@
  * @created  2026-06-04
  */
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
+import Card           from '@/components/Card'
 import HeroMetrics    from '@/components/dashboard/HeroMetrics'
 import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
 import EngagementTrendChart from '@/components/dashboard/EngagementTrendChart'
@@ -58,10 +60,22 @@ type DashboardData = {
   dailyFailures: Array<{ date: string; failures: number }>
   // newReg：每日新增注册线（迁移 0044 未跑/降级时整列 null，图表不渲染该线）。
   engagementTrend: Array<{ date: string; activeUsers: number; practiceSessions: number; newReg?: number | null }>
-  // 注册用户留存：null = 迁移未跑 / RPC 出错的降级态（前端显「待接入」）。
+  // 注册用户留存（旧口径 D1/D7）：null = 迁移未跑 / RPC 出错的降级态；漏斗④「旧口径对照」行消费。
   // rate 为 0-100 百分比（无成熟群组时 null，如 D7 现未满 7 天）；n 为该指标分母（成熟群组总人数）。
   retention: { d1Rate: number | null; d1N: number; d7Rate: number | null; d7N: number } | null
   retentionPending: boolean
+  // ── 增长漏斗（0047 三 RPC，各段迁移未跑时独立降级）──
+  // 激活漏斗①②：累计注册/激活 + 本周期群组（激活 = corpus≥1 条）。null = 迁移未跑/出错，①②同时降级。
+  activation: { registeredTotal: number; activatedTotal: number; cohortTotal: number; cohortActivated: number } | null
+  activationPending: boolean
+  // W1 首周留存（漏斗④主区）：首活后 D+1~D+7 任一天再活跃。null = 迁移未跑/出错，④主区降级、D1/D7 对照行仍显。
+  weeklyRetention: { w1N: number; w1Ret: number; w1Rate: number | null } | null
+  weeklyRetentionPending: boolean
+  // 窗口核心活跃去重人数（漏斗③主数字）。activePending = 两级每日权威 RPC（0047→0045）皆不可用 → ③走降级态。
+  windowCoreActive: number
+  activePending: boolean
+  // windowCoreApprox：③ 本次是否为 AI-only 近似（get_window_core_active 回退时 true）。当前 UI 暂不消费，留待未来标注「近似」。
+  windowCoreApprox: boolean
   // 假空率（区间内空录音里 peak≥阈值=采到声音却转写空 的占比）：null = 无带 audio 信号的空录音（口径生效前无数据），
   // 前端显「待接入」；有数则 rate（0-100 百分比）+ n（带信号的空录音总数）+ fakeCount（其中判为假空的条数）。
   fakeEmpty: { rate: number; n: number; fakeCount: number } | null
@@ -241,20 +255,67 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
   )
 }
 
-/**
- * 增长组的小统计卡（今日新增注册 / 匿名活跃）：主数字 + 标签 + 一句口径说明。
- * @param label  卡标题
- * @param value  主数字
- * @param note   口径说明小字
- */
-function GrowthStat({ label, value, note }: { label: string; value: number; note: string }) {
+// ── 增长漏斗（A 区）：等宽卡 + 段间箭头（chevron），不画按数值递减宽度的漏斗条 ──
+//   产品方拍板（勿改）：③核心活跃门槛低于②激活、可能反超，递减条会误导；故四段等宽、每段 x/y 各自自洽。
+
+/** 漏斗每段的等宽卡壳（plain Card + flex 撑满等高，口径小字靠 mt-auto 沉底） */
+function FunnelCard({ children }: { children: ReactNode }) {
+  return <Card className="flex-1 flex flex-col px-4 py-4">{children}</Card>
+}
+
+/** 段间箭头：桌面横排 `›` / 移动纵排 `↓`，纯装饰、对读屏 aria-hidden（先后由 <ol> 承载） */
+function FunnelChevron() {
   return (
-    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
-      <div className="text-[11px] text-v2-text-muted mb-1">{label}</div>
-      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{value}</div>
-      <div className="text-[10px] text-v2-text-muted mt-1.5">{note}</div>
+    <li aria-hidden="true" className="flex items-center justify-center shrink-0 text-v2-text-muted">
+      <span className="hidden md:inline text-[18px] leading-none">›</span>
+      <span className="md:hidden text-[16px] leading-none">↓</span>
+    </li>
+  )
+}
+
+/**
+ * x/y 的百分比串（1 位小数）；分母 ≤0 返回 null（除零保护，调用处据此不显 (%)、只显 x/y）。
+ * @param num  分子
+ * @param den  分母
+ * @returns    形如 '39.2%'；分母 ≤0 时 null
+ */
+function pctText(num: number, den: number): string | null {
+  if (den <= 0) return null
+  return `${(num / den * 100).toFixed(1)}%`
+}
+
+/** 漏斗主数字 x/y（%）：主 x/y 为 text-[24px] 粗体；(%) 括号灰为辅（除零时不显 %，只显 x/y） */
+function FunnelFraction({ num, den }: { num: number; den: number }) {
+  const p = pctText(num, den)
+  return (
+    <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">
+      {num}/{den}
+      {p && <span className="text-[13px] font-medium text-v2-text-secondary ml-1">({p})</span>}
     </div>
   )
+}
+
+/** 漏斗段降级内容（塞进同尺寸 FunnelCard、保持漏斗不塌）：段标题 + 「下一步接入」badge + 原因小字 */
+function FunnelDegraded({ title, reason }: { title: string; reason: string }) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+        <span className="text-[11px] text-v2-text-muted">{title}</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
+      </div>
+      <div className="text-[10px] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
+    </>
+  )
+}
+
+/** 漏斗段标题（11px muted） */
+function FunnelTitle({ children }: { children: ReactNode }) {
+  return <div className="text-[11px] text-v2-text-muted">{children}</div>
+}
+
+/** 漏斗段口径小字（10px muted，mt-auto 沉底与等高段对齐） */
+function FunnelNote({ children }: { children: ReactNode }) {
+  return <div className="text-[10px] text-v2-text-muted leading-relaxed mt-auto pt-2">{children}</div>
 }
 
 /**
@@ -269,36 +330,102 @@ function retentionText(rate: number | null, n: number, immature: string): string
   return `${rate}% · n=${n}`
 }
 
+// 迁移 0047 各段的接入提示（降级 reason 复用，避免散落硬编码）。
+const ACTIVATION_REASON = '激活 RPC（get_activation_stats）尚未接入，待部署方跑迁移 0047 后自动显示真实数据。'
+const WEEKLY_RET_REASON = 'W1 留存 RPC（get_weekly_retention_stats）尚未接入，待部署方跑迁移 0047 后自动显示真实数据。'
+
 /**
- * 留存卡（注册用户 D1/D7 池化留存）：复用 GrowthStat 的卡片样式，主区放 D1、副行放 D7。
- * @param retention  route 返回的留存结构（此处已确保非 null；null 降级态在调用处走 PendingPlaceholder）
+ * A 区增长漏斗：① 累计注册 →（›/↓）② 激活 →（›/↓）③ 窗口核心活跃 →（›/↓）④ W1 首周留存。
+ * 桌面一行四段 + chevron，移动纵向堆叠 + 下箭头；四段等宽（不画递减宽度漏斗条，产品方拍板）。
+ * a11y：<ol>/<li> 承载先后、区块 aria-label 概述全链、chevron aria-hidden。各段迁移未跑时独立降级、不塌。
+ * @param data       看板数据（读 activation / weeklyRetention / retention / windowCoreActive 及各 pending）
+ * @param windowDays 区间天数（7/14/30），③ 口径小字「近 N 天」用
  */
-function RetentionStat({ retention }: { retention: NonNullable<DashboardData['retention']> }) {
-  // D7 未成熟（rate=null 且现无成熟群组）：明确「07-29 起」而非笼统"暂无"，让人知道何时有数
-  const d7Immature = retention.d7N === 0 ? '需≥7天数据（07-29 起）' : '暂无'
-  return (
-    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
-      <div className="text-[11px] text-v2-text-muted mb-1">次日留存（D1）</div>
-      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">
-        {retentionText(retention.d1Rate, retention.d1N, '需≥1天数据')}
-      </div>
-      <div className="text-[11px] text-v2-text-secondary mt-2">
-        7日留存（D7）：<span className="tabular-nums">{retentionText(retention.d7Rate, retention.d7N, d7Immature)}</span>
-      </div>
-      <div className="text-[10px] text-v2-text-muted mt-1.5">只算注册用户 · 按首次活跃日分群 · 东八区</div>
+function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: number }) {
+  // ① 累计注册 / ② 激活：同源 activation，null 时两段同时降级
+  const act = data.activation
+  const seg1: ReactNode = act
+    ? (<>
+        <FunnelTitle>累计注册</FunnelTitle>
+        <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{act.registeredTotal}</div>
+        <FunnelNote>只计真注册（非匿名·有邮箱）· 东八区</FunnelNote>
+      </>)
+    : <FunnelDegraded title="累计注册" reason={ACTIVATION_REASON} />
+
+  const cohortPct = act ? pctText(act.cohortActivated, act.cohortTotal) : null
+  const seg2: ReactNode = act
+    ? (<>
+        <FunnelTitle>激活</FunnelTitle>
+        <FunnelFraction num={act.activatedTotal} den={act.registeredTotal} />
+        <div className="text-[11px] text-v2-text-secondary mt-2">
+          本周期新注册激活 <span className="tabular-nums">{act.cohortActivated}/{act.cohortTotal}</span>
+          {cohortPct && <span className="text-v2-text-muted">（{cohortPct}）</span>}
+        </div>
+        <FunnelNote>激活 = 在 corpus 有 ≥1 条记录（真讲过一次故事）</FunnelNote>
+      </>)
+    : <FunnelDegraded title="激活" reason={ACTIVATION_REASON} />
+
+  // ③ 窗口核心活跃：activePending（两级权威 RPC 皆不可用）时降级；否则显窗口去重人数
+  const seg3: ReactNode = data.activePending
+    ? <FunnelDegraded title="窗口核心活跃" reason="核心活跃口径 RPC（get_core_active_stats 与 0045）均未接入，窗口核心活跃暂不可信。待部署方跑迁移 0047 后自动显示。" />
+    : (<>
+        <FunnelTitle>窗口核心活跃</FunnelTitle>
+        <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{data.windowCoreActive}</div>
+        <FunnelNote>AI 环节 / 闪卡复习 / 收藏 任一即算 · 仅注册用户 · 近{windowDays}天</FunnelNote>
+      </>)
+
+  // ④ W1 首周留存：三态——W1 有→完整；W1 无+D1/D7 有→主区降级但对照行照显；两者皆无→整段降级
+  const wr  = data.weeklyRetention
+  const ret = data.retention
+  const d7Immature = ret && ret.d7N === 0 ? '需≥7天数据' : '暂无'
+  const comparisonRow = ret ? (
+    <div className="text-[10px] text-v2-text-muted mt-2 leading-relaxed">
+      旧口径对照 · D1 {retentionText(ret.d1Rate, ret.d1N, '需≥1天数据')} · D7 {retentionText(ret.d7Rate, ret.d7N, d7Immature)}
     </div>
+  ) : null
+  const w1Note = <FunnelNote>首次核心活跃后 7 天内再次活跃 · 只算注册用户 · 东八区</FunnelNote>
+  let seg4: ReactNode
+  if (wr) {
+    seg4 = (<>
+      <FunnelTitle>W1 首周留存</FunnelTitle>
+      <FunnelFraction num={wr.w1Ret} den={wr.w1N} />
+      {comparisonRow}
+      {w1Note}
+    </>)
+  } else if (ret) {
+    // W1 无、D1/D7 有：主区 badge，但旧口径对照行不一起吞、照显
+    seg4 = (<>
+      <FunnelDegraded title="W1 首周留存" reason={WEEKLY_RET_REASON} />
+      {comparisonRow}
+      {w1Note}
+    </>)
+  } else {
+    seg4 = <FunnelDegraded title="W1 首周留存" reason="W1 留存与旧 D1/D7 留存 RPC 均未接入，待部署方跑迁移 0047 / 0043 后自动显示。" />
+  }
+
+  return (
+    <ol aria-label="增长漏斗：注册 → 激活 → 核心活跃 → 首周留存"
+      className="flex flex-col md:flex-row md:items-stretch gap-2">
+      <li className="flex-1 flex flex-col"><FunnelCard>{seg1}</FunnelCard></li>
+      <FunnelChevron />
+      <li className="flex-1 flex flex-col"><FunnelCard>{seg2}</FunnelCard></li>
+      <FunnelChevron />
+      <li className="flex-1 flex flex-col"><FunnelCard>{seg3}</FunnelCard></li>
+      <FunnelChevron />
+      <li className="flex-1 flex flex-col"><FunnelCard>{seg4}</FunnelCard></li>
+    </ol>
   )
 }
 
 /**
- * 假空率卡（区间内空录音里「采到声音却转写空」的占比）：复用 GrowthStat/RetentionStat 卡样式。
+ * 假空率卡（区间内空录音里「采到声音却转写空」的占比）：漏斗下方并列独立 <Card> 小卡。
  * 主区放假空率 + 样本量 n（n 必显，避免小样本被误读）；副行给假空条数；口径小字注明判据。
  * @param fakeEmpty  route 返回的假空率结构（此处已确保非 null；null 降级态在调用处走 PendingPlaceholder）
  * @param threshold  峰值阈值（0~1），口径小字展示用
  */
 function FakeEmptyStat({ fakeEmpty, threshold }: { fakeEmpty: NonNullable<DashboardData['fakeEmpty']>; threshold: number }) {
   return (
-    <div className="flex-1 min-w-[140px] bg-cream-soft rounded-[12px] border border-black/[0.05] px-4 py-3">
+    <Card className="flex-1 min-w-[140px] px-4 py-4">
       <div className="text-[11px] text-v2-text-muted mb-1">假空率</div>
       <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">
         {fakeEmpty.rate}% · n={fakeEmpty.n}
@@ -307,11 +434,11 @@ function FakeEmptyStat({ fakeEmpty, threshold }: { fakeEmpty: NonNullable<Dashbo
         疑似采集问题：<span className="tabular-nums">{fakeEmpty.fakeCount}</span> / {fakeEmpty.n} 段空录音
       </div>
       <div className="text-[10px] text-v2-text-muted mt-1.5">峰值音量≥{threshold} 却转写空 = 疑似采集问题 · 阈值待标定</div>
-    </div>
+    </Card>
   )
 }
 
-/** 「下一步接入」空态占位（留存 RPC 未接入 / 假空率无带信号样本，不硬编错数） */
+/** 「下一步接入」空态占位（假空率无带信号样本时用，不硬编错数）：漏斗下方并列小卡的降级态 */
 function PendingPlaceholder({ title, reason }: { title: string; reason: string }) {
   return (
     <div className="flex-1 min-w-[140px] bg-black/[0.02] rounded-[12px] border border-dashed border-black/[0.1] px-4 py-3">
@@ -423,29 +550,36 @@ export default function DashboardPage() {
           口径说明：上方四数卡为今日口径（按东八区日历边界）；以下展开区的所有图表与统计均为所选区间（{RANGE_LABEL[range]}）口径。
         </div>
 
-        {/* A · 增长与参与（默认展开）：原「增长」+「参与度趋势」并组 */}
-        <CollapsibleSection title="A · 增长与参与" subtitle="今日新增 · 活跃场次 · 留存（下一步）" defaultOpen>
-          <div className="flex gap-2.5 flex-wrap">
-            <GrowthStat label="今日新增注册" value={data.newRegistrationsToday}
-              note={data.newRegistrationsPending
-                ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
-                : '只计真注册（非匿名·有邮箱），东八区'} />
+        {/* A · 增长与参与（默认展开）：增长漏斗（注册→激活→核心活跃→W1 留存）+「参与度趋势」并组 */}
+        <CollapsibleSection title="A · 增长与参与" subtitle="注册 → 激活 → 核心活跃 → 首周留存" defaultOpen>
+          {/* 增长漏斗：③ 窗口核心活跃跟随区间选择器（近 N 天） */}
+          <GrowthFunnel data={data} windowDays={Number(range.slice(0, -1))} />
+          {/* 今日新增注册 / 匿名活跃 / 假空率：漏斗下方三张并列独立小卡（今日口径，文案/口径沿用原样）。
+              窄屏按小卡 min-w 自然换行（同旧「增长」组行为）。 */}
+          <div className="flex flex-wrap gap-2.5 mt-3">
+            {/* 今日新增注册：真注册口径（RPC 可用时）；newRegistrationsPending 为真=RPC 未接入、暂用 profiles 计数（含匿名·虚高），走降级文案 */}
+            <Card className="flex-1 min-w-[140px] px-4 py-4">
+              <div className="text-[11px] text-v2-text-muted mb-1">今日新增注册</div>
+              <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
+              <div className="text-[10px] text-v2-text-muted mt-1.5">
+                {data.newRegistrationsPending
+                  ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
+                  : '只计真注册（非匿名·有邮箱），东八区'}
+              </div>
+            </Card>
             {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
-            <GrowthStat label="今日匿名活跃" value={data.anonSessionsToday} note="去重身份 · 按设备持久 · 非唯一真人" />
-            {data.retention
-              ? <RetentionStat retention={data.retention} />
-              : <PendingPlaceholder title="次日 / 7 日留存" reason="留存 RPC（get_retention_stats）尚未接入，待部署方跑迁移 0043 后自动显示真实数据。" />}
+            <Card className="flex-1 min-w-[140px] px-4 py-4">
+              <div className="text-[11px] text-v2-text-muted mb-1">今日匿名活跃</div>
+              <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
+              <div className="text-[10px] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
+            </Card>
             {data.fakeEmpty
               ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
               : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
           </div>
-          {/* 转化率不编：仅给「今日新增注册」与「今日匿名活跃」两个数供自行对照，避免硬编错误口径 */}
-          <div className="text-[10px] text-v2-text-muted mt-3">
-            注：暂不给「匿名→注册」转化率——需匹配匿名与注册的复杂口径，先给上面两个数供人工对照。
-          </div>
           {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
           <div className="mt-4">
-            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 活跃人数 + 练习场次 + 新增注册</div>
+            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 核心活跃人数 + 练习场次 + 新增注册</div>
             {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
               ? <EngagementTrendChart data={data.engagementTrend} />
               : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}

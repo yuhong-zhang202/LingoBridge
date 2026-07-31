@@ -36,6 +36,10 @@ export const SLOW_HINT_MS = 2500
  */
 export const CURRENT_SEASON = '2026-05'
 
+// ── 经营看板「活跃」口径变更 ─────────────────────────────
+/** 看板「活跃」口径由「仅 AI 调用」放宽为「核心活跃」的生效日（趋势图据此画口径变更标注线）。 */
+export const METRIC_DEFINITION_CHANGED_AT = '2026-07-31'
+
 // ── 模型名常量（千问 qwen-plus 稳定别名；qwen-flash 用于成本敏感、质量要求次之的环节）
 export const MODEL_RANKING     = 'qwen-plus'
 export const MODEL_PRACTICE    = 'qwen-plus'

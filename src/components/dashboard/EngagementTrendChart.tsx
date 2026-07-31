@@ -8,14 +8,22 @@
  * @author   LingoBridge
  * @created  2026-07-25
  */
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { METRIC_DEFINITION_CHANGED_AT } from '@/lib/constants'
 
 // 坐标轴刻度色：recharts 的 tick fill 只吃色值、吃不了 Tailwind class，故硬编码 v2-text-muted 值（同 CostTrendChart）。
 const AXIS_TICK_FILL = '#7C6B5E'
+// 口径变更参考线色：recharts 只吃色值、吃不了 Tailwind class，故硬编码取自 v2-text-muted token（同 AXIS_TICK_FILL 模式）。
+const METRIC_CHANGE_LINE = '#7C6B5E'
+
+// 把口径变更生效日（'YYYY-MM-DD'）格式化成与 data[].date 完全相同的 x 轴键。
+// ⚠️ data[].date 由 route dayBuckets 产出 `月/日`（斜杠、无前导零，如 7/31），非 '07-31'——核对过、勿假设。
+const [, MC_MM, MC_DD] = METRIC_DEFINITION_CHANGED_AT.split('-')
+const METRIC_CHANGE_KEY = `${Number(MC_MM)}/${Number(MC_DD)}`
 
 // 三条线的色值均取自 DESIGN.md 调色板：活跃人数=brand-primary（暖橙）、练习场次=brand-accent（绿蓝）、
 // 新增注册=band-70（品牌紫 #9A7DB8），与前两色区分明显、不自造刺眼色。
-const ACTIVE_SERIES = { key: 'activeUsers',      name: '活跃人数', color: '#D4875A' } as const   // brand-primary
+const ACTIVE_SERIES = { key: 'activeUsers',      name: '核心活跃人数', color: '#D4875A' } as const   // brand-primary
 const NEWREG_SERIES = { key: 'newReg',           name: '新增注册', color: '#9A7DB8' } as const   // band-70 品牌紫
 const SESSION_SERIES = { key: 'practiceSessions', name: '练习场次', color: '#7BA699' } as const   // brand-accent
 
@@ -61,6 +69,8 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
   const totalNewReg   = data.reduce((s, d) => s + (d.newReg ?? 0), 0)
   const peakActive    = data.reduce((m, d) => (d.activeUsers > m.activeUsers ? d : m), data[0] ?? { date: '', activeUsers: 0, practiceSessions: 0 })
   const ariaNewReg    = hasNewReg ? `，新增注册合计 ${totalNewReg}` : ''
+  // 口径变更参考线只在当前窗口确实覆盖到生效日那天才画（虚线对读屏不可读，文字等价物见 aria-label 末尾）。
+  const showChangeLine = data.some(d => d.date === METRIC_CHANGE_KEY)
   return (
     <div>
       {/* 自带图例：移动端无 hover tooltip，靠色点+名读出每条线代表什么 */}
@@ -74,13 +84,18 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
       </div>
       {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附下方 sr-only 数据表兜底 */}
       <div role="img"
-        aria-label={`每日参与度趋势图，共 ${data.length} 天，活跃人数合计 ${totalActive}（峰值 ${peakActive.date} 共 ${peakActive.activeUsers} 人），练习场次合计 ${totalSessions}${ariaNewReg}。详细数据见下方数据表。`}>
+        aria-label={`每日参与度趋势图，共 ${data.length} 天，核心活跃人数合计 ${totalActive}（峰值 ${peakActive.date} 共 ${peakActive.activeUsers} 人），练习场次合计 ${totalSessions}${ariaNewReg}。注：${METRIC_DEFINITION_CHANGED_AT} 起活跃口径放宽（AI/闪卡/收藏任一即算），此后活跃线台阶式抬升属口径变化非自然增长。详细数据见下方数据表。`}>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
               allowDecimals={false} width={32} />
             <Tooltip content={<CustomTip series={series} />} />
+            {/* 口径变更竖虚线：仅当窗口覆盖到生效日那天才渲染（see showChangeLine）；读屏等价物在上方 aria-label */}
+            {showChangeLine && (
+              <ReferenceLine x={METRIC_CHANGE_KEY} strokeWidth={1} strokeDasharray="3 3" stroke={METRIC_CHANGE_LINE}
+                label={{ value: '口径变更', position: 'top', fontSize: 9, fill: METRIC_CHANGE_LINE }} />
+            )}
             {series.map(s => (
               <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color}
                 strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -94,7 +109,7 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
         <thead>
           <tr>
             <th scope="col">日期</th>
-            <th scope="col">活跃人数</th>
+            <th scope="col">核心活跃人数</th>
             <th scope="col">练习场次</th>
             {hasNewReg && <th scope="col">新增注册</th>}
           </tr>

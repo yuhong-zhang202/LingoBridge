@@ -54,7 +54,7 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         <div className="px-5 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[14px]" aria-hidden="true">🧑‍💻</span>
-            <span className="text-[11px] text-v2-text-muted">今日活跃 · 注册用户</span>
+            <span className="text-[11px] text-v2-text-muted">今日核心活跃 · 注册用户</span>
           </div>
           <div className="text-[40px] md:text-[44px] font-bold text-v2-text-primary leading-none tabular-nums">
             {data.registeredActiveToday}

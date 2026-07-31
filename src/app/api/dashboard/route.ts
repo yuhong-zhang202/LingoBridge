@@ -11,6 +11,11 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY, ERROR_KIND_NETWORK } from '@/lib/constants'
 import { classifyErrorKindFromLog } from '@/types/errors'
+// 看板指标 RPC 读取帮手（各自独立自降级、RPC 缺失/出错返 null）——从本文件抽出以守 <1000 行红线（见该模块头注释）。
+import {
+  fetchRetention, fetchRegistration, fetchDailyRegistrations, fetchActiveRegistered,
+  fetchCoreActive, fetchWindowCoreActive, fetchActivation, fetchWeeklyRetention,
+} from '@/lib/db/dashboard-metrics'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -207,141 +212,6 @@ type RecentRow = {
   latency_ms: number; status: string; metadata: LogMeta
 }
 
-// 留存 RPC（0043_retention_stats）返回的单行形状：PostgREST 对 numeric 可能回字符串以保精度，故读取处 Number() 兜底。
-type RetentionRow = { d1_rate: number | string | null; d1_n: number; d7_rate: number | string | null; d7_n: number }
-/** 前端消费的留存结构：rate 为 0-100 百分比（无成熟群组时 null），n 为该指标分母（成熟群组总人数）。 */
-type RetentionStats = { d1Rate: number | null; d1N: number; d7Rate: number | null; d7N: number }
-
-/**
- * 调 get_retention_stats RPC 取注册用户留存（D1/D7 池化率 + 样本量）。
- * 迁移 0043 未跑 / RPC 出错时【优雅降级】返回 null（前端显「待接入」），绝不让整个看板 500。
- * @param supabase       service_role 客户端（RPC 内 security definer 读 auth.users）
- * @param windowDays     窗口天数（与看板 range 联动的 7/14/30）
- * @returns              留存结构；不可用时 null
- */
-async function fetchRetention(
-  supabase: ReturnType<typeof getSupabaseServer>,
-  windowDays: number,
-): Promise<RetentionStats | null> {
-  try {
-    const { data, error } = await supabase.rpc('get_retention_stats', { p_window_days: windowDays })
-    if (error) return null
-    const row = Array.isArray(data) ? (data[0] as RetentionRow | undefined) : (data as RetentionRow | null)
-    if (!row) return null
-    return {
-      d1Rate: row.d1_rate == null ? null : Number(row.d1_rate),
-      d1N:    row.d1_n,
-      d7Rate: row.d7_rate == null ? null : Number(row.d7_rate),
-      d7N:    row.d7_n,
-    }
-  } catch {
-    // supabase.rpc 缺失 / 网络异常等一律降级；留存是次要看板指标，不拖垮主看板。
-    return null
-  }
-}
-
-// 真注册统计 RPC（0043_retention_stats 的兄弟函数）返回的单行形状。
-type RegistrationRow = { today_count: number; window_count: number }
-/** 真注册数：今日 + 窗口内（口径 = auth.users 非匿名·有邮箱，非 profiles）。 */
-type RegistrationStats = { todayCount: number; windowCount: number }
-
-/**
- * 调 get_registration_stats RPC 取【真注册】新增数（今日 + 窗口内）。
- * 口径权威源 auth.users（非 profiles——profiles 含匿名各一行会把匿名算进注册、虚高）。
- * 迁移 0043 未跑 / RPC 出错时返回 null，调用方回退 profiles 计数并在卡上标注「含匿名·待迁移生效」。
- * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
- * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
- * @returns           真注册数；不可用时 null
- */
-async function fetchRegistration(
-  supabase: ReturnType<typeof getSupabaseServer>,
-  windowDays: number,
-): Promise<RegistrationStats | null> {
-  try {
-    const { data, error } = await supabase.rpc('get_registration_stats', { p_window_days: windowDays })
-    if (error) return null
-    const row = Array.isArray(data) ? (data[0] as RegistrationRow | undefined) : (data as RegistrationRow | null)
-    if (!row) return null
-    return { todayCount: row.today_count, windowCount: row.window_count }
-  } catch {
-    return null
-  }
-}
-
-// 每日真注册数 RPC（0044_daily_registrations）返回行：reg_day 为东八区注册日（PostgREST 对 date 列回
-// 'YYYY-MM-DD' 串），cnt 为当日真注册数；只含窗口内【有注册的天】，没注册的天不返回、由 route 补 0。
-type DailyRegRow = { reg_day: string; cnt: number | string }
-
-/**
- * 调 get_daily_registrations RPC 取窗口内每日【真注册】数，转成「日桶键→当日注册数」映射，
- * 键格式与下方 dayBuckets / dailyData 日期轴一致（`年-月(0基)-日`），供每日参与度趋势并入第三条线「新增注册」。
- * 口径权威源 auth.users（非 profiles——含匿名各一行会虚高）。
- * 迁移 0044 未跑 / RPC 出错时【优雅降级】返回 null，调用方据此让该线整条置 null、前端不渲染
- *（不画一条全 0 / 断裂的线误导），绝不让整个看板 500。降级风格与 fetchRegistration 一致。
- * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
- * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
- * @returns           「日桶键→当日真注册数」映射；不可用时 null
- */
-async function fetchDailyRegistrations(
-  supabase: ReturnType<typeof getSupabaseServer>,
-  windowDays: number,
-): Promise<Map<string, number> | null> {
-  try {
-    const { data, error } = await supabase.rpc('get_daily_registrations', { p_window_days: windowDays })
-    if (error) return null
-    const rows = (Array.isArray(data) ? data : []) as DailyRegRow[]
-    const map = new Map<string, number>()
-    for (const row of rows) {
-      // reg_day 是 date 类型（PostgREST 回 'YYYY-MM-DD'）→ 日桶键 `年-月(0基)-日`，与 dayBuckets 的 key 口径对齐。
-      // 取前 10 字符再拆，防个别环境回带时间的串（如 'YYYY-MM-DDT..'）把日拆成 NaN 而静默丢数据。
-      const [y, m, d] = row.reg_day.slice(0, 10).split('-').map(Number)
-      if (!y || !m || !d) continue
-      map.set(`${y}-${m - 1}-${d}`, Number(row.cnt))
-    }
-    return map
-  } catch {
-    return null
-  }
-}
-
-// 每日活跃注册数 RPC（0045_active_registered）返回行：day 为东八区活跃日（PostgREST 对 date 列回
-// 'YYYY-MM-DD' 串），cnt 为当日活跃注册去重数；只含窗口内【有活跃的天】，没活跃的天不返回、由 route 补 0。
-type DailyActiveRow = { day: string; cnt: number | string }
-
-/**
- * 调 get_active_registered_stats RPC 取窗口内每日【活跃注册】去重数，转成「日桶键→当日活跃注册数」映射，
- * 键格式与下方 dayBuckets / dailyData 日期轴一致（`年-月(0基)-日`）。供两处权威口径消费：
- *   · 趋势图「活跃人数」线（每天取该映射值）；
- *   · 北极星「今日活跃·注册」（route 从映射取当天键那格）。
- * 口径权威源 auth.users（非 api_usage_logs.is_anonymous 标记——旧 stale JWT bug 会写错、失真）。
- * 迁移 0045 未跑 / RPC 出错时【优雅降级】返回 null，调用方回退旧 is_anonymous 标记口径（不 500），
- * 降级风格与 fetchDailyRegistrations 一致。
- * @param supabase    service_role 客户端（RPC 内 security definer 读 auth.users）
- * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
- * @returns           「日桶键→当日活跃注册数」映射；不可用时 null
- */
-async function fetchActiveRegistered(
-  supabase: ReturnType<typeof getSupabaseServer>,
-  windowDays: number,
-): Promise<Map<string, number> | null> {
-  try {
-    const { data, error } = await supabase.rpc('get_active_registered_stats', { p_window_days: windowDays })
-    if (error) return null
-    const rows = (Array.isArray(data) ? data : []) as DailyActiveRow[]
-    const map = new Map<string, number>()
-    for (const row of rows) {
-      // day 是 date 类型（PostgREST 回 'YYYY-MM-DD'）→ 日桶键 `年-月(0基)-日`，与 dayBuckets 的 key 口径对齐。
-      // 取前 10 字符再拆，防个别环境回带时间的串把日拆成 NaN 而静默丢数据（同 fetchDailyRegistrations）。
-      const [y, m, d] = row.day.slice(0, 10).split('-').map(Number)
-      if (!y || !m || !d) continue
-      map.set(`${y}-${m - 1}-${d}`, Number(row.cnt))
-    }
-    return map
-  } catch {
-    return null
-  }
-}
-
 /**
  * 这条失败是不是「系统故障」（用于错误率口径）。
  *
@@ -426,7 +296,10 @@ function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
  *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
  *             每日费用趋势 + 每日参与度趋势（活跃+场次+新增注册）、每日失败次数、各环节耗时（分布 + 趋势）、
  *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；注册用户留存（D1/D7 池化，get_retention_stats RPC，
- *             迁移未跑时优雅降级 null）；假空率（区间内空录音 peak≥阈值占比，无带信号样本时 pending 降级）
+ *             迁移未跑时优雅降级 null）；假空率（区间内空录音 peak≥阈值占比，无带信号样本时 pending 降级）；
+ *             增长漏斗（0047 三 RPC：activation 累计注册/激活、weeklyRetention W1 首周留存、windowCoreActive
+ *             窗口核心活跃去重；活跃口径三级降级 = 核心活跃 0047 → 活跃注册 0045 → is_anonymous 去重，各 RPC
+ *             迁移未跑时对应段独立降级、绝不 500）
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -451,9 +324,19 @@ export async function GET(req: Request): Promise<NextResponse> {
     const registrationPromise = fetchRegistration(supabase, rangeDays)
     // 每日新增注册（趋势图第三条线）：与主查询并发、自带降级；null = 迁移 0044 未跑/出错，前端不渲染该线。
     const dailyRegPromise     = fetchDailyRegistrations(supabase, rangeDays)
-    // 每日活跃注册（权威口径，供「今日活跃·注册」+ 趋势「活跃人数」线）：与主查询并发、自带降级；
-    // null = 迁移 0045 未跑/出错，两处回退旧 is_anonymous 标记口径（见下方消费处）。
+    // 每日活跃注册（0045 口径，活跃三级降级的第 2 级）：与主查询并发、自带降级；
+    // null = 迁移 0045 未跑/出错，回退旧 is_anonymous 标记口径（见下方消费处）。
     const activeRegPromise    = fetchActiveRegistered(supabase, rangeDays)
+    // 每日核心活跃（0047 新·权威，活跃三级降级的第 1 级）：AI 环节/闪卡/收藏任一即算；
+    // null → 回退 activeReg(0045) → 再回退 is_anonymous 去重。与主查询并发、自带降级。
+    const coreActivePromise   = fetchCoreActive(supabase, rangeDays)
+    // 窗口核心活跃去重标量（0047·get_window_core_active，漏斗③主数字权威源）：DB 侧窗口级去重（全 7 信号）；
+    // null（迁移未跑/出错）→ 回退 rngRows 现算的 AI-only 近似（windowActiveSet.size）。与主查询并发、自带降级。
+    const windowCorePromise   = fetchWindowCoreActive(supabase, rangeDays)
+    // 激活漏斗（0047）：累计注册/激活 + 本周期群组；null = 迁移未跑/出错，前端漏斗①②走降级态。
+    const activationPromise    = fetchActivation(supabase, rangeDays)
+    // W1 首周留存（0047）：null = 迁移未跑/出错，前端漏斗④主区降级、D1/D7 对照行仍由旧 retention 承担。
+    const weeklyRetentionPromise = fetchWeeklyRetention(supabase, rangeDays)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -590,14 +473,16 @@ export async function GET(req: Request): Promise<NextResponse> {
       if (isAnon) anonSessionsToday++
       else        registeredActiveFallback++
     }
-    // 今日活跃·注册【权威口径优先】：get_active_registered_stats RPC（0045，读 auth.users）取当天格；
-    // RPC 缺失/出错（activeReg=null，迁移 0045 未跑）→ 回退上面按 is_anonymous 标记去重的 registeredActiveFallback。
+    // 今日活跃·注册【三级降级】：核心活跃(0047 权威) → 活跃注册(0045) → is_anonymous 标记去重(registeredActiveFallback)。
+    // activeMap = 前两级中最先可用者的每日映射；两级 RPC 皆 null 时走 fallback。取当天格。
     // 匿名会话数（anonSessionsToday）不变——匿名本就"非唯一真人"、无权威表可依，维持旧标记口径。
     // 今日日桶键：与 dayBuckets/hkDayKey 同格式（`年-月(0基)-日`），用香港墙上时钟的今日。
+    const coreActive = await coreActivePromise
     const activeReg = await activeRegPromise
+    const activeMap = coreActive ?? activeReg
     const todayBucketKey = `${nowHk.getUTCFullYear()}-${nowHk.getUTCMonth()}-${nowHk.getUTCDate()}`
-    const registeredActiveToday = activeReg
-      ? (activeReg.get(todayBucketKey) ?? 0)
+    const registeredActiveToday = activeMap
+      ? (activeMap.get(todayBucketKey) ?? 0)
       : registeredActiveFallback
 
     // ── 今日练习场次（新练 / 复练拆分）：practice_sessions 今日子集，按 is_review 分。 ──
@@ -782,21 +667,35 @@ export async function GET(req: Request): Promise<NextResponse> {
     const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
 
     // ── 每日参与度趋势（活跃人数 + 练习场次 + 新增注册，与 dailyData 同一日期轴）──
-    // 活跃人数【权威口径优先】：每天活跃注册去重数（get_active_registered_stats RPC，0045；口径 =
-    //   auth.users 非匿名·有邮箱，与北极星「今日活跃·注册」同源）。刻意只数注册、不掺匿名——掺进来会与
-    //   「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃。
-    //   RPC 缺失/出错（activeReg=null）→ 回退旧 is_anonymous 标记去重（activeUsersByDay），不 500。
+    // 活跃人数【三级降级】：核心活跃(0047)→活跃注册(0045)→is_anonymous 标记去重。每天取 activeMap 当天格；
+    //   activeMap 为 null（两级 RPC 皆缺失/出错）→ 回退旧 is_anonymous 标记去重（activeUsersByDay），不 500。
+    //   刻意只数注册、不掺匿名——掺进来会与「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃。
     // 练习场次：每天 practice_sessions 计数（新练+复练合计）。
     // 新增注册：每天真注册数（get_daily_registrations RPC，0044；口径 = auth.users 非匿名·有邮箱）。
     //   dailyReg 为 null（迁移未跑/RPC 出错）时该字段整条置 null，前端不渲染这条线（不画全 0 线误导）。
+    // windowActiveSet：窗口内【核心活跃三级降级第 3 级】的去重人数（漏斗③）——注册用户在窗口内任一天有 AI 环节
+    //   活动即计。⚠️ 仅覆盖 api_usage_logs 信号：0047 的 per-day RPC 无法在 JS 侧跨天去重成「窗口去重」，故窗口
+    //   聚合值只能由 rngRows 现算（这也正是活跃口径的第 3 级降级源，恒可算、绝不拖垮看板）。见响应处 windowCoreActive。
     const activeUsersByDay = new Map<string, Set<string>>()
+    const windowActiveSet  = new Set<string>()
     for (const row of rngRows) {
       if (row.is_anonymous !== false || row.user_id == null) continue   // 只计注册（is_anonymous=false）且能归属的行
+      windowActiveSet.add(row.user_id)
       const key = hkDayKey(row.created_at)
       const set = activeUsersByDay.get(key)
       if (set) set.add(row.user_id)
       else activeUsersByDay.set(key, new Set([row.user_id]))
     }
+    // 窗口核心活跃去重人数（漏斗③主数字）：优先 0047 标量 RPC（全 7 信号·DB 侧窗口去重、值准）；
+    // null（迁移未跑/出错）→ 回退 windowActiveSet.size（rngRows 现算的 AI-only 近似，恒可算保底）。
+    const windowCoreRpc = await windowCorePromise
+    const windowCoreActive = windowCoreRpc ?? windowActiveSet.size
+    // windowCoreApprox：仅当回退到 AI-only 近似时置真（RPC 缺失/出错），供未来 UI 需要时标注「近似」用；
+    // happy path（RPC 已部署）恒为 false、值权威。
+    const windowCoreApprox = windowCoreRpc == null
+    // 核心活跃「三级全失败」标记：两级每日权威 RPC 皆不可用时置真，前端漏斗③改走降级态（口径不可信）。
+    // 至少一级 RPC 可用则 false。⚠️ 与 windowCoreApprox 正交：前者判每日口径链健康、后者判③标量是否走近似。
+    const activePending = coreActive == null && activeReg == null
     const practiceByDay = new Map<string, number>()
     for (const row of practiceRows) {
       const key = hkDayKey(row.created_at)
@@ -806,8 +705,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const dailyReg = await dailyRegPromise
     const engagementTrend = dayBuckets.map(({ key, date }) => ({
       date,
-      // 活跃人数：权威 RPC（activeReg）可用时取当天格；null（迁移未跑/出错）回退旧标记去重 activeUsersByDay。
-      activeUsers:      activeReg ? (activeReg.get(key) ?? 0) : (activeUsersByDay.get(key)?.size ?? 0),
+      // 活跃人数：三级降级——activeMap（核心活跃 0047 → 活跃注册 0045）可用时取当天格；
+      // null（两级 RPC 皆缺失/出错）回退旧标记去重 activeUsersByDay。
+      activeUsers:      activeMap ? (activeMap.get(key) ?? 0) : (activeUsersByDay.get(key)?.size ?? 0),
       practiceSessions: practiceByDay.get(key) ?? 0,
       newReg:           dailyReg ? (dailyReg.get(key) ?? 0) : null,
     }))
@@ -890,6 +790,9 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     // 留存 RPC 结果（与主查询并发、自带降级）：null = 迁移未跑/出错，前端显降级态。
     const retention = await retentionPromise
+    // 激活漏斗 / W1 首周留存（0047，与主查询并发、自带降级）：null = 迁移 0047 未跑/出错，前端漏斗对应段走降级态。
+    const activation      = await activationPromise
+    const weeklyRetention = await weeklyRetentionPromise
 
     return NextResponse.json({
       allTimeCost,
@@ -932,10 +835,27 @@ export async function GET(req: Request): Promise<NextResponse> {
       // 每项 newReg = 当日真注册数（0044 RPC）；整条 newReg 为 null 即降级态，前端不渲染这条线。
       engagementTrend,
       // Tier2 留存：get_retention_stats RPC（0043）算注册用户 D1/D7 池化留存 + 样本量。
+      // ⚠️ D1/D7 为旧口径（精确等日留存），W1 上线后仅作漏斗④对照行，后续移除。
       retention,
       // retentionPending：留存 RPC 未接入的降级标记（现语义 = 迁移未跑/出错，而非「功能未实现」），
       // 供前端降级判断与既有口径断言沿用。retention 有数即 false。
       retentionPending: retention === null,
+      // ── 增长漏斗（0047 三 RPC，迁移未跑时各段独立降级、不 500）──
+      // 激活漏斗①②：累计注册/激活 + 本周期群组（激活 = corpus≥1 条）。null = 迁移未跑/出错，前端①②同时降级。
+      activation,
+      activationPending: activation === null,
+      // W1 首周留存（漏斗④主区）：首活后 D+1~D+7 任一天再活跃的区间留存。null = 迁移未跑/出错，
+      // 前端④主区降级、D1/D7 对照行仍由上面 retention 独立承担。
+      weeklyRetention,
+      weeklyRetentionPending: weeklyRetention === null,
+      // 窗口核心活跃去重人数（漏斗③主数字）：0047 标量 RPC（全 7 信号）优先，null 回退 rngRows AI-only 近似。
+      windowCoreActive,
+      // windowCoreApprox：③ 本次是否为 AI-only 近似（RPC 回退时 true）。当前口径小字不据此改，留给未来 UI 用。
+      windowCoreApprox,
+      // activePending：核心活跃两级【每日】权威 RPC（0047→0045，趋势线/今日值口径）皆不可用时置真，
+      // 前端漏斗③走降级态（沿用原判定）。⚠️ 与③标量口径（windowCoreActive/windowCoreApprox）正交——
+      // 后者由独立的 get_window_core_active 决定是否走 AI-only 近似，两套 RPC 各自降级、互不代表。
+      activePending,
       // 假空率（区间窗口）：空录音里 peak≥阈值（采到声音却转写空）的占比 + 样本量 n。
       // fakeEmpty=null 且 fakeEmptyPending=true = 区间内无带 audio 信号的空录音（口径生效前无数据），前端显「待接入」。
       fakeEmpty,
