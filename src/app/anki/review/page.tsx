@@ -21,7 +21,7 @@
  * @created  2026-07-24
  */
 'use client'
-import { type JSX, Suspense, useState, useEffect, useCallback, useMemo } from 'react'
+import { type JSX, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useNav } from '@/components/NavProgress'
 import { X } from 'lucide-react'
@@ -32,9 +32,10 @@ import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useAccount } from '@/hooks/useAccount'
 import { ensureSession } from '@/lib/supabase'
-import { fetchAnkiCards, gradeAnkiCard, patchAnkiPoint, AnkiFetchError } from '@/lib/anki/cards-client'
+import { fetchAnkiCards, fetchCardAnalyses, gradeAnkiCard, patchAnkiPoint, AnkiFetchError } from '@/lib/anki/cards-client'
 import { parseEditOverrides, applyEditOverride, serializeEditOverrides } from '@/lib/anki/answer-points'
 import type { AnkiCard } from '@/lib/anki/list'
+import type { QuestionAnalysis } from '@/lib/types'
 
 // 二级 Part 筛选 Chip：全部 / Part 1 / Part 2（part3 子卡跟随 part2、不单列）；默认「全部」= 与 Hero 计数一致
 type PartTab = 'all' | 1 | 2
@@ -99,6 +100,11 @@ function AnkiReviewContent(): JSX.Element {
   const [reloadKey, setReloadKey] = useState(0)
   // 匿名用户点空点态「分享你的想法」→ 弹注册引导（复用 AnkiRegisterGate）；注册用户直接跳 /write?qid=
   const [registerGate, setRegisterGate] = useState(false)
+  // 题目分析懒加载缓存（列表不再随行下发 analysis，见 anki/list.ts mapRow ⚠️）：{ questionId: analysis|null }。
+  // 键存在即「已拉过」（null = 拉过但该题无分析），据此区分「加载中」与「确无要点」。fetchedRef 镜像已拉键，
+  // 供预取 effect 判缺失而不把 map 放进依赖（避免合并→重跑→再合并的循环）。跨 mode/part 切换保留缓存、免重拉。
+  const [analysisMap, setAnalysisMap] = useState<Record<string, QuestionAnalysis | null>>({})
+  const fetchedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -169,6 +175,37 @@ function AnkiReviewContent(): JSX.Element {
     }),
     [queue, activePart],
   )
+
+  // 滑动窗口预取分析：拉当前及往后 PREFETCH_AHEAD 张里还没拉过的题的 analysis（一次 batch 请求），随 current
+  // 前进滚动补窗口。首屏只等题面（列表 368kB），analysis 随翻随到、先于翻面就位 → 卡背感知为零、不闪空态。
+  // fetchedRef 判缺失（不把 analysisMap 放依赖，避免循环）；失败静默——翻到未就位卡时卡背自然回落「加载中/空态」。
+  const PREFETCH_AHEAD = 6
+  useEffect(() => {
+    if (loading || visibleQueue.length === 0) return
+    const want = visibleQueue
+      .slice(current, current + PREFETCH_AHEAD)
+      .map((c) => c.questionId)
+      .filter((id) => !fetchedRef.current.has(id))
+    if (want.length === 0) return
+    // 乐观占位：先记入 fetchedRef 防同窗口重复请求；请求失败则撤销这些占位、下轮可重试。
+    want.forEach((id) => fetchedRef.current.add(id))
+    let cancelled = false
+    void fetchCardAnalyses(want)
+      .then((got) => {
+        if (cancelled) return
+        // 请求的每个 id 都落 map：命中的存 analysis、未命中的存 null（= 拉过但无分析，区别于「未拉」）。
+        setAnalysisMap((prev) => {
+          const next = { ...prev }
+          for (const id of want) next[id] = got[id] ?? null
+          return next
+        })
+      })
+      .catch(() => {
+        if (cancelled) return
+        want.forEach((id) => fetchedRef.current.delete(id)) // 撤销占位，允许后续重试
+      })
+    return () => { cancelled = true }
+  }, [visibleQueue, current, loading])
 
   // 切 Tab：把卡索引重置到该 part 第一张
   const switchPart = useCallback((p: PartTab): void => {
@@ -344,14 +381,24 @@ function AnkiReviewContent(): JSX.Element {
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center">
-                    <QuestionFlashCard
-                      key={`${visibleQueue[current].questionId}-${activePart}-${current}`}
-                      card={visibleQueue[current]}
-                      onGrade={(r) => void gradeOne(r)}
-                      onEditPoint={handleEditPoint}
-                      onSupplement={handleSupplement}
-                      anonymous={isAnonymous}
-                    />
+                    {(() => {
+                      // 注入懒加载来的 analysis（列表下发的恒 null，见 mapRow ⚠️）：已拉到 → 覆盖进 card；
+                      // 未拉到（键不在 map）→ analysisPending，卡背显「加载中」而非空态。
+                      const qid = visibleQueue[current].questionId
+                      const fetched = qid in analysisMap
+                      const card = fetched ? { ...visibleQueue[current], analysis: analysisMap[qid] } : visibleQueue[current]
+                      return (
+                        <QuestionFlashCard
+                          key={`${qid}-${activePart}-${current}`}
+                          card={card}
+                          onGrade={(r) => void gradeOne(r)}
+                          onEditPoint={handleEditPoint}
+                          onSupplement={handleSupplement}
+                          anonymous={isAnonymous}
+                          analysisPending={!fetched}
+                        />
+                      )
+                    })()}
                   </div>
                 )}
               </>

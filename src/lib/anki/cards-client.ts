@@ -8,6 +8,7 @@
 'use client'
 import { apiFetch } from '@/lib/api-client'
 import type { AnkiCard, AnkiListScope } from '@/lib/anki/list'
+import type { QuestionAnalysis } from '@/lib/types'
 
 /**
  * 携带 HTTP 状态码的题卡拉取错误。宿主页据 status 分流：401 → 注册引导态（登录后查看你的题卡）；
@@ -40,6 +41,53 @@ export async function fetchAnkiCards(part: 1 | 2, scope: AnkiListScope): Promise
   if (!res.ok) throw new AnkiFetchError(`读取题卡失败（${res.status}）`, res.status)
   const data = (await res.json()) as { cards?: AnkiCard[] }
   return data.cards ?? []
+}
+
+/**
+ * 批量懒加载题目分析（列表不再随行下发 analysis，见 anki/list.ts mapRow ⚠️）。牌堆页按滑动窗口预取当前
+ * 及邻近几张，翻面前数据已就位、感知为零。返回 { questionId: analysis }，无分析的题不在映射里。
+ * @param  questionIds  要拉的题 id（空则不打接口、直接回 {}）
+ * @returns             命中题的 analysis 映射；网络/非 2xx 时抛 AnkiFetchError
+ */
+export async function fetchCardAnalyses(questionIds: string[]): Promise<Record<string, QuestionAnalysis>> {
+  if (questionIds.length === 0) return {}
+  let res: Response
+  try {
+    res = await apiFetch(`/api/anki/analysis?questionIds=${encodeURIComponent(questionIds.join(','))}`, { method: 'GET' })
+  } catch (e) {
+    throw new AnkiFetchError(e instanceof Error ? e.message : '网络异常', 0)
+  }
+  if (!res.ok) throw new AnkiFetchError(`读取题目分析失败（${res.status}）`, res.status)
+  const data = (await res.json()) as { analyses?: Record<string, QuestionAnalysis> }
+  return data.analyses ?? {}
+}
+
+/** 题库速览 Hero 概况（服务端算好的几个计数 + 一句样本，替代「拉全部卡再前端派生」）。 */
+export interface AnkiSummary {
+  /** 当季全部可刷卡片总数（含 part3 子卡）= review「全部」牌堆张数 */
+  seasonCount: number
+  /** 已答主卡里到期张数（口径同 Hero「待复习」） */
+  dueCount: number
+  /** 当季已绑语料且已答的对子数（供语料匹配 tab 徽标基数） */
+  pairCount: number
+  /** 样本题面（已答首题优先，否则当季首题）；当季真 0 题为 null */
+  sample: { part: 1 | 2 | 3; text: string } | null
+}
+
+/**
+ * 拉题库速览 Hero 概况。服务端一次算好 4 个数只回 ~200 字节，替代旧「fetchAnkiCards(1)+fetchAnkiCards(2)
+ * 拉全部 ~1.3MB 再前端 .length/.filter」的浪费（见 GET /api/anki/summary）。
+ * @returns  概况；非 2xx / 网络失败抛 AnkiFetchError
+ */
+export async function fetchAnkiSummary(): Promise<AnkiSummary> {
+  let res: Response
+  try {
+    res = await apiFetch('/api/anki/summary', { method: 'GET' })
+  } catch (e) {
+    throw new AnkiFetchError(e instanceof Error ? e.message : '网络异常', 0)
+  }
+  if (!res.ok) throw new AnkiFetchError(`读取题卡概况失败（${res.status}）`, res.status)
+  return (await res.json()) as AnkiSummary
 }
 
 /** 换语料弹窗对比用的语料摘要（当前已绑语料）。 */

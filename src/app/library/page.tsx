@@ -12,7 +12,7 @@ import { getQuestionCountByObservations } from '@/lib/db/questions'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
 import { getDueCount } from '@/lib/db/phrase-cards'
-import { fetchAnkiCards } from '@/lib/anki/cards-client'
+import { fetchAnkiSummary } from '@/lib/anki/cards-client'
 import { ensureSession } from '@/lib/supabase'
 import { formatRelativeTime } from '@/lib/utils'
 import type { MyStory, CollectedCard, DimensionLabel } from '@/lib/types'
@@ -39,18 +39,14 @@ export default function LibraryPage() {
   // 回上报最新 pairs.length（删对子即回落，无需刷新）；未进过 tab 则沿用此首屏派生值（hub 一进来即有数）。
   const [pairCount, setPairCount]   = useState(0)
 
-  // 题卡 Hero 数据（Anki 当季题卡入口）。无专用计数 RPC，故复用 fetchAnkiCards 拉当季 part1/part2 的【全部】
-  // 卡（scope='all'）后本地派生三口径（一次 all 拉取即够，请求数与改前的两次 answered 拉取相同、无新增 DB
-  // 函数/端点）：
-  //   - ankiSeasonCount = 当季全部可刷卡片总数（part1 + part2 + part2 带的 part3 子卡，含用户没碰过的默认卡）——
-  //     方案 A：与 /anki/review「全部」段牌堆一致、所见即所得（Hero 显 N 张 = 点开牌堆张数）。单位是「张」（含 part3
-  //     子卡，是卡片不是题目），非「道」；
-
-
-  //   - ankiDueCount    = 用户【已答】卡里到期的张数（只数 isAnswered 卡、按其真实 due_at；默认卡 due_at 被
-  //     coalesce 成 now 且 isAnswered=false，滤掉即等价于旧 scope='answered' 口径，不回归）；
-  //   - ankiSample      = 已答卡首题优先，否则当季首题；仅当季真 0 题才为 null（空态不显预览）。
-  // part3 是子题、不单列入口，排除。
+  // 题卡 Hero 数据（Anki 当季题卡入口）。⚠️ 性能：改前为「fetchAnkiCards(1,'all')+fetchAnkiCards(2,'all')
+  // 拉当季全部 ~686 张卡（连 analysis 全文 ~1.3MB）到浏览器再 .length/.filter」，只为算这几个数字，慢在下载。
+  // 现改调 GET /api/anki/summary —— 服务端（Zeabur香港↔Supabase新加坡内网快链）算好只回 ~200 字节：
+  //   - ankiSeasonCount = 当季全部可刷卡片总数（part1+part2+part2 带的 part3 子卡，含默认卡）= 牌堆「全部」张数；
+  //   - ankiDueCount    = 已答主卡里到期张数（口径同旧 scope='answered' 到期过滤，不回归）；
+  //   - ankiSample      = 已答卡首题优先，否则当季首题；仅当季真 0 题才为 null；
+  //   - pairCount       = 当季已绑语料且已答的对子数（供语料匹配 tab 徽标基数，口径不变）。
+  // 计数口径与旧前端派生逐条一致（见 summary/route.ts）。
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
   const [ankiSample, setAnkiSample]           = useState<AnkiHeroSample | null>(null)
@@ -115,30 +111,18 @@ export default function LibraryPage() {
       .then(setDueCount)
       .catch(e => console.warn('[LibraryPage] 获取待复习数失败', e))
 
-    // 题卡 Hero 数据：拉当季【全部】part1 + part2 列表 → 本地派生当季总道数 / 已答到期张数 / 一句题面样本。
+    // 题卡 Hero 概况：调 summary 端点，服务端算好几个计数只回 ~200 字节（见上方 ⚠️ 与 summary/route.ts）。
     // 失败静默降级为空态（Hero 仍显示），不阻塞素材库其余模块。
     void (async () => {
       try {
-        // 先确保匿名会话（token）就位再拉题卡：GET /api/anki/cards 对匿名放行、但仍需带 Bearer token，
-        // 否则本 IIFE 常并发早于 listMyCorpus/getDueCount 内部建会话 → 401 降级空态 → Hero 误显「当季暂无题卡」。
-        // 当季恒有题（含未注册可见的默认卡），建会话后匿名即可拿到真实当季张数。
+        // 先确保匿名会话（token）就位：GET /api/anki/summary 对匿名放行、但仍需带 Bearer token，
+        // 否则常并发早于 listMyCorpus/getDueCount 内部建会话 → 401 降级空态 → Hero 误显「当季暂无题卡」。
         await ensureSession()
-        const [p1, p2] = await Promise.all([
-          fetchAnkiCards(1, 'all'),
-          fetchAnkiCards(2, 'all'),
-        ])
-        const all = [...p1, ...p2]                              // 全部可刷卡（part1+part2+part3 子卡）
-        // 当季对子数（corpusId 非空 + 已答）：加 isAnswered 过滤复现 tab 的 scope='answered' 口径，两处徽标基数统一、
-        // 避免打开 tab 前后跳变（part3 子卡恒无 corpus，自然排除）。绑对子必先答题，正常不会有「有 corpus 却未答」的卡，
-        // 加此过滤仅为口径严格对齐、消除理论边界差异。
-        setPairCount(all.filter(c => c.corpusId !== null && c.isAnswered).length)
-        const mains = all.filter(c => c.part !== 3)             // 待复习/样本口径仍只看主题卡（part3 是子卡，不单独计到期）
-        const answeredMains = mains.filter(c => c.isAnswered)   // 待复习口径只算已答卡（保留旧 scope='answered' 语义，口径不变）
-        const now = Date.now()
-        setAnkiSeasonCount(all.length)                          // 方案 A：当季全部可刷卡片总数（含 part3 子卡），= review「全部」牌堆张数
-        setAnkiDueCount(answeredMains.filter(c => new Date(c.dueAt).getTime() <= now).length)
-        const sample = answeredMains[0] ?? mains[0]             // 已答首题优先，否则当季首题
-        setAnkiSample(sample ? { part: sample.part, text: sample.questionText } : null)
+        const s = await fetchAnkiSummary()
+        setAnkiSeasonCount(s.seasonCount)
+        setAnkiDueCount(s.dueCount)
+        setPairCount(s.pairCount)
+        setAnkiSample(s.sample)
       } catch (e) {
         console.warn('[LibraryPage] 获取题卡概况失败，Hero 走空态', e)
       } finally {

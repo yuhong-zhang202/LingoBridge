@@ -134,7 +134,10 @@ function mapRow(row: RawCardRow): AnkiCard {
     corpusSummary: row.corpus_summary,
     generatedAnswer: row.generated_answer,
     editedAnswer: row.edited_answer,
-    analysis: row.analysis,
+    // ⚠️ 性能：analysis（题目分析全文，占列表 payload ~71%）不再随列表下发浏览器 —— 列表返回恒 null，
+    //    展示层（QuestionFlashCard 卡背）按需经 GET /api/anki/analysis?questionIds= 单/批懒加载并注入。
+    //    RPC 仍取 analysis（服务端内网快链、可忽略），backKind 不依赖它（见 backKindOf），故此处置空安全。
+    analysis: null,
     box: row.box,
     dueAt: row.due_at,
     lastReviewedAt: row.last_reviewed_at,

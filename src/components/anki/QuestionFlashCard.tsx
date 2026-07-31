@@ -78,6 +78,11 @@ interface Props {
    *   （onSupplement，仅在想输入语料时触发）。
    */
   anonymous?: boolean
+  /**
+   * analysis（卡背要点脊柱）是否仍在懒加载中（列表不再随行下发 analysis，宿主按窗口预取后注入 card.analysis）。
+   * true 且这张还没就位 → 卡背显「加载中」而非「暂无要点」空态，避免翻面闪一下空。预取通常先于翻面完成、极少见到。
+   */
+  analysisPending?: boolean
 }
 
 /** 序号圆圈：外层极淡渐变描边 + 内层白底灰数字（与 analysis 侧重点 StepNum 视觉一致）。 */
@@ -215,8 +220,8 @@ function MemoryDots({ box }: { box: number }): JSX.Element {
  * 卡背（分点式）：part1/2/3 统一序号脊柱；点数组用 <ul>，垂直居中；底部固定「记忆进度」7 点（仅注册用户）。
  * anonymous：匿名会话不记 SRS 进度 → 不渲染 MemoryDots（进度点与评级一样，只对注册用户露出）。
  */
-function CardBack({ card, onSupplement, anonymous }: {
-  card: AnkiCard; onSupplement?: (q: string) => void; anonymous?: boolean
+function CardBack({ card, onSupplement, anonymous, analysisPending }: {
+  card: AnkiCard; onSupplement?: (q: string) => void; anonymous?: boolean; analysisPending?: boolean
 }): JSX.Element {
   const focusPoints = card.analysis?.focusPoints ?? []
   const points = deriveEffectivePoints(focusPoints, card.generatedAnswer, card.editedAnswer)
@@ -229,10 +234,11 @@ function CardBack({ card, onSupplement, anonymous }: {
   const genDone = card.generatedAnswer !== null || (card.editedAnswer !== null && card.editedAnswer !== '')
 
   if (points.length === 0) {
+    // analysis（要点脊柱）还在懒加载 → 显「加载中」而非「暂无要点」空态，避免翻面闪一下空（预取通常先到、极少见）。
     return (
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 flex items-center justify-center text-center">
-          <p className="text-[13px] text-v2-text-muted">这道题还没有可展示的答题要点</p>
+          <p className="text-[13px] text-v2-text-muted">{analysisPending ? '加载中…' : '这道题还没有可展示的答题要点'}</p>
         </div>
         {!anonymous && <MemoryDots box={card.box} />}
       </div>
@@ -299,7 +305,7 @@ function FaceShell({ children, flip3d, back, inert }: {
   )
 }
 
-export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false }: Props): JSX.Element {
+export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymous = false, analysisPending = false }: Props): JSX.Element {
   const reduced = useReducedMotion()
   const [flipped, setFlipped] = useState(false)
   const [dx, setDx] = useState(0)
@@ -393,7 +399,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
           // 单面天然自适应内容高、不裁，也是 grid+3D 端侧冲突时的整体退路。
           <FaceShell flip3d={false}>
             {flipped
-              ? <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} />
+              ? <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} analysisPending={analysisPending} />
               : <CardFront card={card} />}
           </FaceShell>
         ) : (
@@ -404,7 +410,7 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
                 <CardFront card={card} />
               </FaceShell>
               <FaceShell flip3d back inert={!flipped}>
-                <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} />
+                <CardBack card={card} onSupplement={onSupplement} anonymous={anonymous} analysisPending={analysisPending} />
               </FaceShell>
             </div>
           </div>
