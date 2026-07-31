@@ -23,8 +23,9 @@ import type { RecordingViewProps } from './types'
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()
-  // 「改用文字」跳 /write（会加载页）走 navigate 亮进度条；返回/退出/转写后跳 restructure 仍走 router
-  // （后者带 AbortController 中断语义，不进 startTransition 以免与中断判定纠缠）
+  // 「改用文字」跳 /write、退出跳首页走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）；
+  // 转写完成后跳 /restructure、403/中断回首页仍走 router（后者带 AbortController 中断语义，
+  // 不进 startTransition 以免与中断判定纠缠；转写后跳转为异步动作完成后的重定向、非点导航按钮）
   const { navigate } = useNav()
   const qid = useSearchParams().get('qid')
   const [seconds, setSeconds] = useState(0)
@@ -181,7 +182,7 @@ function RecordingContent(): JSX.Element {
     onRerecord: () => void handleRerecord(),
     onBack: () => router.back(),
     onSwitchToText: () => navigate(qid ? `/write?qid=${qid}` : '/write'),
-    onExit: () => router.push('/'),
+    onExit: () => navigate('/'),
     onDismissToast: () => setToastMsg(null),
   }
 

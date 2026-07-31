@@ -269,8 +269,9 @@ function MatchingContent() {
     savingId,
     onSavePair: (id) => void handleSavePair(id),
     onRetry: () => void retry(),
-    onBack: () => router.push(`/restructure?corpusId=${corpusId}`),
-    onExit: () => router.push('/'),
+    // 返回整理页/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
+    onBack: () => navigate(`/restructure?corpusId=${corpusId}`),
+    onExit: () => navigate('/'),
   }
 
   return (

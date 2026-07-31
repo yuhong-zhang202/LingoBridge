@@ -9,7 +9,7 @@
  */
 'use client'
 import { type JSX, useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, clearSessionPolishes } from '@/lib/storage'
 import {
@@ -27,7 +27,7 @@ import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import type { FeedbackViewProps } from './types'
 
 export default function FeedbackPage(): JSX.Element {
-  const router = useRouter()
+  const { navigate } = useNav() // 回首页/退出跳首页走 navigate → 点击即亮顶部进度条（消冷缓存空窗）
   const [cards, setCards]      = useState<SessionPolish[]>([])
   const [index, setIndex]      = useState(0)
   const [savedCount, setSaved] = useState(0)
@@ -110,7 +110,7 @@ export default function FeedbackPage(): JSX.Element {
     onCollect,
     onSkip: skip,
     onAllDone,
-    onBackHome: () => router.push('/'),
+    onBackHome: () => navigate('/'),
   }
 
   return (
@@ -118,7 +118,7 @@ export default function FeedbackPage(): JSX.Element {
       <div className="lg:hidden"><FeedbackMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 外壳（practice 激活）+ FeedbackDesktop 回顾舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="practice" onExit={() => router.push('/')}>
+        <FlowShellDesktop activeStep="practice" onExit={() => navigate('/')}>
           <FeedbackDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

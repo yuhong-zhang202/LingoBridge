@@ -8,7 +8,7 @@
 'use client'
 
 import { type JSX, useState } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import {
   MessageCircleQuestionMark, Info, ChevronRight, LogOut,
 } from 'lucide-react'
@@ -58,9 +58,9 @@ export default function FeatureListCard({ version, onLogout }: FeatureListCardPr
           </button>
         )}
         {/* 导航语义：内容页跳转用 Link，支持 Cmd+click / 中键新开 */}
-        <Link href="/about" className={ROW_CLASS}>
+        <ProgressLink href="/about" className={ROW_CLASS}>
           <RowBody Icon={Info} label="关于 LingoBridge" badge={version} />
-        </Link>
+        </ProgressLink>
 
         {loggedIn && (
           <button

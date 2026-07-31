@@ -11,7 +11,7 @@
  */
 'use client'
 import { type JSX, useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { getQuestionById } from '@/lib/db/questions'
 import { computeRichness } from '@/lib/story-richness'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
@@ -27,8 +27,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import type { WriteViewProps, WriteQuestionContext } from './types'
 
 function WriteContent(): JSX.Element {
-  const router = useRouter()
-  // 「切换到语音」跳 /recording（会加载页）走 navigate 亮进度条；退出跳首页仍走 router（非加载/AI 页）
+  // 「切换到语音」跳 /recording、退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
   const { navigate } = useNav()
   const qid = useSearchParams().get('qid')
   const [textStory, setTextStory] = useState('')
@@ -77,7 +76,7 @@ function WriteContent(): JSX.Element {
 
   // 未保存退出确认（仅桌面接线；移动端仍走 doExit 直接退，行为不变）。
   const [confirmExit, setConfirmExit] = useState(false)
-  const doExit = () => router.push('/')
+  const doExit = () => navigate('/')
   const requestExit = () => { if (textStory.trim().length > 0) setConfirmExit(true); else doExit() }
 
   const viewProps: WriteViewProps = {

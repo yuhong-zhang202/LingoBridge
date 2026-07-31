@@ -7,7 +7,7 @@
  */
 'use client'
 import { type JSX, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { Settings, Pencil, Camera } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
@@ -29,7 +29,7 @@ import type { ProfileViewProps } from './types'
 const STATS = { corpus: 12 }
 
 export default function ProfileMobile({ loggedIn, isAnon, email, onLogout }: ProfileViewProps): JSX.Element {
-  const router = useRouter()
+  const { navigate } = useNav() // 设置按钮跳 /settings 走 navigate → 点击即亮顶部进度条
   const [nameOpen, setNameOpen] = useState(false)
   const [avatarOpen, setAvatarOpen] = useState(false)
   // 订阅账号态：取 avatarUrl 做头像回退、displayName 做昵称显示（上传/改名后自动刷新）
@@ -40,7 +40,7 @@ export default function ProfileMobile({ loggedIn, isAnon, email, onLogout }: Pro
 
   const settingsButton = (
     <button
-      onClick={() => router.push('/settings')}
+      onClick={() => navigate('/settings')}
       aria-label="设置"
       className="w-[30px] h-[30px] rounded-full bg-white shadow-sm flex items-center justify-center active:scale-[0.97] transition-transform duration-150"
     >

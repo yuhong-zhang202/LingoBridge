@@ -6,7 +6,7 @@
  */
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { Search, X, ChevronLeft, Mic2, MessageSquareText, BookOpen, Volume2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
@@ -205,7 +205,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     </div>
 
                     {/* 2) 主体命中区：计数 + 两句说明，一枚 Link */}
-                    <Link
+                    <ProgressLink
                       href="/anki/review"
                       aria-label={ankiLoading
                         ? '题库速览，加载中'
@@ -230,24 +230,24 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                       {/* 说明文案（移动端短版）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
                       <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-1.5">{HERO_TITLE_DESC_MOBILE}</p>
                       <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-1">{HERO_PAIR_DESC_MOBILE}</p>
-                    </Link>
+                    </ProgressLink>
 
                     {/* 3) CTA：一枚真实 Link 胶囊（命中区 ≥44px），与主体 Link 平级 */}
-                    <Link
+                    <ProgressLink
                       href="/anki/review"
                       className="inline-flex self-start items-center gap-[3px] min-h-[44px] px-[18px] rounded-full text-[13px] font-semibold mt-3 active:scale-[0.97] transition-transform"
                       style={GRADIENT_BORDER_STYLE}
                     >
                       <span className="text-v2-text-secondary">开始刷题卡</span>
                       <span className="text-brand-primary-dark">›</span>
-                    </Link>
+                    </ProgressLink>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 3) 复习闪卡 Hero */}
-            <Link href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>
+            <ProgressLink href="/review" className="block animate-fade-up" style={{ animationDelay: '0.10s' }}>
               <div
                 className="rounded-[16px] p-4 flex items-center gap-4 relative overflow-hidden active:scale-[0.99] transition-transform"
                 style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 12 }}
@@ -305,7 +305,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   </div>
                 </div>
               </div>
-            </Link>
+            </ProgressLink>
 
             {/* 素材仓「我的素材」：四入口收敛成 2×2 等大瓦片（方向 B）。
                 收藏卡片去掉原「你的话→更地道」预览（B 方案取舍，产品方已知情）。

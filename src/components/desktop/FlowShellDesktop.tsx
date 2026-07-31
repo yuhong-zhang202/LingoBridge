@@ -8,7 +8,7 @@
  */
 'use client'
 import type { JSX, ReactNode } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { Mic, X, ChevronLeft } from 'lucide-react'
 import { STEPS, type StepKey } from '@/components/StepBar'
 
@@ -41,12 +41,12 @@ export default function FlowShellDesktop({
       <header className="relative h-[72px] shrink-0 flex items-center justify-between px-8">
         {/* 左侧：品牌（点击回首页）+ 可选「返回上一步」 */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5">
+          <ProgressLink href="/" className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-[10px] bg-brand-primary grid place-items-center text-white">
               <Mic size={18} />
             </span>
             <span className="text-[17px] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
-          </Link>
+          </ProgressLink>
           {onBack && (
             <button
               onClick={onBack}

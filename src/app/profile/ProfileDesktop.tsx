@@ -7,7 +7,7 @@
  */
 'use client'
 import { type JSX } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { Settings } from 'lucide-react'
 import TopNav from '@/components/TopNav'
 import { MANAGE_CONTAINER } from '@/components/ManageHeader'
@@ -26,13 +26,13 @@ export default function ProfileDesktop({ loggedIn, isAnon, email, joinDays, onLo
   const displayName = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
 
   const settingsButton = (
-    <Link
+    <ProgressLink
       href="/settings"
       aria-label="设置"
       className="w-10 h-10 rounded-full grid place-items-center text-v2-text-secondary hover:bg-bg-muted transition-colors"
     >
       <Settings size={18} />
-    </Link>
+    </ProgressLink>
   )
 
   return (

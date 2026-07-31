@@ -3,12 +3,12 @@
  * @desc     匹配页无结果态引导 —— 两种触发：variant='noMatch'（题库真没有这道题，三层漏斗全空）
  *           与 variant='lowScore'（召回到题但重排后全部低于展示阈值，用户可见题=0）。两种都给一致的
  *           「换个角度 / 重新讲一个故事」引导，替代过去的一行灰字。按钮文案诚实：当前仅跳回首页重述，
- *           不暗示能在本故事上原地换角度重匹配（跳转行为保持 router.push('/')）。
+ *           不暗示能在本故事上原地换角度重匹配（跳转行为仍是回首页 '/'）。
  * @author   LingoBridge
  * @created  2026-06-05
  */
 'use client'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 
 interface Props {
   primaryDimension: string
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function NoMatchView({ primaryDimension, primaryPointName, variant = 'noMatch' }: Props) {
-  const router = useRouter()
+  const { navigate } = useNav() // 两个「回首页重新讲述」入口走 navigate → 点击即亮顶部进度条
   const isLowScore = variant === 'lowScore'
   const title = isLowScore ? '还没有特别贴合的题' : '题库还没有这道题'
   const lead = isLowScore ? '有一些相关题目，但都不太贴合你的这个故事，它更像' : '我们识别到你的故事属于'
@@ -39,13 +39,13 @@ export default function NoMatchView({ primaryDimension, primaryPointName, varian
       {/* 两个入口都仅跳回首页重新讲述（当前不支持原地重匹配），文案如实不夸大 */}
       <div className="flex items-center gap-5">
         <button
-          onClick={() => router.push('/')}
+          onClick={() => navigate('/')}
           className="text-[13px] text-v2-text-muted active:opacity-60"
         >
           重新讲一个故事
         </button>
         <button
-          onClick={() => router.push('/')}
+          onClick={() => navigate('/')}
           className="text-[13px] font-medium text-brand-primary-dark active:opacity-60"
         >
           换一道雅思题来练 →

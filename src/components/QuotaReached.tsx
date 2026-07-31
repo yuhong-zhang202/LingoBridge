@@ -12,7 +12,7 @@
  */
 'use client'
 import { type JSX, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import Orb from '@/components/Orb'
 import Skeleton from '@/components/Skeleton'
 import GradientButton from '@/components/GradientButton'
@@ -73,7 +73,7 @@ interface Props {
 }
 
 export default function QuotaReached({ variant, asOverlay, onClose, className }: Props) {
-  const router = useRouter()
+  const { navigate } = useNav() // 额度弹层内的 CTA 跳页走 navigate → 点击即亮顶部进度条
   // 两个维度的真实当月用量（null=尚未取回）；quotaFailed=取数失败 → 退回不带数字的中性文案（不谎报）。
   const [storyUsed, setStoryUsed]   = useState<number | null>(null)
   const [reviewUsed, setReviewUsed] = useState<number | null>(null)
@@ -117,7 +117,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   }, [variant])
 
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
-  const handlePracticeIelts = () => router.push('/question-bank')
+  const handlePracticeIelts = () => navigate('/question-bank')
 
   // trial：匿名试用结束态，面向注册转化，文案讲清「试用总量 ↔ 注册后每月额度」两套口径，绝不显示月额度谎报。
   const trialBody = (
@@ -131,7 +131,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
       </p>
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <GradientButton
-          onClick={() => router.push('/login')}
+          onClick={() => navigate('/login')}
           className="px-6 py-3 rounded-full text-[14px] font-medium"
         >
           注册 / 登录
@@ -152,7 +152,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         </GradientButton>
       )}
       {!storyDone && (
-        <GradientButton onClick={() => router.push('/')} className="px-6 py-3 rounded-full text-[14px] font-medium">
+        <GradientButton onClick={() => navigate('/')} className="px-6 py-3 rounded-full text-[14px] font-medium">
           讲个故事
         </GradientButton>
       )}
@@ -163,7 +163,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const quotaFooter = (
     <>
       <button
-        onClick={() => router.push('/profile')}
+        onClick={() => navigate('/profile')}
         className="text-[13px] text-v2-text-secondary underline underline-offset-2 mt-6 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
       >
         额度明细可在「我的 › 本月额度」查看

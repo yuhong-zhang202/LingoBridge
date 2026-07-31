@@ -7,6 +7,7 @@
 'use client'
 import { Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import TopNav from '@/components/TopNav'
 import ManageHeader, { MANAGE_CONTAINER } from '@/components/ManageHeader'
 import DimensionTab from './DimensionTab'
@@ -33,6 +34,7 @@ export default function QuestionBankDesktop(props: { qb: ReturnType<typeof useQu
 
 function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionBank> }) {
   const router = useRouter()
+  const { navigate } = useNav() // 空态「去录制」跳首页走 navigate 亮进度条；tab 同步仍用 router.replace（不卸载页）
   const pathname = usePathname()
   const params = useSearchParams()
   // tab 由 URL 派生（?tab=list → 题目列表；缺省 → 维度设计），刷新/分享保持
@@ -116,7 +118,7 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
             title="还没有匹配的题目"
             subtitle="先去首页录一条故事，我们会自动帮你匹配雅思题"
             ctaLabel="去录制"
-            onCta={() => router.push('/')}
+            onCta={() => navigate('/')}
           />
         )}
         {!isEmpty && !qb.loading && !qb.error && activeTab === '维度设计' && (

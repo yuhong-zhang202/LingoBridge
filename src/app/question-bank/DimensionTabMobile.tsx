@@ -6,7 +6,7 @@
  */
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
 import Chip from '@/components/Chip'
@@ -44,7 +44,7 @@ interface Props {
 }
 
 export default function DimensionTab({ scoreById, progressById, corpusCount, dimensionSummaries, totalMapped, totalMatched }: Props) {
-  const router = useRouter()
+  const { navigate } = useNav() // 「讲述」Chip 跳首页录制走 navigate → 点击即亮顶部进度条
   const [open, setOpen] = useState<Dimension | null>(null)
   const [sel, setSel] = useState<Dimension>('情绪内核')   // 桌面端「按维度看题目」选中维度
   // 复练入口（含月额度拦截）与桌面端共用同一份实现，见 useGotoPractice
@@ -146,7 +146,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 </div>
                 <Chip
                   variant="gradient"
-                  onClick={() => router.push('/')}
+                  onClick={() => navigate('/')}
                   className="text-[11px] px-3 gap-[3px] flex-shrink-0"
                 >
                   讲述

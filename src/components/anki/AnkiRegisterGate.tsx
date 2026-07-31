@@ -9,7 +9,7 @@
  */
 'use client'
 import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
 
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function AnkiRegisterGate({ onClose }: Props) {
-  const router = useRouter()
+  const { navigate } = useNav() // 「注册/登录」CTA 跳 /login 走 navigate → 点击即亮顶部进度条
   const panelRef = useRef<HTMLDivElement>(null)
 
   /** 面板内可聚焦元素（随渲染实时查询）。 */
@@ -70,7 +70,7 @@ export default function AnkiRegisterGate({ onClose }: Props) {
           </p>
           <div className="flex flex-col items-center gap-2.5 mt-5">
             <GradientButton
-              onClick={() => router.push('/login')}
+              onClick={() => navigate('/login')}
               className="px-6 py-3 rounded-full text-[14px] font-medium"
             >
               注册 / 登录

@@ -9,7 +9,7 @@
 'use client'
 import { type JSX, useEffect, useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { Layers, ChevronRight, Trash2 } from 'lucide-react'
 import EmptyState from '@/components/EmptyState'
 import PhraseDetailCard from '@/components/analysis/PhraseDetailCard'
@@ -139,7 +139,7 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
       <div className="flex flex-col gap-3 pt-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:items-start">
         {/* 记忆卡片入口（搜索中隐藏，保持结果纯净；选择模式下拦截点击，避免误导航） */}
         {!searching && (
-          <Link
+          <ProgressLink
             href="/review"
             className={`flex items-center gap-2.5 bg-white rounded-[14px] border border-black/[0.05] px-4 py-3 active:scale-[0.99] transition-transform duration-150 lg:col-span-2 ${sel.selecting ? 'pointer-events-none' : ''}`}
           >
@@ -151,7 +151,7 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
               {dueCount > 0 ? '开始复习' : '暂无待复习'}
               <ChevronRight size={14} />
             </span>
-          </Link>
+          </ProgressLink>
         )}
 
         {/* wrapper 在外、SwipeToDelete 在内：选择模式的顶部留白落在页面底色上，不会露出 swipe 的红色删除背景 */}

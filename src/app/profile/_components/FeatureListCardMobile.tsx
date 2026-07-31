@@ -8,7 +8,7 @@
 'use client'
 
 import { type JSX, useState } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { MessageCircleQuestionMark, Info, ChevronRight } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -52,9 +52,9 @@ export default function FeatureListCard({ version }: FeatureListCardProps): JSX.
           <RowBody Icon={MessageCircleQuestionMark} label="帮助与反馈" badge={null} />
         </button>
         {/* 导航语义：内容页跳转用 Link */}
-        <Link href="/about" className={ROW_CLASS}>
+        <ProgressLink href="/about" className={ROW_CLASS}>
           <RowBody Icon={Info} label="关于 LingoBridge" badge={version} />
-        </Link>
+        </ProgressLink>
       </div>
       <FeedbackPopup open={feedbackOpen} onClose={() => setFeedbackOpen(false)} source="profile" />
     </>

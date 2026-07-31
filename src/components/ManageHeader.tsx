@@ -7,7 +7,7 @@
  */
 'use client'
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { ChevronRight } from 'lucide-react'
 import { PAGE_CONTAINER } from '@/lib/constants'
 
@@ -33,7 +33,7 @@ export default function ManageHeader({ title, subtitle, right }: ManageHeaderPro
   return (
     <div className="pt-6 pb-4">
       <div className="flex items-center gap-[7px] text-[13px] text-v2-text-muted">
-        <Link href="/" className="hover:text-v2-text-secondary transition-colors">首页</Link>
+        <ProgressLink href="/" className="hover:text-v2-text-secondary transition-colors">首页</ProgressLink>
         <ChevronRight size={14} />
         <span className="text-v2-text-secondary font-medium">{title}</span>
       </div>

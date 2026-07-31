@@ -6,7 +6,7 @@
  */
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import DimensionTab from './DimensionTabMobile'
@@ -21,7 +21,7 @@ const TABS: ActiveTab[] = ['维度设计', '题目列表']
 
 export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQuestionBank> }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('维度设计')
-  const router = useRouter()
+  const { navigate } = useNav() // 空态「去录制」跳首页走 navigate → 点击即亮顶部进度条
   // 加载完成、无错误、且一条语料都没有 → 显示空态（替掉全 0 的雷达盘）
   const isEmpty = !qb.loading && !qb.error && qb.corpusCount === 0
 
@@ -94,7 +94,7 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
             title="还没有匹配的题目"
             subtitle="先去首页录一条故事，我们会自动帮你匹配雅思题"
             ctaLabel="去录制"
-            onCta={() => router.push('/')}
+            onCta={() => navigate('/')}
           />
         )}
         {!isEmpty && !qb.loading && !qb.error && activeTab === '维度设计' && (

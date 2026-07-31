@@ -6,7 +6,7 @@
  */
 'use client'
 import { type JSX } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { CloudOff } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -46,7 +46,7 @@ export default function LoginPrompt({
   titleAs = 'p',
   variant = 'card',
 }: LoginPromptProps): JSX.Element {
-  const router = useRouter()
+  const { navigate } = useNav() // 「注册」CTA 跳 /login 走 navigate → 点击即亮顶部进度条
   const TitleTag = titleAs
 
   // slim 变体：素材库软引导，压成一行朴素文字（无卡片/无描边/无底色），只是一条提示信息。
@@ -58,7 +58,7 @@ export default function LoginPrompt({
         <CloudOff size={15} className="flex-shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">只存在这台设备上，注册后永久保存不丢失</span>
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => navigate('/login')}
           className="flex-shrink-0 font-medium text-brand-primary-dark rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
         >
           注册 ›
@@ -80,7 +80,7 @@ export default function LoginPrompt({
           {subtitle}
         </p>
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => navigate('/login')}
           className="btn-gradient px-6 py-2.5 rounded-full mt-4"
         >
           注册账号，保存进度

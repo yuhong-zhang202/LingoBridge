@@ -170,9 +170,10 @@ function AnalysisContent() {
     onToggleSave: toggleSave,
     // navigate：点「开始练习」瞬间即亮顶部条，练习页初始化对话（AI 调用）期间有跳转反馈。
     onStartPractice: () => navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
-    onReviewCards: () => router.push('/review'),
-    onBack: () => router.push(backTarget.href),
-    onExit: () => router.push('/'),
+    // 复习卡/返回上一步/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
+    onReviewCards: () => navigate('/review'),
+    onBack: () => navigate(backTarget.href),
+    onExit: () => navigate('/'),
   }
 
   return (

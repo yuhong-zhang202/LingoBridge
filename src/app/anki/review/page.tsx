@@ -287,7 +287,7 @@ function AnkiReviewContent(): JSX.Element {
               title="登录后查看你的题卡"
               subtitle="题卡会按你的目标分帮你复习，登录 / 注册后就能看到你存过的题。"
               ctaLabel="注册 / 登录"
-              onCta={() => router.push('/login')}
+              onCta={() => navigate('/login')}
             />
           </div>
         ) : error ? (

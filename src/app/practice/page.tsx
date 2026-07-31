@@ -492,7 +492,7 @@ function PracticeContent(): JSX.Element {
     onCloseCapture: () => setCapture(null),
     onEnd: () => void endSession(),
     onRetry: () => { setPhase('init'); setRetryKey(k => k + 1) },
-    onExit: () => router.push('/'),
+    onExit: () => navigate('/'), // 退出跳首页走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
   }
 
   // 额度超限覆盖层：初始化时（练习无法开始）与对话中途（撞轮次/ASR 上限）共用，关闭即返回上一页。

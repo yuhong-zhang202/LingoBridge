@@ -7,7 +7,7 @@
  * @created  2026-06-30
  */
 'use client'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { usePathname } from 'next/navigation'
 import { Mic } from 'lucide-react'
 import Avatar from '@/components/Avatar'
@@ -39,19 +39,19 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
     <header className="sticky top-0 z-30 bg-bg-page border-b border-black/[0.045]">
       <div className={`${containerClassName} h-[64px] ${TOPNAV_H_DESKTOP_CLASS} flex items-center gap-10`}>
         {/* 品牌 */}
-        <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+        <ProgressLink href="/" className="flex items-center gap-3 flex-shrink-0">
           <span className="w-10 h-10 rounded-[11px] bg-brand-primary grid place-items-center text-white">
             <Mic size={20} />
           </span>
           <span className="text-[19px] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
-        </Link>
+        </ProgressLink>
 
         {/* 中间导航（md 以下隐藏，移动端用底部 TabBar） */}
         <nav className="hidden md:flex items-center gap-1.5">
           {NAV.map(({ href, label }) => {
             const active = href === '/' ? path === '/' : path.startsWith(href)
             return (
-              <Link
+              <ProgressLink
                 key={href}
                 href={href}
                 aria-current={active ? 'page' : undefined}
@@ -62,7 +62,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
                 }`}
               >
                 {label}
-              </Link>
+              </ProgressLink>
             )
           })}
         </nav>
@@ -70,9 +70,9 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
         {/* 右侧：通知 + 头像 */}
         <div className="ml-auto flex items-center gap-[18px]">
           <NotificationBell />
-          <Link href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
+          <ProgressLink href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
             <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
-          </Link>
+          </ProgressLink>
         </div>
       </div>
     </header>

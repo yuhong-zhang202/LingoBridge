@@ -252,7 +252,7 @@ function RestructureContent() {
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline
   const [confirm, setConfirm] = useState<null | 'exit' | 'rerestructure'>(null)
-  const doExit = () => router.push('/')
+  const doExit = () => navigate('/') // 退出跳首页走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
   // 退出（移动端返回键 / 桌面 ✕ / Esc）一律先弹确认：此页的语料尚未落库，直接离开等于丢弃本次输入，
   // 无论是否编辑过整理结果都要问一句。确认才回首页，取消留在本页（数据全在 state，不受影响）。
   const requestExit = () => setConfirm('exit')
@@ -265,7 +265,7 @@ function RestructureContent() {
       <div className="min-h-dvh bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
         <p className="text-[15px] text-v2-text-secondary leading-relaxed">没找到这条语料，可能已被删除或链接失效了。</p>
         <GradientButton
-          onClick={() => router.push('/')}
+          onClick={() => navigate('/')}
           className="px-6 py-2.5 rounded-full text-[14px] font-medium"
         >
           回到首页

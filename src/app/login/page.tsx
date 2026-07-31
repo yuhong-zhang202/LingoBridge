@@ -8,7 +8,8 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useNav } from '@/components/NavProgress'
+import ProgressLink from '@/components/ProgressLink'
 import { Eye, EyeOff } from 'lucide-react'
 import Orb from '@/components/Orb'
 import FeedbackPopup from '@/components/FeedbackPopup'
@@ -23,6 +24,7 @@ type Mode = 'register' | 'login'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { navigate } = useNav() // 「暂不登录，先看看」跳首页走 navigate 亮进度条；登录成功后的重定向仍用 router
   const [mode, setMode]   = useState<Mode>('register')
   const [email, setEmail] = useState('')
   const [pwd, setPwd]     = useState('')
@@ -176,12 +178,12 @@ export default function LoginPage() {
 
           <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
             继续即表示同意我们的
-            <Link href="/privacy" className="text-brand-primary underline">《隐私政策》</Link>
+            <ProgressLink href="/privacy" className="text-brand-primary underline">《隐私政策》</ProgressLink>
             。我们仅用邮箱保存你的学习进度。
           </p>
 
           <div className="flex justify-center mt-2">
-            <button onClick={() => router.push('/')} className="text-[13px] text-v2-text-muted">
+            <button onClick={() => navigate('/')} className="text-[13px] text-v2-text-muted">
               暂不登录，先看看
             </button>
           </div>

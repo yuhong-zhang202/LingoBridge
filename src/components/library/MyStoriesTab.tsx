@@ -9,7 +9,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { useRouter } from 'next/navigation'
 import { useNav } from '@/components/NavProgress'
 import { Mic2, Keyboard, ChevronRight, Trash2 } from 'lucide-react'
 import { BRAND_GRADIENT_SOFT, GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
@@ -49,8 +48,7 @@ const getStoryText = (s: MyStory): string => [s.content, s.inputType, s.dimensio
 const NOOP = (): void => {}
 
 export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlotRef, onSelectingChange, searchQuery, onSearchCountsChange }: Props) {
-  const router = useRouter()
-  // 「查看」跳 /matching（会加载页）走 navigate 亮进度条；空态「去录制」跳首页仍用 router（非加载/AI 页）
+  // 「查看」跳 /matching、空态「去录制」跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
   const { navigate } = useNav()
 
   const filterFn = useMemo(() => makeSearchFilter(searchQuery ?? '', getStoryText), [searchQuery])
@@ -99,7 +97,7 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
         title="还没有语料"
         subtitle="去首页录一条故事，它会自动出现在这里"
         ctaLabel="去录制"
-        onCta={() => router.push('/')}
+        onCta={() => navigate('/')}
       />
     )
   }

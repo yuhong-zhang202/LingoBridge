@@ -6,7 +6,7 @@
  */
 'use client'
 import { Suspense, useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Search, Trash2 } from 'lucide-react'
 import TopNav from '@/components/TopNav'
@@ -151,7 +151,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
 
           <div className="flex items-center gap-7 mt-2">
             {/* 主体命中区：叠卡 + 计数行 + 两句说明，一枚大 Link */}
-            <Link
+            <ProgressLink
               href="/anki/review"
               aria-label={ankiLoading
                 ? '题库速览，加载中'
@@ -204,24 +204,24 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                 <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
                 <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
               </div>
-            </Link>
+            </ProgressLink>
 
             {/* 右段·CTA：一枚真实 Link 胶囊（命中区 ≥44px） */}
             <div className="flex flex-col items-stretch flex-shrink-0">
-              <Link
+              <ProgressLink
                 href="/anki/review"
                 className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
                 style={GRADIENT_BORDER_STYLE}
               >
                 <span className="text-v2-text-secondary">开始刷题卡</span>
                 <span className="text-brand-primary-dark">›</span>
-              </Link>
+              </ProgressLink>
             </div>
           </div>
         </Card>
 
         {/* 今日复习 hero —— 复用 /review 入口 */}
-        <Link href="/review" className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2">
+        <ProgressLink href="/review" className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2">
           <Card variant="gradient" className="px-[22px] py-[18px] flex items-center gap-5 active:scale-[0.99] transition-transform">
             <div className="flex-1 min-w-0">
               <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>
@@ -237,7 +237,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               <span className="text-brand-primary-dark">›</span>
             </span>
           </Card>
-        </Link>
+        </ProgressLink>
 
         {/* 四类 Tab 分段切换 + 右侧「选择」工具栏槽（同一行，右对齐） */}
         <div className="flex items-center justify-between gap-3 my-5">

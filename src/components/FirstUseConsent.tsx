@@ -21,7 +21,7 @@
  */
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import ProgressLink from '@/components/ProgressLink'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
@@ -195,12 +195,12 @@ export default function FirstUseConsent() {
               ))}
               {/* 链接行：移动端 44px 触控高度不动；桌面无触控约束，min-h 归零是通栏减高的主要来源 */}
               <div className="flex justify-center gap-4 mt-3 lg:justify-start lg:mt-1">
-                <Link href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
+                <ProgressLink href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
                   内测数据处理说明
-                </Link>
-                <Link href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
+                </ProgressLink>
+                <ProgressLink href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
                   完整隐私政策
-                </Link>
+                </ProgressLink>
               </div>
               {failed && (
                 <p className="text-[12px] text-error text-center mt-3 lg:text-left lg:mt-1">

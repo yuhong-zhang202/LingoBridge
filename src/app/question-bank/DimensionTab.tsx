@@ -7,7 +7,7 @@
  */
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNav } from '@/components/NavProgress'
 import { Radar, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
@@ -42,7 +42,7 @@ interface Props {
 }
 
 export default function DimensionTab({ scoreById, progressById, corpusCount, dimensionSummaries, totalMapped, totalMatched }: Props) {
-  const router = useRouter()
+  const { navigate } = useNav() // 「讲述」Chip 跳首页录制走 navigate → 点击即亮顶部进度条
   const [sel, setSel] = useState<Dimension | null>(null)
   // 复练入口（含月额度拦截）与移动端共用同一份实现，见 useGotoPractice
   const { reviewQuotaShown, dismissReviewQuota, pendingQid, gotoPractice } = useGotoPractice()
@@ -112,7 +112,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                         <Chip
                           variant="gradient"
                           size="sm"
-                          onClick={() => router.push('/')}
+                          onClick={() => navigate('/')}
                           className="mt-2.5 gap-[3px] font-medium pointer-events-auto"
                         >
                           讲述
@@ -187,7 +187,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                     <div className="text-[13.5px] text-v2-text-muted leading-[1.35]">{q.displayText}</div>
                     <div className="text-[11.5px] text-v2-text-muted mt-0.5">{[q.displayTextZh, `Part ${q.part}`].filter(Boolean).join(' · ')}</div>
                   </div>
-                  <Chip variant="gradient" size="sm" onClick={() => router.push('/')} className="font-medium flex-shrink-0">
+                  <Chip variant="gradient" size="sm" onClick={() => navigate('/')} className="font-medium flex-shrink-0">
                     讲述
                   </Chip>
                 </div>
