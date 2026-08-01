@@ -385,6 +385,11 @@ async function handleStreaming(req: Request): Promise<Response> {
             clientGone = true
           }
         }
+        // close 同样要守：客户端断连(cancel)后 controller 已进 closed 态，裸 controller.close() 必抛 TypeError，
+        // 会被外层 catch 误当系统故障【记一条假 status:error 的 usage 账】、凭空抬高看板故障率。吞掉这个良性异常。
+        const safeClose = (): void => {
+          try { controller.close() } catch { /* 已 cancel/关闭，close 抛属良性、非系统故障 */ }
+        }
         try {
           // 1) meta 先发（AI 前即备好）
           safeEnqueue(sseFrame('meta', { question: metaQuestion }))
@@ -393,7 +398,7 @@ async function handleStreaming(req: Request): Promise<Response> {
             // 2) 命中：拆出全部 section 帧 + done，不调 AI、不写 usage（同 handleBuffered 命中分支）
             for (const s of analysisToSections(cached)) safeEnqueue(sseFrame('section', s))
             safeEnqueue(sseFrame('done', { question: metaQuestion, analysis: cached }))
-            controller.close()
+            safeClose()
             return
           }
 
@@ -412,7 +417,7 @@ async function handleStreaming(req: Request): Promise<Response> {
           if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
           safeEnqueue(sseFrame('done', { question: metaQuestion, analysis }))
           releaseSlot()   // 成功出路：AI + 缓存写跑完、done 帧后释放预取闸名额
-          controller.close()
+          safeClose()
         } catch (e) {
           // 4) 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级 ?stream=0。
           await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
@@ -420,7 +425,7 @@ async function handleStreaming(req: Request): Promise<Response> {
           releaseSlot()   // 异常出路：释放预取闸名额
           try {
             safeEnqueue(sseFrame('error', { error: '生成分析失败' }))
-            controller.close()
+            safeClose()
           } catch {
             /* 已断流：前端读流报错，同样走 ?stream=0 降级 */
           }

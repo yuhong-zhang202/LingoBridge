@@ -269,7 +269,7 @@ function PracticeQuestionContent(): JSX.Element {
                     item={item}
                     selected={item.id === selectedId}
                     onToggle={() => setSelectedId((id) => (id === item.id ? null : item.id))}
-                    onPractice={() => navigate(`/analysis?questionId=${qId}&storyId=${item.id}`)}
+                    onPractice={() => navigate(`/analysis?questionId=${qId}&storyId=${item.id}&from=practice-question`)}
                   />
                 ))}
                 <AddCorpusCard loading={addingCorpus} onClick={() => void addCorpus()} />

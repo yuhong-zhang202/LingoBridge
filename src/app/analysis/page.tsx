@@ -66,7 +66,9 @@ function AnalysisContent() {
       ? { href: `/restructure?corpusId=${storyId}&qid=${questionId}`, label: '返回整理' }
       : from === 'question-bank'
         ? { href: '/question-bank', label: '返回题库' }
-        : { href: '/', label: '返回首页' }
+        : from === 'practice-question'
+          ? { href: `/practice-question?questionId=${questionId}`, label: '返回题目' }
+          : { href: '/', label: '返回首页' }
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -84,10 +86,19 @@ function AnalysisContent() {
   const { account } = useAccount()
   const [level, setLevel] = useState(() => targetBandToLevel(account?.targetBand ?? null))
   const levelInitRef = useRef(false)
+  // fetchedLevelRef：记初次取数实际用的档位（当时 levelRef 的值），供下方 account 校正时判断冷路径是否需自愈重取。
+  const fetchedLevelRef = useRef<string | null>(null)
   useEffect(() => {
     if (account && !levelInitRef.current) {
       levelInitRef.current = true
-      setLevel(targetBandToLevel(account.targetBand))
+      const corrected = targetBandToLevel(account.targetBand)
+      setLevel(corrected)
+      // 冷深链自愈：account 未热时首取用了 '6.0' 兜底，account 到位后若真实档 ≠ 已取的档，重取一次 ——
+      // 否则「选择器显真档、内容是旧档」且点当前档 changeLevel no-op 无法自救（product-logic 复查·发现1）。
+      // 热路径首取即真档（fetchedLevelRef===corrected）、不触发；此 effect 有 levelInitRef 守卫只跑一次、不成环。
+      if (fetchedLevelRef.current !== null && fetchedLevelRef.current !== corrected) {
+        setRetryKey((k) => k + 1)
+      }
     }
   }, [account])
   // levelRef：供「初次取分析」effect（依赖仅 questionId/retryKey，不含 level，避免 account 迟到触发重取双计）
@@ -115,6 +126,7 @@ function AnalysisContent() {
     // 分析页晚挂载 200ms 也能 subscribe 回放到已到的 meta+段——这是流式改造的命根。
     // 重试（retryKey>0）时上一条已 settle 移除，requestAnalysis 自然新发一条。
     const entry = requestAnalysis(questionId, storyId, false, levelRef.current)
+    fetchedLevelRef.current = levelRef.current   // 记下本次取数实际用的档，供 account 校正判是否需自愈重取
     setLoading(true); setError(null); setDailyLimitHit(false)
 
     // 降级：流断 / 无 done / error 帧 / 初始非流失败 → 重发 ?stream=0 缓冲整批、整份渲染（用户无感）。

@@ -136,8 +136,16 @@ async function driveStreaming(rec: Rec): Promise<void> {
     return
   }
   const ct = res.headers.get('content-type') ?? ''
-  if (!res.ok || !ct.includes('text/event-stream')) {
-    // 终态/非流响应：不读体、不标 snap.error（终态由消费方读 promise.status 分流），仅清理登记。
+  if (!res.ok) {
+    // 非 2xx 终态（402/403/429/5xx）：不读体、不标 snap.error——终态由消费方读 promise.status 分流。
+    remove(rec.key, false)
+    return
+  }
+  if (!ct.includes('text/event-stream')) {
+    // 200 但非 SSE：我方 route 绝不产出（非流早退一律非 2xx），仅中间代理/CDN 返 200 缓存/插页时可达。
+    // 必须标 error+notify 让订阅者降级 ?stream=0——否则 promise.then 对 200 不降级、此处又清了 90s 兜底 TTL
+    // → loading 永久转圈、除刷新外无出口（matching 页靠 readMatchingSSE 找不到 done 帧抛错兜住，这里补齐同款兜底）。
+    rec.snap.error = true; rec.snap.done = true; notify(rec)
     remove(rec.key, false)
     return
   }

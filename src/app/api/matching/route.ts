@@ -362,6 +362,11 @@ async function handleStreaming(req: Request): Promise<Response> {
             clientGone = true
           }
         }
+        // close 同样要守：客户端断连(cancel)后 controller 已关，裸 controller.close() 必抛 TypeError，
+        // 会被外层 catch 误当系统故障记一条假 status:error 账、抬高看板故障率。吞掉这个良性异常。
+        const safeClose = (): void => {
+          try { controller.close() } catch { /* 已 cancel/关闭，close 抛属良性、非系统故障 */ }
+        }
         try {
           if (cached) {
             // 快照命中：一帧 meta + 全部 question + done，不调模型、不记 usage（同 handleBuffered 读档分支）
@@ -376,7 +381,7 @@ async function handleStreaming(req: Request): Promise<Response> {
             await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(cached, 'cache') })
             const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache')
             safeEnqueue(sseFrame('done', dto))
-            controller.close()
+            safeClose()
             return
           }
 
@@ -410,14 +415,14 @@ async function handleStreaming(req: Request): Promise<Response> {
 
           const dto = await buildStreamDto(result, userId, isAnonymous, 'fresh')
           safeEnqueue(sseFrame('done', dto))
-          controller.close()
+          safeClose()
         } catch (e) {
           // 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级到 ?stream=0。
           await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
           logErr('[matching API stream]', e)
           try {
             safeEnqueue(sseFrame('error', { error: '匹配失败' }))
-            controller.close()
+            safeClose()
           } catch {
             /* 已断流：前端读流报错，同样走 ?stream=0 降级 */
           }
