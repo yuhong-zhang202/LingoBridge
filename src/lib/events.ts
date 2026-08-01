@@ -15,8 +15,8 @@
 import 'server-only'
 import { getSupabaseServer } from './supabase-server'
 
-/** 内测埋点事件名（与 0018_flow_events.sql 的 check 约束一致） */
-export type FlowEventName = 'match.result' | 'flow.corpus_bound' | 'match.view_rendered'
+/** 内测埋点事件名（与 flow_events 的 event check 约束一致：0018 建 3 个 + 0050 增 match.question_opened） */
+export type FlowEventName = 'match.result' | 'flow.corpus_bound' | 'match.view_rendered' | 'match.question_opened'
 
 /** 一条埋点事件；props 仅承载计数/布尔/code，绝不放原文 */
 export interface FlowEvent {

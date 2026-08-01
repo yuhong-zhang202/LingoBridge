@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
-import { logEvent, type FlowEventName } from '@/lib/events'
+import { logEvent } from '@/lib/events'
 
 /** view_rendered 允许上报的字段白名单（全为计数/布尔，无原文）。服务端据此重建 props，丢弃其余一切。 */
 const VIEW_RENDERED_NUMERIC = ['candidateCount', 'highCount', 'midCount', 'visibleCount', 'unscoredCount'] as const
@@ -71,10 +71,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       : sanitizeQuestionOpened(body.props)
     const storyId = typeof body.storyId === 'string' && body.storyId.trim() ? body.storyId.trim() : null
     const flowId = req.headers.get('x-flow-id')
-    // event 已收窄为两个字面量；cast 到 FlowEventName —— ⚠️ FlowEventName（src/lib/events.ts）应补
-    // 'match.question_opened'，但该文件不在本次改动清单，故此处 cast，类型同步留作后续技术债。
+    // event 已收窄为两个字面量，均属 FlowEventName（0050 已把 match.question_opened 补进该联合），无需 cast。
     await logEvent({
-      event: event as FlowEventName,
+      event,
       flowId,
       storyId,
       userId,
