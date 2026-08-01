@@ -66,7 +66,8 @@ const mockAssertOwner   = assertCorpusOwner as jest.MockedFunction<typeof assert
 
 // —— 桩数据 ——
 const STORY = '上周末我去公园散步，放松了很久。'
-const HASH = createHash('sha256').update(STORY).digest('hex')
+// content_hash 折进 level（body 未带 level → 默认 '6.0'）：与 route.ts 的 contentHashOf(story, level) 同口径。
+const HASH = createHash('sha256').update(`${STORY}\nlevel=6.0`).digest('hex')
 const SEASON = '2026-05'
 
 const ANALYSIS: QuestionAnalysis = {

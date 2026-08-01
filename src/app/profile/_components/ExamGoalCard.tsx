@@ -6,11 +6,15 @@
  * @created  2026-07-10
  */
 'use client'
-import { type JSX, useState } from 'react'
+import { type JSX, useEffect, useState } from 'react'
 import { CalendarDays, Target, Pencil } from 'lucide-react'
 import Card from '@/components/Card'
 import { useAccount } from '@/hooks/useAccount'
 import ExamGoalModal from './ExamGoalModal'
+
+// /profile?goal=1（首页目标分提醒 CTA 落点）自动打开编辑弹窗：模块级消费一次，防桌面/移动两个
+// ExamGoalCard 实例（page 同时挂载两套视图）都读到 goal=1 而重复开两个弹窗。
+let goalParamConsumed = false
 
 /** 考试日展示：含年份，避免跨年日期歧义（lib/date 的 formatMonthDay 只给月日） */
 const EXAM_DATE_FMT = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -52,6 +56,19 @@ function GoalShell({ onEdit, children }: { onEdit: () => void; children: React.R
 export default function ExamGoalCard(): JSX.Element | null {
   const { account } = useAccount()
   const [editing, setEditing] = useState(false)
+
+  // /profile?goal=1：自动打开编辑弹窗（用户从首页目标分提醒直落 Band 选择器）。只在客户端读 window.location.search
+  //（不用 useSearchParams，免得给未包 Suspense 的 profile 页引入 Suspense 要求 / 构建报错）。
+  // 消费后 replaceState 清掉 goal 参数，避免刷新/返回再次自动开；模块级 goalParamConsumed 保证两实例只开一次。
+  useEffect(() => {
+    if (goalParamConsumed || typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('goal') !== '1') return
+    goalParamConsumed = true
+    setEditing(true)
+    url.searchParams.delete('goal')
+    window.history.replaceState(null, '', url.pathname + url.search)
+  }, [])
 
   // 账号未加载完（含 SSR 首帧）先不渲染：避免闪一次「设置目标」引导，也避免 hydration 失配
   if (!account) return null

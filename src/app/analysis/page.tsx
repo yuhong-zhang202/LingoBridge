@@ -7,7 +7,7 @@
  * @created  2026-05-28
  */
 'use client'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { mutate } from 'swr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
@@ -24,6 +24,8 @@ import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-wo
 import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
 import { requestAnalysis, type AnalysisSnapshot } from '@/lib/analysis-inflight'
+import { useAccount } from '@/hooks/useAccount'
+import { targetBandToLevel } from '@/lib/constants'
 
 /**
  * 从「进行中」的流式 snapshot（meta + 已到段）拼一个 partial AnalysisResponse 驱动逐段渲染：
@@ -75,7 +77,21 @@ function AnalysisContent() {
   const [dailyLimitHit, setDailyLimitHit] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [openPhrase, setOpenPhrase] = useState<string | null>(null)
+  // 词组档位：初值 '6.0' 兜底（account 异步、SSR 首帧为 null）；account 加载后【一次性】校正为目标分映射档。
+  // 只校正一次（levelInitRef 守卫）：之后用户手动切档（changeLevel）不被 account 回放覆盖。
+  const { account } = useAccount()
   const [level, setLevel] = useState('6.0')
+  const levelInitRef = useRef(false)
+  useEffect(() => {
+    if (account && !levelInitRef.current) {
+      levelInitRef.current = true
+      setLevel(targetBandToLevel(account.targetBand))
+    }
+  }, [account])
+  // levelRef：供「初次取分析」effect（依赖仅 questionId/retryKey，不含 level，避免 account 迟到触发重取双计）
+  // 在发起 requestAnalysis / 降级请求时读到最新档位。
+  const levelRef = useRef(level)
+  levelRef.current = level
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
   // 已收藏词组高亮：以云端 useSavedWords 为唯一真源，直接派生集合（不镜像成本地 state，
@@ -96,7 +112,7 @@ function AnalysisContent() {
     // 采纳（或新发）该题的在飞【流式】请求：匹配页「点击即发」已在点击当帧发起（见 analysis-inflight），
     // 分析页晚挂载 200ms 也能 subscribe 回放到已到的 meta+段——这是流式改造的命根。
     // 重试（retryKey>0）时上一条已 settle 移除，requestAnalysis 自然新发一条。
-    const entry = requestAnalysis(questionId, storyId, false)
+    const entry = requestAnalysis(questionId, storyId, false, levelRef.current)
     setLoading(true); setError(null); setDailyLimitHit(false)
 
     // 降级：流断 / 无 done / error 帧 / 初始非流失败 → 重发 ?stream=0 缓冲整批、整份渲染（用户无感）。
@@ -105,7 +121,7 @@ function AnalysisContent() {
       if (finished) return
       finished = true
       try {
-        const res = await apiFetch('/api/analysis?stream=0', { method: 'POST', json: { questionId, storyId }, signal: freshAc.signal })
+        const res = await apiFetch('/api/analysis?stream=0', { method: 'POST', json: { questionId, storyId, level: levelRef.current }, signal: freshAc.signal })
         // 与现状一致：403 回首页触发同意 / 402 弹注册引导 / 429 明天恢复
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
         if (res.status === 402) { if (!cancelled) setQuotaShown('page'); return }

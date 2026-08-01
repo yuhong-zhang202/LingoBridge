@@ -53,6 +53,8 @@ interface AnalysisRequestBody {
   story?: unknown
   /** 后台预取标志：仅影响「走预取并发闸 + metadata.prefetch:true 成本归因」，【绝不】影响计数/同意/越权。 */
   prefetch?: unknown
+  /** 目标雅思水平：只调 phrases 词组表达难度；折进缓存 content_hash（不同档视作不同内容），缺省 '6.0'。 */
+  level?: unknown
 }
 
 /** 取 body 里的字符串字段；非字符串/缺省一律回退空串（与旧版 searchParams.get() ?? '' 同语义）。 */
@@ -63,6 +65,17 @@ function str(v: unknown): string {
 /** 个性化缓存的内容哈希：对喂给 AI 的语料正文(story)取 sha256 hex。正文改了→哈希变→命中失效重算。 */
 function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex')
+}
+
+/**
+ * 缓存 content_hash：把 level 折进语料正文一起哈希——目标分不同则词组不同（analysis 的 phrases 按 level 出），
+ * 换目标分重开必须【未命中重算】、绝不返回旧档词组。读命中判定与写回填必须【同口径】调用此函数（否则 level 静默失效）。
+ * @param story  喂给 AI 的语料正文
+ * @param level  目标雅思水平（缺省已在调用处兜底 '6.0'）
+ * @returns      折进 level 的内容哈希
+ */
+function contentHashOf(story: string, level: string): string {
+  return sha256(`${story}\nlevel=${level}`)
 }
 
 /**
@@ -84,6 +97,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     const questionId = str(reqBody.questionId)
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined   // 正文兜底
+    const level      = str(reqBody.level) || '6.0'       // 缺省 6.0（照 phrases/route 读法）；折进缓存 hash + 传给 AI
     const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权
     if (!questionId) {
       return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
@@ -134,7 +148,8 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     // 通用缓存只惠及一条防御性兜底死路、价值近零，故不设，保持路由简洁。
     const canCachePersonal = !!story && !!storyId && (q.part === 1 || q.part === 2)
     // story 非空才求哈希（canCachePersonal 蕴含 story 非空）；story 变量已经过 DB/兜底解析，是 AI 实际看到的文本。
-    const storyHash = canCachePersonal && story ? sha256(story) : ''
+    // 折进 level：不同目标分的词组不同，须视作不同缓存内容（读命中/写回填同口径，见 contentHashOf）。
+    const storyHash = canCachePersonal && story ? contentHashOf(story, level) : ''
 
     // 缓存读（命中判定）：仅个性化。读彻底降级（红线 3）：任何查询错/异常一律静默当未命中，走真实 AI 调用，绝不 500。
     let cached: QuestionAnalysis | null = null
@@ -172,7 +187,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
       let realUsage: LLMUsage | null = null
       analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
-        generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
+        generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level }, (u) => { realUsage = u }),
       )
       // 记账 + 缓存回填走共享 helper（与 handleStreaming 单一真源，杜绝分叉）：详见 logAnalysisUsage/writeAnalysisCache。
       await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch })
@@ -278,6 +293,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     const questionId = str(reqBody.questionId)
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined
+    const level      = str(reqBody.level) || '6.0'       // 缺省 6.0；折进缓存 hash + 传给 AI（与 handleBuffered 同口径）
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     if (storyId) await assertCorpusOwner(userId, storyId)
 
@@ -309,7 +325,8 @@ async function handleStreaming(req: Request): Promise<Response> {
     if (dimension === null) dimension = dimFromCode(q.observation_points[0])
 
     const canCachePersonal = !!story && !!storyId && (q.part === 1 || q.part === 2)
-    const storyHash = canCachePersonal && story ? sha256(story) : ''
+    // 折进 level（同 handleBuffered）：不同目标分视作不同缓存内容，读命中/写回填同口径。
+    const storyHash = canCachePersonal && story ? contentHashOf(story, level) : ''
 
     let cached: QuestionAnalysis | null = null
     if (canCachePersonal) {
@@ -357,7 +374,7 @@ async function handleStreaming(req: Request): Promise<Response> {
           let realUsage: LLMUsage | null = null
           const analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
             generateAnalysisStreaming(
-              { part: q.part, en: enForAI, zh: q.question_text_zh, story },
+              { part: q.part, en: enForAI, zh: q.question_text_zh, story, level },
               (section) => safeEnqueue(sseFrame('section', section)),
               (u) => { realUsage = u },
             ),

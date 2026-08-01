@@ -230,6 +230,18 @@ export const DIMENSION_LABEL: Record<DimensionId, DimensionLabel> = {
   value: '价值底色',
 }
 
+/**
+ * 用户目标分（user_metadata.target_band，4.0–9.0 步进 0.5，null=未设）→ 分析页词组水平档 level 字符串。
+ * 夹到 phrases 支持的档位集合 ['5.0','5.5','6.0','6.5','7.0','7.5','8.0']：
+ *   4.0/4.5 → '5.0'；5.0–8.0 直取；8.5/9.0 → '8.0'；null → '6.0'（默认，与匿名/脚手架缺省一致）。
+ * @param targetBand  目标分（null=未设目标）
+ * @returns           喂给 /api/analysis(·/phrases) 的 level 字符串
+ */
+export function targetBandToLevel(targetBand: number | null): string {
+  if (targetBand === null) return '6.0'
+  return Math.min(8, Math.max(5, targetBand)).toFixed(1)
+}
+
 export const BRAND_COLORS = {
   orange: '#D4875A',
   green:  '#7BA699',

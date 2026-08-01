@@ -51,6 +51,7 @@ const SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定�
 }
 
 # focusPoints 规则（帮用户「对准这道题」，不是教他怎么说话）
+- focusPoints 只对准这道题本身，与用户的目标雅思水平无关；任何目标分下，同一道题的 focusPoints 都应一样。
 - title 是 4 到 8 字的短名词小标题，具体、说人话、一眼能懂。好标题像：「说清具体时间」「点明人物关系」「讲清关键冲突」「交代背景」「补上感受变化」。【绝不能是一句话或带逗号的句子】（例如「一两句直接答，别铺垫」这种不行；「贴真实节奏」这种太虚也不行）。具体说明放进 desc。
 - title 和 desc 用中文写。可以为了说明题目而引用题干里的英文词（如 usually、days off、when it was），但【不要】给用户答案该用的英文（不写答案的英文句子、词组或单词）；答案的英文一律放进 phrases 让他自己挑。
 - 语气是平和的提示和建议，不是命令或纠正，不要「别这样、别那样」这种说教腔；用户怎么表达完全由他自己决定。
@@ -77,7 +78,13 @@ const SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定�
 - 分组标签用简洁名词（如 时间、人物、地点、原因、经过、感受、行为），不要用「谁」「为什么道歉」「什么时候」「什么感受」这类口语化或带疑问词的长标签。
 - 分组：通常分 3 组左右。问日常、习惯、休息类的 Part 1，固定分「行为 / 时间 / 感受」三组，三组都要给。其它类型的题（如某次经历）按它自己的自然分段来分组，用上面那种简洁名词标签，组数不限。
 - 每组 3 到 5 个；挑最有用、最地道、最贴这个故事的。
-- 默认按雅思 6.0 出词（初始水平，用户之后可在页面上切换）：自然的日常口语、朴素为主；感受、描述这类不要用流利的整句、也不要生动习语，普通说清楚就行。时间、人物、地点这种交代事实的锚点保持简单即可，别硬拔高。整体必须是「说出来」的口语（自然、日常、可缩写），不要书面腔、不要长难句、不要堆高级词。
+- 词组按用户的目标雅思水平出（用户消息里会给出「目标雅思水平」，5.0 到 8.0）。【这条水平只作用于本段 phrases，只调词组的表达难度；它不改变上面 structureLabel 和 focusPoints 的任何判断——题目结构、对题侧重点只由这道题本身和用户故事决定，与用户想考几分无关。】关键：水平只调「表达性」的词，也就是感受、动作经过、评价这类能体现词汇功力的部分。像时间、人物（谁）、地点这种只是交代事实的锚点（如 last autumn、an old friend、by myself、the plateau），任何档都可以简单、可以和低档一样，不要为了拔高硬换成花哨说法，那样反而假、反而像炫技。
+  表达性词按下面调难度，但永远是「能说出口的口语」，不是书面词：
+  · 5.0 到 5.5：最常见、最基础的日常词，简单直接，宁可朴素也别难。
+  · 6.0 到 6.5：自然的日常口语，朴素为主。感受、描述这类不要用流利的整句、也不要生动习语，普通说清楚就行（默认水平）。
+  · 7.0 到 7.5：感受和动作这类明显更地道，用 less common 的搭配、phrasal verb、习惯说法，开始有点个性，别停在 6 分那种最普通的搭配上。
+  · 8.0：感受和动作有 native 感的地道表达（idiomatic chunks、natural collocations、灵活的 particle 用法），但依然是口语，不是长难句或炫技。
+  整体必须是「说出来」的口语（自然、日常、可缩写），不要书面腔、不要长难句、不要堆高级词。
 - text 尽量贴用户故事里的真实内容（动作、场景、感受），但绝不替用户编造他没说过的事实；scene 则讲通用用法、不绑定故事。
 - 没有用户故事时，给这道题通用、好用的纯英文短词块，三字段照常给。
 
@@ -96,12 +103,16 @@ export async function generateAnalysis(input: {
   en: string
   zh: string | null
   story?: string
+  /** 目标雅思水平（只调 phrases 词组表达难度，见 SYSTEM_PROMPT phrases 规则）。缺省 '6.0'——匿名/脚手架不传时行为不变。 */
+  level?: string
 }, onUsage?: (usage: LLMUsage) => void): Promise<QuestionAnalysis> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
+  // default 落函数内、不靠调用方：确保与 generateAnalysisStreaming 对同一 input 的 userMsg 字节一致。
+  const level = input.level ?? '6.0'
   const storySection = input.story ? `\n\n用户的真实故事：${input.story}` : ''
-  const userMsg = `Part ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
+  const userMsg = `目标雅思水平：${level}\nPart ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
   return callLLMJson<QuestionAnalysis>({
     label: '[Analysis]',
     onUsage,
@@ -172,12 +183,16 @@ export async function generateAnalysisStreaming(input: {
   en: string
   zh: string | null
   story?: string
+  /** 目标雅思水平（同 generateAnalysis）。缺省 '6.0'；必须与 generateAnalysis 的 userMsg 拼装逐字一致。 */
+  level?: string
 }, onSection?: (section: AnalysisStreamSection) => void, onUsage?: (usage: LLMUsage) => void): Promise<QuestionAnalysis> {
   if (!env.dashscopeApiKey) {
     throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
   }
+  // default 落函数内、与 generateAnalysis 同口径：两函数对同一 input 的 userMsg 必须字节一致（analysis.test 权威返回等价断言）。
+  const level = input.level ?? '6.0'
   const storySection = input.story ? `\n\n用户的真实故事：${input.story}` : ''
-  const userMsg = `Part ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
+  const userMsg = `目标雅思水平：${level}\nPart ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
 
   const parser = new AnalysisStreamParser((section) => onSection?.(section))
   let full = ''

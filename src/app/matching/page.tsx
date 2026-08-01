@@ -14,7 +14,8 @@ import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
-import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID, targetBandToLevel } from '@/lib/constants'
+import { useAccount } from '@/hooks/useAccount'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
@@ -77,6 +78,12 @@ function MatchingContent() {
   const { navigate } = useNav()
   const params = useSearchParams()
   const corpusId = params.get('corpusId') ?? ''
+  // 目标分 → 词组水平档：预取暖缓存 + 点击即发都按此 level，否则用户目标分≠6 时预取的 6.0 缓存不命中、白暖一场。
+  // 用 ref 让「结果渲染后延迟 1.5s」的预取 effect 读到最新 level，而不必把 level 列进 effect 依赖（避免 account 迟到时重跑预取）。
+  const { account } = useAccount()
+  const level = targetBandToLevel(account?.targetBand ?? null)
+  const levelRef = useRef(level)
+  levelRef.current = level
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
   // streamDone：SSE 收到 done 帧（结果定稿）。空态判定、view_rendered/dwell/预取埋点全部以它为锚点——
@@ -264,7 +271,7 @@ function MatchingContent() {
         for (const qid of top3) {
           if (cancelled) return
           try {
-            const res = await requestAnalysis(qid, corpusId, true).promise
+            const res = await requestAnalysis(qid, corpusId, true, levelRef.current).promise
             if (!res.ok) break               // 429/503/任何非 2xx → 放弃剩余预取（静默）
           } catch {
             break                            // 网络错/被 abort → 放弃剩余
@@ -419,10 +426,10 @@ function MatchingContent() {
       // 省掉「跳转→挂载→才发」的 2-3s 空转，分析页挂载后 requestAnalysis 按键去重复用同一在飞请求并 subscribe
       // 回放已到的段，不重发（见 analysis-inflight 统一流式模型）。同时 abortAll 中止其余预取（except 本题：
       // 若本题正在预取则复用同一在飞请求，不重发不双计）。记 lastClickedKey 供卸载 cleanup 保住它。
-      const key = inflightKey(id, corpusId)
+      const key = inflightKey(id, corpusId, level)
       lastClickedKeyRef.current = key
       abortAll(key)
-      requestAnalysis(id, corpusId, false)
+      requestAnalysis(id, corpusId, false, level)
       // 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）：rank = 该题在 result.questions
       //（已按分数降序 = 用户所见顺序）的 index+1；candidateCount = 列表总数。
       // 顺序：先 apiFetch 再 navigate —— fetch 同步发出请求后，SPA 客户端跳转不卸载页面/不 kill 在途请求，

@@ -83,8 +83,13 @@ interface Rec {
 }
 const registry = new Map<string, Rec>()
 
-export function inflightKey(questionId: string, storyId: string): string {
-  return `${questionId}::${storyId}`
+/**
+ * 在飞去重键。level 纳入键：同题同语料【不同目标分】的词组不同（analysis 的 phrases 按 level 出，服务端缓存
+ * content_hash 也折进 level），故不同 level 必须视作【不同请求】、不复用——否则 6.0 预取暖的缓存会被 7.0 的点击
+ * 误当命中串用，用户拿到错档词组。同 level 才复用（去重、不双发不双计）。
+ */
+export function inflightKey(questionId: string, storyId: string, level: string): string {
+  return `${questionId}::${storyId}::${level}`
 }
 
 /** 从表移除一条（可选顺带 abort 客户端等待）。移除后已持有 handle 的订阅者仍能收到最终 snapshot。 */
@@ -207,10 +212,11 @@ async function driveBuffered(rec: Rec): Promise<void> {
  * @param questionId  题 id
  * @param storyId     语料 id
  * @param prefetch    true=后台预取（?stream=0 缓冲、暖缓存、匹配页不订阅）；false=真实用户流式请求（居中抽干、可订阅）
+ * @param level       目标雅思水平（随请求 body 带上、并入去重键，见 inflightKey）
  * @returns           在飞条目句柄
  */
-export function requestAnalysis(questionId: string, storyId: string, prefetch: boolean): InflightEntry {
-  const key = inflightKey(questionId, storyId)
+export function requestAnalysis(questionId: string, storyId: string, prefetch: boolean, level: string): InflightEntry {
+  const key = inflightKey(questionId, storyId, level)
   const existing = registry.get(key)
   if (existing) return existing.handle
   const controller = new AbortController()
@@ -218,7 +224,7 @@ export function requestAnalysis(questionId: string, storyId: string, prefetch: b
   const url = prefetch ? '/api/analysis?stream=0' : '/api/analysis'
   const promise = apiFetch(url, {
     method: 'POST',
-    json: prefetch ? { questionId, storyId, prefetch: true } : { questionId, storyId },
+    json: prefetch ? { questionId, storyId, level, prefetch: true } : { questionId, storyId, level },
     signal: controller.signal,
   })
   const timer = setTimeout(() => remove(key, true), SAFETY_TTL_MS)

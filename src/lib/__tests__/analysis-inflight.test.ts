@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('analysis-inflight · 晚订阅者回放（命根）', () => {
   test('订阅前已到 meta+2 段，订阅即拿全部 + 续收 final', async () => {
     const { ctrls } = mountControllableSSE()
-    const entry = requestAnalysis('q1', 'c1', false)
+    const entry = requestAnalysis('q1', 'c1', false, '6.0')
 
     // 订阅前：meta + 两段先到
     ctrls[0].enqueue(frame('meta', { question: META }))
@@ -90,7 +90,7 @@ describe('analysis-inflight · 晚订阅者回放（命根）', () => {
 
   test('流结束但无 done 帧 → snap.error（降级信号）', async () => {
     const { ctrls } = mountControllableSSE()
-    const entry = requestAnalysis('q1', 'c1', false)
+    const entry = requestAnalysis('q1', 'c1', false, '6.0')
     const { seen } = record(entry)
 
     ctrls[0].enqueue(frame('meta', { question: META }))
@@ -105,7 +105,7 @@ describe('analysis-inflight · 晚订阅者回放（命根）', () => {
 
   test('error 帧 → snap.error（降级信号）', async () => {
     const { ctrls } = mountControllableSSE()
-    const entry = requestAnalysis('q1', 'c1', false)
+    const entry = requestAnalysis('q1', 'c1', false, '6.0')
     const { seen } = record(entry)
 
     ctrls[0].enqueue(frame('error', { error: 'x' }))
@@ -121,11 +121,11 @@ describe('analysis-inflight · 晚订阅者回放（命根）', () => {
 describe('analysis-inflight · 预取 / 去重 / abort', () => {
   test('prefetch=true → 发 ?stream=0 缓冲请求（body.prefetch:true），final 从缓冲响应填', async () => {
     mockApiFetch.mockResolvedValue(new Response(JSON.stringify(FINAL), { status: 200, headers: { 'content-type': 'application/json' } }))
-    const entry = requestAnalysis('q1', 'c1', true)
+    const entry = requestAnalysis('q1', 'c1', true, '6.0')
 
     expect(mockApiFetch).toHaveBeenCalledWith('/api/analysis?stream=0', expect.objectContaining({
       method: 'POST',
-      json: { questionId: 'q1', storyId: 'c1', prefetch: true },
+      json: { questionId: 'q1', storyId: 'c1', level: '6.0', prefetch: true },
     }))
 
     const res = await entry.promise
@@ -139,26 +139,26 @@ describe('analysis-inflight · 预取 / 去重 / abort', () => {
 
   test('流式请求发到 /api/analysis（无 stream 参数），body 不带 prefetch', async () => {
     mountControllableSSE()
-    requestAnalysis('q1', 'c1', false)
+    requestAnalysis('q1', 'c1', false, '6.0')
     expect(mockApiFetch).toHaveBeenCalledWith('/api/analysis', expect.objectContaining({
       method: 'POST',
-      json: { questionId: 'q1', storyId: 'c1' },
+      json: { questionId: 'q1', storyId: 'c1', level: '6.0' },
     }))
   })
 
   test('同键去重：二次 requestAnalysis 复用同一在飞条目，apiFetch 只发一次', async () => {
     mountControllableSSE()
-    const a = requestAnalysis('q1', 'c1', false)
-    const b = requestAnalysis('q1', 'c1', false)
+    const a = requestAnalysis('q1', 'c1', false, '6.0')
+    const b = requestAnalysis('q1', 'c1', false, '6.0')
     expect(b).toBe(a)
     expect(mockApiFetch).toHaveBeenCalledTimes(1)
-    expect(a.key).toBe(inflightKey('q1', 'c1'))
+    expect(a.key).toBe(inflightKey('q1', 'c1', '6.0'))
   })
 
   test('abortAll(except) 保留指定键、清其余；被清条目 abort 后订阅者收到 error', async () => {
     const { ctrls } = mountControllableSSE()   // ctrls[0]=keep(q1)、ctrls[1]=drop(q2)
-    const keep = requestAnalysis('q1', 'c1', false)
-    const drop = requestAnalysis('q2', 'c1', false)
+    const keep = requestAnalysis('q1', 'c1', false, '6.0')
+    const drop = requestAnalysis('q2', 'c1', false, '6.0')
     const dropSeen = record(drop)
     await flush()
 

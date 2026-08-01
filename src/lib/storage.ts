@@ -83,3 +83,26 @@ export function markChangelogSeen(version: string): void {
     /* 隐私模式：忽略 */
   }
 }
+
+// ── 目标分提醒弹窗：给「未设目标分」的注册用户提醒一次「词组已按目标分出」（首页 TargetBandNudge 用；只弹一次） ──
+const TARGETBAND_NUDGE_SEEN_KEY = 'lingobridge:targetband_nudge_seen'
+
+/** 是否已看过目标分提醒。SSR / localStorage 不可用（隐私模式）时一律当作「已看过」，绝不误弹或报错。 */
+export function hasSeenTargetBandNudge(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return localStorage.getItem(TARGETBAND_NUDGE_SEEN_KEY) === '1'
+  } catch {
+    return true
+  }
+}
+
+/** 标记目标分提醒已看过（三种关闭路径都调）；隐私模式写不了则静默（本次会话靠组件 state 已不再弹）。 */
+export function markTargetBandNudgeSeen(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(TARGETBAND_NUDGE_SEEN_KEY, '1')
+  } catch {
+    /* 隐私模式：忽略 */
+  }
+}
