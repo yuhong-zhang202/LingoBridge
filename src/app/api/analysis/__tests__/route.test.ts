@@ -4,7 +4,9 @@
  *           ① 默认流式：未命中边生成边发帧（meta → section → done），流末记一条 usage + 回填缓存；
  *           ② 缓存命中走 SSE：一帧 meta + 拆出的 section 帧 + done(cache)，【不调 AI、不写 usage】；
  *           ③ 开流后异常 → error 帧 + 记 error 账；④ 配额闸在开流前（402/429 普通 JSON、不开流、不调模型）；
- *           ⑤ 预取（body.prefetch=true）与 ?stream=0 → 走 handleBuffered（阻塞式整批、用 generateAnalysis）。
+ *           ⑤ 预取（body.prefetch=true）自阶段三起【也走流式 SSE】（generateAnalysisStreaming、成本归因
+ *              metadata.prefetch=true、预取闸取/满503/释放、命中缓存不取闸）；仅 ?stream=0 降级路走
+ *              handleBuffered（阻塞式整批、用 generateAnalysis）。
  *           全部依赖 mock，不碰真实 DB / 模型 / 鉴权。
  * @author   LingoBridge
  * @created  2026-08-01
@@ -38,8 +40,12 @@ jest.mock('@/lib/api-auth', () => ({
   authErrorResponse: jest.fn(() => null),
 }))
 jest.mock('@/lib/consent-server', () => ({ requireConsent: jest.fn(() => Promise.resolve(null)) }))
+// 预取闸：acquire 走可控 mockAcquire（惰性引用，绕开 jest.mock 提升 TDZ）；测试改其 resolve 值控制取闸成功/满，
+// 挂 mockReleaseFn 供断言【恰好释放一次】。真实用户请求（非预取）根本不调 acquire。
+const mockAcquire = jest.fn()
+let mockReleaseFn: jest.Mock
 jest.mock('@/lib/concurrency-gate', () => ({
-  createConcurrencyGate: () => ({ acquire: jest.fn().mockResolvedValue({ ok: true, release: jest.fn() }) }),
+  createConcurrencyGate: () => ({ acquire: (...args: unknown[]) => mockAcquire(...args) }),
 }))
 jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown, fn: () => unknown) => fn() }))
 
@@ -111,6 +117,9 @@ async function readSSE(res: Response): Promise<{ event: string; data: unknown }[
 
 beforeEach(() => {
   jest.clearAllMocks()
+  // 默认取闸成功、release 挂稳定 jest.fn（供断言释放次数）；gate 满的用例各自覆盖 mockAcquire。
+  mockReleaseFn = jest.fn()
+  mockAcquire.mockResolvedValue({ ok: true, release: mockReleaseFn })
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
   mockAssertOwner.mockResolvedValue(undefined)
   mockBumpDaily.mockResolvedValue(1)
@@ -214,18 +223,61 @@ describe('POST /api/analysis · 默认流式 SSE', () => {
   })
 })
 
-describe('POST /api/analysis · 预取 / 降级走 handleBuffered', () => {
-  test('B1. body.prefetch=true → 阻塞式整批 JSON，用 generateAnalysis（非流式），metadata.prefetch=true', async () => {
+describe('POST /api/analysis · 预取（流式）/ 降级（?stream=0 → handleBuffered）', () => {
+  test('B1. 预取未命中 → 流式 SSE（generateAnalysisStreaming），成本归因 metadata.prefetch=true，取闸并在 done 后释放一次', async () => {
     const res = await POST(makeStreamReq({ questionId: 'q1', storyId: 'c1', prefetch: true }))
 
-    expect(res.headers.get('content-type')).not.toContain('text/event-stream')
-    const body = (await res.json()) as { analysis: QuestionAnalysis }
-    expect(body.analysis).toEqual(ANALYSIS)
-    expect(mockGenerate).toHaveBeenCalledTimes(1)
-    expect(mockGenStream).not.toHaveBeenCalled()
+    // 预取现在也走流式（与真实用户同路），仅 body 多带 prefetch:true
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const frames = await readSSE(res)
+    expect(frames[0].event).toBe('meta')
+    const done = frames[frames.length - 1]
+    expect(done.event).toBe('done')
+    expect((done.data as { analysis: QuestionAnalysis }).analysis).toEqual(ANALYSIS)
+
+    expect(mockGenStream).toHaveBeenCalledTimes(1)
+    expect(mockGenerate).not.toHaveBeenCalled()
+    // 成本归因：预取的 metadata.prefetch=true（真实 isPrefetch 已传进 logAnalysisUsage）
     expect(mockLogApiUsage).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: expect.objectContaining({ phase: 'analysis', prefetch: true }) }),
+      expect.objectContaining({ status: 'success', metadata: expect.objectContaining({ phase: 'analysis', prefetch: true }) }),
     )
+    // 预取闸：取一次、done 帧后释放【恰好一次】（不泄漏、不双释）
+    expect(mockAcquire).toHaveBeenCalledTimes(1)
+    expect(mockReleaseFn).toHaveBeenCalledTimes(1)
+  })
+
+  test('B1b. 预取未命中 + 闸满 → 503 普通 JSON，不开流、不调模型、不释放', async () => {
+    mockAcquire.mockResolvedValue({ ok: false, reason: 'queue_full' })
+
+    const res = await POST(makeStreamReq({ questionId: 'q1', storyId: 'c1', prefetch: true }))
+
+    expect(res.status).toBe(503)
+    expect(res.headers.get('content-type')).not.toContain('text/event-stream')
+    expect(mockGenStream).not.toHaveBeenCalled()
+    expect(mockReleaseFn).not.toHaveBeenCalled()   // ok=false 不可 release（gate 契约）
+  })
+
+  test('B1c. 预取命中缓存 → 不取闸（无 AI 调用），仍走 SSE 回放缓存', async () => {
+    mockGetPersonal.mockResolvedValue({ analysis: ANALYSIS, season: SEASON, contentHash: HASH })
+
+    const res = await POST(makeStreamReq({ questionId: 'q1', storyId: 'c1', prefetch: true }))
+    const frames = await readSSE(res)
+
+    expect(mockAcquire).not.toHaveBeenCalled()   // 命中不调 AI → 不取闸（同 handleBuffered 口径）
+    expect(mockGenStream).not.toHaveBeenCalled()
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+    expect(frames[frames.length - 1].event).toBe('done')
+  })
+
+  test('B1d. 预取开流后 generateAnalysisStreaming 抛错 → error 帧 + 释放闸一次（异常出路不泄漏）', async () => {
+    mockGenStream.mockRejectedValue(new Error('上游 5xx'))
+
+    const res = await POST(makeStreamReq({ questionId: 'q1', storyId: 'c1', prefetch: true }))
+    const frames = await readSSE(res)
+
+    expect(frames.some((f) => f.event === 'error')).toBe(true)
+    expect(mockAcquire).toHaveBeenCalledTimes(1)
+    expect(mockReleaseFn).toHaveBeenCalledTimes(1)
   })
 
   test('B2. ?stream=0（降级路）→ 阻塞式整批 JSON，用 generateAnalysis，不走流式', async () => {

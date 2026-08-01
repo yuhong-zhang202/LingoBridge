@@ -79,10 +79,12 @@ function contentHashOf(story: string, level: string): string {
 }
 
 /**
- * 阻塞式整批分析（现有实现，函数体一字未改，仅由 POST 改名而来）。
- * 作用两处：① `?stream=0` 降级目标（前端读流失败/上游不支持流式时重发，返回普通 JSON）；
- *          ② body.prefetch===true 的后台预取（走预取闸 + metadata.prefetch:true 成本归因，纯暖缓存）。
- * 配额/同意/越权/缓存判定/计费/回填的职责与字段全部保持原样——降级路与预取路的字节等价由此保证。
+ * 阻塞式整批分析（现有实现，函数体一字未改）。
+ * 现仅剩一个作用：`?stream=0` 降级目标（前端读流失败/上游不支持流式时重发，返回普通 JSON）。
+ * 后台预取自 2026-08-01 阶段三起【改走 handleStreaming】（真·统一流式），不再进本函数——故本函数内的
+ * isPrefetch 现恒为 false（降级路是真实用户请求，不带 prefetch）、预取闸 slot 恒 null：那段取闸/释放是
+ * 死代码但无害（与 handleStreaming 计费共享 helper、字节等价，保留以维持两路对称、不动它）。
+ * 配额/同意/越权/缓存判定/计费/回填的职责与字段全部保持原样——降级路与流式路的字节等价由此保证。
  */
 async function handleBuffered(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
@@ -273,15 +275,18 @@ function analysisToSections(analysis: QuestionAnalysis): AnalysisStreamSection[]
 }
 
 /**
- * 流式 SSE 分析（默认路，处理真实用户流式请求；预取由 body.prefetch 走 handleBuffered、不到这里）。
+ * 流式 SSE 分析（默认路，处理真实用户流式请求【与后台预取】——预取现也走流式，仅多带 body.prefetch:true）。
  * 开流【前】过鉴权/同意/入参/归属/配额闸（口径与 handleBuffered 逐字一致：无条件 bump——命中缓存也照扣次，
  * 同 buffered；超额 402/429、未同意 403、缺 questionId 400、题不存在 404 → 普通 JSON 早退，不开流、不计费）。
+ * 预取闸（isPrefetch && !cached 才取）在【算完 cached、开流之前】取——命中缓存不调 AI、不取闸（同 handleBuffered
+ * 口径）；真实用户 slot=null 不走闸，永远排在预取之前。闸满 → 503 普通 JSON 早退，客户端静默弃。
  * 开流【后】：
  *   1) 先发 meta 帧（题目展示信息，AI 前已备好）；
- *   2) 命中个性化缓存 → 拆出全部 section 帧 + done（不调 AI、不写 usage，同 buffered 命中分支）；
- *   3) 未命中 → generateAnalysisStreaming 边生成边发 section 帧；【流末】记账(logAnalysisUsage)+回填缓存
- *      (writeAnalysisCache)，时机从「响应前」挪到「流末」，字段/职责一字不变 → done 帧（完整 AnalysisResponse）；
- *   4) 开流后异常 → 记 error 账（同 buffered catch 口径）+ 发 error 帧让前端降级 ?stream=0。
+ *   2) 命中个性化缓存 → 拆出全部 section 帧 + done（不调 AI、不写 usage，同 buffered 命中分支；slot 恒 null）；
+ *   3) 未命中 → generateAnalysisStreaming 边生成边发 section 帧；【流末】记账(logAnalysisUsage，传真实 isPrefetch)
+ *      +回填缓存(writeAnalysisCache)，时机从「响应前」挪到「流末」，字段/职责一字不变 → done 帧 → 释放预取闸名额；
+ *   4) 开流后异常 → 记 error 账（同 buffered catch 口径）+ 发 error 帧让前端降级 ?stream=0 → 释放预取闸名额；
+ *   5) 客户端中途断连（cancel）→ 释放预取闸名额。三条出路经 releaseSlot 幂等标志保证【恰好释放一次】不泄漏。
  */
 async function handleStreaming(req: Request): Promise<Response> {
   const t0 = Date.now()
@@ -294,6 +299,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined
     const level      = str(reqBody.level) || '6.0'       // 缺省 6.0；折进缓存 hash + 传给 AI（与 handleBuffered 同口径）
+    const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权（同 handleBuffered）
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     if (storyId) await assertCorpusOwner(userId, storyId)
 
@@ -346,6 +352,17 @@ async function handleStreaming(req: Request): Promise<Response> {
     // meta 帧的题目展示信息（与 handleBuffered 返回体 question 字段同源同值）。
     const metaQuestion = { id: q.id, part: q.part, en: enForDisplay, zh: zhForDisplay, dimension, isNew: q.is_new }
 
+    // 预取并发闸：只在【预取 且 未命中缓存】才取（命中不调 AI、无需护上游；真实用户 slot=null 不走闸——与
+    // handleBuffered 同口径）。取在【开流前】：闸满即 503 普通 JSON 早退，不开流、不计费，客户端静默弃。
+    const slot = (!cached && isPrefetch) ? await analysisPrefetchGate.acquire() : null
+    if (slot && !slot.ok) return NextResponse.json({ error: '预取繁忙' }, { status: 503 })
+    // 幂等释放：miss 成功（done 后）/ 开流后异常 / 客户端断连（cancel）三条出路各调一次，released 标志保证【恰好一次】
+    // 不双释（否则名额凭空变多、预取闸失效）。cancel 可能与 start 的成功/异常路竞态触发，此标志是防泄漏关键。
+    let slotReleased = false
+    const releaseSlot = (): void => {
+      if (slot && slot.ok && !slotReleased) { slotReleased = true; slot.release() }
+    }
+
     let clientGone = false
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -379,15 +396,18 @@ async function handleStreaming(req: Request): Promise<Response> {
               (u) => { realUsage = u },
             ),
           )
-          // 流末落地：记账 + 回填缓存（时机从「响应前」挪到「流末」，字段/职责与 handleBuffered 一字不变）
-          await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch: false })
+          // 流末落地：记账（传真实 isPrefetch，预取的成本归因 metadata.prefetch 才对）+ 回填缓存
+          // （时机从「响应前」挪到「流末」，字段/职责与 handleBuffered 一字不变）。
+          await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch })
           if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
           safeEnqueue(sseFrame('done', { question: metaQuestion, analysis }))
+          releaseSlot()   // 成功出路：AI + 缓存写跑完、done 帧后释放预取闸名额
           controller.close()
         } catch (e) {
           // 4) 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级 ?stream=0。
           await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
           logErr('[analysis API stream]', e)
+          releaseSlot()   // 异常出路：释放预取闸名额
           try {
             safeEnqueue(sseFrame('error', { error: '生成分析失败' }))
             controller.close()
@@ -397,7 +417,9 @@ async function handleStreaming(req: Request): Promise<Response> {
         }
       },
       cancel() {
+        // 客户端中途断连出路：释放预取闸名额（可能与 start 成功/异常路竞态，releaseSlot 幂等只释一次）。
         clientGone = true
+        releaseSlot()
       },
     })
     return new Response(stream, { headers: SSE_HEADERS })
@@ -412,20 +434,13 @@ async function handleStreaming(req: Request): Promise<Response> {
 }
 
 /**
- * 分析接口入口：默认走流式 SSE（逐段下发，前端逐块渲染）；`?stream=0` 或 body.prefetch===true 走阻塞式整批
- * JSON（handleBuffered）——前者是读流失败/上游不支持流式的降级目标，后者是后台预取（暖缓存）。
+ * 分析接口入口：默认走流式 SSE（逐段下发，前端逐块渲染）——真实用户点击【与后台预取】都走这条（预取仅多带
+ * body.prefetch:true，由 handleStreaming 内部据此走预取闸 + 成本归因）。仅 `?stream=0` 走阻塞式整批 JSON
+ * （handleBuffered），它是读流失败/上游不支持流式时前端重发的【降级目标】。
  * 两路的配额/同意/越权/缓存判定/计费/回填职责与字段完全一致（handleStreaming 的计费/缓存写走共享 helper，
  * 与 handleBuffered 内联那份逐字等价，杜绝分叉）。
  */
 export async function POST(req: Request): Promise<Response> {
   if (new URL(req.url).searchParams.get('stream') === '0') return handleBuffered(req)
-  // 窥探 body.prefetch（用 clone 读，不消费原 req 的 body——下游 handleBuffered/handleStreaming 各自还要 req.json()）。
-  let isPrefetch = false
-  try {
-    const peek = (await req.clone().json()) as { prefetch?: unknown }
-    isPrefetch = peek?.prefetch === true
-  } catch {
-    isPrefetch = false
-  }
-  return isPrefetch ? handleBuffered(req) : handleStreaming(req)
+  return handleStreaming(req)
 }

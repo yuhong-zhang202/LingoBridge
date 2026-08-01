@@ -1,8 +1,9 @@
 /**
  * @module   analysis-inflight.test
  * @desc     统一流式在飞注册表单测 —— 守卫本改造命根：【晚订阅者回放】。订阅前已到 N 段，订阅即拿到全 N 段
- *           + 续收 done/final。另覆盖：流结束无 done → snap.error（降级信号）、预取走 ?stream=0 缓冲、
- *           同键去重（不双发）、abortAll。apiFetch 全 mock，不发真实请求。
+ *           + 续收 done/final。另覆盖：流结束无 done → snap.error（降级信号）、【预取也走流式】（发 /api/analysis、
+ *           body.prefetch:true，采纳者拿逐段回放而非仅 final——本次修复根因）、同键去重（不双发）、abortAll。
+ *           apiFetch 全 mock，不发真实请求。
  * @author   LingoBridge
  * @created  2026-08-01
  */
@@ -119,18 +120,30 @@ describe('analysis-inflight · 晚订阅者回放（命根）', () => {
 })
 
 describe('analysis-inflight · 预取 / 去重 / abort', () => {
-  test('prefetch=true → 发 ?stream=0 缓冲请求（body.prefetch:true），final 从缓冲响应填', async () => {
-    mockApiFetch.mockResolvedValue(new Response(JSON.stringify(FINAL), { status: 200, headers: { 'content-type': 'application/json' } }))
+  test('prefetch=true → 发流式请求到 /api/analysis（body.prefetch:true），采纳者拿到逐段回放（非仅 final）', async () => {
+    const { ctrls } = mountControllableSSE()
     const entry = requestAnalysis('q1', 'c1', true, '6.0')
 
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/analysis?stream=0', expect.objectContaining({
+    // 预取现在走流式默认路（无 ?stream=0），body 带 prefetch:true 供服务端走预取闸 + 成本归因
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/analysis', expect.objectContaining({
       method: 'POST',
       json: { questionId: 'q1', storyId: 'c1', level: '6.0', prefetch: true },
     }))
 
-    const res = await entry.promise
-    expect(res.ok).toBe(true)
+    // 修复根因守卫：题被预取（流式在飞）时用户点它命中去重 → 采纳者晚订阅应拿到【已到的全部段】（逐段回放），
+    // 而非旧版缓冲那样只有 final。
+    ctrls[0].enqueue(frame('meta', { question: META }))
+    ctrls[0].enqueue(frame('section', SEC_SL))
+    ctrls[0].enqueue(frame('section', SEC_FP))
+    await flush()
+
     const { seen } = record(entry)
+    expect(seen[0].meta).toEqual(META)
+    expect(seen[0].sections).toEqual([SEC_SL, SEC_FP])
+    expect(seen[0].done).toBe(false)
+
+    ctrls[0].enqueue(frame('done', FINAL))
+    ctrls[0].close()
     await flush()
     const last = seen[seen.length - 1]
     expect(last.final).toEqual(FINAL)

@@ -3,18 +3,20 @@
  * @desc     【客户端】analysis 在飞请求注册表 —— 让「点击即发」与「预取」跨路由（匹配页 ↔ 分析页）
  *           共享/复用同一个在飞的 /api/analysis 请求，避免双发双计。按 (questionId, storyId) 键。
  *
- *           统一流式模型（2026-08-01 阶段二）：
- *             · prefetch=false（点击即发 / 分析页自取）→ 发【流式】请求（/api/analysis，走 handleStreaming）。
- *               注册表【居中读 SSE、把流抽干】，把已到的 meta / section / final 累进 entry 的 snapshot；
- *               订阅者（分析页）通过 subscribe 拿到「立即回放当前态 + 后续增量」——晚挂载 200ms 的分析页
- *               据此也能拿到已到的全部段（本改造命根）。条目【存活到流结束】（done / error），非 headers 到达。
- *             · prefetch=true（后台预取）→ 发 ?stream=0【缓冲】请求（body.prefetch:true → 服务端 handleBuffered，
- *               走预取闸 + metadata.prefetch:true 成本归因），纯暖缓存：无逐段，只在缓冲响应到达时把整份 final
- *               填进 snapshot。匹配页预取【不订阅】（只读 .promise 判 !res.ok 中断串行）。
+ *           统一流式模型（2026-08-01 阶段三，真·统一流式）：
+ *             · prefetch=false（点击即发 / 分析页自取）与 prefetch=true（后台预取）【都走流式】请求
+ *               （/api/analysis，走 handleStreaming）——去掉旧的「预取走 ?stream=0 缓冲」分叉。注册表对两者
+ *               【一律居中读 SSE、把流抽干】（driveStreaming），把已到的 meta / section / final 累进 entry 的
+ *               snapshot；订阅者（分析页）通过 subscribe 拿到「立即回放当前态 + 后续增量」——晚挂载 200ms 的
+ *               分析页据此也能拿到已到的全部段（本改造命根）。条目【存活到流结束】（done / error），非 headers 到达。
+ *             · prefetch=true 与 prefetch=false 的唯一差别在【请求 body 带不带 prefetch:true】：服务端据此走
+ *               预取闸 + metadata.prefetch:true 成本归因；客户端侧读流路径完全一致。匹配页预取【不订阅】
+ *               （只读 .promise 判 !res.ok 中断串行），但注册表照样把预取流抽干，服务端得以跑完 + 写缓存暖档。
  *
- *           两种 entry 共用同一 snapshot + subscribe 接口（差别仅「逐段填」还是「一次性填 final」）：
- *             这样「点击时该题正被预取（缓冲在飞）」的碰撞场景下，点击即发复用同一条缓冲请求（不双发不双计），
- *             分析页 subscribe 到 final（缓冲完成即定稿，无逐段但结果正确，仍省一次 AI 调用）。
+ *           为什么预取也改流式（本次修复根因）：旧版预取走缓冲、点击走流式，去重 requestAnalysis 命中既有条目时
+ *             不分形态——题被预取过（缓冲、只有 final 无逐段）后用户点它命中去重，分析页采纳到「只有 final、无逐段」
+ *             → 无流式感。越点 top 匹配题（都被预取过）越必然没流式感。统一成流式后，采纳者（点了正在预取的题）
+ *             拿到的是【逐段回放】，流式感恢复。去重/abort/TTL 语义均不变。
  *
  *           生命周期：
  *             · 条目登记到【流结束/缓冲 settle】即从表移除（服务端已把结果写进 (题,语料) 缓存，下次点进走命中）。
@@ -57,9 +59,9 @@ export interface AnalysisSnapshot {
 export interface InflightEntry {
   readonly key: string
   /**
-   * 底层请求的初始 Response promise。
-   *  · 预取(缓冲)：匹配页据此判 `!res.ok` 中断串行预取；
-   *  · 流式：暴露开流 Response（其 body 已被注册表【居中抽干】，勿再读；仅供读 status/ok）；
+   * 底层请求的初始【开流】Response promise（预取与非预取同为 SSE 开流响应）。
+   *  · 预取：匹配页据此判 `!res.ok` 中断串行预取（开流成功 res.ok=true；503/402 等 res.ok=false）；
+   *  · 其 body 已被注册表【居中抽干】（driveStreaming），勿再读；仅供读 status/ok；
    *  · 终态状态码（402/403/429）与开流前 5xx 均从此取。
    */
   readonly promise: Promise<Response>
@@ -179,39 +181,12 @@ async function driveStreaming(rec: Rec): Promise<void> {
 }
 
 /**
- * 消费一条【缓冲(预取)】entry：等 ?stream=0 响应，ok 则把整份 final 填进 snapshot（供碰撞采纳的订阅者定稿），
- * 非 ok（402/403/429/5xx）只标 done（终态由消费方读 promise.status 处理，不误标 error）。纯预取无订阅者时
- * snapshot 填了也无人读，settle 即移除。
- * @param rec  已登记的缓冲条目
- */
-async function driveBuffered(rec: Rec): Promise<void> {
-  let res: Response
-  try {
-    res = await rec.promise
-  } catch {
-    rec.snap.error = true; rec.snap.done = true; notify(rec)
-    remove(rec.key, false)
-    return
-  }
-  try {
-    if (res.ok) {
-      rec.snap.final = (await res.json()) as AnalysisResponse
-      rec.snap.done = true; notify(rec)
-    } else {
-      rec.snap.done = true; notify(rec)
-    }
-  } catch {
-    rec.snap.error = true; rec.snap.done = true; notify(rec)
-  } finally {
-    remove(rec.key, false)
-  }
-}
-
-/**
  * 发起（或复用）一次 analysis 请求。已在飞则返回既有条目（去重：点了正在预取/流式的题不重发、不双计）。
+ * 预取与非预取【都走流式】（driveStreaming 居中抽干）——唯一差别是预取的 body 带 prefetch:true（供服务端走
+ * 预取闸 + 成本归因）；这样点了正在预取的题命中去重后，采纳者也拿到逐段回放（本次修复根因，见模块头）。
  * @param questionId  题 id
  * @param storyId     语料 id
- * @param prefetch    true=后台预取（?stream=0 缓冲、暖缓存、匹配页不订阅）；false=真实用户流式请求（居中抽干、可订阅）
+ * @param prefetch    true=后台预取（body.prefetch:true、匹配页不订阅、注册表照样抽干暖缓存）；false=真实用户请求
  * @param level       目标雅思水平（随请求 body 带上、并入去重键，见 inflightKey）
  * @returns           在飞条目句柄
  */
@@ -220,9 +195,8 @@ export function requestAnalysis(questionId: string, storyId: string, prefetch: b
   const existing = registry.get(key)
   if (existing) return existing.handle
   const controller = new AbortController()
-  // 预取带 ?stream=0（服务端 handleBuffered）+ body.prefetch:true（预取闸 + 成本归因）；流式走默认路（handleStreaming）。
-  const url = prefetch ? '/api/analysis?stream=0' : '/api/analysis'
-  const promise = apiFetch(url, {
+  // 恒发流式默认路（/api/analysis → handleStreaming）；预取仅在 body 带 prefetch:true（服务端据此走预取闸 + 成本归因）。
+  const promise = apiFetch('/api/analysis', {
     method: 'POST',
     json: prefetch ? { questionId, storyId, level, prefetch: true } : { questionId, storyId, level },
     signal: controller.signal,
@@ -242,8 +216,7 @@ export function requestAnalysis(questionId: string, storyId: string, prefetch: b
   }
   const rec: Rec = { key, promise, controller, timer, snap, subscribers, handle }
   registry.set(key, rec)
-  if (prefetch) void driveBuffered(rec)
-  else void driveStreaming(rec)
+  void driveStreaming(rec)
   return handle
 }
 
