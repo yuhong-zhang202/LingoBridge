@@ -12,6 +12,7 @@ import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { logEvent } from '@/lib/events'
 import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
+import { isInternalAccount } from '@/lib/internal-accounts'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { ANON_CORPUS_LIMIT, MIN_CORPUS_CHARS } from '@/lib/constants'
 import { isTooShortForCorpus } from '@/lib/utils'
@@ -47,7 +48,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
     } else {
       const used = await countCorpusThisMonthServer(userId)
-      if (used >= STORY_MONTHLY_LIMIT) {
+      // 内部账户豁免故事月额度（仅对 INTERNAL_ACCOUNT_IDS 生效，普通用户口径不变）。
+      if (!isInternalAccount(userId) && used >= STORY_MONTHLY_LIMIT) {
         return NextResponse.json({ error: '本月故事额度已用完', code: 'QUOTA_EXCEEDED', reason: 'story' }, { status: 402 })
       }
     }

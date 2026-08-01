@@ -84,6 +84,9 @@ function makeBuilder(spec: Spec) {
   b.gte = (_col: string, v: string) => { q.gte.push(v); return b }
   b.lt = (_col: string, v: string) => { q.lt.push(v); return b }
   b.eq = (_col: string, v: string) => { q.eq.push(v); return b }
+  // 内部账户排除过滤（route 逐查询套 `.or('user_id.is.null,user_id.not.in.(...)')`）：
+  // 本 mock 的 spec 数据里不含内部账户行，过滤对结果集无影响，故 .or 只需返回自身维持链式。
+  b.or = self
   b.order = self
   b.limit = (n: number) => { q.limit = n; return b }
   const rowsOf = (): unknown[] => spec[classify(q)] ?? []

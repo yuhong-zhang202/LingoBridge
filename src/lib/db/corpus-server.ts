@@ -8,6 +8,7 @@
 import 'server-only'
 
 import { getSupabaseServer } from '../supabase-server'
+import { isInternalAccount } from '../internal-accounts'
 import { mapCorpusRow, type CorpusRow } from './corpus'
 import type { Corpus, CorpusSource } from '../types'
 
@@ -72,6 +73,10 @@ export async function bumpAnonRestructureTodayServer(userId: string): Promise<nu
  * @sideEffect     service_role 调 RPC bump_daily_usage（原子 upsert 计数，绕 RLS）
  */
 export async function bumpDailyUsageServer(userId: string, kind: string): Promise<number> {
+  // 内部账户全豁免：一处收敛。所有付费接口（practice/polish/pronounce/transcribe/analysis/matching/
+  // restructure/phrases/anki/anki_swap 共 12+ 调用点）都靠本函数返回值做 `count > LIMIT` 防刷闸，
+  // 这里恒返 0 即让每一处闸门天然通过，且不递增 RPC（日额度只是防刷计数器、非分析口径，跳过无副作用）。
+  if (isInternalAccount(userId)) return 0
   const { data, error } = await getSupabaseServer().rpc('bump_daily_usage', { p_user_id: userId, p_kind: kind })
   if (error) throw new Error(`每日用量计数失败：${error.message}`)
   return (data as number) ?? 0
@@ -91,6 +96,10 @@ export async function bumpDailyUsageServer(userId: string, kind: string): Promis
  * @sideEffect     service_role 读 daily_usage_counts（绕 RLS，须显式按 user_id 过滤）
  */
 export async function readDailyUsageServer(userId: string, kind: string): Promise<number> {
+  // 内部账户全豁免：transcribe 的「只读早退」闸走本函数（在 bump 之前），若不同样豁免，内部账户历史
+  // 已累计到上限的计数会在这里被早退挡下、绕过 bump 的豁免。恒返 0 = 「今日未用」→ 放行到（同样豁免的）
+  // bump。与 bumpDailyUsageServer 一起构成日额度层的完整一处收敛。
+  if (isInternalAccount(userId)) return 0
   try {
     // day 列由 RPC 用 Postgres current_date 写入（库时区 UTC），故这里同样取 UTC 日期对齐口径
     const today = new Date().toISOString().slice(0, 10)

@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
+import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
 import { ERROR_KIND_USER_INPUT, ERROR_KIND_CAPACITY, ERROR_KIND_NETWORK } from '@/lib/constants'
 import { classifyErrorKindFromLog } from '@/types/errors'
 // 看板指标 RPC 读取帮手（各自独立自降级、RPC 缺失/出错返 null）——从本文件抽出以守 <1000 行红线（见该模块头注释）。
@@ -81,6 +82,19 @@ const FAILED_LOG_N = 100
 // ⚠️ 待真实数据标定：现取 0.15 为初值（凭 audioLevel 经验：静音贴近 0、正常说话峰值可达 0.3+），
 // 埋点铺开、攒够真实空录音样本后再据 peak 分布回调，不追求现在精准。
 const FAKE_EMPTY_PEAK_THRESHOLD = 0.15
+
+// ── 内部账户从看板全部经营指标排除 ──
+// 产品方自用测试账户（见 lib/internal-accounts）不该污染成本/活跃/故障/注册口径。逐查询套用。
+// ⚠️ 用 `.or('<col>.is.null,<col>.not.in.(...)')` 而非直接 `.not(col,'in',...)`：PostgREST 的 not.in
+//    生成 SQL `col NOT IN (...)`，而 `NULL NOT IN (...)` 求值为 NULL（非 TRUE）→ user_id 为 null 的行
+//    （补归属列前的老行 / 无归属调用，属正常口径）会被一并滤掉，破坏「普通口径一字不变」。故显式 or 保留 null 行。
+// INTERNAL_ACCOUNT_IDS 恒非空（至少一条产品方账户）；若将来清空，下面两个串会退化为无意义过滤，
+// 但绝不会误删普通数据（is.null 分支恒保留、not.in 空集恒 TRUE），看板仍可用。
+const INTERNAL_ID_LIST = [...INTERNAL_ACCOUNT_IDS].join(',')
+/** api_usage_logs / practice_sessions 等含可空 user_id 列：排除内部账户、保留 null 行。 */
+const EXCLUDE_INTERNAL_BY_USER = `user_id.is.null,user_id.not.in.(${INTERNAL_ID_LIST})`
+/** profiles 表主键列名为 id（非空 PK，无 null 顾虑，但沿用 or 形式保持一致、防空集边界）。 */
+const EXCLUDE_INTERNAL_BY_ID = `id.is.null,id.not.in.(${INTERNAL_ID_LIST})`
 
 /** 保留两位小数 */
 function r2(n: number): number {
@@ -347,17 +361,20 @@ export async function GET(req: Request): Promise<NextResponse> {
       fetchAllRows<AttribRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny, user_id, is_anonymous')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .gte('created_at', monthStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .gte('created_at', lastMonthStart.toISOString())
         .lt('created_at', monthStart.toISOString())
         .order('created_at', { ascending: true })
@@ -365,24 +382,28 @@ export async function GET(req: Request): Promise<NextResponse> {
       fetchAllRows<TodayRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny, user_id, is_anonymous, status, service, metadata')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       fetchAllRows<RangeRow>(() => supabase
         .from('api_usage_logs')
         .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata, user_id, is_anonymous')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       supabase
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .order('created_at', { ascending: false })
         .limit(30),
       // 最贵 Top-N（全时段按成本降序）：时间序的"最近调用"抓不到某次异常昂贵，需独立按成本排。
       supabase
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .order('estimated_cost_cny', { ascending: false })
         .limit(TOP_COST_N),
       // 失败明细（区间内 status='error'，时间倒序）：每日失败柱图的下钻出口。
@@ -391,6 +412,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       supabase
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .eq('status', 'error')
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: false })
@@ -399,6 +421,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       fetchAllRows<PracticeRow>(() => supabase
         .from('practice_sessions')
         .select('is_review, created_at')
+        .or(EXCLUDE_INTERNAL_BY_USER)
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
@@ -406,6 +429,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       fetchAllRows<ProfileRow>(() => supabase
         .from('profiles')
         .select('id')
+        .or(EXCLUDE_INTERNAL_BY_ID)
         .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),

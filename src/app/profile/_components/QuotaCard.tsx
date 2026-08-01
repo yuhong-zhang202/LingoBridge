@@ -11,6 +11,8 @@ import OfflineState from '@/components/OfflineState'
 import { nextMonthFirstLabel } from '@/lib/date'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { useAccount } from '@/hooks/useAccount'
+import { isInternalAccount } from '@/lib/internal-accounts'
 
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
@@ -20,17 +22,21 @@ interface QuotaRowProps {
   limit: number
   fillClass: string
   loading: boolean
+  /** 内部账户：不受额度约束，显示「不限」并隐藏进度填充，免得看到「10/10 满」 */
+  unlimited?: boolean
 }
 
-function QuotaRow({ label, used, limit, fillClass, loading }: QuotaRowProps) {
+function QuotaRow({ label, used, limit, fillClass, loading, unlimited = false }: QuotaRowProps) {
   const capped = Math.min(used, limit)
-  const pct = limit > 0 ? Math.min(100, (capped / limit) * 100) : 0
+  const pct = unlimited ? 0 : (limit > 0 ? Math.min(100, (capped / limit) * 100) : 0)
   return (
     <div className="mt-3.5">
       <div className="flex items-baseline justify-between">
         <span className="text-[14px] text-v2-text-primary">{label}</span>
         {loading ? (
           <Skeleton className="w-12 h-3.5" />
+        ) : unlimited ? (
+          <span className="text-[14px] text-v2-text-secondary font-semibold">不限</span>
         ) : (
           <span className="text-[14px] text-v2-text-secondary">
             <span className="font-semibold">{capped}</span>
@@ -51,6 +57,8 @@ function QuotaRow({ label, used, limit, fillClass, loading }: QuotaRowProps) {
 }
 
 export default function QuotaCard(): JSX.Element {
+  const { account } = useAccount()
+  const unlimited = isInternalAccount(account?.id)
   const [storyUsed, setStoryUsed]   = useState(0)
   const [reviewUsed, setReviewUsed] = useState(0)
   const [loading, setLoading]       = useState(true)
@@ -95,8 +103,8 @@ export default function QuotaCard(): JSX.Element {
         <span className="text-[13px] font-medium text-v2-text-secondary">本月额度</span>
         <span className="text-[12px] text-v2-text-muted">{nextMonthFirstLabel()} 重置</span>
       </div>
-      <QuotaRow label="故事练习" used={storyUsed}  limit={STORY_MONTHLY_LIMIT} fillClass="bg-brand-primary-light" loading={loading} />
-      <QuotaRow label="题目练习" used={reviewUsed} limit={IELTS_MONTHLY_LIMIT} fillClass="bg-brand-accent-light" loading={loading} />
+      <QuotaRow label="故事练习" used={storyUsed}  limit={STORY_MONTHLY_LIMIT} fillClass="bg-brand-primary-light" loading={loading} unlimited={unlimited} />
+      <QuotaRow label="题目练习" used={reviewUsed} limit={IELTS_MONTHLY_LIMIT} fillClass="bg-brand-accent-light" loading={loading} unlimited={unlimited} />
     </div>
   )
 }

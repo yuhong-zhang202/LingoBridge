@@ -15,6 +15,7 @@ import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { countReviewPracticeThisMonthServer } from '@/lib/db/practice-sessions-server'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
+import { isInternalAccount } from '@/lib/internal-accounts'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import { ANON_PRACTICE_TURN_LIMIT, REG_PRACTICE_DAILY_LIMIT } from '@/lib/constants'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
@@ -71,7 +72,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 匿名用户走的是 corpus 单条试用额度，不叠加复练月额度，故 !isAnonymous 才校验（匿名到不了此分支）。
       if (!isAnonymous && body.isReview) {
         const used = await countReviewPracticeThisMonthServer(userId)
-        if (used >= IELTS_MONTHLY_LIMIT) {
+        // 内部账户豁免复练月额度（仅对 INTERNAL_ACCOUNT_IDS 生效，普通用户口径不变）。
+        if (!isInternalAccount(userId) && used >= IELTS_MONTHLY_LIMIT) {
           return NextResponse.json({ error: '本月复练额度已用完', code: 'QUOTA_EXCEEDED', reason: 'ielts' }, { status: 402 })
         }
       }

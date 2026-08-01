@@ -195,6 +195,7 @@ export async function updatePassword(newPassword: string): Promise<void> {
  * 服务端与安全校验路径（如删号）仍各自验证 token，不受此影响。
  */
 export async function getAccount(): Promise<{
+  id: string
   email: string | null
   isAnonymous: boolean
   avatarUrl: string | null
@@ -211,6 +212,8 @@ export async function getAccount(): Promise<{
   const rawBand   = meta.target_band as unknown
   const rawDate   = meta.exam_date as unknown
   return {
+    // user.id 供「内部账户豁免」在客户端判定（额度卡显示「不限」）；会话内不可变。
+    id: user.id,
     email: user.email ?? null,
     isAnonymous: user.is_anonymous ?? false,
     avatarUrl:   typeof rawAvatar === 'string' && rawAvatar !== '' ? rawAvatar : null,

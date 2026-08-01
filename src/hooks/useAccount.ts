@@ -21,8 +21,9 @@ let unsubscribeAuth: (() => void) | null = null
 function sameAccount(a: Account | null, b: Account | null): boolean {
   if (a === b) return true
   if (!a || !b) return false
-  // 六个字段全比：漏任一字段，改该字段后 commit 会被判为「无变化」而不通知订阅者，界面不刷新
+  // 七个字段全比：漏任一字段，改该字段后 commit 会被判为「无变化」而不通知订阅者，界面不刷新
   return (
+    a.id === b.id &&
     a.email === b.email &&
     a.isAnonymous === b.isAnonymous &&
     a.avatarUrl === b.avatarUrl &&
