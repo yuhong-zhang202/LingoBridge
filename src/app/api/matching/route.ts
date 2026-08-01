@@ -77,7 +77,36 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
   if (error) throw error
 }
 
-export async function POST(req: Request): Promise<NextResponse> {
+/**
+ * 把萃取(必发) + 重排(仅有候选题时发)两条 qwen-plus usage 记账推入 afterTasks。
+ * handleBuffered 与 handleStreaming 共用同一份，杜绝计费估算/字段两路分叉（此前为逐字复制、易只改一路）。
+ * 估算兜底（模型没吐 usage 时）：萃取 = 语料字数×0.8+1200 / 输出100；
+ *   重排 = 语料字数×0.8 + 候选题干字数×0.5 + 2000 / 输出 候选数×40。
+ * latency_ms 走 matchByStory 内部【分段实测】(extractionMs/rankingMs)，非请求总耗时——
+ *   2026-07-20 修正：此前两条都写请求总耗时、把 matching 耗时虚报约一倍，看板须按该时点断开口径。
+ */
+function pushMatchUsageLogs(
+  afterTasks: Promise<unknown>[],
+  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; corpusId: string },
+): void {
+  const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
+  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  if (a.result.questions.length > 0) {
+    const candidateChars = a.result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
+    const rkUsage: LLMUsage = a.rankingUsage ?? {
+      promptTokens: Math.round(a.cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
+      completionTokens: a.result.questions.length * 40,
+    }
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+  }
+}
+
+/**
+ * 阻塞式整批匹配（现有实现；萃取/重排记账已抽成共享 pushMatchUsageLogs，其余逻辑原样）。
+ * 作为流式 SSE 的降级目标：`?stream=0`（前端读流失败/上游不支持流式时重发）走此路，返回普通 JSON。
+ * 快照命中/matches/计费/埋点的职责与字段全部保持原样。
+ */
+async function handleBuffered(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
@@ -161,21 +190,8 @@ export async function POST(req: Request): Promise<NextResponse> {
           .catch((e) => logErr('[matching snapshot upsert]', e)),
       )
 
-      // ── 调用 1：萃取（extractCorpus）。萃取必发，恒记一条。
-      // 估算兜底：语料字数 × 0.8 token/字 + 系统提示约 1200；输出约 100。
-      const exUsage: LLMUsage = extractionUsage ?? { promptTokens: Math.round(cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-      afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: extractionMs, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: extractionUsage ? 'actual' : 'estimate' } }))
-
-      // ── 调用 2：重排（rankQuestions）。仅在有候选题时才会被调用（noMatch/零候选不发），故按候选数判是否记账。
-      // 估算兜底：故事全文 × 0.8 + 全部候选题干字数 × 0.5 + 系统提示约 2000；输出按候选数 × 40。
-      if (result.questions.length > 0) {
-        const candidateChars = result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
-        const rkUsage: LLMUsage = rankingUsage ?? {
-          promptTokens: Math.round(cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
-          completionTokens: result.questions.length * 40,
-        }
-        afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: rankingMs, status: 'success', user_id: userId, corpus_id: corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: result.questions.length, cost_source: rankingUsage ? 'actual' : 'estimate' } }))
-      }
+      // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
+      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
@@ -239,4 +255,194 @@ export async function POST(req: Request): Promise<NextResponse> {
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
+}
+
+/** SSE 响应头：禁缓存/禁转换、关代理缓冲（X-Accel-Buffering=no 关 nginx 层缓冲），保证逐帧实时下发。 */
+const SSE_HEADERS: Record<string, string> = {
+  'Content-Type': 'text/event-stream; charset=utf-8',
+  'Cache-Control': 'no-cache, no-transform',
+  Connection: 'keep-alive',
+  'X-Accel-Buffering': 'no',
+}
+
+/** 编码一帧 SSE 事件。data 走 JSON.stringify 天然无换行，单行即完整 data 段。 */
+function sseFrame(event: string, data: unknown): Uint8Array {
+  return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+}
+
+/**
+ * match.result 埋点 props（与 handleBuffered 内联口径逐字一致，两处须保持同步）：
+ * 观察点分布 + 命中来源 + noMatch + 可见/未打分计数 + served_from。visibleCount 与前端 totalVisible 同口径。
+ */
+function matchResultEventProps(result: FunnelMatchResult, servedFrom: 'fresh' | 'cache'): Record<string, unknown> {
+  return {
+    primaryCode: result.primary?.pointCode ?? null,
+    secondaryCode: result.secondary?.pointCode ?? null,
+    matchedViaSecondary: result.matchedViaSecondary,
+    matchedViaNeighbor: result.matchedViaNeighbor,
+    noMatch: result.noMatch,
+    candidateCount: result.questions.length,
+    visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
+    unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
+    served_from: servedFrom,
+  }
+}
+
+/**
+ * 补每题 ankiSaved（已存对子态）+ 附 servedFrom，产出 done 帧的完整 DTO。
+ * 与 handleBuffered 末尾「questionsWithSaved + servedFrom」逻辑同款（职责/字段一字不变，仅时机挪到流结束）。
+ */
+async function buildStreamDto(
+  result: FunnelMatchResult,
+  userId: string,
+  isAnonymous: boolean,
+  servedFrom: 'fresh' | 'cache',
+): Promise<unknown> {
+  let savedIds = new Set<string>()
+  if (!isAnonymous && result.questions.length > 0) {
+    try {
+      savedIds = await getBoundQuestionIds(userId, result.questions.map((q) => q.id))
+    } catch (e) {
+      logErr('[matching ankiSaved]', e)
+    }
+  }
+  const questionsWithSaved = result.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
+  return { ...result, questions: questionsWithSaved, servedFrom }
+}
+
+/**
+ * 流式 SSE 匹配（默认路）。统一走 SSE：快照命中也走本通道（一帧 meta + 全 question + done，不调模型）；
+ * 未命中则边跑 matchByStory 边发帧，流结束后再落 persist/snapshot/usage/埋点（时机从「响应前」挪到「流结束后」，
+ * 职责/字段一字不变），最后发 done。开流【前】的配额/同意闸与 handleBuffered 同口径（超额/未同意直接 JSON 早退，
+ * 不开流不计费）；开流【后】异常发 error 帧让前端降级到 ?stream=0。
+ */
+async function handleStreaming(req: Request): Promise<Response> {
+  const t0 = Date.now()
+  try {
+    // 鉴权 / 同意闸 / 入参 / 归属校验（与 handleBuffered 同口径，必须在开流前过，早退返回普通 JSON）
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
+    const body = (await req.json()) as { corpusId?: unknown }
+    const corpusId = typeof body.corpusId === 'string' ? body.corpusId.trim() : ''
+    if (!corpusId) return NextResponse.json({ error: 'corpusId 不能为空' }, { status: 400 })
+    await assertCorpusOwner(userId, corpusId)
+
+    const [rawText, snap] = await Promise.all([
+      getCorpusByIdServer(corpusId),
+      env.matchSnapshotEnabled ? getMatchSnapshotServer(corpusId) : Promise.resolve(null),
+    ])
+    const cleanedText = rawText?.trim() ?? ''
+    if (!cleanedText) return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
+    const hash = storyHash(cleanedText)
+    const cached: FunnelMatchResult | null =
+      snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
+    const flowId = req.headers.get('x-flow-id')
+
+    // 配额硬防线：仅「真要跑模型」这一路计次，且在任何 AI 调用之前——放在读档判定之后（命中存档零成本、不计次）。
+    // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429。与 handleBuffered 同口径，早退返回普通 JSON。
+    if (!cached) {
+      const dailyCount = await bumpDailyUsageServer(userId, 'matching')
+      if (isAnonymous ? dailyCount > ANON_MATCHING_LIMIT : dailyCount > REG_MATCHING_DAILY_LIMIT) {
+        return isAnonymous
+          ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+          : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+      }
+    }
+
+    let clientGone = false
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        // 客户端断连后 enqueue 会抛：吞掉并置 clientGone，避免异常回灌进重排循环触发误降级/重复调模型。
+        const safeEnqueue = (frame: Uint8Array): void => {
+          if (clientGone) return
+          try {
+            controller.enqueue(frame)
+          } catch {
+            clientGone = true
+          }
+        }
+        try {
+          if (cached) {
+            // 快照命中：一帧 meta + 全部 question + done，不调模型、不记 usage（同 handleBuffered 读档分支）
+            safeEnqueue(sseFrame('meta', {
+              primary: cached.primary,
+              secondary: cached.secondary,
+              matchedViaSecondary: cached.matchedViaSecondary,
+              matchedViaNeighbor: cached.matchedViaNeighbor,
+              candidateCount: cached.questions.length,
+            }))
+            for (const q of cached.questions) safeEnqueue(sseFrame('question', q))
+            await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(cached, 'cache') })
+            const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache')
+            safeEnqueue(sseFrame('done', dto))
+            controller.close()
+            return
+          }
+
+          // 未命中：边跑边发帧。萃取/重排 usage + 分段耗时口径与 handleBuffered 一字不变，仅把落库/记账挪到流结束后。
+          let extractionUsage: LLMUsage | null = null
+          let rankingUsage: LLMUsage | null = null
+          let extractionMs = 0
+          let rankingMs = 0
+          const result = await runWithRawLogContext({ userId, corpusId }, () =>
+            matchByStory(cleanedText, {
+              onExtraction: (u) => { extractionUsage = u },
+              onRanking: (u) => { rankingUsage = u },
+              onExtractionLatency: (ms) => { extractionMs = ms },
+              onRankingLatency: (ms) => { rankingMs = ms },
+              onMeta: (meta) => safeEnqueue(sseFrame('meta', meta)),
+              onItem: (q) => safeEnqueue(sseFrame('question', q)),
+            }),
+          )
+
+          // 流结束后落地：persist / snapshot / usage(萃取+重排) / match.result 埋点。
+          // 与 handleBuffered 逐字同款（字段/职责一字不变），差别仅在时机：从「响应前」挪到「所有帧发完后」。
+          const afterTasks: Promise<unknown>[] = []
+          afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
+          afterTasks.push(
+            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+              .catch((e) => logErr('[matching snapshot upsert]', e)),
+          )
+          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
+          afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(result, 'fresh') }))
+          await Promise.all(afterTasks)
+
+          const dto = await buildStreamDto(result, userId, isAnonymous, 'fresh')
+          safeEnqueue(sseFrame('done', dto))
+          controller.close()
+        } catch (e) {
+          // 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级到 ?stream=0。
+          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
+          logErr('[matching API stream]', e)
+          try {
+            safeEnqueue(sseFrame('error', { error: '匹配失败' }))
+            controller.close()
+          } catch {
+            /* 已断流：前端读流报错，同样走 ?stream=0 降级 */
+          }
+        }
+      },
+      cancel() {
+        clientGone = true
+      },
+    })
+    return new Response(stream, { headers: SSE_HEADERS })
+  } catch (e) {
+    // 开流前异常（鉴权/同意/入参/存档读取/配额）：返回普通 JSON。前端据状态（402/403/429）处理，或降级重发 ?stream=0。
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    logErr('[matching API stream pre]', e)
+    return NextResponse.json({ error: '匹配失败' }, { status: 500 })
+  }
+}
+
+/**
+ * 匹配接口入口：默认走流式 SSE（逐题下发，前端逐条渲染）；`?stream=0` 走阻塞式整批 JSON（handleBuffered），
+ * 作为前端读流失败/上游不支持流式时的降级目标。两路的快照/matches/计费职责与字段完全一致。
+ */
+export async function POST(req: Request): Promise<Response> {
+  const wantsBuffered = new URL(req.url).searchParams.get('stream') === '0'
+  return wantsBuffered ? handleBuffered(req) : handleStreaming(req)
 }

@@ -23,7 +23,54 @@ import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
 import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
-import type { FunnelResult, PartTab, MatchingViewProps } from './types'
+import type { FunnelResult, FunnelQuestion, FunnelStreamMeta, PartTab, MatchingViewProps } from './types'
+
+/** 逐条到达的富化题（SSE question 帧）：与 FunnelQuestion 同形，唯 ankiSaved 由前端在 done 帧前默认 false。 */
+type StreamQuestion = Omit<FunnelQuestion, 'ankiSaved'>
+
+interface MatchingSSEHandlers {
+  onMeta: (m: FunnelStreamMeta) => void
+  onQuestion: (q: StreamQuestion) => void
+  onDone: (data: FunnelResult) => void
+}
+
+/**
+ * 读 /api/matching 的 SSE 流：按 `\n\n` 切帧，解析 event/data 两行，分派到 handlers。
+ * 契约：正常必以 done 帧收尾。收到 error 帧、或流结束仍无 done → 抛错，调用方据此降级重发 ?stream=0。
+ * @param res  已确认 res.ok 的流式响应
+ * @param h    meta/question/done 三类帧的处理回调
+ * @sideEffect 持续读 response.body，直到流结束或抛错
+ */
+async function readMatchingSSE(res: Response, h: MatchingSSEHandlers): Promise<void> {
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('matching SSE: 无响应体')
+  const decoder = new TextDecoder()
+  let buf = ''
+  let sawDone = false
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    let sep: number
+    while ((sep = buf.indexOf('\n\n')) >= 0) {
+      const block = buf.slice(0, sep)
+      buf = buf.slice(sep + 2)
+      let event = ''
+      let data = ''
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) data = line.slice(5).trim()
+      }
+      if (!event || !data) continue
+      if (event === 'meta') h.onMeta(JSON.parse(data) as FunnelStreamMeta)
+      else if (event === 'question') h.onQuestion(JSON.parse(data) as StreamQuestion)
+      else if (event === 'done') { h.onDone(JSON.parse(data) as FunnelResult); sawDone = true }
+      else if (event === 'error') throw new Error('matching SSE: 收到 error 帧')
+    }
+  }
+  // 流正常结束却没有 done：视为流式失败，交调用方降级到 ?stream=0（保证用户拿到完整结果）
+  if (!sawDone) throw new Error('matching SSE: 流结束但缺 done 帧')
+}
 
 function MatchingContent() {
   const router = useRouter()
@@ -32,6 +79,9 @@ function MatchingContent() {
   const corpusId = params.get('corpusId') ?? ''
   const [result, setResult] = useState<FunnelResult | null>(null)
   const [loading, setLoading] = useState(true)
+  // streamDone：SSE 收到 done 帧（结果定稿）。空态判定、view_rendered/dwell/预取埋点全部以它为锚点——
+  // 流式增量中途（题目还在逐条到达）绝不触发空态、绝不当作「渲染完成」，避免误报与空态闪烁。
+  const [streamDone, setStreamDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // 402（匿名试用额度用尽）→ 弹 QuotaReached trial 引导注册；429（注册用户当日上限）→ 行内提示，绝不引导注册
   const [quotaShown, setQuotaShown] = useState(false)
@@ -51,6 +101,13 @@ function MatchingContent() {
   // 点击即发时记下被点题的键：匹配页卸载/结果变时用它作 abortAll 的 except，保住这条「点击即发」请求
   // 不被清理连带 abort（否则分析页采纳不到、白等），其余预取照清。
   const lastClickedKeyRef = useRef<string | null>(null)
+  // dwell 计时（用户在匹配页停留时长，随 match.question_opened 上报）。
+  // 【口径：活跃浏览时长，扣除切后台/页面隐藏时间】—— 理由：两个用途（① 产品信号「一眼选中 vs 犹豫」；
+  //   ② 工程判断预取覆盖几道/启动延迟）都要的是「用户真在看着匹配结果做决定」的时间。开着标签页切走 5 分钟
+  //   再回来点，那 5 分钟不是在犹豫、也没在浏览（且预取定时器在后台被浏览器节流、并未推进），算进去会让
+  //   「犹豫」信号和预取提前量估计双双失真。故按 visibilitychange 只累计前台可见时段。
+  //   accumulatedMs=已落袋的活跃时段；activeStart=当前可见时段的起点（performance.now，单调、不受墙钟改动影响）。
+  const dwellRef = useRef<{ activeStart: number; accumulatedMs: number } | null>(null)
   const [swap, setSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
   const [swapping, setSwapping] = useState(false)
   // 本页会话语料（corpusId）的一句话概括：整理时已同源产出并写入 corpus.summary，此处按 id 拉出，
@@ -65,38 +122,74 @@ function MatchingContent() {
     if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
     let cancelled = false
     const ac = new AbortController()
+
+    // done 帧 / 缓冲降级的整份结果：结果定稿，写 result + 选中首题 + 已存态 + 关联萃取 + 置流式完成标志。
+    // 与旧的一次性成功分支逐字等价（只是从 res.json() 挪成 done 帧数据 / ?stream=0 数据）。
+    const applyFinal = (data: FunnelResult): void => {
+      if (cancelled) return
+      setResult(data)
+      setSelectedId(data.questions[0]?.id ?? null)
+      // 已存态初值来自服务端 ankiSaved（匿名一律 false）——书签直接呈现「已存/未存」，不必再单独查一次。
+      setSavedIds(new Set(data.questions.filter((q) => q.ankiSaved).map((q) => q.id)))
+      setStreamDone(true)
+      setLoading(false)
+      // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
+      if (corpusId && data.primary) {
+        saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
+          .catch((err: unknown) => console.warn('[MatchingPage] saveExtraction 失败，跳过', err))
+      }
+    }
+
+    // 三个转化/限流状态与现状一字不变（无论流式还是 ?stream=0 回来都在读体前先判 status）。
+    // 命中即处理并返回 true（调用方据此终止，不再降级/不报错）。
+    const handleTerminalStatus = (res: Response): boolean => {
+      if (res.status === 403) { if (!cancelled) router.push('/'); return true }   // 同意闸：回首页触发同意弹窗
+      if (res.status === 402) { if (!cancelled) setQuotaShown(true); return true } // 匿名额度用尽：注册引导
+      if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return true } // 注册当日上限：明天恢复
+      return false
+    }
+
     ;(async () => {
-      setLoading(true); setError(null); setDailyLimitHit(false)
+      setLoading(true); setError(null); setDailyLimitHit(false); setStreamDone(false)
+      setResult(null); setSelectedId(null)
+      const questions: StreamQuestion[] = []   // 逐条到达累积（方案 A：到达即追加，折叠分档实时重算）
+      let meta: FunnelStreamMeta | null = null
       try {
-        const res = await apiFetch('/api/matching', {
-          method: 'POST',
-          json: { corpusId },
-          signal: ac.signal,
+        // ── 默认流式 SSE：meta 先到搭骨架，question 逐条追加（数字悄悄往上跳），done 定稿 ──
+        const res = await apiFetch('/api/matching', { method: 'POST', json: { corpusId }, signal: ac.signal })
+        if (handleTerminalStatus(res)) return
+        if (!res.ok) throw new Error('匹配失败')   // 开流前的非配额错误 → 交 catch 降级重发 ?stream=0
+        await readMatchingSSE(res, {
+          onMeta: (m) => { meta = m },
+          onQuestion: (q) => {
+            if (cancelled) return
+            questions.push(q)
+            // 流式中间态：用 meta 搭骨架 + 当前累积题；ankiSaved 暂 false（done 帧带真值再覆盖），noMatch 恒 false（空态只在 done 后判）
+            setResult({
+              primary: meta?.primary ?? null,
+              secondary: meta?.secondary ?? null,
+              questions: questions.map((sq) => ({ ...sq, ankiSaved: false })),
+              count: questions.length,
+              matchedViaSecondary: meta?.matchedViaSecondary ?? false,
+              noMatch: false,
+            })
+            setLoading(false)
+            setSelectedId((prev) => prev ?? q.id)
+          },
+          onDone: (data) => applyFinal(data),
         })
-        // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「匹配失败」。
-        if (res.status === 403) { if (!cancelled) router.push('/'); return }
-        // 402 = 匿名试用额度用尽 → 转化点，弹注册引导覆盖层
-        if (res.status === 402) { if (!cancelled) setQuotaShown(true); return }
-        // 429 = 注册用户当日上限 → 只告知「明天恢复」，不走 error 通道（其 CTA 是重试，点了还撞 429）
-        if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
-        if (!res.ok) throw new Error('匹配失败')
-        const data = (await res.json()) as FunnelResult
-        if (!cancelled) {
-          setResult(data)
-          setSelectedId(data.questions[0]?.id ?? null)
-          // 已存态初值来自服务端 ankiSaved（匿名一律 false）——书签直接呈现「已存/未存」，不必再单独查一次。
-          setSavedIds(new Set(data.questions.filter((q) => q.ankiSaved).map((q) => q.id)))
-        }
-        // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
-        if (!cancelled && corpusId && data.primary) {
-          saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
-            .catch((err: unknown) => console.warn('[MatchingPage] saveExtraction 失败，跳过', err))
-        }
       } catch (e) {
-        if (ac.signal.aborted) return          // 中断不算错误，忽略
-        if (!cancelled) setError(e instanceof Error ? e.message : '匹配失败')
-      } finally {
-        if (!cancelled) setLoading(false)
+        if (ac.signal.aborted || cancelled) return   // 中断不算错误
+        // ── 降级：读流错 / 无 done / 上游不支持流式 → 重发 ?stream=0 走阻塞式整批（用户无感，只是没逐条）──
+        try {
+          const res = await apiFetch('/api/matching?stream=0', { method: 'POST', json: { corpusId }, signal: ac.signal })
+          if (handleTerminalStatus(res)) return
+          if (!res.ok) throw new Error('匹配失败')
+          applyFinal((await res.json()) as FunnelResult)
+        } catch (e2) {
+          if (ac.signal.aborted || cancelled) return
+          if (!cancelled) { setError(e2 instanceof Error ? e2.message : '匹配失败'); setLoading(false) }
+        }
       }
     })()
     return () => { cancelled = true; ac.abort() }
@@ -126,8 +219,10 @@ function MatchingContent() {
   // 埋点 match.view_rendered（第一周只出裸计数、不设阈值）：上报「用户在故事级真看到了什么」——
   // 跨 Tab（非当前 Tab 过滤）的高/中/可见/未打分计数 + 是否落到全局空态，供与服务端 match.result 对照
   // （服务端给了什么 vs 用户看到什么）。fire-and-forget：上报失败绝不影响渲染。
+  // 锚点 = streamDone（结果定稿）：流式增量中途 result 每来一题就变一次，绝不在中途上报——
+  // 否则一次匹配会打出十几条半成品 view_rendered。done 后 result 即最终态，只报一次。
   useEffect(() => {
-    if (!result) return
+    if (!result || !streamDone) return
     const highCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH).length
     const midCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH).length
     const unscoredCount = result.questions.filter((q) => q.relevanceScore == null).length
@@ -148,7 +243,7 @@ function MatchingContent() {
         },
       },
     }).catch(() => {})
-  }, [result, corpusId])
+  }, [result, streamDone, corpusId])
 
   // 预取前 3 道分析（结果渲染后延迟启动、串行、静默降级）：后台预生成 top-3 的个性化分析，写进 (题,语料)
   // 缓存，用户点进去走缓存命中。取【数组前 3 道】（result.questions 已按分降序=用户所见序），【不】筛 ≥85——
@@ -160,7 +255,8 @@ function MatchingContent() {
   //      服务端跑完写缓存、不减计数/成本，见 analysis-inflight 模块头）；
   //   ⑤ 静默降级：任一道 429/503/超时/任何错 → 放弃剩余（不重试、不提示、不打断），用户走点击即发兜底。
   useEffect(() => {
-    if (!result || result.noMatch || result.questions.length === 0) return
+    // 以 done 为锚点：流式中途 result.questions 尚在增长且非最终序，此时取 top-3 会预取到错的题；done 后才是最终序。
+    if (!result || !streamDone || result.noMatch || result.questions.length === 0) return
     const top3 = result.questions.slice(0, 3).map((q) => q.id)
     let cancelled = false
     const timer = setTimeout(() => {
@@ -178,12 +274,30 @@ function MatchingContent() {
     }, 1500)
     // cleanup：结果变(重新匹配)/离开匹配页 → 停循环 + 清空在飞（except 刚点击的题，保其「点击即发」不被连带 abort）
     return () => { cancelled = true; clearTimeout(timer); abortAll(lastClickedKeyRef.current ?? undefined) }
-  }, [result, corpusId])
+  }, [result, streamDone, corpusId])
+
+  // dwell 计时启动：起点 = 匹配结果【实际渲染到屏幕】的时刻（rAF 在下一次绘制前触发，排除等 AI 的十几秒——
+  // 本 effect 仅在 result 非空时跑，等 AI 的 loading 期不计；若渲染时正切后台，rAF 被浏览器推迟到回前台才触发，
+  // 天然从「用户真正看到」起算）。结果变(重新匹配)则重置计时。活跃时长口径见 dwellRef 注释。
+  useEffect(() => {
+    // 起点锚定 done（结果定稿真正渲染完），不锚流式中途：中途 result 每来一题就变、会把 dwell 反复清零。
+    if (!result || !streamDone) return
+    const raf = requestAnimationFrame(() => { dwellRef.current = { activeStart: performance.now(), accumulatedMs: 0 } })
+    const onVis = (): void => {
+      const d = dwellRef.current
+      if (!d) return
+      if (document.hidden) d.accumulatedMs += performance.now() - d.activeStart   // 切后台：当前可见时段落袋
+      else d.activeStart = performance.now()                                       // 回前台：重开计时
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVis) }
+  }, [result, streamDone])
 
   // 未打分候选（重排 3 轮补缺全失败后的兜底残留）属极罕见边缘态：它们一律不展示，
   // 但绝不能静默——静默就等于这条路径永远不会被发现。每次取到新结果时报一次。
   useEffect(() => {
-    if (!result) return
+    // 仅对定稿结果判定：流式中途尚未打分的题不算「未打分残留」（分数马上会来）。
+    if (!result || !streamDone) return
     const unscored = result.questions.filter((q) => q.relevanceScore == null)
     if (unscored.length === 0) return
     console.error('[MatchingPage] 存在未打分候选，按「无分数依据」一律不展示、不标档', {
@@ -192,7 +306,7 @@ function MatchingContent() {
       totalCandidates: result.questions.length,
       unscoredQuestionIds: unscored.map((q) => q.id),
     })
-  }, [result, corpusId])
+  }, [result, streamDone, corpusId])
 
   // 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响）。
   // 未打分不计入：标题「匹配到 N 道」必须与真正展示出的卡片数一致，否则又是一次「说有 N 道却没有」。
@@ -224,11 +338,13 @@ function MatchingContent() {
 
   const foldedCount  = midGroup.length
   const hasMore      = foldedCount > 0
-  // noneVisible：当前 Tab 两档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可
-  const noneVisible  = highGroup.length === 0 && midGroup.length === 0
+  // noneVisible：当前 Tab 两档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可。
+  // 流式中途（!streamDone）恒 false：题还在逐条到达，此刻两档为空只是「还没到」，不是「没有」，绝不提示空态。
+  const noneVisible  = streamDone && highGroup.length === 0 && midGroup.length === 0
   // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_MID 计数）。
   // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
-  const globalNoneVisible = !!result && !result.noMatch && totalVisible === 0
+  // 同样门控 streamDone：只在结果定稿后才判「全局无可见题」，流式增量中途绝不闪 NoMatchView。
+  const globalNoneVisible = !!result && streamDone && !result.noMatch && totalVisible === 0
 
   // 002 修复：highGroup=0 且 midGroup>0 时，此前三个空态判断会全部落空——
   // 高匹配块不渲染（组为空）、中匹配块不渲染（expanded 初值 false）、
@@ -311,13 +427,17 @@ function MatchingContent() {
       // 顺序：先 apiFetch 再 navigate —— fetch 同步发出请求后，SPA 客户端跳转不卸载页面/不 kill 在途请求，
       // 故不会因跳转丢上报。失败静默、绝不阻塞跳转（同 131 行 view_rendered 上报范式）。
       const rank = (result?.questions.findIndex((q) => q.id === id) ?? -1) + 1
+      // dwell 终点 = 点击时刻。活跃时长 = 已落袋 + 当前可见时段（点击必在前台，document.hidden 恒 false，
+      // 防御性保留判断）。Math.round 取整过服务端 sanitize 的整数校验。
+      const d = dwellRef.current
+      const dwellMs = d ? Math.round(d.accumulatedMs + (document.hidden ? 0 : performance.now() - d.activeStart)) : undefined
       if (result && rank >= 1) {
         void apiFetch('/api/events', {
           method: 'POST',
           json: {
             event: 'match.question_opened',
             storyId: corpusId,
-            props: { rank, candidateCount: result.questions.length },
+            props: { rank, candidateCount: result.questions.length, ...(dwellMs != null ? { dwellMs } : {}) },
           },
         }).catch(() => {})
       }

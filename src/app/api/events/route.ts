@@ -36,12 +36,16 @@ function sanitizeViewRendered(raw: unknown): Record<string, number | boolean> {
   return out
 }
 
-/** question_opened 允许上报的字段白名单（rank 1-based 排位 / candidateCount 列表总数，均正整数、无原文）。 */
+/** question_opened 白名单·正整数 1..10000：rank 1-based 排位 / candidateCount 列表总数（均无原文）。 */
 const QUESTION_OPENED_NUMERIC = ['rank', 'candidateCount'] as const
+/** dwellMs 上限 = 30 分钟（毫秒）。超过即视作离散脏数据（开着标签页离开等），丢弃。 */
+const DWELL_MS_MAX = 30 * 60 * 1000
 
 /**
- * 从客户端 props 里只挑 rank / candidateCount 并强制类型：仅放行【有限正整数、1..10000】，
- * 非法值（负数 / 0 / 非整数 / 超大值 / 非数字）一律丢弃、不抛错（沿用 sanitizeViewRendered 同款「挑白名单 + 丢非法」风格）。
+ * 从客户端 props 里只挑白名单字段并强制类型（沿用 sanitizeViewRendered 同款「挑白名单 + 丢非法」风格）：
+ *   · rank / candidateCount：有限正整数 1..10000；
+ *   · dwellMs：用户在匹配页的【活跃浏览时长】(ms)，有限整数 0..30min（0 允许=一眼即点；口径见客户端）。
+ * 非法值（负数 / 非整数 / 非数字 / 超大值）一律丢弃、不抛错。
  * @param raw  客户端上报的 props（unknown）
  * @returns    收敛后的安全 props
  */
@@ -53,6 +57,8 @@ function sanitizeQuestionOpened(raw: unknown): Record<string, number> {
     const v = o[k]
     if (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 10000) out[k] = v
   }
+  const dwell = o.dwellMs
+  if (typeof dwell === 'number' && Number.isInteger(dwell) && dwell >= 0 && dwell <= DWELL_MS_MAX) out.dwellMs = dwell
   return out
 }
 

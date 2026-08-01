@@ -84,13 +84,44 @@ function makeResult(tag: string): FunnelMatchResult {
   }
 }
 
-/** 构造一个带鉴权头与 corpusId 的 POST 请求 */
+/**
+ * 构造一个带鉴权头与 corpusId 的 POST 请求（阻塞式整批路 ?stream=0）。
+ * 本套守卫的是「快照/matches/计费/ankiSaved/错误」这些与传输无关的核心不变式，走 ?stream=0 返回普通 JSON
+ * 断言最直接；同一套逻辑在流式默认路（handleStreaming）复用同样的 persist/snapshot/usage helper，
+ * 流式路的传输行为另由下方「默认流式 SSE」describe 覆盖。
+ */
 function makeReq(corpusId = 'c1'): Request {
+  return new Request('http://localhost/api/matching?stream=0', {
+    method: 'POST',
+    headers: { authorization: 'Bearer t', 'x-flow-id': 'f', 'content-type': 'application/json' },
+    body: JSON.stringify({ corpusId }),
+  })
+}
+
+/** 构造流式默认路（无 ?stream=0）的 POST 请求 */
+function makeStreamReq(corpusId = 'c1'): Request {
   return new Request('http://localhost/api/matching', {
     method: 'POST',
     headers: { authorization: 'Bearer t', 'x-flow-id': 'f', 'content-type': 'application/json' },
     body: JSON.stringify({ corpusId }),
   })
+}
+
+/** 读干一个 SSE Response，解析成 { event, data } 帧数组（data 已 JSON.parse） */
+async function readSSE(res: Response): Promise<{ event: string; data: unknown }[]> {
+  const text = await res.text()
+  const frames: { event: string; data: unknown }[] = []
+  for (const block of text.split('\n\n')) {
+    if (!block.trim()) continue
+    let event = ''
+    let data = ''
+    for (const line of block.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      else if (line.startsWith('data:')) data = line.slice(5).trim()
+    }
+    if (event) frames.push({ event, data: data ? JSON.parse(data) : null })
+  }
+  return frames
 }
 
 /** corpus_question_matches 的 upsert stub —— 断言「读档命中不刷反查表」的探针 */
@@ -346,5 +377,86 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     // 匿名不查库（存对子注册专属，匿名点存必被 401 拦）
     expect(mockGetBoundQids).not.toHaveBeenCalled()
     expect(body.questions.every((q) => q.ankiSaved === false)).toBe(true)
+  })
+})
+
+describe('POST /api/matching · 默认流式 SSE', () => {
+  test('S1. fresh 未命中：返回 text/event-stream，帧序 meta → question → done，done 带 servedFrom=fresh', async () => {
+    mockMatchByStory.mockImplementation(async (_text, usage) => {
+      const r = makeResult('fresh')
+      usage?.onMeta?.({ primary: r.primary, secondary: r.secondary, matchedViaSecondary: false, matchedViaNeighbor: false, candidateCount: r.questions.length })
+      for (const q of r.questions) usage?.onItem?.(q)
+      return r
+    })
+
+    const res = await POST(makeStreamReq())
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const frames = await readSSE(res)
+
+    expect(frames[0].event).toBe('meta')
+    expect(frames.some((f) => f.event === 'question')).toBe(true)
+    const done = frames[frames.length - 1]
+    expect(done.event).toBe('done')
+    expect((done.data as { servedFrom: string }).servedFrom).toBe('fresh')
+    expect((done.data as { questions: { id: string }[] }).questions.map((q) => q.id)).toEqual(['q-fresh'])
+    // 流结束后照记两条账（萃取 + 重排），字段/职责与阻塞路一致
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(mockUpsertSnapshot).toHaveBeenCalled()
+  })
+
+  test('S2. 快照命中：走 SSE 一帧 meta + question + done(cache)，不调 matchByStory、不记 usage、不刷反查表', async () => {
+    const cached = makeResult('cache')
+    mockGetSnapshot.mockResolvedValue({ result: cached, storyHash: HASH, algoVersion: RANKING_ALGO_VERSION })
+
+    const res = await POST(makeStreamReq())
+    const frames = await readSSE(res)
+
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+    expect(cqmUpsert).not.toHaveBeenCalled()
+    expect(mockBumpDaily).not.toHaveBeenCalled()
+    expect(frames[0].event).toBe('meta')
+    const done = frames[frames.length - 1]
+    expect(done.event).toBe('done')
+    expect((done.data as { servedFrom: string }).servedFrom).toBe('cache')
+    expect((done.data as { questions: { id: string }[] }).questions.map((q) => q.id)).toEqual(['q-cache'])
+    expect(mockLogEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'match.result', props: expect.objectContaining({ served_from: 'cache' }) }),
+    )
+  })
+
+  test('S3. matchByStory 抛错（开流后）：发 error 帧让前端降级，且记一条 status=error·phase=matching 账', async () => {
+    mockMatchByStory.mockRejectedValue(new Error('重排上游 5xx'))
+
+    const res = await POST(makeStreamReq())
+    const frames = await readSSE(res)
+
+    expect(frames.some((f) => f.event === 'error')).toBe(true)
+    expect(frames.some((f) => f.event === 'done')).toBe(false)
+    const errCall = mockLogApiUsage.mock.calls.map(([a]) => a).find((c) => c.status === 'error')
+    expect(errCall).toBeDefined()
+    expect((errCall?.metadata as { phase?: string } | undefined)?.phase).toBe('matching')
+  })
+
+  test('S4. 配额闸在开流前（注册超上限 → 429 普通 JSON，不开流、不调模型）', async () => {
+    mockBumpDaily.mockResolvedValue(9999)
+
+    const res = await POST(makeStreamReq())
+
+    expect(res.status).toBe(429)
+    expect(res.headers.get('content-type')).not.toContain('text/event-stream')
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+  })
+
+  test('S5. 配额闸在开流前（匿名超上限 → 402 QUOTA_EXCEEDED，不开流）', async () => {
+    mockRequireUser.mockResolvedValue({ userId: 'anon1', isAnonymous: true })
+    mockBumpDaily.mockResolvedValue(9999)
+
+    const res = await POST(makeStreamReq())
+    const body = (await res.json()) as { code?: string }
+
+    expect(res.status).toBe(402)
+    expect(body.code).toBe('QUOTA_EXCEEDED')
+    expect(mockMatchByStory).not.toHaveBeenCalled()
   })
 })

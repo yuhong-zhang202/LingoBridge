@@ -23,6 +23,18 @@ import type { MatchedPoint, FunnelMatchedQuestion, FunnelMatchResult, RelevanceS
 // 此处 re-export 保留原 `@/services/matching` 导入路径的兼容（route / 测试仍从这里取类型）。
 export type { FunnelMatchedQuestion, FunnelMatchResult }
 
+/**
+ * 流式匹配的首帧元信息（阶段二 SSE 的 meta 帧）：观察点 + 各层命中标记 + 候选总数。
+ * 在漏斗召回完成、重排开始【之前】就绪，供接口层先发一帧、前端先渲染标题/骨架。
+ */
+export interface FunnelStreamMeta {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  matchedViaSecondary: boolean
+  matchedViaNeighbor: boolean
+  candidateCount: number
+}
+
 /** 召回题数低于此值就进入邻居增援层补题（含 L1/L2 已召回到少量题的情况，非仅完全为空） */
 const NEIGHBOR_MIN = 3
 /** 邻居增援层累计到此题数即停止继续借相邻观察点 */
@@ -46,8 +58,8 @@ export interface MatchUsageSink {
   /** rankQuestions 一次调用（含内部重试轮次）的真实墙钟耗时（ms）；无候选题时不触发 */
   onRankingLatency?: (ms: number) => void
   /**
-   * 重排流式路逐条打分到达时的回调（到达序＝分数序）。阶段一无人消费、仅透传给阶段二的 SSE 增量渲染；
-   * 无候选题时不触发。
+   * 重排流式路逐条【原始打分】到达时的回调（到达序＝分数序）。阶段一的 eval 观测口子，透传 RelevanceScore；
+   * 无候选题时不触发。阶段二不改它，另走 onItem 拿富化后的整题。
    */
   onRankingItem?: (r: RelevanceScore) => void
   /**
@@ -55,6 +67,16 @@ export interface MatchUsageSink {
    * SINGLE 路径每次调用触发一次；DIM 路径走缓冲不触发。
    */
   onRankingMalformedStats?: (s: RankingStreamStats) => void
+  /**
+   * 漏斗召回 + 各层命中标记就绪（重排开始前）时回调一次，供接口层发 SSE meta 帧（阶段二）。
+   */
+  onMeta?: (meta: FunnelStreamMeta) => void
+  /**
+   * 单题富化完成（已回填 relevanceScore/relevanceReason）即回调，供接口层发 SSE question 帧（阶段二）。
+   * 流式重排路：每条打分到达即触发（到达序＝分数序，先降序高分）；
+   * 缓冲/DIM 降级路（流式 onItem 未触发）：拿到整份后按最终序补发；未打分残留题也会补发一次。
+   */
+  onItem?: (q: FunnelMatchedQuestion) => void
 }
 
 /**
@@ -187,6 +209,15 @@ export async function matchByStory(
     noMatch = true
   }
 
+  // 漏斗召回 + 各层命中标记已定案（重排开始前）：发一帧 meta 供接口层的 SSE 首帧 / 前端先渲染标题。
+  usage?.onMeta?.({
+    primary,
+    secondary,
+    matchedViaSecondary,
+    matchedViaNeighbor,
+    candidateCount: allQuestions.length,
+  })
+
   // 4. 相关性排名（仅在有候选题时调用；降级返回空数组时回退到漏斗排序）
   if (allQuestions.length > 0) {
     const candidates: CandidateQuestion[] = allQuestions.map((q) => {
@@ -195,12 +226,25 @@ export async function matchByStory(
       const face = questionFace(q)
       return { id: q.id, en: face.en, zh: face.zh, obs: q.pointName }
     })
+    // 逐条富化用：id → 召回题对象（onItem 里每条打分到达即回填分数并回调，实现 SSE 增量）。
+    const qById = new Map(allQuestions.map((q): [string, FunnelMatchedQuestion] => [q.id, q]))
+    const emitted = new Set<string>()  // 已经过 onItem 发出的题 id（避免末尾补发重复）
     const tRanking = Date.now()
     // 默认走流式（SINGLE 路径按分降序逐行吐、可流式保序）；DIM 路径由 rankQuestionsStreaming 内部转缓冲。
-    // 仍返回整份 scores（await 到全部到达），route/前端契约一字不变；onItem 供阶段二 SSE 增量渲染、阶段一仅透传。
+    // 仍返回整份 scores（await 到全部到达），route/前端契约一字不变；onItem 逐条把富化后的整题回调给接口层。
     const scores = await rankQuestionsStreaming(cleanedText, candidates, {
       onUsage: usage?.onRanking,
-      onItem: usage?.onRankingItem,
+      // 每条打分到达：先透传原始分给阶段一 eval 观测（onRankingItem 不动），再富化映射成整题回调 onItem。
+      // 富化时机由「批处理后一次性」改为「逐条到达即映射」，结果与下方批处理回填完全一致（同分数/同降序）。
+      onItem: (r) => {
+        usage?.onRankingItem?.(r)
+        const q = qById.get(r.id)
+        if (!q) return
+        q.relevanceScore = r.score
+        q.relevanceReason = r.reason
+        emitted.add(q.id)
+        usage?.onItem?.(q)
+      },
       onMalformedStats: usage?.onRankingMalformedStats,
     })
     usage?.onRankingLatency?.(Date.now() - tRanking)
@@ -257,6 +301,12 @@ export async function matchByStory(
         if (a.isPrimaryMatch !== b.isPrimaryMatch) return a.isPrimaryMatch ? -1 : 1
         return a.part - b.part
       })
+    }
+
+    // 逐条流未覆盖的题按【最终序】补发 onItem：缓冲/DIM 降级路（流式 onItem 未触发）整批补发（观感接近批），
+    // 以及流式路里始终没拿到打分的残留题也补一次，保证接口层的 SSE 增量列表与本函数 return 的整份 questions 一致。
+    for (const q of allQuestions) {
+      if (!emitted.has(q.id)) usage?.onItem?.(q)
     }
   }
 

@@ -35,6 +35,18 @@ export interface FunnelResult {
   noMatch: boolean
 }
 
+/**
+ * SSE 首帧 meta（与服务层 FunnelStreamMeta 同形）：观察点 + 各层命中标记 + 候选总数。
+ * 前端据此在题目逐条到达前先搭好 result 骨架（primary/secondary/matchedViaSecondary 供标题渲染）。
+ */
+export interface FunnelStreamMeta {
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  matchedViaSecondary: boolean
+  matchedViaNeighbor: boolean
+  candidateCount: number
+}
+
 export type PartTab = '全部' | 'Part 1' | 'Part 2'
 
 export interface MatchingViewProps {
