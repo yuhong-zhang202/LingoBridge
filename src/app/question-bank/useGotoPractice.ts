@@ -14,6 +14,7 @@ import { useNav } from '@/components/NavProgress'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import { listCorpusByQuestion, mapBestCorpusIdByQuestion } from '@/lib/db/matches'
 import { getAccount } from '@/lib/auth'
+import { isInternalAccount } from '@/lib/internal-accounts'
 
 interface UseGotoPracticeReturn {
   /** 复练月额度已超（登录用户）→ 调用方据此渲染 QuotaReached ielts 覆盖层 */
@@ -62,7 +63,8 @@ export function useGotoPractice(): UseGotoPracticeReturn {
         const acct = await getAccount()
         const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
         const [reviewCount, corpusByQuestion] = await Promise.all([
-          loggedIn ? countReviewPracticeThisMonth() : Promise.resolve(0),
+          // 内部账户豁免：reviewCount 恒 0 → 下方 >= 月限 检查天然通过（与 useStoryQuotaGuard/服务端同一套）
+          loggedIn && !isInternalAccount(acct?.id) ? countReviewPracticeThisMonth() : Promise.resolve(0),
           mapBestCorpusIdByQuestion(),
         ])
         return { loggedIn, reviewCount, corpusByQuestion }
@@ -103,7 +105,7 @@ export function useGotoPractice(): UseGotoPracticeReturn {
         } else {
           const acct = await getAccount()
           const loggedIn = !!acct && !acct.isAnonymous && !!acct.email
-          if (loggedIn) {
+          if (loggedIn && !isInternalAccount(acct?.id)) {   // 内部账户豁免复练月限
             const n = await countReviewPracticeThisMonth()
             if (n >= IELTS_MONTHLY_LIMIT) { setReviewQuotaShown(true); return }
           }

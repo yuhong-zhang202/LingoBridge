@@ -25,6 +25,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { getAccount } from '@/lib/auth'
 import { countCorpusThisMonth, countCorpusTotal, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { ANON_CORPUS_LIMIT } from '@/lib/constants'
+import { isInternalAccount } from '@/lib/internal-accounts'
 
 /** 额度覆盖层变体：trial = 匿名试用结束（引导注册）；story = 注册用户当月故事额度用尽 */
 export type StoryQuotaVariant = 'trial' | 'story'
@@ -51,6 +52,9 @@ export interface StoryQuotaGuard {
 async function resolveQuota(): Promise<QuotaState | null> {
   const acct = await getAccount()
   if (!acct) return null
+  // 内部账户豁免：客户端预检也放行（与服务端 corpus 闸 + bumpDailyUsage 同一套 isInternalAccount），
+  // 否则用户在首页/write 等入口的客户端预检就被弹「额度已用完」、根本走不到已豁免的服务端。
+  if (isInternalAccount(acct.id)) return { over: false, variant: 'story' }
   // 匿名试用：总条数口径。注意仅 isAnonymous 才算匿名 —— 「非匿名但无 email」保持原有放行语义，不改判。
   if (acct.isAnonymous) {
     return { over: (await countCorpusTotal()) >= ANON_CORPUS_LIMIT, variant: 'trial' }
