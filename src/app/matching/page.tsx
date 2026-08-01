@@ -415,9 +415,10 @@ function MatchingContent() {
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
     onPractice: (id) => {
-      // 点击即发：点的当帧就发起（或复用正在预取的）该题 analysis 请求，与路由跳转并行——省掉「跳转→挂载→
-      // 才发」的 2-3s 空转，分析页挂载后 takeAnalysis 采纳这条在飞请求，不重发。同时 abortAll 中止其余预取
-      // （except 本题：若本题正在预取则复用同一在飞请求，不重发不双计）。记 lastClickedKey 供卸载 cleanup 保住它。
+      // 点击即发：点的当帧就发起该题的【流式】analysis 请求（或复用正在预取的缓冲请求），与路由跳转并行——
+      // 省掉「跳转→挂载→才发」的 2-3s 空转，分析页挂载后 requestAnalysis 按键去重复用同一在飞请求并 subscribe
+      // 回放已到的段，不重发（见 analysis-inflight 统一流式模型）。同时 abortAll 中止其余预取（except 本题：
+      // 若本题正在预取则复用同一在飞请求，不重发不双计）。记 lastClickedKey 供卸载 cleanup 保住它。
       const key = inflightKey(id, corpusId)
       lastClickedKeyRef.current = key
       abortAll(key)

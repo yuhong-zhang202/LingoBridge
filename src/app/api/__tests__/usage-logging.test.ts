@@ -114,8 +114,10 @@ beforeEach(() => {
 
 describe('成本记账回归守卫 · 每个发 AI 调用的路由成功路径都必须调用 logApiUsage', () => {
   test('analysis POST → 记 qwen_plus 一条（带 user_id 归属 + phase=analysis）', async () => {
-    // 已由 GET 改 POST（扣额度 + 调 AI 的副作用接口，不能被预取无意触发），入参走 body
-    const req = new Request('http://localhost/api/analysis', {
+    // 已由 GET 改 POST（扣额度 + 调 AI 的副作用接口，不能被预取无意触发），入参走 body。
+    // ?stream=0 走 handleBuffered（阻塞式整批、用 generateAnalysis）——此路是降级/预取目标，记账口径守于此；
+    // 流式默认路的成功/失败记账另由 api/analysis/__tests__/route.test.ts（S1/S3）覆盖。
+    const req = new Request('http://localhost/api/analysis?stream=0', {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
       body: JSON.stringify({ questionId: 'q1' }),
     })
@@ -244,8 +246,10 @@ describe('失败可诊断性守卫 · AI 调用抛错时失败记账带 phase、
   }
 
   test('analysis 失败 → 记 status=error 且 phase=analysis，不带 error_kind', async () => {
+    // ?stream=0 走 handleBuffered：AI 抛错 → 500 + 失败记账。流式默认路的 error 帧 + 失败记账
+    // 另由 api/analysis/__tests__/route.test.ts（S3）覆盖（流式返回 200+error 帧、非 500）。
     ;(generateAnalysis as jest.Mock).mockRejectedValueOnce(new Error('模型超时'))
-    const req = new Request('http://localhost/api/analysis', {
+    const req = new Request('http://localhost/api/analysis?stream=0', {
       method: 'POST', headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
       body: JSON.stringify({ questionId: 'q1' }),
     })

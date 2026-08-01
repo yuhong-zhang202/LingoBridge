@@ -19,11 +19,34 @@ import AnalysisMobile from './AnalysisMobile'
 import AnalysisDesktop from './AnalysisDesktop'
 import AnalysisTopProgress from './_components/AnalysisTopProgress'
 import type { AnalysisViewProps } from './types'
-import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, SavedWord } from '@/lib/types'
+import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, AnalysisFocusPoint, SavedWord } from '@/lib/types'
 import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
 import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
-import { takeAnalysis } from '@/lib/analysis-inflight'
+import { requestAnalysis, type AnalysisSnapshot } from '@/lib/analysis-inflight'
+
+/**
+ * 从「进行中」的流式 snapshot（meta + 已到段）拼一个 partial AnalysisResponse 驱动逐段渲染：
+ * structureLabel / focusPoints / phrases 按已到段填，未到的为空（视图对应区块自然留空占位）。
+ * done 帧到达后由权威 final 整份替换，故 partial 只在流式中途生效。
+ * @param meta      meta 帧的题目展示信息（此时必非 null）
+ * @param sections  已到的段序列
+ * @returns         进行中的 partial 分析结果
+ */
+function buildPartialAnalysis(
+  meta: NonNullable<AnalysisSnapshot['meta']>,
+  sections: AnalysisSnapshot['sections'],
+): AnalysisResponse {
+  let structureLabel = ''
+  const focusPoints: AnalysisFocusPoint[] = []
+  const phrases: AnalysisPhraseGroup[] = []
+  for (const s of sections) {
+    if (s.kind === 'structureLabel') structureLabel = s.value
+    else if (s.kind === 'focusPoint') focusPoints.push(s.value)
+    else phrases.push(s.value)
+  }
+  return { question: meta, analysis: { structureLabel, focusPoints, phrases } }
+}
 
 function AnalysisContent() {
   const router     = useRouter()
@@ -66,43 +89,64 @@ function AnalysisContent() {
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
     let cancelled = false
-    // 采纳「点击即发/预取」的在飞请求（匹配页在点击当帧已发起，见 analysis-inflight），消除「跳转→挂载→才发」
-    // 的 2-3s 空转。仅【初次】采纳；重试（retryKey>0）一律新发（被采纳的那次已失败）。
-    const adopted = retryKey === 0 ? takeAnalysis(questionId, storyId) : null
+    // finished：终态只走一次（final 定稿 / 降级 / 状态路由 三者互斥）——subscribe 与 promise 两条异步反应共用此守卫防重入。
+    let finished = false
     const freshAc = new AbortController()
-    ;(async () => {
-      setLoading(true); setError(null); setDailyLimitHit(false)
+
+    // 采纳（或新发）该题的在飞【流式】请求：匹配页「点击即发」已在点击当帧发起（见 analysis-inflight），
+    // 分析页晚挂载 200ms 也能 subscribe 回放到已到的 meta+段——这是流式改造的命根。
+    // 重试（retryKey>0）时上一条已 settle 移除，requestAnalysis 自然新发一条。
+    const entry = requestAnalysis(questionId, storyId, false)
+    setLoading(true); setError(null); setDailyLimitHit(false)
+
+    // 降级：流断 / 无 done / error 帧 / 初始非流失败 → 重发 ?stream=0 缓冲整批、整份渲染（用户无感）。
+    // POST 而非 GET：该接口扣额度 + 真调 AI，用 GET 会被浏览器预取 / 爬虫无意触发、白烧钱。
+    const degrade = async (): Promise<void> => {
+      if (finished) return
+      finished = true
       try {
-        // 优先用采纳到的在飞请求；503（预取闸拒）或其被 abort/网络错 → 回退新发一次，不让用户白等。
-        // POST 而非 GET：该接口扣额度 + 真调 AI，用 GET 会被浏览器预取 / 爬虫无意触发、白烧钱。
-        // apiFetch 行为不变——非 2xx 不抛、返回原始 Response，故下面仍按 res.status 分流。
-        let res: Response | null = null
-        if (adopted) {
-          try { const r = await adopted.promise; res = r.status === 503 ? null : r }
-          catch { res = null }
-        }
-        if (!res) {
-          res = await apiFetch('/api/analysis', { method: 'POST', json: { questionId, storyId }, signal: freshAc.signal })
-        }
-        // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「生成分析失败」。
-        // 分析是零红线环节（点进题目看到的全部内容），务必兜好而非停在错误态。
+        const res = await apiFetch('/api/analysis?stream=0', { method: 'POST', json: { questionId, storyId }, signal: freshAc.signal })
+        // 与现状一致：403 回首页触发同意 / 402 弹注册引导 / 429 明天恢复
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
-        // 402 = 匿名试用额度用尽 → 转化点，弹注册引导覆盖层
         if (res.status === 402) { if (!cancelled) setQuotaShown('page'); return }
-        // 429 = 注册用户当日上限 → 只告知「明天恢复」，不走 error 通道（其 CTA 是重试，点了还撞 429）
         if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
-        if (!cancelled) setData(json)
+        if (!cancelled) { setData(json); setLoading(false) }
       } catch (e) {
-        if (freshAc.signal.aborted) return     // 中断（卸载）不算错误，忽略
-        if (!cancelled) setError(e instanceof Error ? e.message : '生成分析失败')
-      } finally {
-        if (!cancelled) setLoading(false)
+        if (freshAc.signal.aborted) return   // 中断（卸载）不算错误，忽略
+        if (!cancelled) { setError(e instanceof Error ? e.message : '生成分析失败'); setLoading(false) }
       }
-    })()
-    // 卸载：abort 采纳的在飞请求（仅停客户端等待，服务端跑完写缓存、不减计数/成本）+ 新发的兜底请求。
-    return () => { cancelled = true; adopted?.abort(); freshAc.abort() }
+    }
+
+    // 逐段渲染：meta 到→题头就位；structureLabel / focusPoints / phrases 自然序逐个冒；final 到→权威定稿。
+    // 骨架保留到首个内容段到达（AI 生成 gap 期间不闪空卡）；空态/错误只在 done/error 后判，流式中途绝不误判。
+    const onSnap = (snap: AnalysisSnapshot): void => {
+      if (cancelled || finished) return
+      if (snap.final) { finished = true; setData(snap.final); setLoading(false); return }
+      if (snap.error) { void degrade(); return }   // 流断/无 done/error 帧 → 降级
+      if (snap.meta && snap.sections.length > 0) {
+        setData(buildPartialAnalysis(snap.meta, snap.sections))
+        setLoading(false)
+      }
+    }
+    const unsub = entry.subscribe(onSnap)
+
+    // 状态路由 + 非流失败降级：从初始 Response 读 402/403/429（handleStreaming 开流前的普通 JSON 早退）；
+    // 非流(非 SSE)且 !ok（如 500）→ 降级。ok SSE 的数据流由 subscribe 驱动，这里不再处理。
+    entry.promise.then((res) => {
+      if (cancelled || finished) return
+      if (res.status === 403) { finished = true; if (!cancelled) router.push('/'); return }
+      if (res.status === 402) { finished = true; if (!cancelled) setQuotaShown('page'); return }
+      if (res.status === 429) { finished = true; if (!cancelled) setDailyLimitHit(true); return }
+      if (!res.ok) { void degrade(); return }
+    }).catch(() => {
+      // 初始 fetch 本身失败（网络/被 abort）：abort 由 cleanup 触发、cancelled 拦掉；其余降级兜底。
+      if (!cancelled && !finished) void degrade()
+    })
+
+    // 卸载：先退订（阻断 abort 触发的 error 回放）再 abort 在飞流（仅停客户端读流，服务端跑完写缓存）+ 兜底请求。
+    return () => { cancelled = true; unsub(); entry.abort(); freshAc.abort() }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- storyId 随首帧固定不变，初次加载即取用；列入依赖只会无谓重跑分析
   }, [questionId, retryKey])
 

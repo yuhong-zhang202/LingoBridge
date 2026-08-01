@@ -15,7 +15,8 @@ import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { getPersonalAnalysis, upsertPersonalAnalysis } from '@/lib/db/question-analyses'
 import { getCorpusByIdServer, getCorpusPrimaryPointCodeServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
-import { generateAnalysis } from '@/services/analysis'
+import { generateAnalysis, generateAnalysisStreaming } from '@/services/analysis'
+import type { AnalysisStreamSection } from '@/lib/analysis-stream-parse'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
@@ -64,7 +65,13 @@ function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex')
 }
 
-export async function POST(req: Request): Promise<NextResponse> {
+/**
+ * 阻塞式整批分析（现有实现，函数体一字未改，仅由 POST 改名而来）。
+ * 作用两处：① `?stream=0` 降级目标（前端读流失败/上游不支持流式时重发，返回普通 JSON）；
+ *          ② body.prefetch===true 的后台预取（走预取闸 + metadata.prefetch:true 成本归因，纯暖缓存）。
+ * 配额/同意/越权/缓存判定/计费/回填的职责与字段全部保持原样——降级路与预取路的字节等价由此保证。
+ */
+async function handleBuffered(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
@@ -167,19 +174,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
         generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
       )
-      const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 800), completionTokens: 400 }
-      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate', prefetch: isPrefetch } })
-
-      // 真调成功后回填个性化缓存。写失败吞掉（红线 3）：AI 已成功、已花钱，绝不能因回填失败把请求变 500；
-      // 只 logErr、照常返回。带 content_hash = sha256(当前 story)，下次命中据此判失效（红线 4）。
-      // 表随语料 CASCADE、仅 service_role 读写（RLS 无策略），是隐私衍生物、绝不公开（红线 2）。
-      if (canCachePersonal) {
-        try {
-          await upsertPersonalAnalysis(storyId, q.id, q.season, storyHash, analysis)
-        } catch (e) {
-          logErr('[analysis API] 个性化缓存写失败，忽略', e)
-        }
-      }
+      // 记账 + 缓存回填走共享 helper（与 handleStreaming 单一真源，杜绝分叉）：详见 logAnalysisUsage/writeAnalysisCache。
+      await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch })
+      if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
       } finally {
         // 名额必须归还（成功/抛错都要），否则预取闸越关越死。真实请求 slot=null、跳过。
         if (slot && slot.ok) slot.release()
@@ -207,4 +204,211 @@ export async function POST(req: Request): Promise<NextResponse> {
     logErr('[analysis API]', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }
+}
+
+/** SSE 响应头：禁缓存/禁转换、关代理缓冲（X-Accel-Buffering=no 关 nginx 层缓冲），保证逐帧实时下发。 */
+const SSE_HEADERS: Record<string, string> = {
+  'Content-Type': 'text/event-stream; charset=utf-8',
+  'Cache-Control': 'no-cache, no-transform',
+  Connection: 'keep-alive',
+  'X-Accel-Buffering': 'no',
+}
+
+/** 编码一帧 SSE 事件。data 走 JSON.stringify 天然无换行，单行即完整 data 段。 */
+function sseFrame(event: string, data: unknown): Uint8Array {
+  return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+}
+
+/**
+ * 计费记账（共享 helper，handleBuffered + handleStreaming 单一真源）：未命中真调 AI 后记一条 qwen_plus usage。
+ * 模型真实 usage 优先、无则按题长估算（0.3/字+800，输出 400）；metadata 的 phase/prompt_tokens/
+ * completion_tokens/cost_source/prefetch 字段与职责固定。两路共用此一份，改这里即两路同步、不会分叉。
+ */
+async function logAnalysisUsage(a: {
+  realUsage: LLMUsage | null; enForAI: string; userId: string; storyId: string; t0: number; isPrefetch: boolean
+}): Promise<void> {
+  const usage: LLMUsage = a.realUsage ?? { promptTokens: Math.round(a.enForAI.length * 0.3 + 800), completionTokens: 400 }
+  await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - a.t0, status: 'success', user_id: a.userId, corpus_id: a.storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: a.realUsage ? 'actual' : 'estimate', prefetch: a.isPrefetch } })
+}
+
+/**
+ * 个性化缓存回填（共享 helper，handleBuffered + handleStreaming 单一真源）：真调成功后 upsert (题,语料) 分析。
+ * 三重命中键/content_hash/season/CASCADE/RLS 固定；写失败吞掉、只 logErr、绝不因回填失败把请求变 500。
+ * 两路共用此一份，改这里即两路同步、不会分叉。
+ */
+async function writeAnalysisCache(
+  storyId: string, questionId: string, season: string, storyHash: string, analysis: QuestionAnalysis,
+): Promise<void> {
+  try {
+    await upsertPersonalAnalysis(storyId, questionId, season, storyHash, analysis)
+  } catch (e) {
+    logErr('[analysis API] 个性化缓存写失败，忽略', e)
+  }
+}
+
+/** 把一份完整 analysis 拆成 section 帧序（structureLabel → focusPoints → phraseGroups），供缓存命中分支回放。 */
+function analysisToSections(analysis: QuestionAnalysis): AnalysisStreamSection[] {
+  const out: AnalysisStreamSection[] = []
+  if (typeof analysis.structureLabel === 'string' && analysis.structureLabel) {
+    out.push({ kind: 'structureLabel', value: analysis.structureLabel })
+  }
+  for (const fp of analysis.focusPoints) out.push({ kind: 'focusPoint', value: fp })
+  for (const g of analysis.phrases) out.push({ kind: 'phraseGroup', value: g })
+  return out
+}
+
+/**
+ * 流式 SSE 分析（默认路，处理真实用户流式请求；预取由 body.prefetch 走 handleBuffered、不到这里）。
+ * 开流【前】过鉴权/同意/入参/归属/配额闸（口径与 handleBuffered 逐字一致：无条件 bump——命中缓存也照扣次，
+ * 同 buffered；超额 402/429、未同意 403、缺 questionId 400、题不存在 404 → 普通 JSON 早退，不开流、不计费）。
+ * 开流【后】：
+ *   1) 先发 meta 帧（题目展示信息，AI 前已备好）；
+ *   2) 命中个性化缓存 → 拆出全部 section 帧 + done（不调 AI、不写 usage，同 buffered 命中分支）；
+ *   3) 未命中 → generateAnalysisStreaming 边生成边发 section 帧；【流末】记账(logAnalysisUsage)+回填缓存
+ *      (writeAnalysisCache)，时机从「响应前」挪到「流末」，字段/职责一字不变 → done 帧（完整 AnalysisResponse）；
+ *   4) 开流后异常 → 记 error 账（同 buffered catch 口径）+ 发 error 帧让前端降级 ?stream=0。
+ */
+async function handleStreaming(req: Request): Promise<Response> {
+  const t0 = Date.now()
+  try {
+    const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    const consentDenied = await requireConsent(userId)
+    if (consentDenied) return consentDenied
+    const reqBody = await req.json().catch(() => ({})) as AnalysisRequestBody
+    const questionId = str(reqBody.questionId)
+    const storyId    = str(reqBody.storyId)
+    const storyUrl   = str(reqBody.story) || undefined
+    if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
+    if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 配额硬防线：与 handleBuffered 同口径同位置——无条件 bump（命中缓存也照扣次），超额早退普通 JSON、不开流。
+    const dailyCount = await bumpDailyUsageServer(userId, 'analysis')
+    if (isAnonymous ? dailyCount > ANON_ANALYSIS_LIMIT : dailyCount > REG_ANALYSIS_DAILY_LIMIT) {
+      return isAnonymous
+        ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
+        : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
+    }
+
+    // 读故事 / 取题 / 维度 / 缓存判定：全部沿用 handleBuffered 现有逻辑（字段/职责一字不变）。
+    let story: string | undefined
+    try {
+      const dbStory = storyId ? await getCorpusByIdServer(storyId) : null
+      story = dbStory ?? storyUrl
+    } catch {
+      story = storyUrl
+    }
+
+    const q = await getQuestionById(questionId)
+    if (!q) return NextResponse.json({ error: '题目不存在' }, { status: 404 })
+
+    let dimension: DimensionLabel | null = null
+    if (storyId) {
+      const primaryCode = await getCorpusPrimaryPointCodeServer(storyId)
+      dimension = dimFromCode(primaryCode ?? undefined)
+    }
+    if (dimension === null) dimension = dimFromCode(q.observation_points[0])
+
+    const canCachePersonal = !!story && !!storyId && (q.part === 1 || q.part === 2)
+    const storyHash = canCachePersonal && story ? sha256(story) : ''
+
+    let cached: QuestionAnalysis | null = null
+    if (canCachePersonal) {
+      try {
+        const row = await getPersonalAnalysis(storyId, q.id)
+        if (row && row.season === q.season && row.contentHash === storyHash) cached = row.analysis
+      } catch (e) {
+        logErr('[analysis API] 个性化缓存读失败，降级为未命中', e)
+        cached = null
+      }
+    }
+
+    const enForAI = q.question_text
+    const enForDisplay = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
+    const zhForDisplay = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
+
+    // meta 帧的题目展示信息（与 handleBuffered 返回体 question 字段同源同值）。
+    const metaQuestion = { id: q.id, part: q.part, en: enForDisplay, zh: zhForDisplay, dimension, isNew: q.is_new }
+
+    let clientGone = false
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        // 客户端断连后 enqueue 会抛：吞掉并置 clientGone，避免异常回灌触发误处理。
+        const safeEnqueue = (frame: Uint8Array): void => {
+          if (clientGone) return
+          try {
+            controller.enqueue(frame)
+          } catch {
+            clientGone = true
+          }
+        }
+        try {
+          // 1) meta 先发（AI 前即备好）
+          safeEnqueue(sseFrame('meta', { question: metaQuestion }))
+
+          if (cached) {
+            // 2) 命中：拆出全部 section 帧 + done，不调 AI、不写 usage（同 handleBuffered 命中分支）
+            for (const s of analysisToSections(cached)) safeEnqueue(sseFrame('section', s))
+            safeEnqueue(sseFrame('done', { question: metaQuestion, analysis: cached }))
+            controller.close()
+            return
+          }
+
+          // 3) 未命中：流式生成，逐段发 section 帧
+          let realUsage: LLMUsage | null = null
+          const analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
+            generateAnalysisStreaming(
+              { part: q.part, en: enForAI, zh: q.question_text_zh, story },
+              (section) => safeEnqueue(sseFrame('section', section)),
+              (u) => { realUsage = u },
+            ),
+          )
+          // 流末落地：记账 + 回填缓存（时机从「响应前」挪到「流末」，字段/职责与 handleBuffered 一字不变）
+          await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch: false })
+          if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
+          safeEnqueue(sseFrame('done', { question: metaQuestion, analysis }))
+          controller.close()
+        } catch (e) {
+          // 4) 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级 ?stream=0。
+          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
+          logErr('[analysis API stream]', e)
+          try {
+            safeEnqueue(sseFrame('error', { error: '生成分析失败' }))
+            controller.close()
+          } catch {
+            /* 已断流：前端读流报错，同样走 ?stream=0 降级 */
+          }
+        }
+      },
+      cancel() {
+        clientGone = true
+      },
+    })
+    return new Response(stream, { headers: SSE_HEADERS })
+  } catch (e) {
+    // 开流前异常（鉴权/同意/入参/归属/配额/取题）：返回普通 JSON。前端据状态（402/403/429）处理，或降级重发 ?stream=0。
+    const authRes = authErrorResponse(e)
+    if (authRes) return authRes
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    logErr('[analysis API stream pre]', e)
+    return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
+  }
+}
+
+/**
+ * 分析接口入口：默认走流式 SSE（逐段下发，前端逐块渲染）；`?stream=0` 或 body.prefetch===true 走阻塞式整批
+ * JSON（handleBuffered）——前者是读流失败/上游不支持流式的降级目标，后者是后台预取（暖缓存）。
+ * 两路的配额/同意/越权/缓存判定/计费/回填职责与字段完全一致（handleStreaming 的计费/缓存写走共享 helper，
+ * 与 handleBuffered 内联那份逐字等价，杜绝分叉）。
+ */
+export async function POST(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.get('stream') === '0') return handleBuffered(req)
+  // 窥探 body.prefetch（用 clone 读，不消费原 req 的 body——下游 handleBuffered/handleStreaming 各自还要 req.json()）。
+  let isPrefetch = false
+  try {
+    const peek = (await req.clone().json()) as { prefetch?: unknown }
+    isPrefetch = peek?.prefetch === true
+  } catch {
+    isPrefetch = false
+  }
+  return isPrefetch ? handleBuffered(req) : handleStreaming(req)
 }
