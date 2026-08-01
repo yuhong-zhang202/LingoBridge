@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
-import { logEvent } from '@/lib/events'
+import { logEvent, type FlowEventName } from '@/lib/events'
 
 /** view_rendered 允许上报的字段白名单（全为计数/布尔，无原文）。服务端据此重建 props，丢弃其余一切。 */
 const VIEW_RENDERED_NUMERIC = ['candidateCount', 'highCount', 'midCount', 'visibleCount', 'unscoredCount'] as const
@@ -36,22 +36,49 @@ function sanitizeViewRendered(raw: unknown): Record<string, number | boolean> {
   return out
 }
 
+/** question_opened 允许上报的字段白名单（rank 1-based 排位 / candidateCount 列表总数，均正整数、无原文）。 */
+const QUESTION_OPENED_NUMERIC = ['rank', 'candidateCount'] as const
+
+/**
+ * 从客户端 props 里只挑 rank / candidateCount 并强制类型：仅放行【有限正整数、1..10000】，
+ * 非法值（负数 / 0 / 非整数 / 超大值 / 非数字）一律丢弃、不抛错（沿用 sanitizeViewRendered 同款「挑白名单 + 丢非法」风格）。
+ * @param raw  客户端上报的 props（unknown）
+ * @returns    收敛后的安全 props
+ */
+function sanitizeQuestionOpened(raw: unknown): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (typeof raw !== 'object' || raw === null) return out
+  const o = raw as Record<string, unknown>
+  for (const k of QUESTION_OPENED_NUMERIC) {
+    const v = o[k]
+    if (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 10000) out[k] = v
+  }
+  return out
+}
+
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const { userId } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { event?: unknown; storyId?: unknown; props?: unknown }
-    // 只接受客户端事件 match.view_rendered；服务端事件（match.result / corpus_bound）不经此端点
-    if (body.event !== 'match.view_rendered') {
+    // 只接受两个客户端事件：match.view_rendered（所见计数）/ match.question_opened（选题排位）。
+    // 服务端事件（match.result / flow.corpus_bound）不经此端点。各事件走各自 sanitize，只放行白名单字段。
+    const event = body.event
+    if (event !== 'match.view_rendered' && event !== 'match.question_opened') {
       return NextResponse.json({ error: '不支持的事件' }, { status: 400 })
     }
+    const props = event === 'match.view_rendered'
+      ? sanitizeViewRendered(body.props)
+      : sanitizeQuestionOpened(body.props)
     const storyId = typeof body.storyId === 'string' && body.storyId.trim() ? body.storyId.trim() : null
     const flowId = req.headers.get('x-flow-id')
+    // event 已收窄为两个字面量；cast 到 FlowEventName —— ⚠️ FlowEventName（src/lib/events.ts）应补
+    // 'match.question_opened'，但该文件不在本次改动清单，故此处 cast，类型同步留作后续技术债。
     await logEvent({
-      event: 'match.view_rendered',
+      event: event as FlowEventName,
       flowId,
       storyId,
       userId,
-      props: sanitizeViewRendered(body.props),
+      props,
     })
     return NextResponse.json({ ok: true })
   } catch (e) {

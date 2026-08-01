@@ -264,7 +264,24 @@ function MatchingContent() {
     onToggleExpanded: () => setExpanded(v => !v),
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
-    onPractice: (id) => navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`),
+    onPractice: (id) => {
+      // 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）：rank = 该题在 result.questions
+      //（已按分数降序 = 用户所见顺序）的 index+1；candidateCount = 列表总数。
+      // 顺序：先 apiFetch 再 navigate —— fetch 同步发出请求后，SPA 客户端跳转不卸载页面/不 kill 在途请求，
+      // 故不会因跳转丢上报。失败静默、绝不阻塞跳转（同 131 行 view_rendered 上报范式）。
+      const rank = (result?.questions.findIndex((q) => q.id === id) ?? -1) + 1
+      if (result && rank >= 1) {
+        void apiFetch('/api/events', {
+          method: 'POST',
+          json: {
+            event: 'match.question_opened',
+            storyId: corpusId,
+            props: { rank, candidateCount: result.questions.length },
+          },
+        }).catch(() => {})
+      }
+      navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`)
+    },
     savedIds,
     savingId,
     onSavePair: (id) => void handleSavePair(id),
