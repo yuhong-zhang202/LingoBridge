@@ -32,7 +32,10 @@ const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 //     仅为「各环节上限相加」的参考量、非硬上限：真实超时上限 = Zeabur 网关超时（下方 maxDuration 在 Zeabur 不生效，见其注释）。
 //
 // ⚠️ 进程内状态，多实例失效 —— 详见 lib/concurrency-gate 顶部说明。
-const ASR_MAX_CONCURRENT = 4
+// 并发数=2：生产为腾讯云香港 2vCPU/2GB，ffmpeg 转码是 CPU 密集型；并发数超过物理核数会让每个转码任务
+// 都变慢（互抢 CPU），还会挤占同进程的 Next SSR，拖慢同时段所有请求。压到 2（=核数）让每个任务跑满一核、
+// 不互相拖累。队列(20)/等待上限(15s)不动：闸变窄后排队时间会变长，但 15s 上限仍足够兜底。
+const ASR_MAX_CONCURRENT = 2
 const ASR_MAX_QUEUE      = 20
 const ASR_MAX_WAIT_MS    = 15_000
 const asrGate = createConcurrencyGate({

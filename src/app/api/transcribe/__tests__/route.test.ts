@@ -333,10 +333,10 @@ describe('转写额度熔断 · 已超额零成本挡掉', () => {
 })
 
 describe('ASR 并发闸 · 排队被拒绝', () => {
-  test('闸门参数钉死：并发 4（豆包上限 5 留 1 余量）/ 队列 20 / 等待 15s', () => {
+  test('闸门参数钉死：并发 2（生产 2vCPU，ffmpeg CPU 密集，并发超核数反而互拖 + 挤占 SSR）/ 队列 20 / 等待 15s', () => {
     // createdWith 在模块加载时写入，clearAllMocks 不会清空（它是普通数组，不是 jest.fn）
     expect(gateMock.__createdWith).toEqual([
-      { maxConcurrent: 4, maxQueue: 20, maxWaitMs: 15_000 },
+      { maxConcurrent: 2, maxQueue: 20, maxWaitMs: 15_000 },
     ])
   })
 
