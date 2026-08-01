@@ -6,9 +6,10 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson, type LLMUsage } from '@/lib/llm'
+import { callLLMJson, streamDashScopeText, type LLMUsage } from '@/lib/llm'
 import { MODEL_ANALYSIS } from '@/lib/constants'
 import type { QuestionAnalysis, AnalysisPhraseGroup } from '@/lib/types'
+import { AnalysisStreamParser, type AnalysisStreamSection } from '@/lib/analysis-stream-parse'
 
 /**
  * 超时预算 = BASE + PER_INPUT_CHAR × 输入字符数，与输入规模挂钩，绝不吃 llm.ts 的 30s 默认值。
@@ -121,6 +122,94 @@ export async function generateAnalysis(input: {
       Array.isArray((v as { focusPoints?: unknown }).focusPoints) &&
       Array.isArray((v as { phrases?: unknown }).phrases),
   })
+}
+
+/**
+ * 花括号切片：与 llm.ts 内 callLLMJson 私有的 extractJson 同口径（取第一个 `{` 到最后一个 `}`），
+ * 对前后任意废话/markdown 健壮。此处复刻两行逻辑，是为让流式路的「权威最终校验」与缓冲路字节一致，
+ * 又不破坏 llm.ts「本阶段只增不改」的约束（那份是私有闭包，不导出）。
+ * @param raw  累积的完整原始文本
+ * @returns    花括号内切片；无有效花括号返回空串
+ */
+function extractJsonSlice(raw: string): string {
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  return start >= 0 && end > start ? raw.slice(start, end + 1) : ''
+}
+
+/**
+ * QuestionAnalysis 的类型守卫 + schema 校验。
+ * ⚠️ 必须与 generateAnalysis 里内联的 validate 完全同规则（focusPoints/phrases 是数组），
+ * 二者对同一次调用的全文必须给出一致判定——这是「流式返回与缓冲返回字节一致」的一环。
+ * generateAnalysis 按红线保持不动，故此处独立复刻，改动其一务必同步另一。
+ * @param v  待校验的已 parse 值
+ * @returns  是否为合法 QuestionAnalysis
+ */
+function isQuestionAnalysis(v: unknown): v is QuestionAnalysis {
+  return (
+    typeof v === 'object' && v !== null &&
+    Array.isArray((v as { focusPoints?: unknown }).focusPoints) &&
+    Array.isArray((v as { phrases?: unknown }).phrases)
+  )
+}
+
+/**
+ * generateAnalysis 的流式版：prompt / model / maxTokens / userMsg 拼装 / 超时预算全部与之一字不差，
+ * 仅把「一次性缓冲」换成「流式原始文本 + 增量解析」，边解析边通过 onSection 吐出已完成的段（预览）。
+ *
+ * 权威返回：流结束后对累积全文走与缓冲路完全相同的最终校验（extractJsonSlice + JSON.parse + isQuestionAnalysis），
+ * 这份才是返回值——保证与 generateAnalysis 对同一次调用字节一致；onSection 的段仅供预览，done 以权威返回为准。
+ * 校验失败一律 throw（阶段二里 route 据此发 error 帧、前端降级 ?stream=0）。
+ *
+ * @param input     part / en / zh / story，与 generateAnalysis 同形
+ * @param onSection 增量段回调（可选，透传增量解析器吐的 structureLabel / focusPoint / phraseGroup）
+ * @param onUsage   真实 token 用量回调（可选，从流的 usage 帧取）
+ * @returns         权威 QuestionAnalysis（与缓冲路同全文、同 parse、同 validate）
+ * @sideEffect      发起流式网络请求；对每个完成段调用 onSection；拿到 usage 时调用 onUsage
+ */
+export async function generateAnalysisStreaming(input: {
+  part: 1 | 2 | 3
+  en: string
+  zh: string | null
+  story?: string
+}, onSection?: (section: AnalysisStreamSection) => void, onUsage?: (usage: LLMUsage) => void): Promise<QuestionAnalysis> {
+  if (!env.dashscopeApiKey) {
+    throw new Error('未配置 DASHSCOPE_API_KEY，请在 .env.local 中设置')
+  }
+  const storySection = input.story ? `\n\n用户的真实故事：${input.story}` : ''
+  const userMsg = `Part ${input.part}\n英文题目：${input.en}\n中文：${input.zh ?? ''}${storySection}`
+
+  const parser = new AnalysisStreamParser((section) => onSection?.(section))
+  let full = ''
+  for await (const chunk of streamDashScopeText({
+    endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+    apiKey: env.dashscopeApiKey,
+    model: MODEL_ANALYSIS,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user',   content: userMsg },
+    ],
+    maxTokens: 2560,
+    timeoutMs: timeoutFor(userMsg),
+    label: '[Analysis-Stream]',
+    onUsage,
+  })) {
+    full += chunk
+    parser.push(chunk)
+  }
+
+  // —— 权威最终校验：与缓冲路（callLLMJson）完全同口径 ——
+  const jsonText = extractJsonSlice(full)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch {
+    throw new Error('[Analysis-Stream] JSON 解析失败')
+  }
+  if (!isQuestionAnalysis(parsed)) {
+    throw new Error('[Analysis-Stream] 输出校验失败')
+  }
+  return parsed
 }
 
 const PHRASES_SYSTEM_PROMPT = `你是 LingoBridge 的雅思口语备考助手。给定一道雅思口语题（可能附用户真实故事）和一个目标雅思口语水平，为中国考生生成「可用词组」——一组能直接开口用的英文短词块，按答案分段分组。本页只有 Part 1 和 Part 2 的题。

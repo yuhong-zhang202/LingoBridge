@@ -11,7 +11,7 @@ jest.mock('@/lib/env-server', () => ({
   env: { dashscopeApiKey: 'k', dashscopeBaseUrl: 'https://example.invalid/v1', rawLogEnabled: false },
 }))
 
-import { callLLMJson, streamDashScopeLines, type LLMCall, type StreamDashScopeConfig } from '@/lib/llm'
+import { callLLMJson, streamDashScopeLines, streamDashScopeText, type LLMCall, type StreamDashScopeConfig } from '@/lib/llm'
 
 type Shape = { ok: string }
 const isShape = (v: unknown): v is Shape =>
@@ -362,5 +362,46 @@ describe('streamDashScopeLines · SSE 逐行流式', () => {
   test('S5. HTTP 非 2xx：抛错（供上层降级到缓冲路）', async () => {
     fetchMock.mockResolvedValueOnce(streamReply(['ignored'], 500))
     await expect(collect(streamDashScopeLines(STREAM_CFG))).rejects.toBeDefined()
+  })
+})
+
+// ── streamDashScopeText：真字节过 ReadableStream，验证 readDashScopeDeltas 的 SSE 帧缓冲 + 原始 delta 提取 ──
+// 与 streamDashScopeLines 同一 SSE I/O 面，但【不】做内容按行切分：yield 原始 delta.content。
+// 核心不变式（增量 JSON 解析器所依赖）：无论 SSE 字节如何分块，join('') 出的文本 === 完整模型输出。
+describe('streamDashScopeText · SSE 原始 delta 流式（不按行切）', () => {
+  test('ST1. 跨任意 chunk 边界重组：join 出的文本 === 完整模型内容', async () => {
+    const full = frame('{"structureLabel":"A·B",') + frame('"focusPoints":[{"title":"起手"}]}') + DONE
+    fetchMock.mockResolvedValueOnce(streamReply(chunkEvery(full, 7)))  // 7 字硬切，帧边界全打散
+
+    const parts = await collect(streamDashScopeText(STREAM_CFG))
+    expect(parts.join('')).toBe('{"structureLabel":"A·B","focusPoints":[{"title":"起手"}]}')
+  })
+
+  test('ST2. delta 内含 \\n：原样保留、绝不按行切（这是与 Lines 的本质区别）', async () => {
+    const full = frame('{"a":1}\n{"b":2}') + DONE
+    fetchMock.mockResolvedValueOnce(streamReply([full]))
+    // Lines 会切成 ['{"a":1}','{"b":2}']；Text 必须原样保留含 \n 的整块
+    expect((await collect(streamDashScopeText(STREAM_CFG))).join('')).toBe('{"a":1}\n{"b":2}')
+  })
+
+  test('ST3. 末帧 usage 经 onUsage 回调', async () => {
+    const full = frame('{"x":1}') + usageFrame(11, 22) + DONE
+    fetchMock.mockResolvedValueOnce(streamReply(chunkEvery(full, 5)))
+    const onUsage = jest.fn()
+
+    const parts = await collect(streamDashScopeText({ ...STREAM_CFG, onUsage }))
+    expect(parts.join('')).toBe('{"x":1}')
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 11, completionTokens: 22 })
+  })
+
+  test('ST4. 空 delta / 结束帧 / 无 delta 帧被跳过，只留真实内容', async () => {
+    const full = frame('') + frame('{"only":1}') + usageFrame(1, 2) + DONE
+    fetchMock.mockResolvedValueOnce(streamReply([full]))
+    expect((await collect(streamDashScopeText(STREAM_CFG))).join('')).toBe('{"only":1}')
+  })
+
+  test('ST5. HTTP 非 2xx：抛错（供上层降级到缓冲路 / 前端 ?stream=0）', async () => {
+    fetchMock.mockResolvedValueOnce(streamReply(['ignored'], 500))
+    await expect(collect(streamDashScopeText(STREAM_CFG))).rejects.toBeDefined()
   })
 })

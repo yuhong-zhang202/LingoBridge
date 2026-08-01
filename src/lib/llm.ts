@@ -488,3 +488,110 @@ export async function* streamDashScopeLines(cfg: StreamDashScopeConfig): AsyncGe
     clearTimeout(timer)
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 流式原始文本原语（新增，与 streamDashScopeLines 完全并列）
+// streamDashScopeLines 面向 NDJSON「逐行」场景（ranking 单一总分按分降序逐行吐）。
+// 分析是「单个 JSON 逐段冒」——不能按行切，须拿到未经切分的 delta 文本交给增量解析器。
+// 故这里把「SSE 字节 → data 帧 → choices[0].delta.content」抽成新增私有生成器 readDashScopeDeltas，
+// streamDashScopeText 从它 yield 原始 delta 文本块。
+// ⚠️ 本阶段只增不改：streamDashScopeLines 保持自有实现字节不动，不 DRY 到 readDashScopeDeltas 上（未来再说）。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 私有：流式读取 DashScope 的 SSE，逐帧产出【原始 delta.content 文本块】（不按行、不按结构切分）。
+ * 只做一层缓冲：把字节流按 `\n` 切成 SSE 行，取 `data: {...}` 帧里的 choices[0].delta.content 直接 yield；
+ * `data: [DONE]` 为结束帧；半帧（尾段不完整）留到下次读取再拼。usage/超时/错误分类与 streamDashScopeLines 同口径。
+ * 消费方（streamDashScopeText → 增量解析器）自行拼接与解析，本原语不理解块内内容。
+ * @param cfg  endpoint/apiKey/model/messages/temperature/maxTokens + timeoutMs/label/onUsage
+ * @yields     一帧的 delta.content 原始文本块（可能是半个 token；空块跳过）
+ * @sideEffect 发起流式网络请求；失败按 classifyFailure 归类后打 error 日志并重抛
+ */
+async function* readDashScopeDeltas(cfg: StreamDashScopeConfig): AsyncGenerator<string, void, unknown> {
+  const label = cfg.label ?? '[LLM-Stream]'
+  const timeoutMs = cfg.timeoutMs ?? 30_000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const startedAt = Date.now()
+  try {
+    const body: Record<string, unknown> = {
+      model: cfg.model,
+      messages: cfg.messages,
+      stream: true,
+      // 让上游在结束前发一帧仅含 usage（否则流式模式默认不返回 usage）
+      stream_options: { include_usage: true },
+    }
+    if (cfg.temperature !== undefined) body.temperature = cfg.temperature
+    if (cfg.maxTokens !== undefined) body.max_tokens = cfg.maxTokens
+
+    const res = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new LLMHttpError(label, res.status)
+    if (!res.body) throw new Error(`${label} 流式响应无 body（上游可能不支持流式）`)
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let sseBuffer = ''  // SSE 字节流按行切分的缓冲
+
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      sseBuffer += decoder.decode(value, { stream: true })
+
+      let nl: number
+      while ((nl = sseBuffer.indexOf('\n')) >= 0) {
+        const rawLine = sseBuffer.slice(0, nl)
+        sseBuffer = sseBuffer.slice(nl + 1)
+        const sseLine = rawLine.trim()
+        if (sseLine === '' || sseLine.startsWith(':')) continue  // 空行 / SSE 注释
+        if (!sseLine.startsWith('data:')) continue
+        const payload = sseLine.slice('data:'.length).trim()
+        if (payload === '[DONE]') continue  // 结束帧
+        let evt: unknown
+        try {
+          evt = JSON.parse(payload)
+        } catch {
+          continue  // 半帧或噪声，跳过（正常情况下 SSE 已按 \n 切完整）
+        }
+        const delta = (evt as { choices?: Array<{ delta?: { content?: unknown } }> }).choices?.[0]?.delta?.content
+        if (typeof delta === 'string' && delta.length > 0) yield delta
+        const usage = extractStreamUsage(evt)
+        if (usage) cfg.onUsage?.(usage)
+      }
+    }
+  } catch (e) {
+    const { kind, status } = classifyFailure(e)
+    console.error(`${label} 流式调用失败`, {
+      service: label,
+      provider: 'dashscope',
+      model: cfg.model,
+      kind,
+      status,
+      timeoutMs,
+      elapsedMs: Date.now() - startedAt,
+      message: e instanceof Error ? e.message : String(e),
+    })
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * 流式调用 DashScope，逐块产出模型输出的【原始文本】（async generator）。
+ * 与 streamDashScopeLines 的区别：不按 `\n` 切行，原样吐出每一帧的 delta.content 文本块，
+ * 供调用方（分析增量解析器）自行拼接、增量解析单个 JSON。超时/[DONE]/onUsage/错误分类沿用同口径。
+ * @param cfg  与 streamDashScopeLines 相同的 StreamDashScopeConfig
+ * @yields     模型输出的原始文本块（顺序、可能被 chunk 边界切断）
+ * @sideEffect 发起流式网络请求；失败时打 error 日志并重抛（与 streamDashScopeLines 同风格）
+ */
+export async function* streamDashScopeText(cfg: StreamDashScopeConfig): AsyncGenerator<string, void, unknown> {
+  for await (const delta of readDashScopeDeltas(cfg)) yield delta
+}
