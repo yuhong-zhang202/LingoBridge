@@ -32,13 +32,15 @@ function AnalysisContent() {
   const storyId    = params.get('storyId') ?? ''
   const review     = params.get('review') === '1'
   // 流向判别：from=matching（故事流）→ 回匹配页；from=restructure（雅思流）→ 回整理页（带 qid）；
-  // 深链缺 from → 安全默认回首页，绝不静默走错分支。
+  // from=question-bank（题库练习入口）→ 回题库页；深链缺 from → 安全默认回首页，绝不静默走错分支。
   const from       = params.get('from')
   const backTarget = from === 'matching'
     ? { href: `/matching?corpusId=${storyId}`, label: '返回题目' }
     : from === 'restructure'
       ? { href: `/restructure?corpusId=${storyId}&qid=${questionId}`, label: '返回整理' }
-      : { href: '/', label: '返回首页' }
+      : from === 'question-bank'
+        ? { href: '/question-bank', label: '返回题库' }
+        : { href: '/', label: '返回首页' }
   const [data, setData]       = useState<AnalysisResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
@@ -173,7 +175,8 @@ function AnalysisContent() {
     // 复习卡/返回上一步/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
     onReviewCards: () => navigate('/review'),
     onBack: () => navigate(backTarget.href),
-    onExit: () => navigate('/'),
+    // 退出（顶栏 ✕）回来源页（题库/匹配/整理），而非恒回首页——从哪进来关掉就回哪，深链缺 from 才回首页兜底
+    onExit: () => navigate(backTarget.href),
   }
 
   return (

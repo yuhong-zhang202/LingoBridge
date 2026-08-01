@@ -77,7 +77,8 @@ export function useGotoPractice(): UseGotoPracticeReturn {
   /** 组装跳转 URL 并跳转；storyId 为 null 时不带该参数，走通用分析 */
   const push = useCallback((qid: string, storyId: string | null): void => {
     const story = storyId ? `&storyId=${encodeURIComponent(storyId)}` : ''
-    navigate(`/analysis?questionId=${encodeURIComponent(qid)}${story}&review=1`)
+    // from=question-bank：分析页据此把「返回/退出」指回题库页（而非默认首页）——来源是题库练习入口
+    navigate(`/analysis?questionId=${encodeURIComponent(qid)}${story}&review=1&from=question-bank`)
   }, [navigate])
 
   const gotoPractice = useCallback(async (qid: string): Promise<void> => {

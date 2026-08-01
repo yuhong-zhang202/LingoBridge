@@ -10,8 +10,10 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
+import { createHash } from 'crypto'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
+import { getPersonalAnalysis, upsertPersonalAnalysis } from '@/lib/db/question-analyses'
 import { getCorpusByIdServer, getCorpusPrimaryPointCodeServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generateAnalysis } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
@@ -21,7 +23,7 @@ import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/li
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL, ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT } from '@/lib/constants'
-import type { AnalysisResponse, DimensionLabel } from '@/lib/types'
+import type { AnalysisResponse, DimensionLabel, QuestionAnalysis } from '@/lib/types'
 
 // 观察点 code 前缀 → 维度 id
 const PREFIX_DIM: Record<string, keyof typeof DIMENSION_LABEL> = {
@@ -44,6 +46,11 @@ interface AnalysisRequestBody {
 /** 取 body 里的字符串字段；非字符串/缺省一律回退空串（与旧版 searchParams.get() ?? '' 同语义）。 */
 function str(v: unknown): string {
   return typeof v === 'string' ? v : ''
+}
+
+/** 个性化缓存的内容哈希：对喂给 AI 的语料正文(story)取 sha256 hex。正文改了→哈希变→命中失效重算。 */
+function sha256(text: string): string {
+  return createHash('sha256').update(text).digest('hex')
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -99,20 +106,64 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     if (dimension === null) dimension = dimFromCode(q.observation_points[0])
 
+    // ── 个性化分析缓存（corpus_question_analyses，按 (题,语料) + 内容哈希，隐私、随语料删除）──
+    // 复练秒开：同一用户对同一 (题,语料) 复练时读档、不再实时调 AI。可缓存判定（红线，逐条硬守）：
+    //  1) story 非空（解析后真喂给 AI 的语料正文）——命中/写键于此，不是 body 参数。
+    //  2) storyId 存在（真实 corpus，非 storyUrl 兜底）——只缓存能追溯到具体语料、能随语料 CASCADE 的分析。
+    //  5) part 守卫：仅 part1/2。
+    // 通用（无语料）路径【不缓存】：现实中几乎无入口不带语料进分析页（题库/匹配/整理/素材库全带 storyId），
+    // 通用缓存只惠及一条防御性兜底死路、价值近零，故不设，保持路由简洁。
+    const canCachePersonal = !!story && !!storyId && (q.part === 1 || q.part === 2)
+    // story 非空才求哈希（canCachePersonal 蕴含 story 非空）；story 变量已经过 DB/兜底解析，是 AI 实际看到的文本。
+    const storyHash = canCachePersonal && story ? sha256(story) : ''
+
+    // 缓存读（命中判定）：仅个性化。读彻底降级（红线 3）：任何查询错/异常一律静默当未命中，走真实 AI 调用，绝不 500。
+    let cached: QuestionAnalysis | null = null
+    if (canCachePersonal) {
+      // 个性化【三重命中】：键(corpus_id,question_id) 命中 且 season 一致 且 content_hash === sha256(当前 story)。
+      // content_hash 校验是本方案核心正确性（红线 4）：改故事→哈希变→未命中→重算，绝不返回旧语料的分析。
+      try {
+        const row = await getPersonalAnalysis(storyId, q.id)
+        if (row && row.season === q.season && row.contentHash === storyHash) cached = row.analysis
+      } catch (e) {
+        logErr('[analysis API] 个性化缓存读失败，降级为未命中', e)
+        cached = null
+      }
+    }
+
     // Part 2：完整 cue card 喂 AI，展示用短标题
     const enForAI = q.question_text
     const enForDisplay = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
     const zhForDisplay = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
 
-    // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
-    // 优先记模型真实 usage；模型没吐 usage 才回退到按题目长度的估算（英文约 0.3 token/字 + 系统提示约 800）。
-    // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
-    let realUsage: LLMUsage | null = null
-    const analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
-      generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
-    )
-    const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 800), completionTokens: 400 }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    let analysis: QuestionAnalysis
+    if (cached) {
+      // 命中：直接用缓存组装返回。无真实 AI 调用 → 不写 api_usage_logs（红线 5，写了会污染成本看板）。
+      // bumpDailyUsageServer 已在前面扣过次（防刷闸），命中也照扣、正确，此处不再动。
+      analysis = cached
+    } else {
+      // 未命中：真调 AI。
+      // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
+      // 优先记模型真实 usage；模型没吐 usage 才回退到按题目长度的估算（英文约 0.3 token/字 + 系统提示约 800）。
+      // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
+      let realUsage: LLMUsage | null = null
+      analysis = await runWithRawLogContext({ userId, corpusId: storyId || null }, () =>
+        generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
+      )
+      const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 800), completionTokens: 400 }
+      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+
+      // 真调成功后回填个性化缓存。写失败吞掉（红线 3）：AI 已成功、已花钱，绝不能因回填失败把请求变 500；
+      // 只 logErr、照常返回。带 content_hash = sha256(当前 story)，下次命中据此判失效（红线 4）。
+      // 表随语料 CASCADE、仅 service_role 读写（RLS 无策略），是隐私衍生物、绝不公开（红线 2）。
+      if (canCachePersonal) {
+        try {
+          await upsertPersonalAnalysis(storyId, q.id, q.season, storyHash, analysis)
+        } catch (e) {
+          logErr('[analysis API] 个性化缓存写失败，忽略', e)
+        }
+      }
+    }
 
     const body: AnalysisResponse = {
       question: {
