@@ -1,0 +1,136 @@
+═══════════════════════════════════════════════════════════════
+ranking 延迟长尾归因探针  ·  2026-08-01T13:02:03.822Z
+数据口径：phase=ranking · status=success · created_at >= 2026-07-21 · latency 非空
+═══════════════════════════════════════════════════════════════
+
+总样本量：92   （含 candidate_count：92 · 含 completion_tokens：92）
+
+【1】latency_ms 整体分布
+  p50=11.3s  p95=33.9s  p99=41.4s  max=56.4s
+
+【2】按 candidate_count 分桶
+  桶       样本  latency_p50  latency_p95  completion_tokens中位
+  1-5        20         4.3s         9.7s  183
+  6-10       16         8.5s        11.8s  387
+  11-20      49        21.6s        35.1s  838
+  21-35       6        17.2s        26.5s  997
+  36+         1        56.4s        56.4s  3003
+
+【3】相关系数（Pearson r）
+  latency ~ candidate_count      r = 0.77   (n=92)
+  latency ~ completion_tokens    r = 0.96   (n=92)
+  candidate_count ~ completion_tokens  r = 0.79   (n=92)   ← 候选→token 传导链
+
+【4】长尾样本（latency > 30s）：共 12 条
+  latency   candidate_count   completion_tokens
+    56.4s                39                3003
+    39.9s                18                1639
+    38.2s                20                1705
+    35.5s                18                1761
+    34.7s                18                1759
+    33.2s                18                1700
+    33.0s                18                1688
+    32.8s                18                1674
+    32.7s                18                1683
+    32.3s                18                1656
+    32.1s                18                1658
+    30.6s                18                1653
+
+  长尾中「高候选桶(≥11)」占比：100%  (12/12)
+
+【5】候选上限权衡（上限越低、延迟越省，但截断越多）
+  上限   截断比例   ≤上限子集_latency_p50   ≤上限子集_latency_p95   （≈ 压到该上限后的延迟）
+    10           61%                   6.2s                  11.8s
+    15           49%                   7.0s                  12.2s
+    19 ←p90       9%                  10.7s                  33.0s
+    25            4%                  10.8s                  33.2s
+
+───────────────────────────────────────────────────────────────
+判读（阈值：
+  样本足够 = 总数≥30 且 长尾≥5；
+  候选驱动 = [ r(latency,candidate)≥0.4 或 (r(latency,token)≥0.5 且 r(candidate,token)≥0.4) ] 且 长尾高候选占比≥60% ）
+───────────────────────────────────────────────────────────────
+
+【结论】
+✅ 长尾由候选数驱动 → ranking 提速属纯工程，可限候选数、不必动 prompt/模型。
+   依据：r(latency,candidate)=0.77 · r(latency,token)=0.96 · r(candidate,token)=0.79 · 长尾高候选占比=100%。
+   ⚠ 上限取值是「延迟↔截断」权衡（见【5】），不是单一答案：
+      · p90 上限(19) 只截 9%，但基本不降延迟（大批请求本就≤该上限，p95 仍在长尾区）；
+      · 要显著压延迟需把上限压到 ~10–15（p95 约 ~33s→~12s），代价是截断 ~50–60% 请求。
+   → 具体取值须产品方按「ranking 实际需要多少候选题（下游只展示前几道？）」拍板，本探针只证明「限候选=有效且不碰判断力」。
+
+═══════════════════════════════════════════════════════════════
+【附加】匹配结果的选题排位分布（决定 analysis 预取范围：top-1 集中→值得预取第一道；分散→不做）
+═══════════════════════════════════════════════════════════════
+
+现有事件类型及 props 键（生产库实测）：
+  match.result  (130)  props: candidateCount, matchedViaNeighbor, matchedViaSecondary, noMatch, primaryCode, secondaryCode, served_from, unscoredCount, visibleCount
+  flow.corpus_bound  (125)  props: source
+  match.view_rendered  (118)  props: candidateCount, globalNoneVisible, highCount, midCount, noMatch, unscoredCount, visibleCount
+
+❓ 数据不足以回答「用户点开的题排第几位」。
+   以库为准的原因：现有三类事件全部不记录「用户选中的具体题目」及其「匹配列表中的排位」——
+     · match.result / match.view_rendered = 结果/所见的计数（candidateCount/highCount 等），非某次点击；
+     · flow.corpus_bound = 建语料时触发（props 仅 source），与点题无关；
+     · 点「练习」进 /analysis、以及「存对子」，均【不发】带排位的事件。
+   （按任务硬约束，不以 relevanceScore/served_from 等其它字段推测代替。）
+
+   要回答此问题，需补一个「选中排位」埋点，落地三处：
+     ① 迁移：flow_events 的 event CHECK 约束加新事件名（建议 match.question_opened）；
+     ② /api/events：白名单 + sanitize 收 rank（1-based 排位）、candidateCount（列表总数）两个数字；
+     ③ 客户端：matching 页点「练习」的 onPractice 处，按该题在 result.questions 的 index+1 上报 rank。
+   攒够样本（约数十次点击）后，本节即可算 top-1/2/3/4+ 分布，据此定 analysis 预取范围。
+
+═══════════════════════════════════════════════════════════════
+【查询A】首屏高匹配题数（highCount）分布 —— 定 analysis 预取范围
+═══════════════════════════════════════════════════════════════
+
+样本量：118（match.view_rendered）
+highCount 分布：
+  =0     29  (25%)
+  =1     23  (19%)
+  =2     21  (18%)
+  =3     39  (33%)
+  4-5     4  (3%)
+  6+      2  (2%)
+
+highCount  中位数=2  均值=1.8   visibleCount(高+中) 中位数=3
+
+【查询A 结论】
+  highCount 中位数 2 ≤3 → 首屏高匹配题很少，预取前 3 道 ≈ 覆盖全部首屏高匹配。
+
+═══════════════════════════════════════════════════════════════
+【查询B】候选截断的准确率代价 —— 定 ranking 候选上限
+═══════════════════════════════════════════════════════════════
+
+先以库为准确认结构（corpus_match_snapshots.result jsonb = FunnelMatchResult）：
+  · questions[] 每题键含 relevanceScore、isPrimaryMatch、matched_point；【无】显式候选位置字段。
+  · 实证：87 个多题快照中 87 个 relevanceScore 沿数组单调递减 → questions 是【按分重排】存的，
+    数组下标 = 分数序，≠ 候选数组位置（matching.ts:227/236 sort 后才存）。
+
+primary 块大小（|isPrimaryMatch=true|）：n=87  中位=10  均值=10.3  最大=31
+  cap 切进 primary 块的快照数（|primary| > cap，切进即无法还原被截断的具体 primary 题）：
+    cap=10: 38/87 (44%)
+    cap=15: 35/87 (40%)
+    cap=20: 4/87 (5%)
+高匹配题(≥85)共 151 道，其中【非 primary】(在 secondary/邻居块、候选序靠后) 8 道；非 primary 的 ≥60 有 23 道。
+
+【查询B 结论】
+⚠️ 快照数据不足以判断「按候选位置截断」的准确率代价 —— 缺「候选数组位置」字段。
+   原因（以库为准，非假设）：
+     1) result.questions 存的是【按 relevanceScore 重排后】的数组（上方实证），未保留候选数组位置；
+     2) 无显式 position/candidateIndex 字段 → 数组下标 ≠ 候选位置，无法定位「候选第 11-20 位」是哪几道；
+     3) primary 块常大于 cap（cap=10 时 38/87 个快照 primary>10），
+        cap 切进 primary 块时块内 DB 顺序已丢、更无法还原被截断的具体题与其分数。
+   → 精确的「被截断高匹配题数 / 占比 / 丢失全部高匹配的次数 / 来源三块占比」四问，当前数据都算不出。
+   缺什么字段才能回答：快照的每道题需存【候选数组原始下标 candidateIndex（重排前的位置）】，
+     或额外存【重排前的候选顺序 id 列表】。补上后本节即可精确重建任意 cap 的截断集。
+   （B.4 来源三块：现有 isPrimaryMatch 只能分「primary / 非primary」，secondary 与邻居无独立标记、无法三分；
+     但因位置字段缺失、截断集本身不可还原，此项亦无从计。)
+
+   不过 primary 块大小分布给出一个可直接用的【风险信号】（不依赖位置重建）：
+     · cap=20：仅 5% 快照会切进 primary 块 → 多数情况只截语义较弱的 secondary/邻居，风险低；
+     · cap=10：44% 快照会切进 primary 块（语义最强的一档）→ 风险明显，不宜盲上。
+     · 另有 8 道 ≥85 高匹配题落在非 primary 块（候选序靠后），其截断命运因位置缺失无法量化 → 属未知风险。
+   → 建议：ranking 候选上限落地前，先补 candidateIndex 埋点、攒数据精确核代价；若要即刻上，cap 取偏保守的 20 而非 10。
+
