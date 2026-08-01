@@ -178,7 +178,7 @@ function MatchingContent() {
           },
           onDone: (data) => applyFinal(data),
         })
-      } catch (e) {
+      } catch {
         if (ac.signal.aborted || cancelled) return   // 中断不算错误
         // ── 降级：读流错 / 无 done / 上游不支持流式 → 重发 ?stream=0 走阻塞式整批（用户无感，只是没逐条）──
         try {
