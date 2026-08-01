@@ -12,13 +12,15 @@ jest.mock('@/lib/db/observation-points')
 
 import { matchByStory } from '@/services/matching'
 import { extractCorpus } from '@/services/extraction'
-import { rankQuestions } from '@/services/ranking'
+import { rankQuestionsStreaming } from '@/services/ranking'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { CURRENT_SEASON } from '@/lib/constants'
 
 const mockExtract  = extractCorpus as jest.MockedFunction<typeof extractCorpus>
-const mockRank     = rankQuestions as jest.MockedFunction<typeof rankQuestions>
+// matchByStory 默认改调 rankQuestionsStreaming（SINGLE 走流式、DIM 内部转缓冲），故这里 mock 流式入口。
+// 返回契约与旧 rankQuestions 一致（Promise<RelevanceScore[]>），下方各用例断言不变。
+const mockRank     = rankQuestionsStreaming as jest.MockedFunction<typeof rankQuestionsStreaming>
 const mockGetQs    = getQuestionsByObservation as jest.MockedFunction<typeof getQuestionsByObservation>
 const mockListPts  = listObservationPoints as jest.MockedFunction<typeof listObservationPoints>
 

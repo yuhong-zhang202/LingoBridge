@@ -16,7 +16,7 @@
  */
 import 'server-only'
 import { env } from '@/lib/env-server'
-import { callLLMJson, type LLMUsage } from '@/lib/llm'
+import { callLLMJson, streamDashScopeLines, type LLMUsage } from '@/lib/llm'
 import {
   MODEL_RANKING,
   RANKING_W1,
@@ -188,6 +188,93 @@ const SYSTEM_PROMPT_SINGLE = `你是雅思口语备考教练。给你一段用�
 每条 reason 必须自己讲得通，禁止出现 q1、q2 这类编号，禁止写「同上」「同 q5」「同前」这类指代；
 哪怕两道题的判词几乎一样，也各自完整写一遍。`
 
+// ── 路径一（NDJSON 流式）的 system prompt ──
+// 相对 SYSTEM_PROMPT_SINGLE，仅改两处：① 输出格式段（一行一对象 NDJSON、无外层数组）；
+// ② 示例 A/B/C/D 的输出外壳（{"scores":[{obj}]} → 裸 {obj}，示例 D 两条 → 两行）。
+// 判断内容（打分标准、字段顺序 id→q→reason→score、先 reason 后 score、q 对齐校验、示例的值）全部逐字保留、一字不改。
+const SYSTEM_PROMPT_SINGLE_NDJSON = `你是雅思口语备考教练。给你一段用户讲的真实故事，和一组候选雅思题，你要判断：用户能不能用这段故事，自然、充分地回答每一道题。
+
+【第一步：先逐题拆解「这道题到底在问什么」，再判断】
+对每一道候选题，先想清楚它真正要的是什么：是问「多久一次」（频率）？「某一次具体经历」（单次事件，常见 describe a time…）？某个「特定场景」（如放假、户外、某个具体地点或对象）？「日常习惯或偏好」？还是「看法、观点」（Part 3）？
+拆清楚之后，再判断用户这段故事能不能原样回答「这个具体的问法」。不要只看话题像不像。
+
+【判定主线】
+判断关键是：要不要改动故事本身（重心、主语、场景、时间、活动、或聚光灯落点），才能回答这道题真正在问的东西。
+什么都不用改 = 高匹配；沾边但要换角度、换场景、换聚光灯、或只覆盖一部分 = 中匹配；得换一个完全不同的故事 = 低匹配。
+
+【打分档(0-100，整数)，从严】
+85-100（高，从严给）：故事的重心、主语、场景、时间、活动、聚光灯落点【全都不用改】，照现有故事就能直接、充分地回答，而且回答的正是这道题在问的点。只要有一样需要改或硬凑，就不要给到 85。
+60-84（中）：沾边，但需要换角度或侧重、把聚光灯挪到故事的另一部分才能答、或只覆盖题目的一部分、或要把「日常习惯」硬套成「某一次」、或场景时间对不太上但故事主体还能用，无需另起一个完全不同的故事。
+30-59（低）：必须换一个不同的经历或故事才能答，当前故事帮不上，即使话题沾边也在这档。
+0-29：完全答非所问，拿这故事答会很尴尬。
+
+【从严判定的几条硬指引（务必照做）】
+· 重心、聚光灯要挪才能答就降到中：故事确实沾这道题，但它的高潮、重心落在别处，要把聚光灯挪到另一个角度、或换个侧重才答得上（例：故事高潮是「对方向你道歉」，拿去答「你说真话的一次」就得把重心改成「我开口讲真话」），属中匹配(60-84)。只有重心不挪、原样答的正是它问的，才给高分。
+· 时间、场景对不上就降到中：题目问的是某个特定场景（如「放假时 days off」），故事讲的是另一个场景（如「每天下班后」），必须换个场景才能答，属中匹配(60-84)，不要因为都跟「休息、放松」沾边就给高分。
+· 习惯 vs 某一次：故事讲「一直如此的习惯、常态」，题目问「某个具体的一次、上一次」，要把常态硬套成单次事件，属中匹配(60-84)，不进高匹配。
+· 场景根本没发生就给低分：题目要求的场景或活动在故事里压根没出现（例：故事全程室内独处，题目问户外散步），必须另讲一个故事，属低匹配(30-59)，不给到 60 以上。
+
+【跨语言】故事是中文，题目是英文（附中文）。按语义判断，别因语言不同误判。
+
+【输入】我会给你：
+1) 用户整理后的故事（中文）；
+2) 一组候选题，每条带 id（形如 q1、q2 的短编号）、英文题干 en、中文 zh、所属观察点 obs。
+
+【输出】一行输出一个合法 JSON 对象（NDJSON 格式），无外层数组、不要 "scores" 包裹，一行一条，不要任何额外文字，不要 markdown 代码块围栏，字符串值内部禁止使用英文双引号。每行格式如下：
+{"id":"q1","q":"英文题干前 ${ECHO_PREFIX_LEN} 个字符","reason":"一句话中文理由","score":0-100}
+按 score 从高到低逐行输出（最匹配的先写），覆盖所有候选题，一个都不漏，id 不重复。
+
+【⚠️ 字段顺序不许调换：先 reason 后 score】
+每条打分必须按 id → q → reason → score 的顺序写。这不是格式洁癖，是判断顺序：
+先回显题干（q）看清这道题在问什么，再写出判断依据（reason），最后才落分数（score）。
+分数必须是前面那句 reason 的结论。如果你写完 reason 发现它在说「要换主语／得换故事／场景对不上」，
+那 score 就不能是高分——reason 怎么说，score 就怎么落。
+反过来先写分数再补理由，等于给已经定了的数字事后编说法，那个理由是假的。
+
+【⚠️ 关于 q 字段：这是防错位校验，必须照做】
+每条打分里的 q，必须是【你正在打分的那道题】en 的开头原文（照抄前 ${ECHO_PREFIX_LEN} 个字符即可，不足则抄全）。
+系统会逐条核对 q 与 id 是否指向同一道题，对不上就整次作废。
+所以每写一条打分前，请回头确认：这个 score 和 reason，说的确实是 id 指向的那道题吗？
+候选里出现话题相近、句式相似的题时（例如同时有「你喜欢拍照吗」和「你见过最美的景色是什么」），最容易把两条的 score/reason 写反——务必逐题核对再落笔。
+
+【示例 A · 低分】
+故事：用户每天早上手冲一杯咖啡，享受慢下来、给自己充电的过程，是他放松的方式。
+候选题：{"id":"q1","en":"Do you prefer typing or handwriting?","zh":"你更喜欢打字还是手写？","obs":"学会的技能"}
+正确输出：{"id":"q1","q":"Do you prefer typing or handwriting?","reason":"故事讲的是咖啡和放松，跟打字手写没交集，硬答会跑题。","score":15}
+
+【示例 B · 高分】
+故事：用户在小组项目里成果被同事抢功，私下找对方摊牌争取公正，最后对方向他道歉。
+候选题：{"id":"q1","en":"Describe a time when someone apologized to you","zh":"描述一次别人向你道歉的经历","obs":"关系摩擦冲突"}
+正确输出：{"id":"q1","q":"Describe a time when someone apologized to","reason":"故事里正好有对方道歉这一段，能直接完整地答。","score":92}
+
+【示例 C · 中分（场景对不上）】
+故事：用户每天下班一进门就泡茶、陷进沙发、放空，靠这个解一天的紧绷。
+候选题：{"id":"q1","en":"What do you usually do when you have days off?","zh":"你放假时通常做什么？","obs":"让你感到放松的事"}
+正确输出：{"id":"q1","q":"What do you usually do when you have days","reason":"讲的是下班后，放假是另一个场景，要换场景才能答。","score":70}
+
+【示例 D · 中分（重心要挪）+ 近似题簇逐条核对】
+故事：室友没问就用了用户的健身房卡，用户纠结后当面说清楚，室友道了歉，之后关系更坦诚。
+候选题：[{"id":"q1","en":"Describe a time you told someone the truth","zh":"描述一次你跟别人说实话的经历","obs":"诚实与信任"},{"id":"q2","en":"Describe a time you lent something to a friend","zh":"描述一次你把东西借给朋友的经历","obs":"诚实与信任"}]
+正确输出：
+{"id":"q1","q":"Describe a time you told someone the trut","reason":"故事高潮是对方道歉，答说实话要换个重心，算中匹配。","score":72}
+{"id":"q2","q":"Describe a time you lent something to a f","reason":"故事里卡是被擅自拿走的，不是主动借出，要换故事。","score":45}
+注意示例 D 两题句式相似，q 各自回显自己那道题的开头，score 与 reason 也各归各题，没有写反。
+
+【字数约束】reason 控制在 25 字以内，只说能不能用这故事答、缺什么。
+【reason 硬约束】reason 会原样展示给用户，用户看不到候选编号，也看不到别的题。所以：
+每条 reason 必须自己讲得通，禁止出现 q1、q2 这类编号，禁止写「同上」「同 q5」「同前」这类指代；
+哪怕两道题的判词几乎一样，也各自完整写一遍。`
+
+/**
+ * 流式逐行畸形率降级阈值：一次流式打分里，畸形行（JSON.parse 失败 / 结构守卫不过 / 单条对齐不过 / 重复 id）
+ * 占「候选行」比例超过此值，就判定这次流式输出整体不可信，整次降级到缓冲路（SYSTEM_PROMPT_SINGLE + callLLMJson）。
+ * 取 0.20 的依据：单条对齐防线（echoMatches + 重复 id）本就能逐行剔除坏行、坏行不会污染好行，
+ * 故阈值不是为「防错位」（那已由逐行校验兜住），而是为「识别整次跑偏」——当模型没按 NDJSON 吐、
+ * 或大面积贴错题时，与其交出一份七零八落的结果，不如整次回退到经过 2 轮整批重问 + 截断抢救的缓冲路。
+ * 20% 给正常抖动（偶尔一两行格式毛刺）留了余量，又能在「过半坏行」这类真跑偏时稳稳触发降级。
+ */
+const RANKING_STREAM_SKIP_THRESHOLD = 0.20
+
 // ── 路径二（分维度）的 system prompt。让 AI 只判维度，分数由代码合成 ──
 const SYSTEM_PROMPT_DIM = `你是雅思口语备考教练。给你一段用户讲的真实故事，和一组候选雅思题，你要判断：用户能不能用这段故事，自然、充分地回答每一道题。
 你【不打分数】，只逐题给出下面四个维度的判定，系统会据此合成分数。
@@ -336,6 +423,21 @@ function checkAlignment(items: readonly AlignableItem[], seqMap: Map<string, Seq
   }
 
   return problems.length === 0 ? { ok: true } : { ok: false, problems }
+}
+
+/**
+ * 单条打分的结构守卫（路径一·单一总分）：只查字段类型，语义对齐由 echoMatches / checkAlignment 负责。
+ * 流式逐行校验用它逐条守卫；数组级 isRankingResponse 保持原样不动（缓冲路仍走它）。
+ */
+function isRankingScoreItem(v: unknown): v is RankingScoreItem {
+  if (typeof v !== 'object' || v === null) return false
+  const o = v as Record<string, unknown>
+  return (
+    typeof o.id === 'string' &&
+    typeof o.q === 'string' &&
+    typeof o.score === 'number' &&
+    typeof o.reason === 'string'
+  )
 }
 
 /** 结构层类型守卫（路径一·单一总分）：只查字段类型，语义对齐由 checkAlignment 负责 */
@@ -698,4 +800,183 @@ export async function rankQuestions(
   } catch {
     return []
   }
+}
+
+/** 流式路的畸形行统计：malformed=被跳过的坏行数，total=候选行总数，fellBack=是否整次降级到缓冲路 */
+export interface RankingStreamStats {
+  malformed: number
+  total: number
+  fellBack: boolean
+}
+
+/** rankQuestionsStreaming 的可选观测回调（对外契约仍返回整份 RelevanceScore[]，这些只是旁路观测口子） */
+export interface RankQuestionsStreamingOptions {
+  /** 每条打分逐行到达即回调（到达序＝分数序，供阶段二 SSE 增量渲染；阶段一无人消费） */
+  onItem?: (r: RelevanceScore) => void
+  /** 模型真实 token 用量（流式末块 usage；整次降级时改由缓冲路回调，不重复计） */
+  onUsage?: (usage: LLMUsage) => void
+  /** 本次流式的畸形行统计（供 eval 报「畸形行出现率」+ 降级计数） */
+  onMalformedStats?: (s: RankingStreamStats) => void
+}
+
+/**
+ * 流式重排：SINGLE 路径按分降序逐行吐 NDJSON，逐行校验通过即累积并回调 onItem；到达序即分数序，不重排。
+ * 对外契约与 rankQuestions 一致（返回 RelevanceScore[]，id 已换回真实 UUID），阶段一用户完全无感。
+ *
+ * 逐行处置（每条候选行）：JSON.parse → isRankingScoreItem 结构守卫 → 单条对齐（echoMatches 回显该 id 的题）
+ * + 增量 Set 去重（跨行重复 id）。任一不过 → 跳过该行 + malformedCount++；通过 → seq→UUID + reason 自足清空
+ * （与缓冲路 mapToRelevance 单条逻辑同款），累积并回调 onItem。
+ *
+ * 整次降级到缓冲 rankQuestions（走 SYSTEM_PROMPT_SINGLE + callLLMJson + 现有 2 轮整批重问/截断抢救）的三种情形：
+ *  1) 流式 fetch 失败 / 上游不支持流式（streamDashScopeLines 抛错）；
+ *  2) totalLines===0（模型一行没吐）；
+ *  3) malformedCount/totalLines > RANKING_STREAM_SKIP_THRESHOLD（大面积坏行＝整次跑偏）。
+ * DIM 路径（env.rankingDimensional）无法流式保序（分数由代码合成、到达序≠分数序），直接走缓冲 rankQuestions。
+ *
+ * @param storyText   用户整理后的中文故事
+ * @param candidates  候选题（id 为真实 UUID）
+ * @param opts        onItem / onUsage / onMalformedStats 旁路观测回调（均可选）
+ * @returns           RelevanceScore[]（id 为真实 UUID）；异常/降级时返回缓冲路结果，全空时返回 []
+ * @sideEffect        流式调用 DashScope；对齐失败逐行 warn；整次降级时打 warn 并改走缓冲路
+ */
+export async function rankQuestionsStreaming(
+  storyText: string,
+  candidates: CandidateQuestion[],
+  opts?: RankQuestionsStreamingOptions,
+): Promise<RelevanceScore[]> {
+  if (candidates.length === 0) return []
+  if (!env.dashscopeApiKey) return []
+
+  // DIM 路径无法流式保序：分数由 synthesizeScore 代码合成、到达序≠分数序，直接走缓冲路
+  if (env.rankingDimensional) {
+    return rankQuestions(storyText, candidates, opts?.onUsage)
+  }
+
+  // 短序号 ↔ UUID 映射只活在本函数内（与 rankQuestions 同款，模型永远看不到 36 位 UUID）
+  const seqOf = new Map<string, string>()
+  const seqMap = new Map<string, SeqCandidate>()
+  const seqCandidates: SeqCandidate[] = candidates.map((c, i) => {
+    const seq = `q${i + 1}`
+    seqOf.set(seq, c.id)
+    const sc: SeqCandidate = { id: seq, en: c.en, zh: c.zh, obs: c.obs }
+    seqMap.set(seq, sc)
+    return sc
+  })
+
+  const userMessage =
+    `【故事】\n${storyText}\n\n【候选题】\n` +
+    JSON.stringify(seqCandidates, null, 2)
+
+  const timeoutMs = TIMEOUT_BASE_MS + TIMEOUT_PER_CANDIDATE_MS * candidates.length
+
+  const results: RelevanceScore[] = []
+  const seen = new Set<string>()  // 跨行重复 id 增量去重
+  let totalLines = 0
+  let malformedCount = 0
+  // 流式 usage 先缓存不外发：整次降级时要丢弃它（改由缓冲路记账），避免与缓冲路 usage 双记
+  let streamUsage: LLMUsage | null = null
+
+  /**
+   * 处理一整行模型输出：先滤掉结构性噪声（空行 / 代码围栏 / 裸方括号）——它们不是候选行、不计入 total；
+   * 其余按「候选行」计入 total 并逐行校验，任一不过即 malformedCount++。
+   * @param line  streamDashScopeLines 交出的一整行（已 trim）
+   */
+  function handleLine(line: string): void {
+    // 结构性噪声：不计入候选行总数（否则会虚高畸形率）
+    if (line === '```' || line === '```json' || line === '```JSON' || line === '[' || line === ']') return
+    // 数组习惯的行尾逗号容忍：`{...},` 仍是「模型给了这个对象、只是带了数组标点」，剥掉再解析
+    const cleaned = line.replace(/,\s*$/, '')
+
+    totalLines++
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch {
+      malformedCount++
+      return
+    }
+    if (!isRankingScoreItem(parsed)) {
+      malformedCount++
+      return
+    }
+    const item = parsed
+    const cand = seqMap.get(item.id)
+    if (!cand) {
+      malformedCount++  // 编造 id
+      return
+    }
+    if (seen.has(item.id)) {
+      malformedCount++  // 重复 id
+      return
+    }
+    if (!echoMatches(item.q, cand.en)) {
+      malformedCount++  // 回显对不上（判词贴错题）
+      console.warn('[Ranking] 流式丢弃：题干回显对不上（疑似判词错位）', {
+        id: item.id,
+        expected: cand.en.slice(0, ECHO_PREFIX_LEN),
+        echoed: item.q,
+      })
+      return
+    }
+    const realId = seqOf.get(item.id)
+    if (realId === undefined) {
+      malformedCount++  // 理论不可达：seqMap 命中则 seqOf 必命中
+      return
+    }
+    seen.add(item.id)
+    let reason = item.reason
+    if (!isReasonSelfContained(reason)) {
+      console.warn('[Ranking] reason 指代了别的候选题，已清空该条理由', { id: item.id, reason })
+      reason = ''
+    }
+    const rel: RelevanceScore = { id: realId, score: item.score, reason }
+    results.push(rel)
+    opts?.onItem?.(rel)
+  }
+
+  try {
+    for await (const line of streamDashScopeLines({
+      endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
+      apiKey: env.dashscopeApiKey,
+      model: MODEL_RANKING,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_SINGLE_NDJSON },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0,
+      maxTokens: 4096,
+      timeoutMs,
+      label: '[Ranking-Stream]',
+      onUsage: (u) => { streamUsage = u },
+    })) {
+      handleLine(line)
+    }
+  } catch (e) {
+    // 流式 fetch 失败 / 超时 / HTTP 非 2xx / 上游不支持流式：整次降级到缓冲路（用户无感）
+    console.warn('[Ranking] 流式调用异常，整次降级到缓冲路', {
+      message: e instanceof Error ? e.message : String(e),
+    })
+    console.info('[RankStreamStats]', JSON.stringify({ malformed: malformedCount, total: totalLines, fellBack: true }))
+    opts?.onMalformedStats?.({ malformed: malformedCount, total: totalLines, fellBack: true })
+    return rankQuestions(storyText, candidates, opts?.onUsage)
+  }
+
+  const fellBack = totalLines === 0 || malformedCount / totalLines > RANKING_STREAM_SKIP_THRESHOLD
+  if (fellBack) {
+    console.warn('[Ranking] 流式畸形率超阈值或零行，整次降级到缓冲路', {
+      malformed: malformedCount,
+      total: totalLines,
+      threshold: RANKING_STREAM_SKIP_THRESHOLD,
+    })
+    console.info('[RankStreamStats]', JSON.stringify({ malformed: malformedCount, total: totalLines, fellBack: true }))
+    opts?.onMalformedStats?.({ malformed: malformedCount, total: totalLines, fellBack: true })
+    // 流式 usage 丢弃，改由缓冲路回调，避免双记
+    return rankQuestions(storyText, candidates, opts?.onUsage)
+  }
+
+  console.info('[RankStreamStats]', JSON.stringify({ malformed: malformedCount, total: totalLines, fellBack: false }))
+  opts?.onMalformedStats?.({ malformed: malformedCount, total: totalLines, fellBack: false })
+  if (streamUsage) opts?.onUsage?.(streamUsage)
+  // 到达序即分数序（模型按分降序逐行吐），直接按到达序返回、不重排，保流式语义
+  return results
 }

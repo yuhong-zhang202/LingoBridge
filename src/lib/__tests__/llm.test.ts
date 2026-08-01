@@ -11,7 +11,7 @@ jest.mock('@/lib/env-server', () => ({
   env: { dashscopeApiKey: 'k', dashscopeBaseUrl: 'https://example.invalid/v1', rawLogEnabled: false },
 }))
 
-import { callLLMJson, type LLMCall } from '@/lib/llm'
+import { callLLMJson, streamDashScopeLines, type LLMCall, type StreamDashScopeConfig } from '@/lib/llm'
 
 type Shape = { ok: string }
 const isShape = (v: unknown): v is Shape =>
@@ -273,5 +273,94 @@ describe('callLLMJson · 真实用量上抛（onUsage）', () => {
       callLLMJson<Shape>({ call: CALL, validate: isShape, maxAttempts: 2, timeoutMs: 100, onUsage }),
     ).rejects.toBeDefined()
     expect(onUsage).not.toHaveBeenCalled()
+  })
+})
+
+// ── streamDashScopeLines：真字节过 ReadableStream，验证 SSE 帧缓冲 + 内容缓冲两层拼装 ──
+// 这是服务层 mock 会绕过的唯一 I/O 面（service 测试把整个 generator 换掉），单独在此过真字节。
+
+const STREAM_CFG: StreamDashScopeConfig = {
+  endpoint: 'https://example.invalid/v1/chat/completions',
+  apiKey: 'k',
+  model: 'qwen-plus',
+  messages: [{ role: 'system', content: 'SYS' }, { role: 'user', content: 'U' }],
+  temperature: 0,
+  maxTokens: 4096,
+  timeoutMs: 1000,
+}
+
+/** 一帧 delta 内容帧 */
+function frame(content: string): string {
+  return `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
+}
+/** 仅含 usage 的末帧（choices 空，include_usage 语义） */
+function usageFrame(p: number, c: number): string {
+  return `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: p, completion_tokens: c } })}\n\n`
+}
+const DONE = 'data: [DONE]\n\n'
+
+/** 把整段 SSE 文本按 size 硬切成多个 chunk（故意不对齐帧/行边界，逼出缓冲拼装） */
+function chunkEvery(s: string, size: number): string[] {
+  const out: string[] = []
+  for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size))
+  return out
+}
+
+/** 用给定文本块构造 fetch 的流式响应 body（web ReadableStream，逐块 enqueue） */
+function streamReply(chunks: string[], status = 200): { ok: boolean; status: number; body: ReadableStream<Uint8Array> } {
+  const enc = new TextEncoder()
+  let i = 0
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (i < chunks.length) controller.enqueue(enc.encode(chunks[i++]))
+      else controller.close()
+    },
+  })
+  return { ok: status >= 200 && status < 300, status, body }
+}
+
+/** 收集 async generator 的全部产出 */
+async function collect(gen: AsyncGenerator<string, void, unknown>): Promise<string[]> {
+  const out: string[] = []
+  for await (const x of gen) out.push(x)
+  return out
+}
+
+describe('streamDashScopeLines · SSE 逐行流式', () => {
+  test('S1. 跨任意 chunk 边界重组：按内容里的 \\n 切出完整行，末行（无尾随换行）也 flush', async () => {
+    // 内容拼接为 `{"id":"q2",..}\n{"id":"q1",..}`：第二行无尾随换行，须在流尾 flush
+    const full = frame('{"id":"q2","score":92}\n') + frame('{"id":"q1","score":55}') + DONE
+    fetchMock.mockResolvedValueOnce(streamReply(chunkEvery(full, 7)))  // 7 字硬切，帧/行边界全打散
+
+    const lines = await collect(streamDashScopeLines(STREAM_CFG))
+    expect(lines).toEqual(['{"id":"q2","score":92}', '{"id":"q1","score":55}'])
+  })
+
+  test('S2. 一个 delta 内含多行：内容缓冲按 \\n 全部切出', async () => {
+    const full = frame('{"a":1}\n{"b":2}\n{"c":3}') + DONE
+    fetchMock.mockResolvedValueOnce(streamReply([full]))
+
+    expect(await collect(streamDashScopeLines(STREAM_CFG))).toEqual(['{"a":1}', '{"b":2}', '{"c":3}'])
+  })
+
+  test('S3. 末帧 usage 经 onUsage 回调（include_usage 语义）', async () => {
+    const full = frame('{"x":1}') + usageFrame(11, 22) + DONE
+    fetchMock.mockResolvedValueOnce(streamReply(chunkEvery(full, 5)))
+    const onUsage = jest.fn()
+
+    const lines = await collect(streamDashScopeLines({ ...STREAM_CFG, onUsage }))
+    expect(lines).toEqual(['{"x":1}'])
+    expect(onUsage).toHaveBeenCalledWith({ promptTokens: 11, completionTokens: 22 })
+  })
+
+  test('S4. 空行/结束帧不产出内容行；无 delta 帧被跳过', async () => {
+    const full = frame('') + frame('{"only":1}') + DONE
+    fetchMock.mockResolvedValueOnce(streamReply([full]))
+    expect(await collect(streamDashScopeLines(STREAM_CFG))).toEqual(['{"only":1}'])
+  })
+
+  test('S5. HTTP 非 2xx：抛错（供上层降级到缓冲路）', async () => {
+    fetchMock.mockResolvedValueOnce(streamReply(['ignored'], 500))
+    await expect(collect(streamDashScopeLines(STREAM_CFG))).rejects.toBeDefined()
   })
 })

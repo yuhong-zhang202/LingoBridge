@@ -16,10 +16,12 @@ jest.mock('@/lib/env-server', () => ({
 }))
 jest.mock('@/lib/llm')
 
-import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
-import { callLLMJson, type CallLLMJsonOptions } from '@/lib/llm'
+import { rankQuestions, rankQuestionsStreaming, type CandidateQuestion } from '@/services/ranking'
+import { callLLMJson, streamDashScopeLines, type CallLLMJsonOptions, type LLMUsage } from '@/lib/llm'
+import type { RelevanceScore } from '@/lib/types'
 
 const mockCall = callLLMJson as jest.MockedFunction<typeof callLLMJson>
+const mockStream = streamDashScopeLines as jest.MockedFunction<typeof streamDashScopeLines>
 
 // —— 测试用桩：两道语义相近的题（线上 S056 实证错位的那一对）——
 const UUID_PHOTO   = '95563aa8-0000-4000-8000-000000000001'
@@ -338,5 +340,125 @@ describe('rankQuestions · reason 必须自足（短序号不得漏给用户）'
     const r = await rankQuestions(STORY, CANDIDATES)
 
     expect(r.find((s) => s.id === UUID_PHOTO)!.reason).toBe('')
+  })
+})
+
+// —— NDJSON 单行构造（每行一个裸对象，字段序 id→q→reason→score，与流式 prompt 一致）——
+const LINE_SCENERY = '{"id":"q2","q":"What is the most beautiful scenery you","reason":"故事正好讲旅行看到的景色。","score":92}'
+const LINE_PHOTO   = '{"id":"q1","q":"Do you like taking photos of different","reason":"故事没提拍照习惯，要换个故事。","score":55}'
+// 判词错位行：q1（拍照题）的 id 上贴景色题的回显（复刻 S056），单条对齐必须能逐行抓到
+const LINE_SWAP_Q1 = '{"id":"q1","q":"What is the most beautiful scenery you","reason":"故事正好讲旅行看到的景色。","score":92}'
+const LINE_SWAP_Q2 = '{"id":"q2","q":"Do you like taking photos of different","reason":"故事没提拍照习惯，要换个故事。","score":55}'
+
+/**
+ * 驱动被 mock 的 streamDashScopeLines：逐行 yield 给定文本，末尾可选回调 usage；throwAfter 模拟流中途断裂。
+ * @param lines  模型逐行输出（NDJSON 或噪声行）
+ * @param opts   usage=末块用量；throwAfter=在第 N 行（0-based）前抛错模拟流式失败
+ */
+function driveStream(lines: string[], opts?: { usage?: LLMUsage; throwAfter?: number }): void {
+  mockStream.mockImplementation(async function* (cfg) {
+    for (let i = 0; i < lines.length; i++) {
+      if (opts?.throwAfter !== undefined && i === opts.throwAfter) throw new Error('stream boom')
+      yield lines[i]
+    }
+    if (opts?.usage) cfg.onUsage?.(opts.usage)
+  })
+}
+
+describe('rankQuestionsStreaming · 流式逐行（与缓冲整批的对齐等价性）', () => {
+  test('S1. 正常流式：到达序即分数序，seq→UUID 映射正确，onItem 逐条回调', async () => {
+    driveStream([LINE_SCENERY, LINE_PHOTO])
+    const items: RelevanceScore[] = []
+    const stats: { malformed: number; total: number; fellBack: boolean }[] = []
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES, {
+      onItem: (x) => items.push(x),
+      onMalformedStats: (s) => stats.push(s),
+    })
+
+    expect(r).toEqual([
+      { id: UUID_SCENERY, score: 92, reason: '故事正好讲旅行看到的景色。' },
+      { id: UUID_PHOTO,   score: 55, reason: '故事没提拍照习惯，要换个故事。' },
+    ])
+    expect(items).toEqual(r)                                   // onItem 到达序 == 返回序
+    expect(stats).toEqual([{ malformed: 0, total: 2, fellBack: false }])
+    expect(mockCall).not.toHaveBeenCalled()                   // 未降级，不碰缓冲路
+  })
+
+  test('S2. 单条对齐等价：错位行逐行被抓（与缓冲整批 checkAlignment 同判），坏行不污染好行', async () => {
+    // 只有 q2 一行错位（贴了拍照题回显）、q1 正常 → 1/2=0.5 超阈值 → 整次降级到缓冲路
+    driveStream([LINE_SWAP_Q2, LINE_PHOTO])
+    const stats: { malformed: number; total: number; fellBack: boolean }[] = []
+    // 缓冲路兜底给出正确结果（复刻真实契约）
+    driveWith([goodRaw()])
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES, { onMalformedStats: (s) => stats.push(s) })
+
+    expect(stats[0].fellBack).toBe(true)
+    expect(stats[0]).toMatchObject({ malformed: 1, total: 2 })
+    expect(mockCall).toHaveBeenCalledTimes(1)                 // 降级确实走了缓冲路
+    expect(r).toEqual([
+      { id: UUID_SCENERY, score: 92, reason: '故事正好讲旅行看到的景色。' },
+      { id: UUID_PHOTO,   score: 55, reason: '故事没提拍照习惯，要换个故事。' },
+    ])
+  })
+
+  test('S3. 两行全错位：畸形率 1.0 → 整次降级；缓冲路仍拒收则返回空', async () => {
+    driveStream([LINE_SWAP_Q1, LINE_SWAP_Q2])
+    driveWith([swappedRaw()])   // 缓冲路重试仍互换 → 全丢
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES)
+    expect(r).toEqual([])
+  })
+
+  test('S4. 噪声行不计入总数、行尾逗号容忍：畸形率 0，正常返回', async () => {
+    // ```json / ``` 围栏与裸方括号是结构噪声，跳过且不计 total；`{...},` 剥尾逗号后可解析
+    driveStream(['```json', '[', LINE_SCENERY + ',', LINE_PHOTO, ']', '```'])
+    const stats: { malformed: number; total: number; fellBack: boolean }[] = []
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES, { onMalformedStats: (s) => stats.push(s) })
+
+    expect(stats).toEqual([{ malformed: 0, total: 2, fellBack: false }])
+    expect(r.map((x) => x.id)).toEqual([UUID_SCENERY, UUID_PHOTO])
+    expect(mockCall).not.toHaveBeenCalled()
+  })
+
+  test('S5. 模型早停少行（无坏行）：不降级，缺的候选无分（同缓冲 fallback 的 missing 语义）', async () => {
+    driveStream([LINE_SCENERY])   // 只吐 q2，q1 缺
+    const stats: { malformed: number; total: number; fellBack: boolean }[] = []
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES, { onMalformedStats: (s) => stats.push(s) })
+
+    expect(stats).toEqual([{ malformed: 0, total: 1, fellBack: false }])
+    expect(r).toEqual([{ id: UUID_SCENERY, score: 92, reason: '故事正好讲旅行看到的景色。' }])
+    expect(mockCall).not.toHaveBeenCalled()                   // 少行不是畸形，不降级
+  })
+
+  test('S6. 流式中途抛错：整次降级到缓冲路（用户无感）', async () => {
+    driveStream([LINE_SCENERY, LINE_PHOTO], { throwAfter: 1 })  // 吐完首行后、次行前断裂
+    driveWith([goodRaw()])
+    const stats: { malformed: number; total: number; fellBack: boolean }[] = []
+    const r = await rankQuestionsStreaming(STORY, CANDIDATES, { onMalformedStats: (s) => stats.push(s) })
+
+    expect(stats[0].fellBack).toBe(true)
+    expect(mockCall).toHaveBeenCalledTimes(1)
+    expect(r.map((x) => x.id)).toEqual([UUID_SCENERY, UUID_PHOTO])
+  })
+
+  test('S7. usage：未降级时转发流式 usage；降级时不双记（改由缓冲路记）', async () => {
+    // 未降级：转发流式 usage
+    driveStream([LINE_SCENERY, LINE_PHOTO], { usage: { promptTokens: 10, completionTokens: 20 } })
+    const seen: LLMUsage[] = []
+    await rankQuestionsStreaming(STORY, CANDIDATES, { onUsage: (u) => seen.push(u) })
+    expect(seen).toEqual([{ promptTokens: 10, completionTokens: 20 }])
+
+    // 降级：丢弃流式 usage，onUsage 透传给缓冲路（callLLMJson mock 不主动回调 usage → 这里应为 0 次）
+    jest.clearAllMocks()
+    driveStream([LINE_SWAP_Q1, LINE_SWAP_Q2], { usage: { promptTokens: 99, completionTokens: 99 } })
+    driveWith([goodRaw()])
+    const seen2: LLMUsage[] = []
+    await rankQuestionsStreaming(STORY, CANDIDATES, { onUsage: (u) => seen2.push(u) })
+    expect(seen2).toEqual([])                                 // 流式 usage 未外发，缓冲 mock 也没回调
+  })
+
+  test('S8. 候选为空 / 无 key：不发起流式', async () => {
+    driveStream([LINE_SCENERY])
+    await expect(rankQuestionsStreaming(STORY, [])).resolves.toEqual([])
+    expect(mockStream).not.toHaveBeenCalled()
   })
 })

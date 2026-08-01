@@ -6,14 +6,18 @@
  */
 import 'server-only'
 import { extractCorpus, type ExtractionPick } from '@/services/extraction'
-import { rankQuestions, type CandidateQuestion } from '@/services/ranking'
+import {
+  rankQuestionsStreaming,
+  type CandidateQuestion,
+  type RankingStreamStats,
+} from '@/services/ranking'
 import type { LLMUsage } from '@/lib/llm'
 import { questionFace } from '@/lib/question-face'
 import { getQuestionsByObservation } from '@/lib/db/questions'
 import { listObservationPoints } from '@/lib/db/observation-points'
 import { DIMENSION_LABEL } from '@/lib/constants'
 import { OBSERVATION_ADJACENCY } from '@/lib/observation-adjacency'
-import type { MatchedPoint, FunnelMatchedQuestion, FunnelMatchResult } from '@/lib/types'
+import type { MatchedPoint, FunnelMatchedQuestion, FunnelMatchResult, RelevanceScore } from '@/lib/types'
 
 // FunnelMatchedQuestion / FunnelMatchResult 已下沉到中性的 @/lib/types（避免 db 层反向依赖本 service）。
 // 此处 re-export 保留原 `@/services/matching` 导入路径的兼容（route / 测试仍从这里取类型）。
@@ -41,6 +45,16 @@ export interface MatchUsageSink {
   onExtractionLatency?: (ms: number) => void
   /** rankQuestions 一次调用（含内部重试轮次）的真实墙钟耗时（ms）；无候选题时不触发 */
   onRankingLatency?: (ms: number) => void
+  /**
+   * 重排流式路逐条打分到达时的回调（到达序＝分数序）。阶段一无人消费、仅透传给阶段二的 SSE 增量渲染；
+   * 无候选题时不触发。
+   */
+  onRankingItem?: (r: RelevanceScore) => void
+  /**
+   * 重排流式路的畸形行统计（供 eval 报「畸形行出现率」+ 整次降级计数）；无候选题时不触发。
+   * SINGLE 路径每次调用触发一次；DIM 路径走缓冲不触发。
+   */
+  onRankingMalformedStats?: (s: RankingStreamStats) => void
 }
 
 /**
@@ -182,7 +196,13 @@ export async function matchByStory(
       return { id: q.id, en: face.en, zh: face.zh, obs: q.pointName }
     })
     const tRanking = Date.now()
-    const scores = await rankQuestions(cleanedText, candidates, usage?.onRanking)
+    // 默认走流式（SINGLE 路径按分降序逐行吐、可流式保序）；DIM 路径由 rankQuestionsStreaming 内部转缓冲。
+    // 仍返回整份 scores（await 到全部到达），route/前端契约一字不变；onItem 供阶段二 SSE 增量渲染、阶段一仅透传。
+    const scores = await rankQuestionsStreaming(cleanedText, candidates, {
+      onUsage: usage?.onRanking,
+      onItem: usage?.onRankingItem,
+      onMalformedStats: usage?.onRankingMalformedStats,
+    })
     usage?.onRankingLatency?.(Date.now() - tRanking)
 
     if (scores.length > 0) {

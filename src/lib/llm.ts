@@ -343,3 +343,148 @@ export async function callLLMJson<T>(opts: CallLLMJsonOptions<T>): Promise<T> {
   console.error(`${label} JSON 解析失败（已用尽 ${maxAttempts} 轮）`, logPayload(lastJson, lastRaw))
   throw new Error(`${label} JSON 解析失败（已重试）`)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 流式原语（新增，与 callLLMJson 完全并列，互不影响）
+// callLLMJson 是一次性缓冲（await res.json()），无法做「逐行到达即消费」。
+// ranking 的单一总分路径按分降序逐行吐 NDJSON，可流式保序，故这里提供 DashScope 的 SSE 行级流式读取。
+// 仅新增导出，不改动 callLLMJson 及其任何辅助。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 流式 DashScope（OpenAI 兼容）调用配置：字段同 DashScopeCall 的请求要素 + 超时/日志/用量回调 */
+export interface StreamDashScopeConfig {
+  endpoint: string
+  apiKey: string
+  model: string
+  messages: Msg[]
+  temperature?: number
+  maxTokens?: number
+  /**
+   * 单次流式调用超时，默认 30s。
+   * ⚠️ 与 callLLMJson 同理：输出越长生成越久，长输出场景必须按规模显式传值，否则会在 fetch 层被 abort。
+   */
+  timeoutMs?: number
+  /** 日志前缀，如 '[Ranking-Stream]' */
+  label?: string
+  /**
+   * 末块 usage 回调（body 带 stream_options.include_usage=true 时，上游在结束前发一帧仅含 usage、choices 空）。
+   * 仅在拿到【真实】usage 时触发；模型没吐就不触发，让调用方回退估算。
+   */
+  onUsage?: (usage: LLMUsage) => void
+}
+
+/**
+ * 从一帧 SSE 事件里取真实 token 用量（DashScope 字段名）。字段缺失/类型不对一律返回 null。
+ * 与 callLLMJson 内部的 extractUsage 同口径，但那是私有闭包，流式路独立实现一份、互不牵连。
+ * @param evt  已 JSON.parse 的单帧 SSE 事件
+ * @returns    归一化用量或 null
+ */
+function extractStreamUsage(evt: unknown): LLMUsage | null {
+  const u = (evt as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } | null }).usage
+  if (u && typeof u.prompt_tokens === 'number' && typeof u.completion_tokens === 'number') {
+    return { promptTokens: u.prompt_tokens, completionTokens: u.completion_tokens }
+  }
+  return null
+}
+
+/**
+ * 流式调用 DashScope，按模型输出文本里的换行【逐行】产出（async generator）。
+ * 两层缓冲：
+ *  1) SSE 帧缓冲——把字节流按 `\n` 切成 SSE 行，取 `data: {...}` 帧里的 choices[0].delta.content 追加到内容缓冲；
+ *     `data: [DONE]` 为结束帧；半帧（尾段不完整）留到下次读取再拼。
+ *  2) 内容缓冲——把 delta 累积出的模型文本按 `\n` 切出【完整行】yield；不完整尾段留到下次；
+ *     流结束时把最后一段（无尾随换行的完整行）flush 出去。
+ * 调用方对每行自行 JSON.parse + 校验；本原语只负责「把完整的一行交出来」，不理解行内内容。
+ * @param cfg  endpoint/apiKey/model/messages/temperature/maxTokens + timeoutMs/label/onUsage
+ * @yields     模型输出里的一整行文本（已 trim；空行跳过）
+ * @sideEffect 发起流式网络请求；失败按 classifyFailure 归类后打 error 日志并重抛（与缓冲路同风格）
+ */
+export async function* streamDashScopeLines(cfg: StreamDashScopeConfig): AsyncGenerator<string, void, unknown> {
+  const label = cfg.label ?? '[LLM-Stream]'
+  const timeoutMs = cfg.timeoutMs ?? 30_000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const startedAt = Date.now()
+  try {
+    const body: Record<string, unknown> = {
+      model: cfg.model,
+      messages: cfg.messages,
+      stream: true,
+      // 让上游在结束前发一帧仅含 usage（否则流式模式默认不返回 usage）
+      stream_options: { include_usage: true },
+    }
+    if (cfg.temperature !== undefined) body.temperature = cfg.temperature
+    if (cfg.maxTokens !== undefined) body.max_tokens = cfg.maxTokens
+
+    const res = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new LLMHttpError(label, res.status)
+    if (!res.body) throw new Error(`${label} 流式响应无 body（上游可能不支持流式）`)
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let sseBuffer = ''      // SSE 字节流按行切分的缓冲
+    let contentBuffer = ''  // delta.content 累积出的模型文本，按 \n 切 NDJSON 行
+
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      sseBuffer += decoder.decode(value, { stream: true })
+
+      let nl: number
+      while ((nl = sseBuffer.indexOf('\n')) >= 0) {
+        const rawLine = sseBuffer.slice(0, nl)
+        sseBuffer = sseBuffer.slice(nl + 1)
+        const sseLine = rawLine.trim()
+        if (sseLine === '' || sseLine.startsWith(':')) continue  // 空行 / SSE 注释
+        if (!sseLine.startsWith('data:')) continue
+        const payload = sseLine.slice('data:'.length).trim()
+        if (payload === '[DONE]') continue  // 结束帧；剩余内容在循环外统一 flush
+        let evt: unknown
+        try {
+          evt = JSON.parse(payload)
+        } catch {
+          continue  // 半帧或噪声，跳过（正常情况下 SSE 已按 \n 切完整）
+        }
+        const delta = (evt as { choices?: Array<{ delta?: { content?: unknown } }> }).choices?.[0]?.delta?.content
+        if (typeof delta === 'string' && delta.length > 0) {
+          contentBuffer += delta
+          let cnl: number
+          while ((cnl = contentBuffer.indexOf('\n')) >= 0) {
+            const contentLine = contentBuffer.slice(0, cnl).trim()
+            contentBuffer = contentBuffer.slice(cnl + 1)
+            if (contentLine !== '') yield contentLine
+          }
+        }
+        const usage = extractStreamUsage(evt)
+        if (usage) cfg.onUsage?.(usage)
+      }
+    }
+
+    // 末尾 flush：模型已结束，contentBuffer 里若有剩余即最后一行完整内容（无尾随换行）
+    const tail = contentBuffer.trim()
+    if (tail !== '') yield tail
+  } catch (e) {
+    const { kind, status } = classifyFailure(e)
+    console.error(`${label} 流式调用失败`, {
+      service: label,
+      provider: 'dashscope',
+      model: cfg.model,
+      kind,
+      status,
+      timeoutMs,
+      elapsedMs: Date.now() - startedAt,
+      message: e instanceof Error ? e.message : String(e),
+    })
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
