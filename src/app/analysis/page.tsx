@@ -23,6 +23,7 @@ import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, SavedWord }
 import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
 import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
+import { takeAnalysis } from '@/lib/analysis-inflight'
 
 function AnalysisContent() {
   const router     = useRouter()
@@ -65,17 +66,24 @@ function AnalysisContent() {
   useEffect(() => {
     if (!questionId) { setLoading(false); setError('缺少题目'); return }
     let cancelled = false
-    const ac = new AbortController()
+    // 采纳「点击即发/预取」的在飞请求（匹配页在点击当帧已发起，见 analysis-inflight），消除「跳转→挂载→才发」
+    // 的 2-3s 空转。仅【初次】采纳；重试（retryKey>0）一律新发（被采纳的那次已失败）。
+    const adopted = retryKey === 0 ? takeAnalysis(questionId, storyId) : null
+    const freshAc = new AbortController()
     ;(async () => {
       setLoading(true); setError(null); setDailyLimitHit(false)
       try {
+        // 优先用采纳到的在飞请求；503（预取闸拒）或其被 abort/网络错 → 回退新发一次，不让用户白等。
         // POST 而非 GET：该接口扣额度 + 真调 AI，用 GET 会被浏览器预取 / 爬虫无意触发、白烧钱。
         // apiFetch 行为不变——非 2xx 不抛、返回原始 Response，故下面仍按 res.status 分流。
-        const res = await apiFetch('/api/analysis', {
-          method: 'POST',
-          json: { questionId, storyId },
-          signal: ac.signal,
-        })
+        let res: Response | null = null
+        if (adopted) {
+          try { const r = await adopted.promise; res = r.status === 503 ? null : r }
+          catch { res = null }
+        }
+        if (!res) {
+          res = await apiFetch('/api/analysis', { method: 'POST', json: { questionId, storyId }, signal: freshAc.signal })
+        }
         // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不裸报「生成分析失败」。
         // 分析是零红线环节（点进题目看到的全部内容），务必兜好而非停在错误态。
         if (res.status === 403) { if (!cancelled) router.push('/'); return }
@@ -87,13 +95,14 @@ function AnalysisContent() {
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) setData(json)
       } catch (e) {
-        if (ac.signal.aborted) return          // 中断不算错误，忽略
+        if (freshAc.signal.aborted) return     // 中断（卸载）不算错误，忽略
         if (!cancelled) setError(e instanceof Error ? e.message : '生成分析失败')
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true; ac.abort() }
+    // 卸载：abort 采纳的在飞请求（仅停客户端等待，服务端跑完写缓存、不减计数/成本）+ 新发的兜底请求。
+    return () => { cancelled = true; adopted?.abort(); freshAc.abort() }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- storyId 随首帧固定不变，初次加载即取用；列入依赖只会无谓重跑分析
   }, [questionId, retryKey])
 

@@ -21,9 +21,18 @@ import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
+import { createConcurrencyGate } from '@/lib/concurrency-gate'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL, ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT } from '@/lib/constants'
 import type { AnalysisResponse, DimensionLabel, QuestionAnalysis } from '@/lib/types'
+
+// 预取专用并发闸（全服务器模块级单例）：只护上游 DashScope，【不护本机 CPU】——LLM 调用是 I/O、不吃
+// CPU，与 ASR（ffmpeg 转码受 2vCPU 限）本质不同，故不必压到核数。
+// maxConcurrent=3 而非 1：此闸全服务器共享，1 = 整台机同时只允许 1 个预取；一次 analysis ~12s → 全服务器
+// 每分钟仅 ~5 次预取，10 人同时在匹配页时 9 人的预取会被拒 = 最需要时失效。真实用户请求【不走此闸】，
+// 故预取永远排在真实请求之后、绝不拖慢它们；3 是「护上游 vs 预取有效性」的折中起点，可按 DashScope 限流后调。
+// 队列小 + 等待短：预取是 best-effort，满即快速拒（503）由客户端静默弃、不堆积不重试。
+const analysisPrefetchGate = createConcurrencyGate({ maxConcurrent: 3, maxQueue: 6, maxWaitMs: 4_000 })
 
 // 观察点 code 前缀 → 维度 id
 const PREFIX_DIM: Record<string, keyof typeof DIMENSION_LABEL> = {
@@ -41,6 +50,8 @@ interface AnalysisRequestBody {
   storyId?: unknown
   /** 故事正文兜底：DB 读不到 storyId 对应语料时用它（历史上由 URL 携带，现随 body 走） */
   story?: unknown
+  /** 后台预取标志：仅影响「走预取并发闸 + metadata.prefetch:true 成本归因」，【绝不】影响计数/同意/越权。 */
+  prefetch?: unknown
 }
 
 /** 取 body 里的字符串字段；非字符串/缺省一律回退空串（与旧版 searchParams.get() ?? '' 同语义）。 */
@@ -66,6 +77,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const questionId = str(reqBody.questionId)
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined   // 正文兜底
+    const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权
     if (!questionId) {
       return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     }
@@ -142,7 +154,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       // bumpDailyUsageServer 已在前面扣过次（防刷闸），命中也照扣、正确，此处不再动。
       analysis = cached
     } else {
-      // 未命中：真调 AI。
+      // 未命中：真调 AI。预取走独立并发闸（护上游 DashScope、不拖真实请求；满/超时→503，客户端静默弃）；
+      // 真实用户请求 slot=null、不走闸。⚠️ 闸在 bumpDailyUsage【之后】：预取照常已计数（防刷、无绕过），
+      // 闸满被拒的预取也已计过次、只是不产 AI（可接受，且极罕见——需全服务器 >3 并发预取）。
+      const slot = isPrefetch ? await analysisPrefetchGate.acquire() : null
+      if (slot && !slot.ok) return NextResponse.json({ error: '预取繁忙' }, { status: 503 })
+      try {
       // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
       // 优先记模型真实 usage；模型没吐 usage 才回退到按题目长度的估算（英文约 0.3 token/字 + 系统提示约 800）。
       // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 realUsage 已落值。
@@ -151,7 +168,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story }, (u) => { realUsage = u }),
       )
       const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 800), completionTokens: 400 }
-      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+      await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate', prefetch: isPrefetch } })
 
       // 真调成功后回填个性化缓存。写失败吞掉（红线 3）：AI 已成功、已花钱，绝不能因回填失败把请求变 500；
       // 只 logErr、照常返回。带 content_hash = sha256(当前 story)，下次命中据此判失效（红线 4）。
@@ -162,6 +179,10 @@ export async function POST(req: Request): Promise<NextResponse> {
         } catch (e) {
           logErr('[analysis API] 个性化缓存写失败，忽略', e)
         }
+      }
+      } finally {
+        // 名额必须归还（成功/抛错都要），否则预取闸越关越死。真实请求 slot=null、跳过。
+        if (slot && slot.ok) slot.release()
       }
     }
 

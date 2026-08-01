@@ -7,12 +7,13 @@
  * @created  2026-05-15
  */
 'use client'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
+import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
 import { SCORE_HIGH, SCORE_MID } from '@/lib/constants'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -47,6 +48,9 @@ function MatchingContent() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [savingId, setSavingId] = useState<string | null>(null)
   const [ankiGate, setAnkiGate] = useState(false)
+  // 点击即发时记下被点题的键：匹配页卸载/结果变时用它作 abortAll 的 except，保住这条「点击即发」请求
+  // 不被清理连带 abort（否则分析页采纳不到、白等），其余预取照清。
+  const lastClickedKeyRef = useRef<string | null>(null)
   const [swap, setSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
   const [swapping, setSwapping] = useState(false)
   // 本页会话语料（corpusId）的一句话概括：整理时已同源产出并写入 corpus.summary，此处按 id 拉出，
@@ -144,6 +148,36 @@ function MatchingContent() {
         },
       },
     }).catch(() => {})
+  }, [result, corpusId])
+
+  // 预取前 3 道分析（结果渲染后延迟启动、串行、静默降级）：后台预生成 top-3 的个性化分析，写进 (题,语料)
+  // 缓存，用户点进去走缓存命中。取【数组前 3 道】（result.questions 已按分降序=用户所见序），【不】筛 ≥85——
+  // 25% 场景一道高匹配都没有，筛分会一道都取不到。五条形状约束逐条落实：
+  //   ① 串行：await 上一道完成再发下一道（任一时刻在飞恒 1，per-user）；
+  //   ② 延迟触发：渲染后延迟 1.5s，避开与 matching 请求峰值重叠；
+  //   ③ 独立并发闸：requestAnalysis(prefetch=true) 走服务端预取闸（见 route），全服务器自限、排真实请求之后；
+  //   ④ 可中断：点任意题(onPractice)/离开(本 effect cleanup) → abortAll 立刻中止未完成预取（仅停客户端等待，
+  //      服务端跑完写缓存、不减计数/成本，见 analysis-inflight 模块头）；
+  //   ⑤ 静默降级：任一道 429/503/超时/任何错 → 放弃剩余（不重试、不提示、不打断），用户走点击即发兜底。
+  useEffect(() => {
+    if (!result || result.noMatch || result.questions.length === 0) return
+    const top3 = result.questions.slice(0, 3).map((q) => q.id)
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        for (const qid of top3) {
+          if (cancelled) return
+          try {
+            const res = await requestAnalysis(qid, corpusId, true).promise
+            if (!res.ok) break               // 429/503/任何非 2xx → 放弃剩余预取（静默）
+          } catch {
+            break                            // 网络错/被 abort → 放弃剩余
+          }
+        }
+      })()
+    }, 1500)
+    // cleanup：结果变(重新匹配)/离开匹配页 → 停循环 + 清空在飞（except 刚点击的题，保其「点击即发」不被连带 abort）
+    return () => { cancelled = true; clearTimeout(timer); abortAll(lastClickedKeyRef.current ?? undefined) }
   }, [result, corpusId])
 
   // 未打分候选（重排 3 轮补缺全失败后的兜底残留）属极罕见边缘态：它们一律不展示，
@@ -265,6 +299,13 @@ function MatchingContent() {
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
     onPractice: (id) => {
+      // 点击即发：点的当帧就发起（或复用正在预取的）该题 analysis 请求，与路由跳转并行——省掉「跳转→挂载→
+      // 才发」的 2-3s 空转，分析页挂载后 takeAnalysis 采纳这条在飞请求，不重发。同时 abortAll 中止其余预取
+      // （except 本题：若本题正在预取则复用同一在飞请求，不重发不双计）。记 lastClickedKey 供卸载 cleanup 保住它。
+      const key = inflightKey(id, corpusId)
+      lastClickedKeyRef.current = key
+      abortAll(key)
+      requestAnalysis(id, corpusId, false)
       // 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）：rank = 该题在 result.questions
       //（已按分数降序 = 用户所见顺序）的 index+1；candidateCount = 列表总数。
       // 顺序：先 apiFetch 再 navigate —— fetch 同步发出请求后，SPA 客户端跳转不卸载页面/不 kill 在途请求，
