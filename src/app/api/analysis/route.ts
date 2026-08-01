@@ -78,6 +78,16 @@ function contentHashOf(story: string, level: string): string {
   return sha256(`${story}\nlevel=${level}`)
 }
 
+/** 合法目标水平档位（与前端 LEVELS 一致）。服务端收敛：非枚举值（含超长/注入串）一律回落 '6.0'。 */
+const VALID_LEVELS: ReadonlySet<string> = new Set(['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'])
+/**
+ * 把 body.level 收敛到已知档位枚举 —— level 会直插 LLM prompt 且折进缓存 hash，不收敛则可被绕过客户端
+ * 传超长串顶满单次 token 成本（在自身日额度内烧平台 AI 费）。非字符串/非枚举一律 '6.0'（与缺省同）。
+ */
+function sanitizeLevel(raw: unknown): string {
+  return typeof raw === 'string' && VALID_LEVELS.has(raw) ? raw : '6.0'
+}
+
 /**
  * 阻塞式整批分析（现有实现，函数体一字未改）。
  * 现仅剩一个作用：`?stream=0` 降级目标（前端读流失败/上游不支持流式时重发，返回普通 JSON）。
@@ -99,7 +109,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     const questionId = str(reqBody.questionId)
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined   // 正文兜底
-    const level      = str(reqBody.level) || '6.0'       // 缺省 6.0（照 phrases/route 读法）；折进缓存 hash + 传给 AI
+    const level      = sanitizeLevel(reqBody.level)       // 缺省 6.0（照 phrases/route 读法）；折进缓存 hash + 传给 AI
     const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权
     if (!questionId) {
       return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
@@ -298,7 +308,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     const questionId = str(reqBody.questionId)
     const storyId    = str(reqBody.storyId)
     const storyUrl   = str(reqBody.story) || undefined
-    const level      = str(reqBody.level) || '6.0'       // 缺省 6.0；折进缓存 hash + 传给 AI（与 handleBuffered 同口径）
+    const level      = sanitizeLevel(reqBody.level)       // 缺省 6.0；折进缓存 hash + 传给 AI（与 handleBuffered 同口径）
     const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权（同 handleBuffered）
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     if (storyId) await assertCorpusOwner(userId, storyId)

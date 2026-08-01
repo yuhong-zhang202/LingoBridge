@@ -150,9 +150,10 @@ function MatchingContent() {
     // 三个转化/限流状态与现状一字不变（无论流式还是 ?stream=0 回来都在读体前先判 status）。
     // 命中即处理并返回 true（调用方据此终止，不再降级/不报错）。
     const handleTerminalStatus = (res: Response): boolean => {
-      if (res.status === 403) { if (!cancelled) router.push('/'); return true }   // 同意闸：回首页触发同意弹窗
-      if (res.status === 402) { if (!cancelled) setQuotaShown(true); return true } // 匿名额度用尽：注册引导
-      if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return true } // 注册当日上限：明天恢复
+      // 三个终态都必须置 loading=false：否则视图把「当日上限」横幅门控在 !loading 后，429 会永久转圈、提示不出（回归修复）。
+      if (res.status === 403) { if (!cancelled) { setLoading(false); router.push('/') } return true }   // 同意闸：回首页触发同意弹窗
+      if (res.status === 402) { if (!cancelled) { setLoading(false); setQuotaShown(true) } return true } // 匿名额度用尽：注册引导
+      if (res.status === 429) { if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return true } // 注册当日上限：明天恢复
       return false
     }
 

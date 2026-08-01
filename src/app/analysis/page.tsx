@@ -77,10 +77,12 @@ function AnalysisContent() {
   const [dailyLimitHit, setDailyLimitHit] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [openPhrase, setOpenPhrase] = useState<string | null>(null)
-  // 词组档位：初值 '6.0' 兜底（account 异步、SSR 首帧为 null）；account 加载后【一次性】校正为目标分映射档。
-  // 只校正一次（levelInitRef 守卫）：之后用户手动切档（changeLevel）不被 account 回放覆盖。
+  // 词组档位：初值【直接取 account 目标分映射档】。useAccount 是模块级共享快照、卸载保留 → 匹配→分析/题库→分析
+  // 常见路径首帧 account 即热、初值即真实档位，取数 effect 首帧读 levelRef 拿到的就是对的档 —— 从而复用匹配页
+  // 点击即发的在飞请求（同键 id::corpus::band）、不冷发一条 6.0 白烧、不出现「标签 7.0 配 6.0 词组」的脱节。
+  // 冷深链（account 首帧为 null）回落 '6.0'，account 到位后由下方 effect【一次性】校正选择器（levelInitRef 守卫）。
   const { account } = useAccount()
-  const [level, setLevel] = useState('6.0')
+  const [level, setLevel] = useState(() => targetBandToLevel(account?.targetBand ?? null))
   const levelInitRef = useRef(false)
   useEffect(() => {
     if (account && !levelInitRef.current) {
@@ -123,9 +125,9 @@ function AnalysisContent() {
       try {
         const res = await apiFetch('/api/analysis?stream=0', { method: 'POST', json: { questionId, storyId, level: levelRef.current }, signal: freshAc.signal })
         // 与现状一致：403 回首页触发同意 / 402 弹注册引导 / 429 明天恢复
-        if (res.status === 403) { if (!cancelled) router.push('/'); return }
-        if (res.status === 402) { if (!cancelled) setQuotaShown('page'); return }
-        if (res.status === 429) { if (!cancelled) setDailyLimitHit(true); return }
+        if (res.status === 403) { if (!cancelled) { setLoading(false); router.push('/') } return }
+        if (res.status === 402) { if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
+        if (res.status === 429) { if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
         if (!res.ok) throw new Error('生成分析失败')
         const json = (await res.json()) as AnalysisResponse
         if (!cancelled) { setData(json); setLoading(false) }
@@ -152,9 +154,9 @@ function AnalysisContent() {
     // 非流(非 SSE)且 !ok（如 500）→ 降级。ok SSE 的数据流由 subscribe 驱动，这里不再处理。
     entry.promise.then((res) => {
       if (cancelled || finished) return
-      if (res.status === 403) { finished = true; if (!cancelled) router.push('/'); return }
-      if (res.status === 402) { finished = true; if (!cancelled) setQuotaShown('page'); return }
-      if (res.status === 429) { finished = true; if (!cancelled) setDailyLimitHit(true); return }
+      if (res.status === 403) { finished = true; if (!cancelled) { setLoading(false); router.push('/') } return }
+      if (res.status === 402) { finished = true; if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
+      if (res.status === 429) { finished = true; if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
       if (!res.ok) { void degrade(); return }
     }).catch(() => {
       // 初始 fetch 本身失败（网络/被 abort）：abort 由 cleanup 触发、cancelled 拦掉；其余降级兜底。
