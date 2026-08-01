@@ -11,6 +11,7 @@
  */
 'use client'
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import Toast from '@/components/Toast'
@@ -22,9 +23,17 @@ import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
 import { computeRichness } from '@/lib/story-richness'
-import HomeMobile from './HomeMobile'
-import HomeDesktop from './HomeDesktop'
 import type { HomeViewProps } from './types'
+
+// 路由级代码分割：移动/桌面两套纯展示视图各自独立 chunk，按视口【互斥渲染】——移动端只下载 HomeMobile、
+// 桌面端只下载 HomeDesktop，互不下载对方代码（此前 CSS lg:hidden 两套都渲染、两端都下载）。
+// loading 占位用页面背景色 bg-bg-page，避免 chunk 加载瞬间闪白。ssr 按现状（默认，page 本身 'use client'）。
+const HomeMobile = dynamic(() => import('./HomeMobile'), {
+  loading: () => <div className="min-h-screen bg-bg-page" />,
+})
+const HomeDesktop = dynamic(() => import('./HomeDesktop'), {
+  loading: () => <div className="min-h-screen bg-bg-page" />,
+})
 
 // Hero 标题第二行（故事模式下打字机逐字浮现）
 const HERO_LINE2 = '个性化雅思语料'
@@ -40,6 +49,16 @@ export default function HomePage() {
   const [micSheet, setMicSheet] = useState<null | 'denied' | 'unavailable'>(null)
   const [typed, setTyped] = useState('')
   const [reuseTab, setReuseTab] = useState(0)   // 模块五：信息复用 Tab 舞台当前功能
+  // 视口判定（客户端）：null=未定（SSR/首帧）→ 显背景占位；resolve 后只挂载匹配的那套视图，
+  // 另一套视图的 chunk 永不下载（配合上方 next/dynamic 实现「移动端不下载桌面代码」）。断点 = Tailwind lg(1024)。
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const apply = () => setIsDesktop(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
   const { question, loading, error, exhausted, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
@@ -121,11 +140,13 @@ export default function HomePage() {
 
   return (
     <>
-      {/* ============ 移动端：原竖排布局 ============ */}
-      <div className="lg:hidden"><HomeMobile {...viewProps} /></div>
-
-      {/* ============ 桌面端：营销落地页 ============ */}
-      <div className="hidden lg:block"><HomeDesktop {...viewProps} /></div>
+      {/* 按视口互斥渲染：未定→背景占位（不闪白）；移动端只挂 HomeMobile、桌面端只挂 HomeDesktop。
+          视觉与原 CSS lg:hidden/hidden lg:block 一致，只是改为「只下载/只挂载匹配的那套」。 */}
+      {isDesktop === null
+        ? <div className="min-h-screen bg-bg-page" />
+        : isDesktop
+          ? <HomeDesktop {...viewProps} />
+          : <HomeMobile {...viewProps} />}
 
       {/* 版本更新公告卡：进首页主动弹一次（按版本号只弹一次、可关、非阻断），内容来自 CHANGELOG[0]。
           z-40 低于首次同意硬闸（z-50）——新用户先过同意闸，老用户直接见公告。 */}

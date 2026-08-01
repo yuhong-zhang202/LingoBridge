@@ -30,8 +30,8 @@ import type { HomeViewProps } from './types'
 // TODO: 文案待确认 —— 以下桌面营销模块文案取自参考稿占位，非最终产品文案
 // 模块二：能力三卡
 const FEATURES: { Icon: LucideIcon; img?: string; tint: 'primary' | 'accent'; title: string; lead: string; desc: string }[] = [
-  { Icon: Target,        img: '/icon-corpus-match.png', tint: 'primary', title: '语料匹配',     lead: '你的故事，就是你的素材库', desc: '分享一段日常，精准匹配当季最新雅思口语题，从此告别题海。' },
-  { Icon: MessageCircle, img: '/icon-restructure.png',  tint: 'accent',  title: '练习对话',     lead: '熟悉语料表达，模拟真实对话',   desc: '考官将结合语料和题目分析与你练习口语表达，帮助你熟悉语料，碰到 Part 2 题目将自然延伸讨论 Part 3。' },
+  { Icon: Target,        img: '/icon-corpus-match.webp', tint: 'primary', title: '语料匹配',     lead: '你的故事，就是你的素材库', desc: '分享一段日常，精准匹配当季最新雅思口语题，从此告别题海。' },
+  { Icon: MessageCircle, img: '/icon-restructure.webp',  tint: 'accent',  title: '练习对话',     lead: '熟悉语料表达，模拟真实对话',   desc: '考官将结合语料和题目分析与你练习口语表达，帮助你熟悉语料，碰到 Part 2 题目将自然延伸讨论 Part 3。' },
   { Icon: Layers,        img: '/icon-reuse.png',        tint: 'primary', title: '专属留痕',     lead: '个性化保留你的语言风格',   desc: '无论是题目分析中收藏的词组，还是练习对话中反映出的语法错误或发音偏差，都可以真实保留在素材库，随时可翻看练习。' },
 ]
 
@@ -368,10 +368,11 @@ export default function HomeDesktop({
                 {/* 左：漏斗示意图（品牌配色螺旋丝带，已抠除背景的透明 PNG）；靠右上偏移贴近文案 */}
                 <Reveal className="flex flex-col">
                   <Image
-                    src="/funnel-spiral.png"
+                    src="/funnel-spiral.webp"
                     alt="语料匹配漏斗示意"
-                    width={2124}
-                    height={2016}
+                    width={1200}
+                    height={1139}
+                    sizes="460px"
                     className="w-full max-w-[460px] h-auto ml-auto translate-x-8 -translate-y-10"
                   />
                 </Reveal>

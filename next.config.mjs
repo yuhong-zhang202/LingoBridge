@@ -43,7 +43,8 @@ const withPWA = withPWAInit({
       {
         urlPattern: ({ request }) => request.mode === "navigate",
         handler: "NetworkFirst",
-        options: { cacheName: "pages", networkTimeoutSeconds: 5, expiration: { maxEntries: 32 } },
+        // 2.5s：目标用户在国内跨境链路，等满 5s 才回退缓存体验差；2.5s 足够区分「网络正常」与「网络劣化」。
+        options: { cacheName: "pages", networkTimeoutSeconds: 2.5, expiration: { maxEntries: 32 } },
       },
       // 其余静态资源 stale-while-revalidate（构建产物已被版本化预缓存）
       {
