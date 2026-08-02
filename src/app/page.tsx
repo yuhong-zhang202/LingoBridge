@@ -177,7 +177,16 @@ export default function HomePage() {
       <MicPermissionSheet
         open={micSheet !== null}
         reason={micSheet ?? 'denied'}
-        onUseText={() => { setMicSheet(null); setShowTextInput(true) }}
+        onUseText={() => {
+          setMicSheet(null)
+          // 这条路径绕过 handleSetShowTextInput（直接开面板），不补埋就成漏斗盲区：
+          // 「麦克风失败 → 改用文字」的人有 story_entry(record) 却没有 capture_started，
+          // 会被算成「点了入口但没进采集」，与真正被额度拦掉的人混在同一格里。
+          // 只报 capture_started：story_entry 在点「开始录音」时已报过（entry='record'），
+          // 额度守卫也已在 handleStartRecording 里过完，此处不重复。
+          track('flow.capture_started', { mode: 'text' })
+          setShowTextInput(true)
+        }}
         onDismiss={() => setMicSheet(null)}
       />
       {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}

@@ -88,7 +88,11 @@ function RecordingContent(): JSX.Element {
         exit === 'pagehide' ? { keepalive: true } : undefined,
       )
     }
-    const onPageHide = (): void => reportAbandon('pagehide')
+    // persisted=true ＝ 页面进 bfcache（iOS 切后台/后退最常见），用户很可能马上回来接着录。
+    // 此时报 abandoned 会双错：把「回来了的人」算成放弃，且 abandonedRef 被用掉后他【真放弃时反而不报】。
+    // 故只在 persisted=false（真正卸载）时报。代价是 iOS 上一部分真放弃收不到，abandoned 偏低——
+    // 宁可偏低：偏低能用「有 capture_started 但此后 24h 无任何事件」推断口径补，偏高则无从分辨。
+    const onPageHide = (e: PageTransitionEvent): void => { if (!e.persisted) reportAbandon('pagehide') }
     window.addEventListener('pagehide', onPageHide)
     return () => {
       window.removeEventListener('pagehide', onPageHide)
@@ -252,7 +256,15 @@ function RecordingContent(): JSX.Element {
           router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText, summary: checkData.summary ?? '' })}${qid ? `&qid=${qid}` : ''}`)
           return
         }
-        // 其他非 402 错误：落到 try 外的放行分支，restructure 页兜底自行整理
+        // 其他非 402 错误：落到 try 外的放行分支，restructure 页兜底自行整理。
+        // 【口径对齐】useStorySubmit 的同一分支记了 ai_call，这里原先漏了 —— 同一个 /api/restructure
+        // 接口在「语音路径失败」时无痕、在「文字路径失败」时有痕，两条路径的失败率没法横向比。
+        // 仍【不报 capture_submitted】：用户被放行了，下面 router.push 前会报 proceed。
+        track('flow.ai_call', {
+          stage: 'restructure', mode: 'voice',
+          result: checkRes.status >= 500 ? 'server_5xx' : 'other',
+          httpStatus: checkRes.status, latencyMs: since(t1),
+        })
       } catch {
         /* API 错误（含中断）放行，restructure 页面兜底 */
         // 只记这次 AI 调用的结局，【不报 capture_submitted】——用户确实被放行了，

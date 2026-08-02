@@ -62,7 +62,11 @@ function WriteContent(): JSX.Element {
         exit === 'pagehide' ? { keepalive: true } : undefined,
       )
     }
-    const onPageHide = (): void => reportAbandon('pagehide')
+    // persisted=true ＝ 页面进 bfcache（iOS 切后台/后退最常见），用户很可能马上回来接着写。
+    // 此时报 abandoned 会双错：把「回来了的人」算成放弃，且 abandonedRef 被用掉后他【真放弃时反而不报】。
+    // 故只在 persisted=false（真正卸载）时报。代价是 iOS 上一部分真放弃收不到，abandoned 偏低——
+    // 宁可偏低：偏低能用「有 capture_started 但此后 24h 无任何事件」推断口径补，偏高则无从分辨。
+    const onPageHide = (e: PageTransitionEvent): void => { if (!e.persisted) reportAbandon('pagehide') }
     window.addEventListener('pagehide', onPageHide)
     return () => {
       window.removeEventListener('pagehide', onPageHide)
@@ -72,7 +76,14 @@ function WriteContent(): JSX.Element {
 
   /** 「提交」入口：先核额度，未超额才走共享提交流程 */
   async function handleSubmit(): Promise<void> {
-    if (await storyQuota.checkBlocked()) return
+    if (await storyQuota.checkBlocked()) {
+      // 【漏斗盲区补丁】本页守卫【前置】于 useStorySubmit：被额度拦下时 submit() 根本不跑，
+      // 那边的 quota_blocked 无人上报 → /write 的额度拦截会在漏斗里凭空消失（看着像用户自己没提交）。
+      // 录音页守卫在 handleFinish 内部、由同一函数上报，不存在这个问题；只有本页要单独补。
+      track('flow.capture_submitted', { mode: 'text', outcome: 'quota_blocked', charCount: textStory.trim().length })
+      submittedRef.current = true   // 已判定结局，离开页面不再叠报「放弃」
+      return
+    }
     submittedRef.current = true   // 已发起提交 → 之后离开页面不再算「放弃」（结局由 useStorySubmit 上报）
     submit()
   }
