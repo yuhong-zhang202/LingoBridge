@@ -10,10 +10,11 @@
  * @created  2026-07-09
  */
 'use client'
-import { type JSX, useState, useEffect, Suspense } from 'react'
+import { type JSX, useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getQuestionById } from '@/lib/db/questions'
 import { computeRichness } from '@/lib/story-richness'
+import { track } from '@/lib/client-events'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
@@ -38,9 +39,41 @@ function WriteContent(): JSX.Element {
   // 写作页始终正常显示，提示只在用户点「提交」/「切换到语音」时才弹。
   const storyQuota = useStoryQuotaGuard()
 
+  // 埋点用状态（不参与渲染/分支，故用 ref）：
+  //   submittedRef  是否已发起过提交 —— 点过提交的人不算「放弃」，其结局已由 useStorySubmit 的 capture_submitted 覆盖
+  //   abandonedRef  放弃事件全生命周期只报一次 —— pagehide 与卸载可能先后触发
+  //   textRef       卸载时要读当时的字数，而放弃 effect 是空依赖（只挂一次），故用 ref 同步
+  const submittedRef = useRef(false)
+  const abandonedRef = useRef(false)
+  const textRef = useRef('')
+  useEffect(() => { textRef.current = textStory }, [textStory])
+
+  // 采集开始 / 中途放弃埋点。放弃的两条出口都要盯：站内跳走（组件卸载）与关标签页/切后台（pagehide）；
+  // 后者页面随时会被冻结，必须走 keepalive 的 fetch（sendBeacon 设不了 Authorization 头，见 client-events 顶注）。
+  // 本页【不报 capture_submitted】—— 已由 useStorySubmit 覆盖，这里再报就是双计。
+  useEffect(() => {
+    track('flow.capture_started', { mode: 'text' })
+    const reportAbandon = (exit: 'nav' | 'pagehide'): void => {
+      if (submittedRef.current || abandonedRef.current) return
+      abandonedRef.current = true
+      track(
+        'flow.capture_abandoned',
+        { mode: 'text', exit, charCount: textRef.current.trim().length },
+        exit === 'pagehide' ? { keepalive: true } : undefined,
+      )
+    }
+    const onPageHide = (): void => reportAbandon('pagehide')
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      reportAbandon('nav')
+    }
+  }, [])
+
   /** 「提交」入口：先核额度，未超额才走共享提交流程 */
   async function handleSubmit(): Promise<void> {
     if (await storyQuota.checkBlocked()) return
+    submittedRef.current = true   // 已发起提交 → 之后离开页面不再算「放弃」（结局由 useStorySubmit 上报）
     submit()
   }
   // checkBlocked（查额度，跨新加坡可 1-2s）期间也让提交按钮转圈：guard pending OR 进 submitting，
@@ -53,6 +86,9 @@ function WriteContent(): JSX.Element {
    * 用户时间白花、ASR 费用也白花。故在离开本页前就拦住。
    */
   async function handleSwitchToVoice(): Promise<void> {
+    // 【必须在额度守卫之前报】被额度拦下的人也是点了「切换到语音」的人；埋在守卫之后，
+    // 额度拦截就会伪装成「用户根本没点」。fire-and-forget，不影响下面的分支。
+    track('flow.story_entry', { entry: 'record_from_write', mode: 'story' })
     if (await storyQuota.checkBlocked()) return
     navigate(qid ? `/recording?qid=${qid}` : '/recording')
   }
