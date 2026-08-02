@@ -90,4 +90,17 @@ export const env = {
    * ⚠️ 一旦启用【不可更换】：换 salt 会让此前写入的 email_hash 全部失配、再也无法比对。
    */
   consentHashSalt: process.env.CONSENT_HASH_SALT ?? '',
+
+  /**
+   * QA 流量标记的共享 token（服务端专用，切勿加 NEXT_PUBLIC_）。可选变量，未配置不报错。
+   *
+   * 产品方自测时访问 `?qa=<本值>`，客户端把它原样带进 X-QA-Traffic 头；服务端【严格 ===】比对，
+   * 命中才把 flow_events.is_qa 标真，用于把自测流量从漏斗统计里剔除。
+   *
+   * ⚠️ 只可写统计列，永久禁止用于额度 / 权限 / 计费 / RLS 判定（值由客户端携带、可伪造）。
+   * ⚠️ fail-closed：本值未配置（空串）时，任何请求头都不该匹配 —— 比对方必须先判空，
+   *    绝不能写出 `header === env.qaTrafficToken` 在两边都为空/undefined 时判真的形态，
+   *    否则「没配 token」会变成「全站流量都被标成 QA」，统计整段作废。
+   */
+  qaTrafficToken: process.env.QA_TRAFFIC_TOKEN ?? '',
 }

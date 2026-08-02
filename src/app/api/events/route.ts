@@ -1,15 +1,21 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（当前只收 match.view_rendered）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（match.* 与 flow.* 共 8 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
- *           props 服务端按白名单收敛为「计数 + 布尔」，防客户端塞进任何原文——隐私铁律。
+ *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
+ *
+ *   ⚠️ migration 0053 把 DB 的 event CHECK 由枚举白名单放宽成了前缀正则，
+ *   故【本文件的 EVENT_SPECS 分发表是事件名唯一的真闸】：查表未命中一律 400，绝不许放行落库。
+ *   同理，绝不许写「所有整数字段一律放行」的通用 sanitize —— 那等于把 props 变成客户端可控的自由 key 空间。
+ *
  * @author   LingoBridge
  * @created  2026-07-17
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
-import { logEvent } from '@/lib/events'
+import { logEvent, type FlowEventName } from '@/lib/events'
+import { isQaRequest } from '@/lib/qa-traffic'
 
 /** view_rendered 允许上报的字段白名单（全为计数/布尔，无原文）。服务端据此重建 props，丢弃其余一切。 */
 const VIEW_RENDERED_NUMERIC = ['candidateCount', 'highCount', 'midCount', 'visibleCount', 'unscoredCount'] as const
@@ -75,28 +81,209 @@ function sanitizeQuestionOpened(raw: unknown): Record<string, number | string> {
   return out
 }
 
+// ── 通用取值原语（P0/P1 六个新事件共用；只有这三种形态，不存在「通用放行」）──────────────
+
+/** 把 unknown 收敛成可按 key 取值的对象；非对象一律当空对象（后续每个字段都取不到 → 全丢）。 */
+function asObject(raw: unknown): Record<string, unknown> {
+  return typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+}
+
+/**
+ * 取枚举字段：必须是字符串且【全等】命中白名单之一。
+ * 刻意不 trim、不转小写：'Proceed' / 'proceed ' 一律丢弃 —— 容错会让口径悄悄多出几个变体值，
+ * 事后分组统计时才发现，比直接丢更难查。
+ * @param  o        props 对象
+ * @param  key      字段名
+ * @param  allowed  允许值白名单
+ * @returns         命中的枚举值，否则 undefined
+ */
+function pickEnum<T extends string>(o: Record<string, unknown>, key: string, allowed: readonly T[]): T | undefined {
+  const v = o[key]
+  return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined
+}
+
+/**
+ * 取整数字段：必须是有限整数且落在 [min, max] 闭区间。负数/小数/字符串数字/NaN/Infinity/超界一律丢弃。
+ * @param  o    props 对象
+ * @param  key  字段名
+ * @param  min  下界（含）
+ * @param  max  上界（含）
+ * @returns     合法整数，否则 undefined
+ */
+function pickInt(o: Record<string, unknown>, key: string, min: number, max: number): number | undefined {
+  const v = o[key]
+  return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : undefined
+}
+
+// ── P0/P1 六个新客户端事件的 sanitize（一事件一函数，字段逐个显式列出）───────────────────
+
+const STORY_ENTRY = ['record', 'text', 'write', 'record_from_write'] as const
+const STORY_MODE = ['story', 'ielts'] as const
+const MIC_RESULT = ['granted', 'denied', 'unavailable'] as const
+const MIC_SURFACE = ['home', 'recording'] as const
+const CAPTURE_MODE = ['voice', 'text'] as const
+const CAPTURE_OUTCOME = [
+  'proceed', 'too_short', 'quota_blocked', 'no_audio', 'too_large', 'garbage',
+  'text_too_short', 'consent_blocked', 'ai_failed', 'aborted',
+] as const
+const CAPTURE_EXIT = ['nav', 'pagehide'] as const
+const AI_STAGE = ['transcribe', 'restructure', 'polish'] as const
+const AI_RESULT = [
+  'ok', 'consent_403', 'quota_402', 'rate_429', 'bad_input_400', 'empty_422', 'auth_401',
+  'busy_503', 'server_5xx', 'parse_fail', 'network', 'timeout', 'aborted', 'other',
+] as const
+
+/** 采集时长上限 = 1 小时（秒）；字数上限 10 万字。超界即脏数据，丢弃。 */
+const DURATION_SEC_MAX = 3600
+const CHAR_COUNT_MAX = 100000
+/** AI 调用耗时上限 = 10 分钟（毫秒）；httpStatus 上界取 599（网络/超时等无状态码的场景不带此字段）。 */
+const LATENCY_MS_MAX = 600000
+const HTTP_STATUS_MAX = 599
+
+/** 收敛后的安全 props（三种标量，无自由文本字段） */
+type SafeProps = Record<string, number | boolean | string>
+
+/**
+ * flow.story_entry：用户从哪个入口开始一次故事。
+ * @param  raw  客户端上报的 props
+ * @returns     entry(枚举) + mode(枚举)
+ */
+function sanitizeStoryEntry(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const entry = pickEnum(o, 'entry', STORY_ENTRY)
+  if (entry !== undefined) out.entry = entry
+  const mode = pickEnum(o, 'mode', STORY_MODE)
+  if (mode !== undefined) out.mode = mode
+  return out
+}
+
+/**
+ * flow.mic_permission：麦克风授权结果 + 发生在哪个界面。
+ * @param  raw  客户端上报的 props
+ * @returns     result(枚举) + surface(枚举)
+ */
+function sanitizeMicPermission(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const result = pickEnum(o, 'result', MIC_RESULT)
+  if (result !== undefined) out.result = result
+  const surface = pickEnum(o, 'surface', MIC_SURFACE)
+  if (surface !== undefined) out.surface = surface
+  return out
+}
+
+/**
+ * flow.capture_started：开始采集（按下录音 / 进入文字输入）。
+ * @param  raw  客户端上报的 props
+ * @returns     mode(枚举)
+ */
+function sanitizeCaptureStarted(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const mode = pickEnum(o, 'mode', CAPTURE_MODE)
+  if (mode !== undefined) out.mode = mode
+  return out
+}
+
+/**
+ * flow.capture_submitted：采集提交及其结局（放行 / 被各类闸挡下）。
+ * @param  raw  客户端上报的 props
+ * @returns     mode + outcome(枚举) + durationSec/charCount(整数)
+ */
+function sanitizeCaptureSubmitted(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const mode = pickEnum(o, 'mode', CAPTURE_MODE)
+  if (mode !== undefined) out.mode = mode
+  const outcome = pickEnum(o, 'outcome', CAPTURE_OUTCOME)
+  if (outcome !== undefined) out.outcome = outcome
+  const durationSec = pickInt(o, 'durationSec', 0, DURATION_SEC_MAX)
+  if (durationSec !== undefined) out.durationSec = durationSec
+  const charCount = pickInt(o, 'charCount', 0, CHAR_COUNT_MAX)
+  if (charCount !== undefined) out.charCount = charCount
+  return out
+}
+
+/**
+ * flow.capture_abandoned：采集中途放弃（导航离开 / 页面卸载）。
+ * @param  raw  客户端上报的 props
+ * @returns     mode + exit(枚举) + durationSec/charCount(整数)
+ */
+function sanitizeCaptureAbandoned(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const mode = pickEnum(o, 'mode', CAPTURE_MODE)
+  if (mode !== undefined) out.mode = mode
+  const exit = pickEnum(o, 'exit', CAPTURE_EXIT)
+  if (exit !== undefined) out.exit = exit
+  const durationSec = pickInt(o, 'durationSec', 0, DURATION_SEC_MAX)
+  if (durationSec !== undefined) out.durationSec = durationSec
+  const charCount = pickInt(o, 'charCount', 0, CHAR_COUNT_MAX)
+  if (charCount !== undefined) out.charCount = charCount
+  return out
+}
+
+/**
+ * flow.ai_call：一次 AI 调用的阶段 / 结局 / HTTP 状态 / 耗时。
+ * @param  raw  客户端上报的 props
+ * @returns     stage + result + mode(枚举) + httpStatus/latencyMs(整数)
+ */
+function sanitizeAiCall(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const stage = pickEnum(o, 'stage', AI_STAGE)
+  if (stage !== undefined) out.stage = stage
+  const result = pickEnum(o, 'result', AI_RESULT)
+  if (result !== undefined) out.result = result
+  const httpStatus = pickInt(o, 'httpStatus', 0, HTTP_STATUS_MAX)
+  if (httpStatus !== undefined) out.httpStatus = httpStatus
+  const latencyMs = pickInt(o, 'latencyMs', 0, LATENCY_MS_MAX)
+  if (latencyMs !== undefined) out.latencyMs = latencyMs
+  const mode = pickEnum(o, 'mode', CAPTURE_MODE)
+  if (mode !== undefined) out.mode = mode
+  return out
+}
+
+/**
+ * 客户端可上报事件的分发表 —— 事件名唯一的真闸（0053 起 DB CHECK 已放宽为前缀正则，不再兜底）。
+ * key = 客户端传来的事件名字符串；value = 已收窄的 FlowEventName + 该事件专属 sanitize。
+ * 服务端自发事件（match.result / flow.corpus_bound / flow.consent_granted）不在表中，不接受客户端上报。
+ */
+interface EventSpec {
+  event: FlowEventName
+  sanitize: (raw: unknown) => SafeProps
+}
+const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
+  ['match.view_rendered',    { event: 'match.view_rendered',    sanitize: sanitizeViewRendered }],
+  ['match.question_opened',  { event: 'match.question_opened',  sanitize: sanitizeQuestionOpened }],
+  ['flow.story_entry',       { event: 'flow.story_entry',       sanitize: sanitizeStoryEntry }],
+  ['flow.mic_permission',    { event: 'flow.mic_permission',    sanitize: sanitizeMicPermission }],
+  ['flow.capture_started',   { event: 'flow.capture_started',   sanitize: sanitizeCaptureStarted }],
+  ['flow.capture_submitted', { event: 'flow.capture_submitted', sanitize: sanitizeCaptureSubmitted }],
+  ['flow.capture_abandoned', { event: 'flow.capture_abandoned', sanitize: sanitizeCaptureAbandoned }],
+  ['flow.ai_call',           { event: 'flow.ai_call',           sanitize: sanitizeAiCall }],
+])
+
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const { userId } = await requireUserAllowAnon(req)
     const body = (await req.json()) as { event?: unknown; storyId?: unknown; props?: unknown }
-    // 只接受两个客户端事件：match.view_rendered（所见计数）/ match.question_opened（选题排位）。
-    // 服务端事件（match.result / flow.corpus_bound）不经此端点。各事件走各自 sanitize，只放行白名单字段。
-    const event = body.event
-    if (event !== 'match.view_rendered' && event !== 'match.question_opened') {
+    // 查表分发：未注册的事件名立即 400、不落库。这是唯一的事件名闸门，绝不可改成「未知事件也放行」。
+    const spec = typeof body.event === 'string' ? EVENT_SPECS.get(body.event) : undefined
+    if (!spec) {
       return NextResponse.json({ error: '不支持的事件' }, { status: 400 })
     }
-    const props = event === 'match.view_rendered'
-      ? sanitizeViewRendered(body.props)
-      : sanitizeQuestionOpened(body.props)
+    const props = spec.sanitize(body.props)
     const storyId = typeof body.storyId === 'string' && body.storyId.trim() ? body.storyId.trim() : null
     const flowId = req.headers.get('x-flow-id')
-    // event 已收窄为两个字面量，均属 FlowEventName（0050 已把 match.question_opened 补进该联合），无需 cast。
     await logEvent({
-      event,
+      event: spec.event,
       flowId,
       storyId,
       userId,
       props,
+      isQa: isQaRequest(req, userId),
     })
     return NextResponse.json({ ok: true })
   } catch (e) {

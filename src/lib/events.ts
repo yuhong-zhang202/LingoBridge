@@ -15,8 +15,24 @@
 import 'server-only'
 import { getSupabaseServer } from './supabase-server'
 
-/** 内测埋点事件名（与 flow_events 的 event check 约束一致：0018 建 3 个 + 0050 增 match.question_opened） */
-export type FlowEventName = 'match.result' | 'flow.corpus_bound' | 'match.view_rendered' | 'match.question_opened'
+/**
+ * 内测埋点事件名。
+ * 0018 建 3 个 + 0050 增 match.question_opened；0053 起 DB 的 event CHECK 由枚举白名单放宽为前缀正则，
+ * 故【本联合类型 + /api/events 的分发表】才是事件名的真闸 —— 新增事件名必须先加进这里。
+ * ⚠️ 未跑 migration 0053 前，下面 7 个新事件会被旧 CHECK 拒绝、并被 logEvent 的 catch 静默吞掉（= 零数据）。
+ */
+export type FlowEventName =
+  | 'match.result'
+  | 'flow.corpus_bound'
+  | 'match.view_rendered'
+  | 'match.question_opened'
+  | 'flow.story_entry'
+  | 'flow.mic_permission'
+  | 'flow.capture_started'
+  | 'flow.capture_submitted'
+  | 'flow.capture_abandoned'
+  | 'flow.ai_call'
+  | 'flow.consent_granted'
 
 /** 一条埋点事件；props 仅承载计数/布尔/code，绝不放原文 */
 export interface FlowEvent {
@@ -29,6 +45,12 @@ export interface FlowEvent {
   userId?: string | null
   /** 事件专属字段（计数 / 布尔 / 观察点 code），不含原文 */
   props?: Record<string, unknown>
+  /**
+   * 是否为 QA 流量（产品方自测），缺省 false。取值一律走 isQaRequest()。
+   * ⚠️ 纯统计列：离线算漏斗时据此剔除自测流量。永久禁止用于额度 / 权限 / 计费 / RLS 判定
+   * —— 它的一半来源是客户端可携带的请求头，可伪造。
+   */
+  isQa?: boolean
 }
 
 /**
@@ -45,6 +67,7 @@ export async function logEvent(e: FlowEvent): Promise<void> {
       story_id: e.storyId ?? null,
       user_id:  e.userId ?? null,
       props:    e.props ?? {},
+      is_qa:    e.isQa ?? false,
     })
     if (error) throw error
   } catch (err) {
