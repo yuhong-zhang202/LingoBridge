@@ -185,10 +185,15 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       // 持久化匹配结果供反查；写库失败不阻断匹配返回（.catch 必须留着：台账 115 记过它曾静默失败很久）
       afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
       // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
-      afterTasks.push(
-        upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
-          .catch((e) => logErr('[matching snapshot upsert]', e)),
-      )
+      // 机制①重排整体降级（rankingDegraded：候选存在但重排一分没产出）不写档——降级=瞬时失败，
+      // 冻进快照会让前端降级态的「重试」命中降级档、永不重跑重排，重试形同虚设。跳过写档后，重试重发
+      // /api/matching 即未命中→重新跑重排。该守卫只影响机制①这个零频分支，正常结果的写档行为一字不变。
+      if (!result.rankingDegraded) {
+        afterTasks.push(
+          upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+            .catch((e) => logErr('[matching snapshot upsert]', e)),
+        )
+      }
 
       // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
       pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
@@ -405,10 +410,14 @@ async function handleStreaming(req: Request): Promise<Response> {
           // 与 handleBuffered 逐字同款（字段/职责一字不变），差别仅在时机：从「响应前」挪到「所有帧发完后」。
           const afterTasks: Promise<unknown>[] = []
           afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
-          afterTasks.push(
-            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
-              .catch((e) => logErr('[matching snapshot upsert]', e)),
-          )
+          // 机制①降级不写档（与 handleBuffered 同守卫）：冻进快照会让前端降级态的「重试」命中降级档、
+          // 永不重跑重排。跳过后重试重发即未命中→重新跑重排。只影响零频降级分支，正常写档不变。
+          if (!result.rankingDegraded) {
+            afterTasks.push(
+              upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+                .catch((e) => logErr('[matching snapshot upsert]', e)),
+            )
+          }
           pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
           afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(result, 'fresh') }))
           await Promise.all(afterTasks)

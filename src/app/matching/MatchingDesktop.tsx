@@ -19,6 +19,7 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import GradientButton from '@/components/GradientButton'
 import NoMatchView from '@/components/matching/NoMatchView'
+import LowMatchView from '@/components/matching/LowMatchView'
 import MatchingProgress from '@/components/matching/MatchingProgress'
 import AnkiBookmarkButton, { type AnkiSaveState } from '@/components/anki/AnkiBookmarkButton'
 import { SCORE_HIGH, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
@@ -172,9 +173,9 @@ function DetailPane({ q, onPractice, saveState, onSave }: {
 
 export default function MatchingDesktop({
   result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab, filtered,
-  highGroup, midGroup, noneVisible, globalNoneVisible, selectedId, savedIds, savingId,
+  highGroup, midGroup, noneVisible, globalNoneVisible, rankingDegraded, lowShown, selectedId, savedIds, savingId,
   onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
-}: MatchingViewProps & { globalNoneVisible: boolean }) {
+}: MatchingViewProps & { globalNoneVisible: boolean; rankingDegraded: boolean; lowShown: FunnelQuestion[] }) {
 
   const hasList = !loading && !error && !dailyLimitHit && !!result && !result.noMatch && !globalNoneVisible
   // 有序可导航列表：高→中→低（与左栏展示顺序一致）
@@ -287,15 +288,59 @@ export default function MatchingDesktop({
 
   if (!result) return <div className={STAGE} />
 
-  // noMatch（真没题）与 globalNoneVisible（有题但全部低分被隐藏）统一：不套 master-detail，居中复用 NoMatchView
-  if (result.noMatch || globalNoneVisible) {
+  // 空态四支互斥（顺序即优先级，见 page.tsx 决策树）：真没题 A 类 → 机制①降级 → B 类低相关 → 正常 master-detail。
+  // 降级支【优先于】B 类，且兜住「globalNoneVisible 但无低分可展示」这一等价于机制①的组合，杜绝「文案+零张卡」空洞。
+  const isNoMatch = result.noMatch
+  const isDegraded = !result.noMatch && (rankingDegraded || (globalNoneVisible && lowShown.length === 0))
+  const isLowMatch = !result.noMatch && !isDegraded && globalNoneVisible   // 走到这里 lowShown.length>0 必然成立
+
+  // A 类·真没题：不套 master-detail，居中复用 NoMatchView 换故事引导（一字不动）
+  if (isNoMatch) {
     return (
       <div className={`${STAGE} flex items-center justify-center px-8`}>
         <div className="w-full max-w-[600px]">
           <NoMatchView
             primaryDimension={result.primary?.dimension ?? ''}
             primaryPointName={result.primary?.pointName ?? ''}
-            variant={result.noMatch ? 'noMatch' : 'lowScore'}
+            variant="noMatch"
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // 机制①降级·重排一分没产出（无分可展示）：居中给「重试」复用 onRetry；不走 NoMatchView 换故事、不套两栏
+  if (isDegraded) {
+    return (
+      <div className={`${STAGE} flex items-center justify-center px-8`}>
+        <EmptyState
+          title="排序暂时不可用"
+          subtitle="题目匹配好了，但排序没算出来。点下面重试一下就好。"
+          ctaLabel="重试"
+          onCta={onRetry}
+          orbSize={100}
+        />
+      </div>
+    )
+  }
+
+  // B 类·低相关兜底：居中单列 max-w-[600px]（不走 master-detail——右栏 TierBadge 会给 <60 分算出「中匹配」自打脸）。
+  // 内容可达 5 张卡，故顶对齐 + 可滚动，不纵向居中。
+  if (isLowMatch) {
+    return (
+      <div className={`${STAGE} flex flex-col items-center px-8 py-8 overflow-y-auto`}>
+        <div className="w-full max-w-[600px]">
+          <LowMatchView
+            primary={result.primary}
+            secondary={result.secondary}
+            lowShown={lowShown}
+            selectedId={selectedId}
+            savedIds={savedIds}
+            savingId={savingId}
+            onToggleSelect={onSelect}
+            onPractice={onPractice}
+            onSavePair={onSavePair}
+            onExit={onExit}
           />
         </div>
       </div>

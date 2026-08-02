@@ -14,7 +14,7 @@ import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
-import { SCORE_HIGH, SCORE_MID, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID, LOW_MATCH_SHOW_MAX, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { useAccount } from '@/hooks/useAccount'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -248,6 +248,8 @@ function MatchingContent() {
           unscoredCount,
           noMatch: result.noMatch,
           globalNoneVisible: !result.noMatch && visibleCount === 0,
+          // rankingDegraded：区分两类空态频率——机制①重排整体降级（无分可展示、走重试）vs B 类低相关展示。
+          rankingDegraded: !!result.rankingDegraded,
         },
       },
     }).catch(() => {})
@@ -344,6 +346,16 @@ function MatchingContent() {
     [filtered]
   )
 
+  // B 类低相关兜底展示切片：候选有分但全部 < SCORE_MID 时，取相关性最高的前 LOW_MATCH_SHOW_MAX 道如实展示。
+  // 只从既有 relevanceScore 派生（未打分一律排除、绝不回填占位分）；result.questions 已按分降序 →
+  // slice 后 lowShown[0] = 最高分那道（B 类置顶）。不经 filtered：B 类不出 Part 筛选、直接用全量低分题。
+  const lowShown = useMemo(
+    () => (result?.questions ?? [])
+      .filter((q) => q.relevanceScore != null && q.relevanceScore < SCORE_MID)
+      .slice(0, LOW_MATCH_SHOW_MAX),
+    [result]
+  )
+
   const foldedCount  = midGroup.length
   const hasMore      = foldedCount > 0
   // noneVisible：当前 Tab 两档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可。
@@ -353,6 +365,10 @@ function MatchingContent() {
   // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
   // 同样门控 streamDone：只在结果定稿后才判「全局无可见题」，流式增量中途绝不闪 NoMatchView。
   const globalNoneVisible = !!result && streamDone && !result.noMatch && totalVisible === 0
+  // rankingDegraded：机制①重排整体降级（候选存在、重排一分没产出，全部题无 relevanceScore）。
+  // 与 globalNoneVisible 区分并【优先】判定——降级态无分可展示、只能重试；globalNoneVisible 里有低分的那支
+  // 才走 B 类展示。仅 done 后判：流式骨架不带 rankingDegraded（undefined→false），不会中途闪降级态。
+  const rankingDegraded = !!result && streamDone && !!result.rankingDegraded
 
   // 002 修复：highGroup=0 且 midGroup>0 时，此前三个空态判断会全部落空——
   // 高匹配块不渲染（组为空）、中匹配块不渲染（expanded 初值 false）、
@@ -398,7 +414,7 @@ function MatchingContent() {
     }
   }
 
-  const viewProps: MatchingViewProps & { globalNoneVisible: boolean } = {
+  const viewProps: MatchingViewProps & { globalNoneVisible: boolean; rankingDegraded: boolean; lowShown: FunnelQuestion[] } = {
     result,
     loading,
     error,
@@ -413,6 +429,8 @@ function MatchingContent() {
     hasMore: showToggle,
     noneVisible,
     globalNoneVisible,
+    rankingDegraded,
+    lowShown,
     selectedId,
     expanded: expandedEffective,
     autoExpand,
