@@ -12,6 +12,9 @@
  *             · 事件名分发闸：未注册事件名必须 400 且零落库（0053 起 DB CHECK 已放宽为前缀正则，
  *               这里是唯一的真闸）；
  *             · QA 流量标记：严格 === 比对、token 未配时 fail-closed、内部账户为服务端权威来源。
+ *           事件名形态护栏（2026-08-02 追加）：FlowEventName / ClientEventName 全集逐个断言符合
+ *           0053 的 DB CHECK 正则，且每个客户端事件名都真被 EVENT_SPECS 接受 —— 挡的是
+ *           「新事件名不合 CHECK → insert 被拒 → logEvent 静默吞 → 代码在跑但库里零数据」这类哑故障。
  *           全 mock，不碰真实 DB/鉴权；断言落到 logEvent 收到的 props（= 实际写库内容）。
  * @author   LingoBridge
  * @created  2026-08-02
@@ -28,7 +31,8 @@ jest.mock('@/lib/api-auth', () => ({
 jest.mock('@/lib/env-server', () => ({ env: { qaTrafficToken: '' } }))
 
 import { POST } from '@/app/api/events/route'
-import { logEvent } from '@/lib/events'
+import { logEvent, type FlowEventName } from '@/lib/events'
+import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
@@ -227,6 +231,62 @@ describe('事件名分发闸 —— 未注册立即 400、绝不落库', () => {
     const res = await POST(req)
     expect(res.status).toBe(400)
     expect(mockLogEvent).not.toHaveBeenCalled()
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 事件名形态护栏 —— 挡「新事件名不符合 DB CHECK → insert 被拒 → logEvent 静默吞 → 全程零数据」
+// 这一类最难查的故障：代码在跑、接口 200、页面无异常，只有库里一行都没有。
+// ───────────────────────────────────────────────────────────────────────────────
+
+/** 与 migration 0053 的 flow_events_event_check 逐字一致；改这里必须同步改迁移，反之亦然 */
+const EVENT_NAME_RE = /^(flow|match|quota|auth|page)\.[a-z][a-z0-9_]{1,39}$/
+
+/**
+ * FlowEventName 全集。用 Record<FlowEventName, true> 声明：新增一个事件名却漏登记 → tsc 直接报错，
+ * 不会出现「测试只覆盖旧事件名、新名字带着不合法形态上线」的空档。
+ */
+const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
+  'match.result': true,
+  'flow.corpus_bound': true,
+  'match.view_rendered': true,
+  'match.question_opened': true,
+  'flow.story_entry': true,
+  'flow.mic_permission': true,
+  'flow.capture_started': true,
+  'flow.capture_submitted': true,
+  'flow.capture_abandoned': true,
+  'flow.ai_call': true,
+  'flow.consent_granted': true,
+}
+
+/** 客户端可上报事件名全集（同款 Record 手法，漏登记即 tsc 报错） */
+const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
+  'flow.story_entry': true,
+  'flow.mic_permission': true,
+  'flow.capture_started': true,
+  'flow.capture_submitted': true,
+  'flow.capture_abandoned': true,
+  'flow.ai_call': true,
+  'match.view_rendered': true,
+  'match.question_opened': true,
+}
+
+describe('事件名形态护栏 —— 必须过 0053 的 DB CHECK 正则', () => {
+  test.each(Object.keys(ALL_FLOW_EVENTS))('FlowEventName %s 符合 DB CHECK 正则', (name) => {
+    expect(name).toMatch(EVENT_NAME_RE)
+  })
+
+  test.each(Object.keys(ALL_CLIENT_EVENTS))('客户端事件名 %s 已注册进 EVENT_SPECS 分发表（否则 400、零数据）', async (name) => {
+    const res = await POST(makeEventReq(name, {}))
+    expect(res.status).toBe(200)
+    expect(mockLogEvent.mock.calls[0][0].event).toBe(name)
+  })
+
+  test('ClientEventName 全部是 FlowEventName 的子集（客户端不能上报服务端没登记的名字）', () => {
+    for (const name of Object.keys(ALL_CLIENT_EVENTS)) {
+      expect(Object.keys(ALL_FLOW_EVENTS)).toContain(name)
+    }
   })
 })
 
