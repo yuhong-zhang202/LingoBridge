@@ -18,6 +18,14 @@ import { BETA_PRIVACY_VERSION, CONSENT_SCOPE_SNAPSHOT } from '@/lib/privacy-copy
 import { logEvent } from '@/lib/events'
 import { isQaRequest } from '@/lib/qa-traffic'
 
+/**
+ * D0 埋点的等待上限（ms）。supabase-js 底层 fetch【无默认超时】，香港→新加坡一跳卡住就会把
+ * 「必经的同意闸」拖到平台超时 → 用户看到「同意记录保存失败，请重试」而记录其实已落库 →
+ * 重复点 → append-only 的 consent_records 多出重复行。故给这条事件一个明确的放弃点。
+ * 仍保留 await（不改成 fire-and-forget）：D0 是漏斗分母，丢了比慢了严重，800ms 内绝大多数能写完。
+ */
+const D0_EVENT_TIMEOUT_MS = 800
+
 export async function POST(req: Request): Promise<NextResponse> {
   // 性能取证：把「验 token」与「插库」两段耗时经 Server-Timing 头暴露到浏览器 DevTools。
   // 用于定位同意慢在哪一段（getUser vs 插库/冷连接）；轻量、可长期保留作性能观测。
@@ -44,12 +52,20 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 且会经 own_consent_records_select 回显给用户本人。QA 标记只落 flow_events 这张统计表。
     // 补这条事件还顺带补上一类此前完全看不见的用户：「点了同意就退出」的人，在 flow_events 里
     // 必然有且仅有这一条记录。logEvent 内部已吞异常，不阻断同意返回。
-    await logEvent({
-      event: 'flow.consent_granted',
-      flowId: req.headers.get('x-flow-id'),
-      userId,
-      isQa: isQaRequest(req, userId),
-    })
+    // 【超时闸】埋点再重要也不能挡住同意闸：超过 D0_EVENT_TIMEOUT_MS 就放弃等待、直接返回成功。
+    // 被放弃的那次写入仍在后台跑（写成了就还是有数据），异常由 logEvent 内部吞掉，不会冒泡成 500。
+    let d0Timer: ReturnType<typeof setTimeout> | undefined
+    await Promise.race([
+      logEvent({
+        event: 'flow.consent_granted',
+        flowId: req.headers.get('x-flow-id'),
+        userId,
+        isQa: isQaRequest(req, userId),
+      }),
+      new Promise<void>((resolve) => { d0Timer = setTimeout(resolve, D0_EVENT_TIMEOUT_MS) }),
+    ])
+    // 清掉计时器：不清会让本次请求的 event loop 白白多挂 800ms（serverless 上就是多算的执行时间）
+    if (d0Timer !== undefined) clearTimeout(d0Timer)
     const t3 = performance.now()
 
     const authMs = Math.round(t1 - t0)
