@@ -254,7 +254,7 @@ export async function polishSentence(
     fallback: (): PolishResult => ({
       needsWork: false,
       optimized: '',
-      note: '这次没能生成优化建议，可以再说一遍试试',
+      note: '生成优化建议时出错了，请重试',
       failed: true,
     }),
     call: {
