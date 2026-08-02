@@ -57,25 +57,23 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
       <main className={`${MANAGE_CONTAINER} pb-12`}>
         <ManageHeader
           title="当季题库"
+          topRight={<FeedbackButton />}
           right={
-            // 切换器随 !isEmpty 条件出现；反馈药丸放条件之外恒显——空/加载/错误态（用户最想吐槽时）也留反馈入口
-            <div className="flex items-center gap-4">
-              {!isEmpty && (
-                <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px]">
-                  {TABS.map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      aria-pressed={activeTab === tab}
-                      className={`text-[0.8125rem] px-[18px] py-[7px] rounded-[8px] transition-colors ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <FeedbackButton />
-            </div>
+            // 切换器只在有语料时出现；空/加载/错误态整个插槽不渲染（反馈入口在 topRight，不受此条件影响）
+            !isEmpty ? (
+              <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px]">
+                {TABS.map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    aria-pressed={activeTab === tab}
+                    className={`text-[0.8125rem] px-[18px] py-[7px] rounded-[8px] transition-colors ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            ) : undefined
           }
         />
 
