@@ -531,7 +531,7 @@ function PracticeContent(): JSX.Element {
   if (isDesktop) {
     return (
       <>
-        <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit}>
+        <FlowShellDesktop activeStep="practice" onExit={viewProps.onExit} showFeedback>
           <PracticeDesktop {...viewProps} />
         </FlowShellDesktop>
         {quotaOverlay}

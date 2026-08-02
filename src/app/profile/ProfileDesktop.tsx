@@ -37,7 +37,7 @@ export default function ProfileDesktop({ loggedIn, isAnon, email, joinDays, onLo
 
   return (
     <div className="min-h-screen bg-bg-page">
-      <TopNav containerClassName={MANAGE_CONTAINER} showFeedback={false} />
+      <TopNav containerClassName={MANAGE_CONTAINER} />
 
       <main className={`${MANAGE_CONTAINER} pb-12`}>
         {/* 精简顶栏：不再重复「我的」大标题（与 TopNav 高亮项重复），仅留设置入口 */}
