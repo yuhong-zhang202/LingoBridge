@@ -54,7 +54,7 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
           <div className="flex flex-col gap-2">
             <div className="bg-cream-soft" style={{ padding: '9px 11px', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
               <p className="text-[11px] text-v2-text-muted mb-1">Do you wanna try:</p>
-              <p className="text-[13px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
+              <p className="text-[15px] leading-[1.5] text-v2-text-primary font-medium">{result.optimized}</p>
             </div>
             {result.note && <PolishNote note={result.note} className="px-1" />}
           </div>
