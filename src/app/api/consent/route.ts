@@ -50,9 +50,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       userId,
       isQa: isQaRequest(req, userId),
     })
+    const t3 = performance.now()
 
     const authMs = Math.round(t1 - t0)
     const insertMs = Math.round(t2 - t1)
+    // D0 事件这一段【必须】也进 Server-Timing/perf_samples：它是本路径唯一 await 的新增耗时，
+    // 不计进来就成了「取证手段看不见的延迟」——同意点击手感变慢却查不出所以然。
+    const d0Ms = Math.round(t3 - t2)
     // 性能埋点（fire-and-forget，绝不 await/不阻塞同意响应）：把验签/插库耗时落 perf_samples，
     // 供事后直接 SQL 查「冷 vs 热」分布，免手动 DevTools 截图。写失败仅告警、不影响同意。
     void getSupabaseServer()
@@ -60,12 +64,13 @@ export async function POST(req: Request): Promise<NextResponse> {
       .insert([
         { label: 'consent', phase: 'auth', ms: authMs, meta: { is_anonymous: isAnonymous } },
         { label: 'consent', phase: 'insert', ms: insertMs, meta: { is_anonymous: isAnonymous } },
+        { label: 'consent', phase: 'd0_event', ms: d0Ms, meta: { is_anonymous: isAnonymous } },
       ])
       .then(({ error: perfErr }) => { if (perfErr) logErr('[perf] consent 埋点写入失败', perfErr) })
 
     return NextResponse.json(
       { ok: true },
-      { headers: { 'Server-Timing': `auth;dur=${authMs}, insert;dur=${insertMs}` } },
+      { headers: { 'Server-Timing': `auth;dur=${authMs}, insert;dur=${insertMs}, d0_event;dur=${d0Ms}` } },
     )
   } catch (e) {
     const authRes = authErrorResponse(e)
