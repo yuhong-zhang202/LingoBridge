@@ -470,7 +470,7 @@ function MatchingContent() {
       <div className="lg:hidden"><MatchingMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（匹配步激活）+ master-detail 舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel="返回整理">
+        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel="返回整理" showFeedback>
           <MatchingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

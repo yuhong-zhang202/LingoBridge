@@ -275,7 +275,7 @@ function AnalysisContent() {
       <div className="lg:hidden"><AnalysisMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（分析步激活）+ split 两栏舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="analysis" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel={backTarget.label}>
+        <FlowShellDesktop activeStep="analysis" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel={backTarget.label} showFeedback>
           <AnalysisDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

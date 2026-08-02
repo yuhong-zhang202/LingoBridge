@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation'
 import { Mic } from 'lucide-react'
 import Avatar from '@/components/Avatar'
 import NotificationBell from '@/components/NotificationBell'
+import FeedbackButton from '@/components/FeedbackButton'
 import { useAccount } from '@/hooks/useAccount'
 import { PAGE_CONTAINER, TOPNAV_H_DESKTOP_CLASS } from '@/lib/constants'
 
@@ -25,9 +26,11 @@ const NAV = [
 interface TopNavProps {
   /** 内栏容器 class，默认走全站统一容器 PAGE_CONTAINER，使顶栏内栏与各页内容左右对齐 */
   containerClassName?: string
+  /** 是否在右簇末尾显示反馈药丸；默认 true。profile 页自带反馈卡，传 false 避免一页两入口。 */
+  showFeedback?: boolean
 }
 
-export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavProps) {
+export default function TopNav({ containerClassName = PAGE_CONTAINER, showFeedback = true }: TopNavProps) {
   const path = usePathname()
   // 账号态经 useAccount 订阅：上传头像/登录/登出后自动刷新，无需手动通知
   const { account } = useAccount()
@@ -67,9 +70,10 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER }: TopNavPr
           })}
         </nav>
 
-        {/* 右侧：通知 + 头像 */}
+        {/* 右侧：通知 + 头像 + 反馈药丸 */}
         <div className="ml-auto flex items-center gap-[18px]">
           <NotificationBell />
+          {showFeedback && <FeedbackButton />}
           <ProgressLink href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
             <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
           </ProgressLink>
