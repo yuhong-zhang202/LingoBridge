@@ -339,6 +339,15 @@ function PracticeContent(): JSX.Element {
       })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在优化失败态。
       if (res.status === 403) { router.push('/'); return }
+      // 额度类拦截，区分对待、不再一律「优化失败」误导用户：
+      //   402＝匿名试用次数用尽（polish 402 仅对匿名返回）→ 关弹窗、弹既有额度覆盖层引导注册；
+      //   429＝注册用户当日达上限 → 在优化气泡内诚实说明真实原因，可明天再来。
+      if (res.status === 402) { setShowPolish(false); setQuotaVariant('trial'); return }
+      if (res.status === 429) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试' })
+        return
+      }
       if (!res.ok) throw new Error('优化失败')
       const data = (await res.json()) as PolishResult
       setPolishResult(data)
@@ -352,7 +361,9 @@ function PracticeContent(): JSX.Element {
         }])
       }
     } catch {
-      setPolishResult({ needsWork: false, optimized: '', note: '优化失败，请重试' })
+      // 到此只剩瞬时网络/服务故障（额度已在上面按 402/429 分流）。诊断官+latency 取证：生产超时 0 次，
+      // 故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
+      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次' })
     } finally {
       setPolishLoading(false)
     }
