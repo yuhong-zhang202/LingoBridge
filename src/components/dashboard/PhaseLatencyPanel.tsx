@@ -166,8 +166,8 @@ function TrendView({ trend, latencyWarn }: { trend: TrendPhase[]; latencyWarn: n
           aria-label={`${cur.name}环节每日耗时趋势折线图，共 ${withData.length} 天有数据，P90 峰值 ${peak?.date ?? ''} 约 ${toSec(peak?.p90 ?? 0)} 秒，警示阈值 ${toSec(latencyWarn)} 秒。详细数据见下方数据表。`}>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={days} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
-              <XAxis dataKey="date" tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
                 tickFormatter={v => `${Math.round(Number(v) / 1000)}s`} width={40} />
               <Tooltip content={<LatencyTip />} />
               {/* connectNulls 关闭：口径断点前的日子是 null，连起来等于伪造那几天的数据 */}

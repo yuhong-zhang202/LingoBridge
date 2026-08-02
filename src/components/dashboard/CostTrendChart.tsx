@@ -91,8 +91,8 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
                 </linearGradient>
               ))}
             </defs>
-            <XAxis dataKey="date" tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
               tickFormatter={v => `¥${v}`} width={40} />
             <Tooltip content={<CustomTip />} />
             {SERVICES.map(s => (
@@ -103,7 +103,7 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
             ))}
             {/* 日预算目标线（红色虚线）+ 超线日在总额顶部染红点。非堆叠透明面积仅用于承载红点。 */}
             <ReferenceLine y={dailyBudget} stroke="#AB5344" strokeDasharray="4 3" strokeOpacity={0.6}
-              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: '0.5625rem', fill: '#AB5344' }} />
+              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: 9, fill: '#AB5344' }} />
             <Area type="monotone" dataKey="total" stroke="none" fill="none" activeDot={false}
               dot={OverBudgetDot(dailyBudget)} isAnimationActive={false} legendType="none" />
           </AreaChart>
