@@ -86,6 +86,18 @@ function normalize(props: ClientEventProps): Record<string, string | number | bo
  */
 let cachedAuthorization = ''
 
+/**
+ * 清空上面那个缓存。**登出时必须调用**（`lib/auth.ts` 的 `logout()` 里与 clearFlowId 并排）。
+ *
+ * 【为什么必须清】Supabase `signOut` 之后，已签发的 access_token 作为无状态 JWT 到 exp 前【仍然验得过】，
+ * 不会自然 401 失效。A 登出后模块不卸载、缓存仍是 A 的 Bearer，此时同一标签页里谁再写点东西然后关掉，
+ * keepalive 路径就会带着【A 的 token】把这条 capture_abandoned 发出去 —— 这条「放弃」被记到 A 头上；
+ * A 若是内部账户，还会连带被标成 is_qa。只污染埋点归属、不构成越权，但正是本批一直在修的那类静默偏差。
+ */
+export function clearAuthCache(): void {
+  cachedAuthorization = ''
+}
+
 /** /api/events 的请求体形态（keepalive 路径与常规路径共用同一份，避免两路字段分叉）。 */
 interface EventBody {
   event: ClientEventName
@@ -102,9 +114,11 @@ interface EventBody {
  * @sideEffect   同步读 sessionStorage(flow_id) / localStorage(QA token) 并发出 POST；任何失败一律吞掉
  */
 function sendKeepalive(body: EventBody): void {
-  const flowId = currentFlowId()
-  const qa = qaToken()
   try {
+    // 这两行【必须在 try 内】：flow-id 读 sessionStorage、qaToken 读 localStorage，
+    // 浏览器策略禁用存储时会同步抛出，而本函数跑在 pagehide 监听器里 —— 抛出去就成了用户可见的报错。
+    const flowId = currentFlowId()
+    const qa = qaToken()
     void fetch('/api/events', {
       method: 'POST',
       keepalive: true,
@@ -150,7 +164,9 @@ export function track(
   // 常规路径：行为与改动前逐字一致，仅多一句「顺手把 token 存进缓存」（无可观察副作用）。
   void (async () => {
     const headers = await authHeaders()
-    if (!headers.Authorization) return
+    // 取不到 token（未登录/已登出）时【也要清缓存】：不清的话，登出后缓存仍是上一个账号的 Bearer，
+    // 卸载路径会拿它继续发事件、把归属记错人（见 clearAuthCache 顶注）。
+    if (!headers.Authorization) { cachedAuthorization = ''; return }
     cachedAuthorization = headers.Authorization
     await apiFetch('/api/events', {
       method: 'POST',

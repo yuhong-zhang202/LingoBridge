@@ -119,8 +119,12 @@ export default function HomePage() {
   /** 「文本输入」入口：打开面板前同样核额度；关闭面板不核（无消耗动作） */
   async function handleSetShowTextInput(v: boolean): Promise<void> {
     // 只有「打开面板」才算一次入口动作，关面板不报。
-    // story_entry 在守卫【之前】（被拦下的人也点了），capture_started 在守卫【之后】（真进到输入态才算开始采集）——
+    // story_entry 在守卫【之前】（被拦下的人也点了），capture_started 在守卫【之后】（真进到输入态才算开始采集），
     // 整个「被额度拦掉多少人」就靠这两者的差值，颠倒任一个差值恒为 0。
+    // ⚠️【这个差值必须按 distinct user_id 算，不能用裸计数】：story_entry 每次开面板都报，而
+    // capture_started 有 ref 守卫、同一次停留只报一次（否则开→关→开会把 D2 的分母灌大）。
+    // 两者去重口径不同，裸计数相减会凭空造出「被额度拦掉的人」——开关两次面板就多算一个。
+    // 同理 capture_started(mode='text') 还有 /write 挂载这第二个来源，也只能按人聚合看。
     if (v) track('flow.story_entry', { entry: 'text', mode: ieltsMode ? 'ielts' : 'story' })
     if (v && await storyQuota.checkBlocked()) return
     if (v) trackTextCaptureStarted()
