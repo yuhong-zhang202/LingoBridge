@@ -18,6 +18,17 @@ import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
+
+/**
+ * 文字路径会上报的提交结局 —— 逐字对齐 /api/events 的 CAPTURE_OUTCOME 白名单。
+ * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
+ * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+ */
+type CaptureOutcome = 'proceed' | 'garbage' | 'text_too_short' | 'quota_blocked' | 'consent_blocked'
+
+/** 本 hook 会上报的 AI 调用结局 —— 同样逐字对齐 /api/events 的 AI_RESULT 白名单 */
+type AiResult = 'ok' | 'quota_402' | 'consent_403' | 'server_5xx' | 'other' | 'network'
 
 interface UseStorySubmitArgs {
   /** 待提交的故事文本 */
@@ -51,13 +62,36 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
 
   const submit = useCallback((): void => {
     void (async (): Promise<void> => {
+      // ——— 本次提交的埋点脚手架（全部 fire-and-forget，不参与任何分支判断、不改任何时序）———
+      // charCount 只记【长度】，绝不带正文（隐私铁律）
+      const charCount = text.trim().length
+      let submitReported = false
+      /** 本次提交的结局：每条执行路径【恰好】报一条，重复报会让「提交结局分布」重复计数 */
+      const reportSubmit = (outcome: CaptureOutcome): void => {
+        if (submitReported) return
+        submitReported = true
+        track('flow.capture_submitted', { mode: 'text', outcome, charCount })
+      }
+      /** 整理调用的起始时刻；null = 请求还没发出（预检就退了）→ 不带 latencyMs */
+      let t0: number | null = null
+      const since = (): number | undefined => (t0 === null ? undefined : performance.now() - t0)
+      let aiReported = false
+      /** 整理这一次调用的结局：与 reportSubmit 同款「只报一条」—— 成功分支之后若再抛错落进 catch，不挡就把同一次调用记两遍 */
+      const reportAi = (result: AiResult, httpStatus: number): void => {
+        if (aiReported) return
+        aiReported = true
+        track('flow.ai_call', { stage: 'restructure', mode: 'text', result, httpStatus, latencyMs: since() })
+      }
+
       // 第一层：即时预检，不调 API
       if (isGarbageInput(text)) {
+        reportSubmit('garbage')
         setToastMsg(GARBAGE_TOAST_MSG)
         return
       }
       // 源头门槛（薄素材防线）：真实但有效字数不足 → 拦下、原文保留续写，引导补充维度（区别于上面的「不像经历」）
       if (isTooShortForCorpus(text)) {
+        reportSubmit('text_too_short')
         setToastMsg(TOO_SHORT_TOAST_MSG)
         return
       }
@@ -67,34 +101,47 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
       const qidParam = qid ? `&qid=${qid}` : ''
       try {
         // 第二层：让 restructure 判断 usable
+        t0 = performance.now()
         const res = await apiFetch('/api/restructure', {
           method: 'POST',
           json: { rawText: text },
         })
         // 匿名整理额度用尽：不跳转，弹试用结束提示（避免带到 restructure 页再失败一次）
         if (res.status === 402) {
+          reportAi('quota_402', 402)
+          reportSubmit('quota_blocked')
           setQuotaReached(true)
           return
         }
         // 服务端同意闸拒绝（未捕获同意）：回首页触发同意弹窗，别把用户带到 restructure 页再 403 一次。
         if (res.status === 403) {
+          reportAi('consent_403', 403)
+          reportSubmit('consent_blocked')
           navigate('/')
           return
         }
         if (res.ok) {
           const data = (await res.json()) as { cleanedText: string; usable: boolean; summary?: string }
+          reportAi('ok', 200)
           if (!data.usable) {
+            reportSubmit('garbage')
             setToastMsg(GARBAGE_TOAST_MSG)
             return
           }
           // usable：把整理结果（含一句话概括 summary）一并带走，restructure 页免二次整理调用、保存时写进 corpus.summary
+          reportSubmit('proceed')
           navigate(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText, summary: data.summary ?? '' })}${qidParam}`)
           return
         }
-        // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理
+        // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理。
+        // AI 这一次是失败的、用户却确实进了下一页 —— 故 ai_call 记失败码、capture_submitted 记 proceed，两者不矛盾。
+        reportAi(res.status >= 500 ? 'server_5xx' : 'other', res.status)
+        reportSubmit('proceed')
         navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } catch {
-        // 网络失败：放行，restructure 页兜底
+        // 网络失败：放行，restructure 页兜底（同上：调用失败但用户被放行，结局仍是 proceed）
+        reportAi('network', 0)
+        reportSubmit('proceed')
         navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } finally {
         setSubmitting(false)
