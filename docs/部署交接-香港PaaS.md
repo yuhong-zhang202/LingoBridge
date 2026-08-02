@@ -55,6 +55,7 @@
 | `DOUBAO_ASR_CLUSTER` | .env.local 同名 |
 | `ADMIN_EMAILS` | .env.local 同名（费用看板白名单）**不配=没人能进 /dashboard** |
 | `RAW_LOG_ENABLED` | 填 **`1`**（生产开原文留证：入库 + RLS + pg_cron 30 天过期） |
+| `QA_TRAFFIC_TOKEN` | 自测流量标记 token。**不配 = 匿名态自测流量在生产上标不了 QA**（只剩内部账户名册那一个注册 id 兜底，而匿名试用链路恰恰是要反复自测的一段）。取值只能用 URL 安全字符（字母数字与 `.` `_` `~` `-`）、≤64 位、**首尾不能有空格**（尾随空格会让标记完全静默地失效，2026-08-02 实际踩过） |
 | `ANTHROPIC_API_KEY` | 可选，见 §3.2 |
 | `ANKI_DRAIN_SECRET` | **Anki 题卡必配**：drain 端点鉴权秘钥。值须 == DB 侧 `_anki_drain_config.drain_secret`（cowork 2026-07-25 已生成并存库，值另发）。**不配则 drain 恒 401、入队的卡片永不生成**。设完须重启实例让 env 生效 |
 
