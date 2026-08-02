@@ -19,8 +19,10 @@
 --      user_id 是 uuid v4、不可枚举不可猜，第一环断了整条链就断。
 --
 --   幂等：revoke 对已无权限者不报错；drop policy if exists 可安全重跑。
---   ⚠️ 部署方须在 Supabase 控制台 SQL Editor 手动跑（形态同 0018-0023、0043-0051）。
---      【整份文件包在 begin/commit 里，中途任何一步失败会整体回滚，不会留下半套状态。】
+--   ⚠️ 用 npm run db:push 应用（形态同 0051）。db-push 已对【每个文件】自动包 BEGIN/COMMIT，
+--      故本文件【刻意不自带 begin/commit】——自带会造成嵌套事务：文件内的 commit 会提前提交，
+--      使后续语句与记账 INSERT 脱离事务保护，守卫回滚也就失去意义。
+--      若改在 Supabase 控制台 SQL Editor 手跑，请自行在首尾包一对 begin; / commit;。
 --
 --   ⚠️⚠️ 给未来的人：本文件收的权，会在函数被【drop 后重建】或【改签名新建】时丢失并恢复默认
 --        PUBLIC EXECUTE（create or replace 不重置 ACL，故改口径重跑 0043-0048 是安全的）。
@@ -28,8 +30,6 @@
 --        grant 的旧范式，那正是本 hotfix 要修的根因。参考现成正确范式：0041。
 -- Created   : 2026-08-02
 -- -----------------------------------------------------------------------------
-
-begin;
 
 -- ── ① 经营指标 RPC 收权 ────────────────────────────────────────────────────────
 -- 全部只由 /api/dashboard 经 service_role 调用（src/lib/db/dashboard-metrics.ts 已 import 'server-only'，
@@ -97,5 +97,3 @@ end $$;
 --   · 全项目只有删号 route 用 list，前端无任何 list 头像的代码
 -- 【回滚】create policy "avatars_public_read" on storage.objects for select using (bucket_id = 'avatars');
 drop policy if exists "avatars_public_read" on storage.objects;
-
-commit;
