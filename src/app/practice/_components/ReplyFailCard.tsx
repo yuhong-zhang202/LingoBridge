@@ -39,8 +39,8 @@ export default function ReplyFailCard({ onRetry, attempt = 1 }: ReplyFailCardPro
 
   return (
     <div ref={rootRef} className="flex flex-col items-center gap-3">
-      <p className="text-[13px] text-v2-text-secondary text-center leading-[1.5]">{msg}</p>
-      <GradientButton onClick={onRetry} className="px-6 py-3 rounded-full text-[14px] font-medium">
+      <p className="text-[0.8125rem] text-v2-text-secondary text-center leading-[1.5]">{msg}</p>
+      <GradientButton onClick={onRetry} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
         再试一次
       </GradientButton>
     </div>

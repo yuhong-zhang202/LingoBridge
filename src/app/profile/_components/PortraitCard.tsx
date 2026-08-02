@@ -43,9 +43,9 @@ export default function PortraitCard(): JSX.Element {
   return (
     <Card variant="gradient" className="p-5 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-[14px] font-semibold text-v2-text-primary">我的画像</span>
+        <span className="text-[0.875rem] font-semibold text-v2-text-primary">我的画像</span>
       </div>
-      <p className="text-[12px] text-v2-text-muted mb-2">
+      <p className="text-[0.75rem] text-v2-text-muted mb-2">
         {showEmpty ? '录一条故事后生成专属语料维度' : `基于你的 ${corpusCount} 段语料`}
       </p>
 
@@ -58,7 +58,7 @@ export default function PortraitCard(): JSX.Element {
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-bg-surface/50">
               <Lock size={20} className="text-brand-primary-dark mb-2" />
-              <p className="text-[13px] font-medium text-v2-text-secondary leading-relaxed">
+              <p className="text-[0.8125rem] font-medium text-v2-text-secondary leading-relaxed">
                 录一条故事后，这里会生成专属语料维度
               </p>
             </div>

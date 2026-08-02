@@ -85,7 +85,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             >
               <ChevronLeft size={15} className="text-v2-text-secondary" />
             </button>
-            <span className="text-[16px] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
+            <span className="text-[1rem] font-semibold text-v2-text-primary">{VIEW_TITLE[view]}</span>
             <div className="w-[30px]" />
           </div>
 
@@ -99,7 +99,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 placeholder="搜索…"
                 role="searchbox"
                 aria-label={`搜索${VIEW_TITLE[view]}`}
-                className="flex-1 min-w-0 bg-transparent text-[16px] text-v2-text-primary placeholder:text-v2-text-muted outline-none"
+                className="flex-1 min-w-0 bg-transparent text-[1rem] text-v2-text-primary placeholder:text-v2-text-muted outline-none"
               />
               {mobileQuery && (
                 <button
@@ -131,8 +131,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
 
             {/* 1) 标题区 */}
             <div className="animate-fade-up" style={{ margin: '6px 2px 16px', animationDelay: '0.02s' }}>
-              <h1 className="text-[23px] font-bold text-v2-text-primary tracking-[-0.3px]">素材积累</h1>
-              <p className="text-[13px] text-v2-text-muted mt-[5px]">
+              <h1 className="text-[1.4375rem] font-bold text-v2-text-primary tracking-[-0.3px]">素材积累</h1>
+              <p className="text-[0.8125rem] text-v2-text-muted mt-[5px]">
                 已攒下 <span className="text-brand-primary-dark font-semibold">{totalCount}</span> 条，慢慢成你自己的表达库
               </p>
             </div>
@@ -184,10 +184,10 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                       className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-1.5"
                       style={{ boxShadow: SOFT_SM, top: 6, left: 7, transform: 'rotate(-2deg)' }}
                     >
-                      <span className="text-[9px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                      <span className="text-[0.5625rem] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
                       <div className="w-[24px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
                       <span
-                        className="text-[8.5px] leading-tight text-v2-text-secondary text-center break-words"
+                        className="text-[0.53125rem] leading-tight text-v2-text-secondary text-center break-words"
                         style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                       >
                         {ankiSample?.text ?? '当季题卡'}
@@ -199,7 +199,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <div className="flex-1 min-w-0">
                     {/* 1) 标题行（Link 外：HeroHelpTip 是可点气泡，嵌 Link 内即交互嵌套） */}
                     <div className="flex items-center gap-2">
-                      <h2 className="text-[16px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
+                      <h2 className="text-[1rem] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
                       <Tag label="当季·新" variant="green" />
                       <HeroHelpTip text={HERO_HELP_TEXT} />
                     </div>
@@ -218,24 +218,24 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     >
                       {/* 计数：真实当季张数；匿名不显「待复习」段（due 队列只含已答卡，匿名恒空）；
                           0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
-                      <p className="text-[12px] text-v2-text-muted">
+                      <p className="text-[0.75rem] text-v2-text-muted">
                         {ankiLoading
                           ? '加载中…'
                           : ankiHasCards
                             ? isAnon
                               ? <>当季 {ankiSeasonCount} 张</>
-                              : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
+                              : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[0.9375rem]">{ankiDueCount}</span> 张</>
                             : HERO_EMPTY_FALLBACK}
                       </p>
                       {/* 说明文案（移动端短版）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
-                      <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-1.5">{HERO_TITLE_DESC_MOBILE}</p>
-                      <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-1">{HERO_PAIR_DESC_MOBILE}</p>
+                      <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-1.5">{HERO_TITLE_DESC_MOBILE}</p>
+                      <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-1">{HERO_PAIR_DESC_MOBILE}</p>
                     </ProgressLink>
 
                     {/* 3) CTA：一枚真实 Link 胶囊（命中区 ≥44px），与主体 Link 平级 */}
                     <ProgressLink
                       href="/anki/review"
-                      className="inline-flex self-start items-center gap-[3px] min-h-[44px] px-[18px] rounded-full text-[13px] font-semibold mt-3 active:scale-[0.97] transition-transform"
+                      className="inline-flex self-start items-center gap-[3px] min-h-[44px] px-[18px] rounded-full text-[0.8125rem] font-semibold mt-3 active:scale-[0.97] transition-transform"
                       style={GRADIENT_BORDER_STYLE}
                     >
                       <span className="text-v2-text-secondary">开始刷题卡</span>
@@ -281,23 +281,23 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                     className="absolute w-[60px] h-[80px] rounded-[13px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-1.5"
                     style={{ boxShadow: SOFT_SM, top: 6, left: 7, transform: 'rotate(-2deg)' }}
                   >
-                    <span className="text-[10px] leading-tight font-bold text-v2-text-primary text-center break-words">wind down</span>
+                    <span className="text-[0.625rem] leading-tight font-bold text-v2-text-primary text-center break-words">wind down</span>
                     <div
                       className="w-[24px] h-[3px] rounded-full my-1"
                       style={{ background: BRAND_GRADIENT }}
                     />
-                    <span className="text-[8.5px] text-v2-text-muted text-center">放松下来</span>
+                    <span className="text-[0.53125rem] text-v2-text-muted text-center">放松下来</span>
                   </div>
                 </div>
 
                 {/* 右侧文字 */}
                 <div className="flex-1 relative z-[1]">
-                  <h2 className="text-[16px] font-bold text-v2-text-primary tracking-[-0.2px]">词组闪卡</h2>
-                  <p className="text-[13px] text-v2-text-secondary mt-[5px]">
-                    今日待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{dueCount}</span> 张 · 5 分钟记得更牢
+                  <h2 className="text-[1rem] font-bold text-v2-text-primary tracking-[-0.2px]">词组闪卡</h2>
+                  <p className="text-[0.8125rem] text-v2-text-secondary mt-[5px]">
+                    今日待复习 <span className="text-brand-primary-dark font-bold text-[0.9375rem]">{dueCount}</span> 张 · 5 分钟记得更牢
                   </p>
                   <div
-                    className="inline-flex items-center gap-[3px] min-h-[44px] mt-3 text-[13px] font-semibold rounded-full px-4 py-2"
+                    className="inline-flex items-center gap-[3px] min-h-[44px] mt-3 text-[0.8125rem] font-semibold rounded-full px-4 py-2"
                     style={GRADIENT_BORDER_STYLE}
                   >
                     <span className="text-v2-text-secondary">开始复习</span>
@@ -310,7 +310,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
             {/* 素材仓「我的素材」：四入口收敛成 2×2 等大瓦片（方向 B）。
                 收藏卡片去掉原「你的话→更地道」预览（B 方案取舍，产品方已知情）。
                 四格各自平级 button、互不嵌套、命中区 ≥44px，计数读真实值。 */}
-            <p className="text-[12px] font-medium text-v2-text-muted ml-0.5 mt-3 mb-2.5 animate-fade-up" style={{ animationDelay: '0.14s' }}>我的素材</p>
+            <p className="text-[0.75rem] font-medium text-v2-text-muted ml-0.5 mt-3 mb-2.5 animate-fade-up" style={{ animationDelay: '0.14s' }}>我的素材</p>
             <div className="grid grid-cols-2 gap-3 animate-fade-up" style={{ animationDelay: '0.18s', marginBottom: 20 }}>
               {/* ① 收藏卡片（橙云 · 消息图标） */}
               <button
@@ -328,8 +328,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <MessageSquareText size={20} className="text-v2-text-secondary relative z-[2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-v2-text-secondary">收藏卡片</p>
-                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{cards.length}</p>
+                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">收藏卡片</p>
+                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{cards.length}</p>
                 </div>
               </button>
 
@@ -349,8 +349,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <BookOpen size={20} className="text-v2-text-secondary relative z-[2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-v2-text-secondary">词组收藏</p>
-                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{wordsCount}</p>
+                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">词组收藏</p>
+                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{wordsCount}</p>
                 </div>
               </button>
 
@@ -370,8 +370,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <Volume2 size={20} className="text-v2-text-secondary relative z-[2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-v2-text-secondary">发音</p>
-                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{pronCount}</p>
+                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">发音</p>
+                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{pronCount}</p>
                 </div>
               </button>
 
@@ -391,8 +391,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <Mic2 size={20} className="text-v2-text-secondary relative z-[2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-v2-text-secondary">语料匹配</p>
-                  <p className="text-[18px] font-bold text-v2-text-primary leading-none mt-1">{pairCount}</p>
+                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">语料匹配</p>
+                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{pairCount}</p>
                 </div>
               </button>
             </div>

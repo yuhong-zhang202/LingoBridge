@@ -51,7 +51,7 @@ function CorpusSummary({ text, className }: { text: string; className: string })
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
-          className="mt-1 min-h-[32px] text-[12px] font-medium text-brand-primary-dark active:opacity-60"
+          className="mt-1 min-h-[32px] text-[0.75rem] font-medium text-brand-primary-dark active:opacity-60"
           aria-expanded={expanded}
         >
           {expanded ? '收起' : '查看更多'}
@@ -106,21 +106,21 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[380px] bg-bg-surface rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] animate-fade-up px-6 py-7"
       >
-        <h2 id="swap-corpus-title" className="text-[16px] font-semibold text-v2-text-primary text-center">
+        <h2 id="swap-corpus-title" className="text-[1rem] font-semibold text-v2-text-primary text-center">
           这道题已经存过语料
         </h2>
-        <p className="text-[13px] text-v2-text-secondary text-center mt-2 leading-relaxed">
+        <p className="text-[0.8125rem] text-v2-text-secondary text-center mt-2 leading-relaxed">
           换语料会用新语料重新生成这道题的例句，原来的会被替换。
         </p>
 
         <div className="flex flex-col gap-3 mt-5">
           <Card className="px-4 py-3.5">
             <Tag variant="gray" label="当前语料" />
-            <CorpusSummary text={summaryText(currentCorpus.summary)} className="text-[14px] text-v2-text-secondary" />
+            <CorpusSummary text={summaryText(currentCorpus.summary)} className="text-[0.875rem] text-v2-text-secondary" />
           </Card>
           <Card variant="gradient" className="px-4 py-3.5">
             <Tag variant="green" label="新语料" />
-            <CorpusSummary text={summaryText(newCorpus.summary)} className="text-[14px] text-v2-text-primary" />
+            <CorpusSummary text={summaryText(newCorpus.summary)} className="text-[0.875rem] text-v2-text-primary" />
           </Card>
         </div>
 
@@ -128,14 +128,14 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
           <GradientButton
             onClick={onSwap}
             loading={swapping}
-            className="w-full px-6 py-3 rounded-full text-[14px] font-medium"
+            className="w-full px-6 py-3 rounded-full text-[0.875rem] font-medium"
           >
             {swapping ? '换语料中…' : '换成新语料'}
           </GradientButton>
           <button
             onClick={onKeepCurrent}
             disabled={swapping}
-            className="min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-v2-text-muted active:opacity-60 disabled:opacity-50"
+            className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-muted active:opacity-60 disabled:opacity-50"
           >
             保留当前
           </button>

@@ -64,20 +64,20 @@ export default function AnkiRegisterGate({ onClose }: Props) {
       >
         <div className="flex flex-col items-center text-center px-6 py-10">
           <Orb size={120} pulse={false} />
-          <h2 id="anki-gate-title" className="text-[15px] font-medium text-v2-text-primary mt-5">存题卡需要注册</h2>
-          <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+          <h2 id="anki-gate-title" className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">存题卡需要注册</h2>
+          <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
             注册后，把这道题存成你的复习卡，绑上你的语料生成专属答法，还能记录复习进度。
           </p>
           <div className="flex flex-col items-center gap-2.5 mt-5">
             <GradientButton
               onClick={() => navigate('/login')}
-              className="px-6 py-3 rounded-full text-[14px] font-medium"
+              className="px-6 py-3 rounded-full text-[0.875rem] font-medium"
             >
               注册 / 登录
             </GradientButton>
             <button
               onClick={onClose}
-              className="min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-v2-text-muted active:opacity-60"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-muted active:opacity-60"
             >
               再看看
             </button>

@@ -65,7 +65,7 @@ export default function SwipeToDelete({ onDelete, borderRadius = 20, children }:
         style={{ background: DEL_BG }}
         onClick={onDelete}
       >
-        <div className="w-[130px] flex items-center justify-center gap-1.5 text-white text-[14px] font-medium">
+        <div className="w-[130px] flex items-center justify-center gap-1.5 text-white text-[0.875rem] font-medium">
           <Trash2 size={16} />删除
         </div>
       </button>

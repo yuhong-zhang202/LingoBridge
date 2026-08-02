@@ -142,14 +142,14 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
             <Tag variant="green" label={question.dimension} />
             {question.is_new && <Tag variant="green" label="新题" />}
             {!isPrimaryMatch && !isHighMatch && (
-              <span className="text-[10px] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
+              <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
                 需切换角度
               </span>
             )}
           </div>
 
-          <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{enText}</p>
-          {zhText && <p className="text-[12px] text-v2-text-muted mt-0.5">{zhText}</p>}
+          <p className="text-[1rem] font-bold text-v2-text-primary leading-snug">{enText}</p>
+          {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5">{zhText}</p>}
 
           <div className="flex items-center justify-end mt-3">
             <Chip

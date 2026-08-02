@@ -46,7 +46,7 @@ export default function SwUpdatePrompt() {
     <button
       type="button"
       onClick={handleRefresh}
-      className="toast-enter fixed bottom-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[380px] bg-surface-inverse text-white text-[13px] leading-snug rounded-[14px] px-4 py-3 shadow-lg cursor-pointer flex items-center justify-center gap-2"
+      className="toast-enter fixed bottom-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[380px] bg-surface-inverse text-white text-[0.8125rem] leading-snug rounded-[14px] px-4 py-3 shadow-lg cursor-pointer flex items-center justify-center gap-2"
     >
       <RefreshCw size={14} />
       有新版本，点此刷新

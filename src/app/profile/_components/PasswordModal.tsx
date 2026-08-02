@@ -13,7 +13,7 @@ import { loginWithPassword, updatePassword } from '@/lib/auth'
 
 const PASSWORD_MIN = 6
 const INPUT_CLASS =
-  'w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none focus:border-brand-primary transition-colors'
+  'w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[1rem] lg:text-[0.8125rem] text-v2-text-primary placeholder:text-v2-text-muted outline-none focus:border-brand-primary transition-colors'
 
 interface PasswordModalProps {
   /** 当前账号邮箱，用于校验当前密码；为 null 时跳过校验 */
@@ -68,34 +68,34 @@ export default function PasswordModal({ email, onClose }: PasswordModalProps): J
       {done ? (
         <div className="flex flex-col items-center py-4">
           <Check size={28} className="text-brand-accent mb-2" />
-          <p className="text-[14px] text-v2-text-primary">密码已更新</p>
+          <p className="text-[0.875rem] text-v2-text-primary">密码已更新</p>
         </div>
       ) : (
         // form + onSubmit：输入框内按 Enter 即可提交（GradientButton 渲染的是 button，默认 type=submit）
         <form onSubmit={(e) => { e.preventDefault(); void handleSave() }}>
           <div className="flex flex-col gap-3.5">
             <div>
-              <label htmlFor="pwd-current" className="text-[12px] text-v2-text-secondary mb-1.5 block">当前密码</label>
+              <label htmlFor="pwd-current" className="text-[0.75rem] text-v2-text-secondary mb-1.5 block">当前密码</label>
               <input id="pwd-current" name="current-password" type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
                 autoComplete="current-password" placeholder="输入当前密码" className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="pwd-new" className="text-[12px] text-v2-text-secondary mb-1.5 block">新密码</label>
+              <label htmlFor="pwd-new" className="text-[0.75rem] text-v2-text-secondary mb-1.5 block">新密码</label>
               <input id="pwd-new" name="new-password" type="password" value={next} onChange={(e) => setNext(e.target.value)}
                 autoComplete="new-password" placeholder={`至少 ${PASSWORD_MIN} 位字符`} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="pwd-confirm" className="text-[12px] text-v2-text-secondary mb-1.5 block">确认新密码</label>
+              <label htmlFor="pwd-confirm" className="text-[0.75rem] text-v2-text-secondary mb-1.5 block">确认新密码</label>
               <input id="pwd-confirm" name="confirm-password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password" placeholder="再次输入新密码" className={INPUT_CLASS} />
             </div>
           </div>
 
-          {err && <p role="alert" className="text-[12px] text-error mt-2 px-1">{err}</p>}
+          {err && <p role="alert" className="text-[0.75rem] text-error mt-2 px-1">{err}</p>}
 
           {/* 不传 onClick：按钮在 form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
           <GradientButton disabled={!canSubmit}
-            className="w-full mt-5 py-3 rounded-full text-[14px] font-medium disabled:cursor-not-allowed">
+            className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed">
             {submitting ? '保存中…' : '保存修改'}
           </GradientButton>
         </form>

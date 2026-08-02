@@ -129,11 +129,11 @@ function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
   return (
     <section aria-label="按环节成本" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2">
-        <h2 className="text-[13px] font-semibold text-v2-text-primary">钱花在哪个环节</h2>
-        <span className="text-[10px] text-v2-text-muted">占本期总成本</span>
+        <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">钱花在哪个环节</h2>
+        <span className="text-[0.625rem] text-v2-text-muted">占本期总成本</span>
       </div>
       {phases.length === 0 ? (
-        <div className="text-v2-text-muted text-[12px] py-4 text-center">本期暂无环节数据</div>
+        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">本期暂无环节数据</div>
       ) : (
         <div className="space-y-2">
           {phases.map(p => {
@@ -141,18 +141,18 @@ function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
             const pct  = total > 0 ? Math.round(p.cost / total * 100) : 0
             return (
               <div key={p.phase} className="flex items-center gap-3">
-                <span className="text-[11px] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={name}>{name}</span>
+                <span className="text-[0.6875rem] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={name}>{name}</span>
                 <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
                   <div className="h-full rounded-full bg-brand-accent/70"
                     style={{ width: `${max > 0 ? (p.cost / max) * 100 : 0}%` }} />
                 </div>
-                <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
-                <span className="text-[10px] text-v2-text-muted w-10 text-right flex-shrink-0 tabular-nums">{pct}%</span>
+                <span className="text-[0.6875rem] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(p.cost)}</span>
+                <span className="text-[0.625rem] text-v2-text-muted w-10 text-right flex-shrink-0 tabular-nums">{pct}%</span>
               </div>
             )
           })}
           {hasOther && (
-            <div className="text-[10px] text-v2-text-muted mt-2 leading-relaxed">
+            <div className="text-[0.625rem] text-v2-text-muted mt-2 leading-relaxed">
               「其他（未标注环节）」多为埋点前的转写调用，新数据会自动归位。
             </div>
           )}
@@ -173,23 +173,23 @@ function PhaseFailureBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; f
   return (
     <section aria-label="按环节失败率" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2">
-        <h2 className="text-[13px] font-semibold text-v2-text-primary">哪个环节在失败</h2>
+        <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">哪个环节在失败</h2>
         {failedCost > 0 && (
-          <span className="text-[11px] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
+          <span className="text-[0.6875rem] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
         )}
       </div>
       {failing.length === 0 ? (
-        <div className="text-v2-text-muted text-[12px] py-4 text-center">本期各环节无失败</div>
+        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">本期各环节无失败</div>
       ) : (
         <div className="space-y-2">
           {failing.map(p => (
             <div key={p.phase} className="flex items-center gap-3">
-              <span className="text-[11px] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={phaseDisplayName(p)}>{phaseDisplayName(p)}</span>
-              <span className="flex-1 text-[11px] text-warning-text">
+              <span className="text-[0.6875rem] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={phaseDisplayName(p)}>{phaseDisplayName(p)}</span>
+              <span className="flex-1 text-[0.6875rem] text-warning-text">
                 失败 <span className="font-medium tabular-nums">{p.errors}</span> 次
                 <span className="text-v2-text-muted">（占该环节调用 {p.errorRate}%）</span>
               </span>
-              <span className="text-[11px] font-medium text-warning-text w-24 text-right flex-shrink-0 tabular-nums">白烧 {formatCny(p.errorCost)}</span>
+              <span className="text-[0.6875rem] font-medium text-warning-text w-24 text-right flex-shrink-0 tabular-nums">白烧 {formatCny(p.errorCost)}</span>
             </div>
           ))}
         </div>
@@ -214,13 +214,13 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
     <section aria-label="按用户成本 Top-N" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-[13px] font-semibold text-v2-text-primary">按用户成本 Top-N</h2>
+          <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">按用户成本 Top-N</h2>
           {/* 本区块口径独立于区间：按 user_id 全时段累计（抓"谁烧最多"要看历史总账，不随区间切换） */}
-          <span className="text-[10px] text-v2-text-muted">全时段累计</span>
+          <span className="text-[0.625rem] text-v2-text-muted">全时段累计</span>
         </div>
         {/* 匿名/登录成本占比：匿名占比高 = 陌生人试用在烧钱，内测阶段重点盯 */}
         {attributed > 0 && (
-          <span className="text-[11px] text-v2-text-secondary">
+          <span className="text-[0.6875rem] text-v2-text-secondary">
             匿名 <span className="font-medium text-warning-text">{formatCny(anonymousCost)} · {anonPct}%</span>
             <span className="mx-1.5 text-v2-text-muted">/</span>
             登录 <span className="font-medium text-v2-text-primary">{formatCny(loggedInCost)}</span>
@@ -228,25 +228,25 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
         )}
       </div>
       {users.length === 0 ? (
-        <div className="text-v2-text-muted text-[12px] py-4 text-center">暂无可归因到用户的调用</div>
+        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">暂无可归因到用户的调用</div>
       ) : (
         <div className="space-y-2">
           {users.map(u => (
             <div key={u.userId} className="flex items-center gap-3">
               {/* user_id 是 UUID，截前 8 位展示即可辨识、又不占满宽；等宽字体对齐 */}
-              <span className="text-[11px] text-v2-text-secondary w-20 flex-shrink-0 truncate" style={{ fontFamily: 'monospace' }}>{u.userId.slice(0, 8)}</span>
+              <span className="text-[0.6875rem] text-v2-text-secondary w-20 flex-shrink-0 truncate" style={{ fontFamily: 'monospace' }}>{u.userId.slice(0, 8)}</span>
               {/* 匿名标记：匿名单独标出（纯成本高风险），登录不占位保持行整洁 */}
               <span className="w-10 flex-shrink-0">
                 {u.isAnonymous && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-warning/15 text-warning-text">匿名</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.5625rem] font-medium bg-warning/15 text-warning-text">匿名</span>
                 )}
               </span>
               <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${u.isAnonymous ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
                   style={{ width: `${max > 0 ? (u.cost / max) * 100 : 0}%` }} />
               </div>
-              <span className="text-[11px] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(u.cost)}</span>
-              <span className="text-[10px] text-v2-text-muted w-14 text-right flex-shrink-0">{u.calls} 次</span>
+              <span className="text-[0.6875rem] font-medium text-v2-text-primary w-16 text-right flex-shrink-0 tabular-nums">{formatCny(u.cost)}</span>
+              <span className="text-[0.625rem] text-v2-text-muted w-14 text-right flex-shrink-0">{u.calls} 次</span>
             </div>
           ))}
         </div>
@@ -267,8 +267,8 @@ function FunnelCard({ children }: { children: ReactNode }) {
 function FunnelChevron() {
   return (
     <li aria-hidden="true" className="flex items-center justify-center shrink-0 text-v2-text-muted">
-      <span className="hidden md:inline text-[18px] leading-none">›</span>
-      <span className="md:hidden text-[16px] leading-none">↓</span>
+      <span className="hidden md:inline text-[1.125rem] leading-none">›</span>
+      <span className="md:hidden text-[1rem] leading-none">↓</span>
     </li>
   )
 }
@@ -284,13 +284,13 @@ function pctText(num: number, den: number): string | null {
   return `${(num / den * 100).toFixed(1)}%`
 }
 
-/** 漏斗主数字 x/y（%）：主 x/y 为 text-[24px] 粗体；(%) 括号灰为辅（除零时不显 %，只显 x/y） */
+/** 漏斗主数字 x/y（%）：主 x/y 为 text-[1.5rem] 粗体；(%) 括号灰为辅（除零时不显 %，只显 x/y） */
 function FunnelFraction({ num, den }: { num: number; den: number }) {
   const p = pctText(num, den)
   return (
-    <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">
+    <div className="text-[1.5rem] font-bold text-v2-text-primary tabular-nums leading-none mt-1">
       {num}/{den}
-      {p && <span className="text-[13px] font-medium text-v2-text-secondary ml-1">({p})</span>}
+      {p && <span className="text-[0.8125rem] font-medium text-v2-text-secondary ml-1">({p})</span>}
     </div>
   )
 }
@@ -300,22 +300,22 @@ function FunnelDegraded({ title, reason }: { title: string; reason: string }) {
   return (
     <>
       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-        <span className="text-[11px] text-v2-text-muted">{title}</span>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
+        <span className="text-[0.6875rem] text-v2-text-muted">{title}</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.5625rem] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
       </div>
-      <div className="text-[10px] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
+      <div className="text-[0.625rem] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
     </>
   )
 }
 
 /** 漏斗段标题（11px muted） */
 function FunnelTitle({ children }: { children: ReactNode }) {
-  return <div className="text-[11px] text-v2-text-muted">{children}</div>
+  return <div className="text-[0.6875rem] text-v2-text-muted">{children}</div>
 }
 
 /** 漏斗段口径小字（10px muted，mt-auto 沉底与等高段对齐） */
 function FunnelNote({ children }: { children: ReactNode }) {
-  return <div className="text-[10px] text-v2-text-muted leading-relaxed mt-auto pt-2">{children}</div>
+  return <div className="text-[0.625rem] text-v2-text-muted leading-relaxed mt-auto pt-2">{children}</div>
 }
 
 /**
@@ -347,7 +347,7 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
   const seg1: ReactNode = act
     ? (<>
         <FunnelTitle>累计注册</FunnelTitle>
-        <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{act.registeredTotal}</div>
+        <div className="text-[1.5rem] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{act.registeredTotal}</div>
         <FunnelNote>只计真注册（非匿名·有邮箱）· 东八区</FunnelNote>
       </>)
     : <FunnelDegraded title="累计注册" reason={ACTIVATION_REASON} />
@@ -357,7 +357,7 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
     ? (<>
         <FunnelTitle>激活</FunnelTitle>
         <FunnelFraction num={act.activatedTotal} den={act.registeredTotal} />
-        <div className="text-[11px] text-v2-text-secondary mt-2">
+        <div className="text-[0.6875rem] text-v2-text-secondary mt-2">
           本周期新注册激活 <span className="tabular-nums">{act.cohortActivated}/{act.cohortTotal}</span>
           {cohortPct && <span className="text-v2-text-muted">（{cohortPct}）</span>}
         </div>
@@ -370,7 +370,7 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
     ? <FunnelDegraded title="窗口核心活跃" reason="核心活跃口径 RPC（get_core_active_stats 与 0045）均未接入，窗口核心活跃暂不可信。待部署方跑迁移 0047 后自动显示。" />
     : (<>
         <FunnelTitle>窗口核心活跃</FunnelTitle>
-        <div className="text-[24px] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{data.windowCoreActive}</div>
+        <div className="text-[1.5rem] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{data.windowCoreActive}</div>
         <FunnelNote>AI 环节 / 闪卡复习 / 收藏 任一即算 · 仅注册用户 · 近{windowDays}天</FunnelNote>
       </>)
 
@@ -379,7 +379,7 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
   const ret = data.retention
   const d7Immature = ret && ret.d7N === 0 ? '需≥7天数据' : '暂无'
   const comparisonRow = ret ? (
-    <div className="text-[10px] text-v2-text-muted mt-2 leading-relaxed">
+    <div className="text-[0.625rem] text-v2-text-muted mt-2 leading-relaxed">
       旧口径对照 · D1 {retentionText(ret.d1Rate, ret.d1N, '需≥1天数据')} · D7 {retentionText(ret.d7Rate, ret.d7N, d7Immature)}
     </div>
   ) : null
@@ -426,14 +426,14 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
 function FakeEmptyStat({ fakeEmpty, threshold }: { fakeEmpty: NonNullable<DashboardData['fakeEmpty']>; threshold: number }) {
   return (
     <Card className="flex-1 min-w-[140px] px-4 py-4">
-      <div className="text-[11px] text-v2-text-muted mb-1">假空率</div>
-      <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">
+      <div className="text-[0.6875rem] text-v2-text-muted mb-1">假空率</div>
+      <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">
         {fakeEmpty.rate}% · n={fakeEmpty.n}
       </div>
-      <div className="text-[11px] text-v2-text-secondary mt-2">
+      <div className="text-[0.6875rem] text-v2-text-secondary mt-2">
         疑似采集问题：<span className="tabular-nums">{fakeEmpty.fakeCount}</span> / {fakeEmpty.n} 段空录音
       </div>
-      <div className="text-[10px] text-v2-text-muted mt-1.5">峰值音量≥{threshold} 却转写空 = 疑似采集问题 · 阈值待标定</div>
+      <div className="text-[0.625rem] text-v2-text-muted mt-1.5">峰值音量≥{threshold} 却转写空 = 疑似采集问题 · 阈值待标定</div>
     </Card>
   )
 }
@@ -443,10 +443,10 @@ function PendingPlaceholder({ title, reason }: { title: string; reason: string }
   return (
     <div className="flex-1 min-w-[140px] bg-black/[0.02] rounded-[12px] border border-dashed border-black/[0.1] px-4 py-3">
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-[11px] text-v2-text-muted">{title}</span>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
+        <span className="text-[0.6875rem] text-v2-text-muted">{title}</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.5625rem] font-medium bg-black/[0.04] text-v2-text-muted">下一步接入</span>
       </div>
-      <div className="text-[10px] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
+      <div className="text-[0.625rem] text-v2-text-muted leading-relaxed mt-1">{reason}</div>
     </div>
   )
 }
@@ -498,21 +498,21 @@ export default function DashboardPage() {
     <main className="max-w-[1400px] mx-auto px-4 md:px-10 pt-8 pb-12">
       {/* 顶部标题 */}
       <div className="mb-6">
-        <div className="text-[11px] text-v2-text-muted tracking-[1.5px] uppercase mb-1">LINGOBRIDGE</div>
-        <h1 className="text-[22px] font-bold text-v2-text-primary">经营看板</h1>
+        <div className="text-[0.6875rem] text-v2-text-muted tracking-[1.5px] uppercase mb-1">LINGOBRIDGE</div>
+        <h1 className="text-[1.375rem] font-bold text-v2-text-primary">经营看板</h1>
       </div>
 
       {denied && (
-        <div className="text-v2-text-muted text-[14px] py-10 text-center">无权访问：经营看板仅对管理员开放。</div>
+        <div className="text-v2-text-muted text-[0.875rem] py-10 text-center">无权访问：经营看板仅对管理员开放。</div>
       )}
 
-      {loading && !denied && <div className="text-v2-text-muted text-[14px] py-10 text-center">加载中…</div>}
+      {loading && !denied && <div className="text-v2-text-muted text-[0.875rem] py-10 text-center">加载中…</div>}
 
       {error && !loading && !denied && (
         <div className="flex flex-col items-center gap-3 py-16">
-          <div className="text-v2-text-secondary text-[14px]">加载失败，请重试</div>
+          <div className="text-v2-text-secondary text-[0.875rem]">加载失败，请重试</div>
           <button onClick={() => setReloadKey(k => k + 1)}
-            className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full text-[12px] font-medium bg-v2-text-primary text-white">
+            className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-full text-[0.75rem] font-medium bg-v2-text-primary text-white">
             重试
           </button>
         </div>
@@ -536,17 +536,17 @@ export default function DashboardPage() {
 
         {/* ── Tier2 区间选择器 + 口径注脚（只作用于下方展开区；Tier1 四数卡为今日口径）── */}
         <div className="flex items-center justify-between mb-2 gap-3">
-          <div className="text-[13px] font-semibold text-v2-text-primary">明细（可展开）</div>
+          <div className="text-[0.8125rem] font-semibold text-v2-text-primary">明细（可展开）</div>
           <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5 flex-shrink-0" role="group" aria-label="时间范围">
             {RANGES.map(r => (
               <button key={r} onClick={() => setRange(r)} aria-pressed={range === r}
-                className={`min-h-[44px] px-3.5 rounded-full text-[11px] font-medium transition-colors ${range === r ? 'bg-v2-text-primary text-white' : 'text-v2-text-muted'}`}>
+                className={`min-h-[44px] px-3.5 rounded-full text-[0.6875rem] font-medium transition-colors ${range === r ? 'bg-v2-text-primary text-white' : 'text-v2-text-muted'}`}>
                 {RANGE_LABEL[r]}
               </button>
             ))}
           </div>
         </div>
-        <div className="text-[10px] text-v2-text-muted mb-3">
+        <div className="text-[0.625rem] text-v2-text-muted mb-3">
           口径说明：上方四数卡为今日口径（按东八区日历边界）；以下展开区的所有图表与统计均为所选区间（{RANGE_LABEL[range]}）口径。
         </div>
 
@@ -559,9 +559,9 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-2.5 mt-3">
             {/* 今日新增注册：真注册口径（RPC 可用时）；newRegistrationsPending 为真=RPC 未接入、暂用 profiles 计数（含匿名·虚高），走降级文案 */}
             <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[11px] text-v2-text-muted mb-1">今日新增注册</div>
-              <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
-              <div className="text-[10px] text-v2-text-muted mt-1.5">
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日新增注册</div>
+              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
+              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
                 {data.newRegistrationsPending
                   ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
                   : '只计真注册（非匿名·有邮箱），东八区'}
@@ -569,9 +569,9 @@ export default function DashboardPage() {
             </Card>
             {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
             <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[11px] text-v2-text-muted mb-1">今日匿名活跃</div>
-              <div className="text-[24px] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
-              <div className="text-[10px] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日匿名活跃</div>
+              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
+              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
             </Card>
             {data.fakeEmpty
               ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
@@ -579,10 +579,10 @@ export default function DashboardPage() {
           </div>
           {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
           <div className="mt-4">
-            <div className="text-[12px] font-medium text-v2-text-secondary mb-2">参与度趋势 · 核心活跃人数 + 练习场次 + 新增注册</div>
+            <div className="text-[0.75rem] font-medium text-v2-text-secondary mb-2">参与度趋势 · 核心活跃人数 + 练习场次 + 新增注册</div>
             {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
               ? <EngagementTrendChart data={data.engagementTrend} />
-              : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
+              : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
           </div>
         </CollapsibleSection>
 
@@ -608,14 +608,14 @@ export default function DashboardPage() {
         <CollapsibleSection title="D · 成本" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户">
           {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
           <CostCards data={data} />
-          <div className="text-[10px] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
+          <div className="text-[0.625rem] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
 
           {/* 费用趋势 + 按服务占比 */}
           <div className="flex items-center justify-end mb-2">
             {/* 筛选可发现性：点占比联动后给显式「全部」出口，否则用户不知如何清除 dim 状态 */}
             {selectedService && (
               <button onClick={() => setSelected(null)}
-                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[11px] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
+                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[0.6875rem] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
                 <span aria-hidden="true">×</span>清除筛选 · 全部
               </button>
             )}
@@ -623,16 +623,16 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
             <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
               {/* 时间范围标注：趋势/饼图均为所选区间（近 N 天）口径，与上方费用卡（全部历史/本月/今日）不同源 */}
-              <div className="text-[11px] text-v2-text-muted mb-1">费用趋势 · 近 {Number(range.slice(0, -1))} 天</div>
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">费用趋势 · 近 {Number(range.slice(0, -1))} 天</div>
               {hasRangeData
                 ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
-                : <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
+                : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
             </section>
             <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
               <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} rangeDays={Number(range.slice(0, -1))} />
             </section>
           </div>
-          <div className="text-[10px] text-v2-text-muted mb-4">
+          <div className="text-[0.625rem] text-v2-text-muted mb-4">
             注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在卡片染色提示，不触发任何告警推送。
           </div>
 
@@ -648,22 +648,22 @@ export default function DashboardPage() {
           <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mb-4 overflow-hidden">
             {MINI_STATS(data).map(s => (
               <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
-                <div className="text-[11px] text-v2-text-muted mb-0.5">{s.label}</div>
-                <div className="text-[14px] font-semibold text-v2-text-primary">{s.value}</div>
+                <div className="text-[0.6875rem] text-v2-text-muted mb-0.5">{s.label}</div>
+                <div className="text-[0.875rem] font-semibold text-v2-text-primary">{s.value}</div>
               </div>
             ))}
           </section>
 
           {/* 今日调用分布（小时） */}
           <section aria-label="今日调用分布" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
-            <h2 className="text-[12px] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
+            <h2 className="text-[0.75rem] font-medium text-v2-text-secondary mb-2">今日调用分布</h2>
             {hasTodayData ? (<>
               {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附 sr-only 数据表兜底（与同页另图一致） */}
               <div role="img"
                 aria-label={`今日调用按小时分布柱状图，全天共 ${todayTotalCalls} 次调用，峰值 ${todayPeakHour.hour} 共 ${todayPeakHour.calls} 次。详细数据见下方数据表。`}>
                 <ResponsiveContainer width="100%" height={100}>
                   <BarChart data={data.hourlyData} barSize={6} margin={{ top: 0, right: 0, bottom: 0, left: -16 }}>
-                    <XAxis dataKey="hour" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} interval={3} />
+                    <XAxis dataKey="hour" tick={{ fontSize: '0.5625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} interval={3} />
                     <Bar dataKey="calls" radius={[2, 2, 0, 0]}>
                       {data.hourlyData.map((h, i) => (
                         <Cell key={i} fill="#7BA699" fillOpacity={h.calls > 0 ? 0.6 : 0.15} />
@@ -684,7 +684,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </>) : (
-              <div className="text-v2-text-muted text-[12px] h-[100px] flex items-center justify-center">今日暂无调用</div>
+              <div className="text-v2-text-muted text-[0.75rem] h-[100px] flex items-center justify-center">今日暂无调用</div>
             )}
           </section>
 
@@ -694,10 +694,10 @@ export default function DashboardPage() {
 
           {/* 底部单价参考 */}
           <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
-            <div className="text-[11px] text-v2-text-muted leading-relaxed">
+            <div className="text-[0.6875rem] text-v2-text-muted leading-relaxed">
               单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
             </div>
-            <div className="text-[10px] text-v2-text-muted mt-1.5">
+            <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
               * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
             </div>
           </div>

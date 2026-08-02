@@ -38,7 +38,7 @@ function StepNum({ n }: { n: number }) {
   return (
     <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-neutral-mid">{n}</span>
+        <span className="text-[0.6875rem] font-bold leading-none text-neutral-mid">{n}</span>
       </div>
     </div>
   )
@@ -146,8 +146,8 @@ export default function AnalysisMobile({
                 {data.question.dimension && <Tag variant="green" label={data.question.dimension} />}
                 {data.question.isNew && <Tag variant="green" label="当季新题" />}
               </div>
-              <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
-              <p className="text-[12px] text-v2-text-muted">{data.question.zh}</p>
+              <p className="text-[0.875rem] font-medium text-v2-text-primary leading-[1.6] mb-1">{data.question.en}</p>
+              <p className="text-[0.75rem] text-v2-text-muted">{data.question.zh}</p>
             </Card>
 
             {/* 桌面端：答题侧重点 | 可用词组 两栏（参照 web.html analysis-view）；移动端单列堆叠 */}
@@ -157,18 +157,18 @@ export default function AnalysisMobile({
             <GradCard>
               <div className="flex items-center gap-1.5 mb-2">
                 <Target size={13} className="text-brand-primary" />
-                <span className="text-[13px] font-semibold text-v2-text-secondary">答题侧重点</span>
+                <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">答题侧重点</span>
               </div>
               {data.analysis.structureLabel && (
-                <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
+                <p className="text-[0.6875rem] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
               )}
               <div className="flex flex-col gap-4">
                 {data.analysis.focusPoints.map((fp, i) => (
                   <div key={i} className="flex items-start gap-2.5">
                     <StepNum n={i + 1} />
                     <div className="flex-1 pt-[1px]">
-                      <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
-                      <p className="text-[12px] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
+                      <p className="text-[0.875rem] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
+                      <p className="text-[0.75rem] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -179,24 +179,24 @@ export default function AnalysisMobile({
             <GradCard>
               <div className="flex items-center gap-1.5 mb-3">
                 <Type size={13} className="text-brand-accent" />
-                <span className="text-[13px] font-semibold text-v2-text-secondary">可用词组</span>
+                <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">可用词组</span>
                 <div className="relative ml-auto">
                   <button
                     onClick={onToggleLevelMenu}
                     disabled={phrasesLoading}
-                    className="flex items-center gap-1 text-[12px] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+                    className="flex items-center gap-1 text-[0.75rem] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
                   >
                     雅思 {level}
                     <ChevronDown size={13} className={`transition-transform duration-150 ${levelMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {levelMenuOpen && (
                     <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
-                      <p className="text-[11px] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
+                      <p className="text-[0.6875rem] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
                       {LEVELS.map(lv => (
                         <button
                           key={lv}
                           onClick={() => onSelectLevel(lv)}
-                          className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
+                          className={`flex items-center w-full text-[0.8125rem] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
                         >
                           {lv}
                           {lv === level && <Check size={13} className="ml-auto text-brand-primary" />}
@@ -208,7 +208,7 @@ export default function AnalysisMobile({
               </div>
               {/* aria-live：换档后词组整体被替换，读屏用户否则感知不到内容已变（先例 PracticeDesktop 消息列表） */}
               {phrasesLoading ? (
-                <p aria-live="polite" className="text-[12px] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
+                <p aria-live="polite" className="text-[0.75rem] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
               ) : (
               <div aria-live="polite" className="flex flex-col gap-3.5">
                 {(data.analysis.phrases ?? []).map((g, gi) => {
@@ -216,7 +216,7 @@ export default function AnalysisMobile({
                   const openItem = og === gi ? g.items[oi] : null
                   return (
                     <div key={gi}>
-                      <p className="text-[11px] font-medium text-v2-text-muted mb-2">{g.group}</p>
+                      <p className="text-[0.6875rem] font-medium text-v2-text-muted mb-2">{g.group}</p>
                       <div className="flex flex-wrap gap-2">
                         {g.items.map((p, ii) => {
                           const isOpen = openPhrase === `${gi}-${ii}`
@@ -226,7 +226,7 @@ export default function AnalysisMobile({
                               onClick={() => onTogglePhrase(isOpen ? null : `${gi}-${ii}`)}
                               aria-expanded={isOpen}
                               aria-controls={isOpen ? `phrase-detail-${gi}-${ii}` : undefined}
-                              className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap active:scale-[0.97] transition-transform duration-150 ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
+                              className={`text-[0.8125rem] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap active:scale-[0.97] transition-transform duration-150 ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                             >
                               {p.text}
                               {savedSet.has(p.text) && (
@@ -259,7 +259,7 @@ export default function AnalysisMobile({
 
             <GradientButton
               onClick={onStartPractice}
-              className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[14px] font-medium lg:max-w-[480px] lg:mx-auto"
+              className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[0.875rem] font-medium lg:max-w-[480px] lg:mx-auto"
             >
               开始练习 →
             </GradientButton>

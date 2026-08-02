@@ -49,13 +49,13 @@ export default function FlowShellDesktop({
             <span className="w-9 h-9 rounded-[10px] bg-brand-primary grid place-items-center text-white">
               <Mic size={18} />
             </span>
-            <span className="text-[17px] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
+            <span className="text-[1.0625rem] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
           </ProgressLink>
           {onBack && (
             <button
               onClick={onBack}
               aria-label={backLabel}
-              className="inline-flex items-center gap-1 h-11 px-2.5 rounded-lg text-[13px] font-medium text-v2-text-secondary hover:text-v2-text-primary hover:bg-bg-muted transition-colors"
+              className="inline-flex items-center gap-1 h-11 px-2.5 rounded-lg text-[0.8125rem] font-medium text-v2-text-secondary hover:text-v2-text-primary hover:bg-bg-muted transition-colors"
             >
               <ChevronLeft size={16} />
               <span>{backLabel}</span>
@@ -84,7 +84,7 @@ export default function FlowShellDesktop({
               )
             })}
           </div>
-          <span className="text-[13px] font-semibold text-v2-text-primary">
+          <span className="text-[0.8125rem] font-semibold text-v2-text-primary">
             <span className="sr-only">第 {activeIndex + 1} 步，共 {STEPS.length} 步：</span>
             {current?.label}
           </span>

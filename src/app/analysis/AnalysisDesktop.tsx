@@ -51,7 +51,7 @@ function StepNum({ n }: { n: number }) {
   return (
     <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-v2-text-muted">{n}</span>
+        <span className="text-[0.6875rem] font-bold leading-none text-v2-text-muted">{n}</span>
       </div>
     </div>
   )
@@ -200,7 +200,7 @@ export default function AnalysisDesktop({
       <div className="w-full max-w-[960px] mx-auto">
 
         {/* 旁白定调：点明左右两栏的关系（考官怎么看 · 能用的表达），暖橙绿蓝一句话引导 */}
-        <div className="mb-6 flex items-center justify-center gap-2 text-[13px] text-v2-text-muted">
+        <div className="mb-6 flex items-center justify-center gap-2 text-[0.8125rem] text-v2-text-muted">
           <Sparkles size={14} className="text-brand-accent" />
           <span>先看考官会怎么评这道题，再挑几个直接能用的表达</span>
         </div>
@@ -212,8 +212,8 @@ export default function AnalysisDesktop({
             {data.question.dimension && <Tag variant="green" label={data.question.dimension} />}
             {data.question.isNew && <Tag variant="green" label="当季新题" />}
           </div>
-          <p className="text-[17px] font-semibold text-v2-text-primary leading-[1.5] mb-1.5">{data.question.en}</p>
-          <p className="text-[13px] text-v2-text-muted">{data.question.zh}</p>
+          <p className="text-[1.0625rem] font-semibold text-v2-text-primary leading-[1.5] mb-1.5">{data.question.en}</p>
+          <p className="text-[0.8125rem] text-v2-text-muted">{data.question.zh}</p>
         </Card>
 
         {/* split 档：左 考官侧重点 | 右 可用词组，天然成对左右并置、等高对照。
@@ -224,10 +224,10 @@ export default function AnalysisDesktop({
           <GradCard>
             <div className="flex items-center gap-1.5 mb-2">
               <Target size={13} className="text-brand-primary" />
-              <span className="text-[13px] font-semibold text-v2-text-secondary">答题侧重点</span>
+              <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">答题侧重点</span>
             </div>
             {data.analysis.structureLabel && (
-              <p className="text-[11px] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
+              <p className="text-[0.6875rem] text-v2-text-muted font-medium leading-[1.7] mb-4">{data.analysis.structureLabel}</p>
             )}
             {/* 顶部对齐（产品方 2026-07-20 拍板）：内容顶着标题起排，不做垂直居中——
                 居中版实际观感是内容悬空、与标题脱节。pt-3 是标题与第一条之间的呼吸，
@@ -240,8 +240,8 @@ export default function AnalysisDesktop({
                   <div key={i} className="flex items-start gap-2.5">
                     <StepNum n={i + 1} />
                     <div className="flex-1 pt-[1px]">
-                      <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
-                      <p className="text-[12px] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
+                      <p className="text-[0.875rem] font-medium text-v2-text-primary leading-[1.6]">{fp.title}</p>
+                      <p className="text-[0.75rem] text-v2-text-muted mt-1 leading-relaxed">{fp.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -253,28 +253,28 @@ export default function AnalysisDesktop({
           <GradCard>
             <div className="flex items-center gap-1.5 mb-3">
               <Type size={13} className="text-brand-accent" />
-              <span className="text-[13px] font-semibold text-v2-text-secondary">可用词组</span>
+              <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">可用词组</span>
               <div className="relative ml-auto">
                 <button
                   onClick={onToggleLevelMenu}
                   disabled={phrasesLoading}
                   aria-haspopup="listbox"
                   aria-expanded={levelMenuOpen}
-                  className="flex items-center gap-1 text-[12px] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+                  className="flex items-center gap-1 text-[0.75rem] text-brand-primary-dark bg-white border border-brand-primary-light rounded-full pl-2.5 pr-1.5 py-[4px] leading-none active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
                 >
                   雅思 {level}
                   <ChevronDown size={13} className={`transition-transform duration-150 ${levelMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {levelMenuOpen && (
                   <div role="listbox" aria-label="目标水平" className="absolute right-0 top-[calc(100%+6px)] z-20 w-[110px] bg-white border border-black/[0.08] rounded-[14px] p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.10)]">
-                    <p className="text-[11px] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
+                    <p className="text-[0.6875rem] text-v2-text-muted px-2.5 pt-0.5 pb-1">目标水平</p>
                     {LEVELS.map(lv => (
                       <button
                         key={lv}
                         onClick={() => onSelectLevel(lv)}
                         role="option"
                         aria-selected={lv === level}
-                        className={`flex items-center w-full text-[13px] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
+                        className={`flex items-center w-full text-[0.8125rem] px-2.5 py-[7px] rounded-[9px] active:bg-bg-muted ${lv === level ? 'text-brand-primary-dark font-medium' : 'text-v2-text-secondary'}`}
                       >
                         {lv}
                         {lv === level && <Check size={13} className="ml-auto text-brand-primary" />}
@@ -286,7 +286,7 @@ export default function AnalysisDesktop({
             </div>
             {/* aria-live：换档后词组整体被替换，读屏用户否则感知不到内容已变（先例 PracticeDesktop 消息列表） */}
             {phrasesLoading ? (
-              <p aria-live="polite" className="flex-1 flex items-center justify-center text-[12px] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
+              <p aria-live="polite" className="flex-1 flex items-center justify-center text-[0.75rem] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
             ) : (
             // 卡片已定高：词组多 / 详情卡展开一律不撑高外层，全部在本容器内滚动
             // （min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
@@ -296,7 +296,7 @@ export default function AnalysisDesktop({
                 const openItem = og === gi ? g.items[oi] : null
                 return (
                   <div key={gi}>
-                    <p className="text-[11px] font-medium text-v2-text-muted mb-2">{g.group}</p>
+                    <p className="text-[0.6875rem] font-medium text-v2-text-muted mb-2">{g.group}</p>
                     <div className="flex flex-wrap gap-2">
                       {g.items.map((p, ii) => {
                         const isOpen = openPhrase === `${gi}-${ii}`
@@ -306,7 +306,7 @@ export default function AnalysisDesktop({
                             onClick={() => onTogglePhrase(isOpen ? null : `${gi}-${ii}`)}
                             aria-expanded={isOpen}
                             aria-controls={isOpen ? `phrase-detail-${gi}-${ii}` : undefined}
-                            className={`text-[13px] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap transition-transform duration-150 hover:-translate-y-[2px] active:scale-[0.97] ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
+                            className={`text-[0.8125rem] rounded-full px-[11px] py-[5px] leading-[1.3] border whitespace-nowrap transition-transform duration-150 hover:-translate-y-[2px] active:scale-[0.97] ${PHRASE_CHIP_STYLES[gi % PHRASE_CHIP_STYLES.length]} ${isOpen ? 'ring-2 ring-brand-primary/25' : ''}`}
                           >
                             {p.text}
                             {savedSet.has(p.text) && (
@@ -341,11 +341,11 @@ export default function AnalysisDesktop({
         <div className="mt-8 flex flex-col items-center gap-3">
           <GradientButton
             onClick={onStartPractice}
-            className="flex items-center justify-center gap-1.5 px-8 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            className="flex items-center justify-center gap-1.5 px-8 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
             开始练习 →
           </GradientButton>
-          <p className="text-[12px] text-v2-text-muted">Enter 或 → 进入练习 · Esc 退出</p>
+          <p className="text-[0.75rem] text-v2-text-muted">Enter 或 → 进入练习 · Esc 退出</p>
         </div>
       </div>
     </div>

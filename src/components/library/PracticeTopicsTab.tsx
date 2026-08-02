@@ -20,7 +20,7 @@ export default function PracticeTopicsTab({ topics }: Props) {
   if (topics.length === 0) {
     return (
       <div className="flex items-center justify-center pt-20 px-4 text-center">
-        <p className="text-[14px] text-v2-text-muted">还没有练习过的题目，从首页开始录音吧</p>
+        <p className="text-[0.875rem] text-v2-text-muted">还没有练习过的题目，从首页开始录音吧</p>
       </div>
     )
   }
@@ -43,13 +43,13 @@ export default function PracticeTopicsTab({ topics }: Props) {
         <Card key={topic.id} variant="gradient" className="p-4">
           <div className="flex items-center justify-between mb-2.5">
             <PartTag label={topic.part} />
-            <span className="text-[12px] text-v2-text-muted">{topic.lastPracticedAt}</span>
+            <span className="text-[0.75rem] text-v2-text-muted">{topic.lastPracticedAt}</span>
           </div>
-          <p className="text-[14px] font-medium text-v2-text-primary leading-[1.6] mb-3">
+          <p className="text-[0.875rem] font-medium text-v2-text-primary leading-[1.6] mb-3">
             {topic.topicEn}
           </p>
           <div className="flex items-center justify-between">
-            <span className="text-[12px] text-v2-text-muted">
+            <span className="text-[0.75rem] text-v2-text-muted">
               已练习 {topic.practiceCount} 次 · 收藏 {topic.collectedCount} 张
             </span>
             <Chip

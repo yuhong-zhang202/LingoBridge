@@ -30,7 +30,7 @@ function toSec(ms: number): string {
  */
 function Footnote() {
   return (
-    <div className="text-[10px] text-v2-text-muted mt-3 leading-relaxed">
+    <div className="text-[0.625rem] text-v2-text-muted mt-3 leading-relaxed">
       用户实际等待为链路串联之和：匹配 ≈ 萃取 + 重排；分析与词组为独立请求。此处为单次 AI 调用耗时，不含网络与前端渲染。
     </div>
   )
@@ -47,33 +47,33 @@ function DistView({ phases, latencyWarn }: { phases: PhaseLatency[]; latencyWarn
   return (
     <div className="space-y-2">
       {/* 表头换人话：P50/P90 是行话，看板给非技术读者，主标用大白话、代码退成小字副标（见 pm 方案 §2.2）。 */}
-      <div className="flex items-end gap-3 text-[10px] text-v2-text-muted">
+      <div className="flex items-end gap-3 text-[0.625rem] text-v2-text-muted">
         <span className="w-24 flex-shrink-0">环节</span>
         <span className="flex-1" />
         <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
           <span>一半调用快于</span>
-          <span className="text-[9px] text-v2-text-muted/70">P50</span>
+          <span className="text-[0.5625rem] text-v2-text-muted/70">P50</span>
         </span>
         <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
           <span>最慢10%慢于</span>
-          <span className="text-[9px] text-v2-text-muted/70">P90</span>
+          <span className="text-[0.5625rem] text-v2-text-muted/70">P90</span>
         </span>
         <span className="w-12 text-right flex-shrink-0">最慢</span>
         <span className="w-12 text-right flex-shrink-0">次数</span>
       </div>
       {phases.map(p => (
         <div key={p.phase} className="flex items-center gap-3">
-          <span className="text-[11px] text-v2-text-secondary w-24 flex-shrink-0 truncate">{p.name}</span>
+          <span className="text-[0.6875rem] text-v2-text-secondary w-24 flex-shrink-0 truncate">{p.name}</span>
           <div className="flex-1 h-2 bg-black/[0.04] rounded-full overflow-hidden">
             <div className={`h-full rounded-full ${p.p90 > latencyWarn ? 'bg-warning/70' : 'bg-brand-accent/70'}`}
               style={{ width: `${max > 0 ? (p.p90 / max) * 100 : 0}%` }} />
           </div>
-          <span className="text-[11px] text-v2-text-secondary w-16 text-right flex-shrink-0 tabular-nums">{toSec(p.p50)}s</span>
-          <span className={`text-[11px] font-medium w-16 text-right flex-shrink-0 tabular-nums ${p.p90 > latencyWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
+          <span className="text-[0.6875rem] text-v2-text-secondary w-16 text-right flex-shrink-0 tabular-nums">{toSec(p.p50)}s</span>
+          <span className={`text-[0.6875rem] font-medium w-16 text-right flex-shrink-0 tabular-nums ${p.p90 > latencyWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
             {toSec(p.p90)}s
           </span>
-          <span className="text-[11px] text-v2-text-secondary w-12 text-right flex-shrink-0 tabular-nums">{toSec(p.max)}s</span>
-          <span className="text-[10px] text-v2-text-muted w-12 text-right flex-shrink-0 tabular-nums">{p.calls}</span>
+          <span className="text-[0.6875rem] text-v2-text-secondary w-12 text-right flex-shrink-0 tabular-nums">{toSec(p.max)}s</span>
+          <span className="text-[0.625rem] text-v2-text-muted w-12 text-right flex-shrink-0 tabular-nums">{p.calls}</span>
         </div>
       ))}
       {/* 读屏兜底数据表：横条与数字是 div 排版、语义上不成表，读屏用户拿不到行列关系 */}
@@ -105,7 +105,7 @@ type TipProps = { active?: boolean; payload?: TipEntry[]; label?: string }
 function LatencyTip({ active, payload, label }: TipProps) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[11px] shadow-sm">
+    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[0.6875rem] shadow-sm">
       <div className="text-v2-text-muted mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.name} className="flex items-center gap-1.5 mb-0.5">
@@ -142,7 +142,7 @@ function TrendView({ trend, latencyWarn }: { trend: TrendPhase[]; latencyWarn: n
         <div className="flex flex-wrap gap-1.5 mb-3" role="group" aria-label="选择环节">
           {trend.map(t => (
             <button key={t.phase} onClick={() => setPhase(t.phase)} aria-pressed={t.phase === cur.phase}
-              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[11px] font-medium transition-colors ${
+              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${
                 t.phase === cur.phase ? 'bg-v2-text-primary text-white' : 'bg-black/[0.03] text-v2-text-muted'}`}>
               {t.name}
             </button>
@@ -152,22 +152,22 @@ function TrendView({ trend, latencyWarn }: { trend: TrendPhase[]; latencyWarn: n
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0 bg-brand-accent" />
-          <span className="text-[11px] text-v2-text-secondary">P50（典型）</span>
+          <span className="text-[0.6875rem] text-v2-text-secondary">P50（典型）</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0 bg-warning" />
-          <span className="text-[11px] text-v2-text-secondary">P90（最坏）</span>
+          <span className="text-[0.6875rem] text-v2-text-secondary">P90（最坏）</span>
         </span>
       </div>
       {withData.length === 0 ? (
-        <div className="text-v2-text-muted text-[12px] h-[180px] flex items-center justify-center">本期暂无可用耗时数据</div>
+        <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无可用耗时数据</div>
       ) : (
         <div role="img"
           aria-label={`${cur.name}环节每日耗时趋势折线图，共 ${withData.length} 天有数据，P90 峰值 ${peak?.date ?? ''} 约 ${toSec(peak?.p90 ?? 0)} 秒，警示阈值 ${toSec(latencyWarn)} 秒。详细数据见下方数据表。`}>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={days} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
+              <XAxis dataKey="date" tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
                 tickFormatter={v => `${Math.round(Number(v) / 1000)}s`} width={40} />
               <Tooltip content={<LatencyTip />} />
               {/* connectNulls 关闭：口径断点前的日子是 null，连起来等于伪造那几天的数据 */}
@@ -215,15 +215,15 @@ export default function PhaseLatencyPanel({
     <section aria-label="各环节耗时" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-[13px] font-semibold text-v2-text-primary">各环节耗时</h2>
+          <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">各环节耗时</h2>
           {/* 数据窗口独立于区间选择器：断点前 extraction/ranking 的 latency 是同一总时长记了两遍，
               画进来会看到"性能突然变好一半"（口径修正、非真变快），故只取断点之后 */}
-          <span className="text-[10px] text-v2-text-muted">仅 {cutoffLabel} 起（此前延迟口径不同）</span>
+          <span className="text-[0.625rem] text-v2-text-muted">仅 {cutoffLabel} 起（此前延迟口径不同）</span>
         </div>
         <div className="flex bg-black/[0.03] rounded-full p-0.5 gap-0.5" role="group" aria-label="耗时视图">
           {(['dist', 'trend'] as const).map(v => (
             <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
-              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[11px] font-medium transition-colors ${
+              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${
                 view === v ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
               {v === 'dist' ? '分布' : '趋势'}
             </button>
@@ -231,13 +231,13 @@ export default function PhaseLatencyPanel({
         </div>
       </div>
       {/* 顶部一句人话总说明：这块最容易被误读成「网页打开速度」，先把它是什么说清楚（pm 方案 §2.2）。 */}
-      <div className="text-[11px] text-v2-text-secondary leading-relaxed mb-2">
+      <div className="text-[0.6875rem] text-v2-text-secondary leading-relaxed mb-2">
         每个 AI 环节自己要跑多久（不是网页打开速度）；数字越大，用户在这步等得越久。
       </div>
       {/* 链路口径脚注上移到说明下方（原在区块底部）：紧跟总说明，读者先建立整体口径再看数字。 */}
       <Footnote />
       {phases.length === 0 ? (
-        <div className="text-v2-text-muted text-[12px] py-4 text-center">{cutoffLabel} 起暂无耗时数据</div>
+        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">{cutoffLabel} 起暂无耗时数据</div>
       ) : view === 'dist' ? (
         <DistView phases={phases} latencyWarn={latencyWarnMs} />
       ) : (

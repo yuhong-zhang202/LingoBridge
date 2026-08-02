@@ -50,9 +50,9 @@ export default function EmptyState({
   return (
     <div role={alert ? 'alert' : undefined} className={cn('flex flex-col items-center text-center pt-16', className)}>
       <Orb size={orbSize} pulse={false} />
-      <p className="text-[15px] font-medium text-v2-text-primary mt-5">{title}</p>
+      <p className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{title}</p>
       {subtitle && (
-        <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+        <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
           {subtitle}
         </p>
       )}
@@ -62,14 +62,14 @@ export default function EmptyState({
           // min-h-[44px] 保证触控命中区达 WCAG 2.5.5，原生 <button> 保留键盘可聚焦。
           <button
             onClick={onCta}
-            className="mt-2 min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-brand-primary-dark active:opacity-60"
+            className="mt-2 min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-brand-primary-dark active:opacity-60"
           >
             {ctaLabel}
           </button>
         ) : (
           // 主要动作：渐变描边胶囊。min-h-[44px] 让触控命中区达 WCAG 2.5.5（py-2.5 + 14px 字实测仅约 40px）；
           // 配 inline-flex 居中，避免仅靠 min-height 撑高后文字贴顶。
-          <GradientButton onClick={onCta} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[14px] font-medium">
+          <GradientButton onClick={onCta} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
             {ctaLabel}
           </GradientButton>
         )

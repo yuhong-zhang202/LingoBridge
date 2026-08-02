@@ -28,7 +28,7 @@ export default function CostBreakdown({ totals, selected, onSelect, rangeDays }:
   return (
     <div className="flex flex-col h-full">
       {/* 时间范围标注：饼图口径 = 所选区间（近 N 天），与上方费用卡（全部历史/本月/今日）不同源，标清防混淆 */}
-      <div className="text-[11px] text-v2-text-muted mb-1">按服务 · 近 {rangeDays} 天</div>
+      <div className="text-[0.6875rem] text-v2-text-muted mb-1">按服务 · 近 {rangeDays} 天</div>
       {/* SVG 饼图对读屏不可读：role+aria-label 概述占比，明细走下方 sr-only 数据表 */}
       <div role="img"
         aria-label={
@@ -68,13 +68,13 @@ export default function CostBreakdown({ totals, selected, onSelect, rangeDays }:
             className={`w-full flex items-center gap-2 text-left min-h-[44px] py-1.5 transition-opacity ${selected && selected !== t.service ? 'opacity-40' : ''}`}
           >
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
-            <span className="text-[11px] text-v2-text-secondary flex-1 truncate">{t.name}</span>
-            <span className="text-[11px] text-v2-text-muted flex-shrink-0 tabular-nums">{pct(t.cost, total)}%</span>
-            <span className="text-[11px] font-medium text-v2-text-primary flex-shrink-0 tabular-nums">{formatCny(t.cost)}</span>
+            <span className="text-[0.6875rem] text-v2-text-secondary flex-1 truncate">{t.name}</span>
+            <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0 tabular-nums">{pct(t.cost, total)}%</span>
+            <span className="text-[0.6875rem] font-medium text-v2-text-primary flex-shrink-0 tabular-nums">{formatCny(t.cost)}</span>
           </button>
         ))}
         {total > 0 && (
-          <div className="text-[10px] text-v2-text-muted text-center pt-1">合计 {formatCny(total)}</div>
+          <div className="text-[0.625rem] text-v2-text-muted text-center pt-1">合计 {formatCny(total)}</div>
         )}
       </div>
 

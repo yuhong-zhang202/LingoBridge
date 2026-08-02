@@ -6,6 +6,7 @@ import UpdateBanner from '@/components/UpdateBanner'
 import StandaloneZoomFix from '@/components/StandaloneZoomFix'
 import { NavProvider, NavProgress } from '@/components/NavProgress'
 import { SELF_HEAL_CHUNK_SCRIPT } from './self-heal-chunk'
+import { FONT_SCALE_INIT_SCRIPT } from './font-scale-init'
 
 // 自托管 Plus Jakarta Sans（woff2 取自 @fontsource/plus-jakarta-sans，见 fonts/README.md），
 // 改用 next/font/local 消除构建期访问 Google Fonts 的外网依赖；仍保留 subset(latin)/display:swap，
@@ -65,6 +66,9 @@ export default function RootLayout({
         {/* chunk 加载失败自愈：同步内联、在 React/框架 chunk 之前执行，兜住 error.tsx 挂载前的资源 404。
             内含 sessionStorage 一次性闸防死循环，详见 self-heal-chunk.ts。 */}
         <script dangerouslySetInnerHTML={{ __html: SELF_HEAL_CHUNK_SCRIPT }} />
+        {/* 全局字体档：React 前同步读 localStorage 写 --fs-scale，首屏字号一步到位、零 FOUC。
+            见 font-scale-init.ts；档值常量与设置页在 lib/fontScale.ts。 */}
+        <script dangerouslySetInnerHTML={{ __html: FONT_SCALE_INIT_SCRIPT }} />
       </head>
       <body className="bg-bg-page">
         {/* NavProvider 全站单例：暴露 navigate()/isNavigating；NavProgress 顶部进度条与 children 同级、

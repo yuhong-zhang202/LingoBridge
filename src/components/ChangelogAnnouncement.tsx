@@ -71,15 +71,15 @@ export default function ChangelogAnnouncement(): JSX.Element | null {
           <div className="flex-shrink-0">
             <div className="flex items-center gap-2 pr-10">
               <Tag label="更新" variant="green" />
-              <span className="text-[11px] text-v2-text-muted">{latest.date}</span>
+              <span className="text-[0.6875rem] text-v2-text-muted">{latest.date}</span>
             </div>
-            <p className="text-[19px] lg:text-[23px] font-bold text-v2-text-primary mt-3 tracking-[-0.2px]">{latest.title}</p>
+            <p className="text-[1.1875rem] lg:text-[1.4375rem] font-bold text-v2-text-primary mt-3 tracking-[-0.2px]">{latest.title}</p>
           </div>
 
           {/* 中部：要点列表，吃掉剩余高度；内容超长时本区独立滚动，按钮与遮罩不动 */}
           <ul className="flex-1 min-h-0 overflow-y-auto mt-5 lg:mt-6 flex flex-col gap-3 lg:gap-3.5">
             {latest.notes.map((note) => (
-              <li key={note} className="flex gap-2 text-[14px] lg:text-[15px] text-v2-text-secondary leading-relaxed">
+              <li key={note} className="flex gap-2 text-[0.875rem] lg:text-[0.9375rem] text-v2-text-secondary leading-relaxed">
                 <span aria-hidden="true" className="text-brand-accent mt-[1px]">·</span>
                 {note}
               </li>
@@ -89,7 +89,7 @@ export default function ChangelogAnnouncement(): JSX.Element | null {
           {/* 底部：「知道了」按钮（与点遮罩/✕ 同为关闭，写标记、本版本不再弹） */}
           <GradientButton
             onClick={dismiss}
-            className="flex-shrink-0 mt-6 w-full px-6 py-3 rounded-full text-[14px] font-medium"
+            className="flex-shrink-0 mt-6 w-full px-6 py-3 rounded-full text-[0.875rem] font-medium"
           >
             知道了
           </GradientButton>

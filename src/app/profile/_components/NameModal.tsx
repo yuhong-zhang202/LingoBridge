@@ -52,7 +52,7 @@ export default function NameModal({ currentName, onClose }: NameModalProps): JSX
   return (
     <ProfileModal title="修改昵称" onClose={onClose} className="max-w-[400px]">
       <form onSubmit={(e) => { e.preventDefault(); void handleSave() }}>
-        <label htmlFor="display-name" className="text-[12px] text-v2-text-secondary mb-1.5 block">
+        <label htmlFor="display-name" className="text-[0.75rem] text-v2-text-secondary mb-1.5 block">
           昵称<span className="text-v2-text-muted">（留空则显示邮箱）</span>
         </label>
         <input
@@ -63,16 +63,16 @@ export default function NameModal({ currentName, onClose }: NameModalProps): JSX
           maxLength={20}
           onChange={(e) => setName(e.target.value)}
           placeholder="起个名字吧"
-          className="w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
+          className="w-full h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[1rem] lg:text-[0.8125rem] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
         />
 
-        {err && <p role="alert" className="text-[12px] text-error mt-3 px-1">{err}</p>}
+        {err && <p role="alert" className="text-[0.75rem] text-error mt-3 px-1">{err}</p>}
 
         {/* 不传 onClick：form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
         <GradientButton
           disabled={saving}
           loading={saving}
-          className="w-full mt-5 py-3 rounded-full text-[14px] font-medium disabled:cursor-not-allowed"
+          className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed"
         >
           {saving ? '保存中…' : '保存昵称'}
         </GradientButton>

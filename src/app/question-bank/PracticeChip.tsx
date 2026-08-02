@@ -22,7 +22,7 @@ interface Props {
  *  仅去掉 active 缩放、换上等待光标，确保两态之间不发生尺寸/位置跳变 */
 const PENDING_CLASS =
   'rounded-full inline-flex items-center gap-1 transition-all duration-150 ' +
-  'text-[11px] px-[10px] py-[3px] bg-white text-v2-text-secondary font-semibold ' +
+  'text-[0.6875rem] px-[10px] py-[3px] bg-white text-v2-text-secondary font-semibold ' +
   'font-medium flex-shrink-0 cursor-wait opacity-90'
 
 /**

@@ -22,8 +22,8 @@ interface ChipProps {
 }
 
 const SIZES = {
-  sm: 'text-[11px] px-[10px] py-[3px]',
-  md: 'text-[12px] px-3.5 py-[5px]',
+  sm: 'text-[0.6875rem] px-[10px] py-[3px]',
+  md: 'text-[0.75rem] px-3.5 py-[5px]',
 }
 const BASE = 'rounded-full inline-flex items-center gap-1 transition-all duration-150 active:scale-[0.97]'
 

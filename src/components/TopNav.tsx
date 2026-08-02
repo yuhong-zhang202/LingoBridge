@@ -46,7 +46,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER, showFeedba
           <span className="w-10 h-10 rounded-[11px] bg-brand-primary grid place-items-center text-white">
             <Mic size={20} />
           </span>
-          <span className="text-[19px] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
+          <span className="text-[1.1875rem] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
         </ProgressLink>
 
         {/* 中间导航（md 以下隐藏，移动端用底部 TabBar） */}
@@ -58,7 +58,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER, showFeedba
                 key={href}
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                className={`text-[15px] px-4 py-[7px] rounded-full transition-colors ${
+                className={`text-[0.9375rem] px-4 py-[7px] rounded-full transition-colors ${
                   active
                     ? 'bg-bg-muted text-v2-text-primary font-semibold'
                     : 'text-v2-text-secondary font-medium hover:text-v2-text-primary'
@@ -74,7 +74,7 @@ export default function TopNav({ containerClassName = PAGE_CONTAINER, showFeedba
         <div className="ml-auto flex items-center gap-[18px]">
           <NotificationBell />
           {showFeedback && <FeedbackButton />}
-          <ProgressLink href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[15px] font-semibold overflow-hidden">
+          <ProgressLink href="/profile" aria-label="我的" className="w-10 h-10 rounded-full bg-brand-accent-dark grid place-items-center text-white text-[0.9375rem] font-semibold overflow-hidden">
             <Avatar avatarUrl={account?.avatarUrl} size={40} fallback={initial} />
           </ProgressLink>
         </div>

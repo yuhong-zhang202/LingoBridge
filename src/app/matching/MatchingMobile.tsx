@@ -35,7 +35,7 @@ function GroupHeader({ label, count, variant }: {
 
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className={`text-[11px] ${textClass}`}>{label} · {count} 道</span>
+      <span className={`text-[0.6875rem] ${textClass}`}>{label} · {count} 道</span>
       <div className="flex-1 h-px bg-black/[0.05]" />
     </div>
   )
@@ -168,9 +168,9 @@ export default function MatchingMobile({
           <>
             {/* 匹配标题 + 识别出的维度 */}
             <div className="mb-4">
-              <h2 className="text-[20px] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
+              <h2 className="text-[1.25rem] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
               {result.primary && (
-                <p className="text-[12px] text-v2-text-muted mt-1">
+                <p className="text-[0.75rem] text-v2-text-muted mt-1">
                   识别维度：{result.primary.dimension} · {result.primary.pointName}
                   {result.secondary && ` ／ ${result.secondary.dimension} · ${result.secondary.pointName}`}
                 </p>
@@ -180,10 +180,10 @@ export default function MatchingMobile({
             {/* 副维度降级说明 */}
             {result.matchedViaSecondary && result.secondary && (
               <Card className="px-4 py-3 mb-4">
-                <p className="text-[13px] text-v2-text-primary leading-snug mb-1">
+                <p className="text-[0.8125rem] text-v2-text-primary leading-snug mb-1">
                   暂时没匹配到完全契合的雅思真题
                 </p>
-                <p className="text-[12px] text-v2-text-secondary leading-relaxed">
+                <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed">
                   不过把重点放在{' '}
                   <span className="text-brand-primary-dark font-medium">
                     {result.secondary.dimension} · {result.secondary.pointName}
@@ -252,7 +252,7 @@ export default function MatchingMobile({
 
               {/* 空态 */}
               {noneVisible && (
-                <div className="text-center text-[13px] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
+                <div className="text-center text-[0.8125rem] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
               )}
             </div>
 
@@ -261,7 +261,7 @@ export default function MatchingMobile({
               <div className="text-center mb-6">
                 <button
                   onClick={onToggleExpanded}
-                  className="min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-brand-primary-dark active:opacity-60"
+                  className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-brand-primary-dark active:opacity-60"
                 >
                   {expanded ? '收起 ↑' : `查看更多 ${foldedCount} 道 →`}
                 </button>

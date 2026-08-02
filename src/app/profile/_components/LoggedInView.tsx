@@ -76,10 +76,10 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
       <div className="rounded-[18px] px-[18px] py-[14px] mb-3 bg-white border border-black/[0.05] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[12px] text-v2-text-secondary">连续打卡</p>
-            <p className="text-[26px] font-semibold text-v2-text-primary leading-none mt-[3px]">
+            <p className="text-[0.75rem] text-v2-text-secondary">连续打卡</p>
+            <p className="text-[1.625rem] font-semibold text-v2-text-primary leading-none mt-[3px]">
               {streak}
-              <span className="text-[13px] font-normal text-v2-text-secondary ml-[3px]">天</span>
+              <span className="text-[0.8125rem] font-normal text-v2-text-secondary ml-[3px]">天</span>
             </p>
           </div>
           <div
@@ -97,9 +97,9 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle size={14} color="#7BA699" />
-              <span className="text-[12px] text-v2-text-secondary">语料</span>
+              <span className="text-[0.75rem] text-v2-text-secondary">语料</span>
             </div>
-            <span className="text-[18px] font-semibold text-v2-text-primary leading-none">
+            <span className="text-[1.125rem] font-semibold text-v2-text-primary leading-none">
               {corpusCount}
             </span>
           </div>
@@ -108,9 +108,9 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target size={14} color="#D4875A" />
-              <span className="text-[12px] text-v2-text-secondary">练习</span>
+              <span className="text-[0.75rem] text-v2-text-secondary">练习</span>
             </div>
-            <span className="text-[18px] font-semibold text-v2-text-primary leading-none">
+            <span className="text-[1.125rem] font-semibold text-v2-text-primary leading-none">
               {practiceCount}
             </span>
           </div>
@@ -125,17 +125,17 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
         <div className="flex justify-between items-start mb-1">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold text-v2-text-primary">我的画像</span>
+              <span className="text-[0.9375rem] font-semibold text-v2-text-primary">我的画像</span>
               {!showEmpty && <Tag label="AI 生成" variant="green" />}
             </div>
             {!showEmpty && (
-              <p className="text-[12px] text-v2-text-secondary mt-1">
+              <p className="text-[0.75rem] text-v2-text-secondary mt-1">
                 基于你的 {corpusCount} 段语料
               </p>
             )}
           </div>
           {!showEmpty && (
-            <button className="text-[12px] font-medium text-brand-primary-dark mt-0.5 active:opacity-60">
+            <button className="text-[0.75rem] font-medium text-brand-primary-dark mt-0.5 active:opacity-60">
               查看完整 →
             </button>
           )}
@@ -149,7 +149,7 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
             </div>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 bg-white/50">
               <Lock size={20} className="text-brand-primary-dark mb-2" />
-              <p className="text-[14px] font-medium text-v2-text-secondary leading-relaxed">
+              <p className="text-[0.875rem] font-medium text-v2-text-secondary leading-relaxed">
                 录一条故事后，这里会生成专属语料维度
               </p>
             </div>

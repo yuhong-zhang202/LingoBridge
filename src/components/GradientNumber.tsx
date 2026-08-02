@@ -16,7 +16,7 @@ export default function GradientNumber({ n }: { n: number }) {
         className="w-full h-full rounded-full bg-white flex items-center justify-center"
       >
         <span
-          className="text-[11px] font-bold leading-none"
+          className="text-[0.6875rem] font-bold leading-none"
           style={{ background: BRAND_GRADIENT, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
         >
           {n}

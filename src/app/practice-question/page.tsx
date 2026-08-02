@@ -67,12 +67,12 @@ function CorpusMatchCard({ item, selected, onToggle, onPractice }: {
       <div className="flex-1 p-4">
         <div className="flex items-center justify-between gap-2 mb-2.5">
           {levelTag(item.matchLevel)}
-          <span className="text-[11px] text-v2-text-muted flex-shrink-0">
+          <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">
             {item.source === 'voice' ? '录音' : '文字'} · {formatRelativeTime(item.createdAt)}
           </span>
         </div>
 
-        <p className="text-[14px] text-v2-text-secondary leading-relaxed line-clamp-2">{item.cleanedText ?? ''}</p>
+        <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed line-clamp-2">{item.cleanedText ?? ''}</p>
 
         {selected && (
           <div className="flex items-center justify-end mt-3">
@@ -106,9 +106,9 @@ function AddCorpusCard({ onClick, prominent, loading }: { onClick: () => void; p
     >
       <div className="flex items-center gap-1.5 text-brand-primary-dark">
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-        <span className="text-[14px] font-semibold">添加语料</span>
+        <span className="text-[0.875rem] font-semibold">添加语料</span>
       </div>
-      <span className="text-[12px] text-v2-text-muted mt-1">{loading ? '正在打开录音，请稍候…' : '录一段新故事来练习这道题'}</span>
+      <span className="text-[0.75rem] text-v2-text-muted mt-1">{loading ? '正在打开录音，请稍候…' : '录一段新故事来练习这道题'}</span>
     </button>
   )
 }
@@ -222,10 +222,10 @@ function PracticeQuestionContent(): JSX.Element {
             <OfflineState onRetry={() => setReloadKey((k) => k + 1)} />
           ) : (
             <div className="flex flex-col items-center pt-16 gap-3">
-              <p className="text-[13px] text-error text-center">{error}</p>
+              <p className="text-[0.8125rem] text-error text-center">{error}</p>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
-                className="flex items-center gap-1.5 text-[13px] text-v2-text-muted active:opacity-70"
+                className="flex items-center gap-1.5 text-[0.8125rem] text-v2-text-muted active:opacity-70"
               >
                 <RefreshCw size={13} />重试
               </button>
@@ -243,22 +243,22 @@ function PracticeQuestionContent(): JSX.Element {
               </div>
               {zhText ? (
                 <>
-                  <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{zhText}</p>
-                  <p className="text-[13px] text-v2-text-muted mt-1">{enText}</p>
+                  <p className="text-[1rem] font-bold text-v2-text-primary leading-snug">{zhText}</p>
+                  <p className="text-[0.8125rem] text-v2-text-muted mt-1">{enText}</p>
                 </>
               ) : (
-                <p className="text-[16px] font-bold text-v2-text-primary leading-snug">{enText}</p>
+                <p className="text-[1rem] font-bold text-v2-text-primary leading-snug">{enText}</p>
               )}
             </Card>
 
             {/* 可匹配的语料 */}
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[12px] font-medium text-v2-text-secondary">可匹配的语料 · {items.length} 条</span>
+              <span className="text-[0.75rem] font-medium text-v2-text-secondary">可匹配的语料 · {items.length} 条</span>
             </div>
 
             {items.length === 0 ? (
               <>
-                <p className="text-[13px] text-v2-text-muted text-center py-2">还没有能匹配这道题的语料</p>
+                <p className="text-[0.8125rem] text-v2-text-muted text-center py-2">还没有能匹配这道题的语料</p>
                 <AddCorpusCard prominent loading={addingCorpus} onClick={() => void addCorpus()} />
               </>
             ) : (
@@ -300,13 +300,13 @@ function PracticeQuestionContent(): JSX.Element {
             className="w-full max-w-[430px] bg-bg-surface rounded-t-[20px] px-5 pt-5 sheet-enter"
             style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
           >
-            <h3 className="text-[17px] font-semibold text-v2-text-primary">用文字写下你的故事</h3>
-            <p className="text-[13px] text-v2-text-secondary mt-1">用中文聊聊一件具体的小事，越具体匹配越准。</p>
+            <h3 className="text-[1.0625rem] font-semibold text-v2-text-primary">用文字写下你的故事</h3>
+            <p className="text-[0.8125rem] text-v2-text-secondary mt-1">用中文聊聊一件具体的小事，越具体匹配越准。</p>
             <textarea
               value={textVal}
               onChange={(e) => setTextVal(e.target.value)}
               placeholder={'和谁一起、做了什么、当时心里什么感觉，都可以写进来……'}
-              className="w-full min-h-[180px] resize-none mt-3 bg-bg-page border border-black/[0.06] rounded-[14px] p-3.5 outline-none text-[16px] leading-[1.8] text-v2-text-primary placeholder:text-v2-text-muted"
+              className="w-full min-h-[180px] resize-none mt-3 bg-bg-page border border-black/[0.06] rounded-[14px] p-3.5 outline-none text-[1rem] leading-[1.8] text-v2-text-primary placeholder:text-v2-text-muted"
               autoFocus
             />
             <div className="mt-4">
@@ -319,14 +319,14 @@ function PracticeQuestionContent(): JSX.Element {
                   setAnalyzing(true)
                   navigate(`/restructure?h=${key}&qid=${qId}`)
                 }}
-                className="w-full py-3 rounded-full text-[14px] font-medium"
+                className="w-full py-3 rounded-full text-[0.875rem] font-medium"
               >
                 开始分析 →
               </GradientButton>
             </div>
             <button
               onClick={() => setTextOpen(false)}
-              className="w-full text-center text-[14px] text-v2-text-muted mt-3 active:opacity-60"
+              className="w-full text-center text-[0.875rem] text-v2-text-muted mt-3 active:opacity-60"
             >
               取消
             </button>

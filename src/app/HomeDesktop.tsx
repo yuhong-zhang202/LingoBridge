@@ -75,9 +75,9 @@ function InertBlock({ className, children }: { className?: string; children: Rea
 function SectionHead({ eyebrow, title, sub }: { eyebrow?: string; title: ReactNode; sub: string }) {
   return (
     <div className="text-center max-w-[560px] mx-auto mb-14">
-      {eyebrow && <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">{eyebrow}</p>}
-      <h2 className="text-[30px] font-bold tracking-tight text-v2-text-primary leading-snug mb-4">{title}</h2>
-      <p className="text-[15px] text-v2-text-secondary leading-relaxed">{sub}</p>
+      {eyebrow && <p className="text-[0.78125rem] font-semibold text-brand-accent tracking-wide mb-2.5">{eyebrow}</p>}
+      <h2 className="text-[1.875rem] font-bold tracking-tight text-v2-text-primary leading-snug mb-4">{title}</h2>
+      <p className="text-[0.9375rem] text-v2-text-secondary leading-relaxed">{sub}</p>
     </div>
   )
 }
@@ -90,14 +90,14 @@ function PreviewQuestionBank() {
       <div aria-hidden className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: BRAND_GRADIENT_VERTICAL }} />
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <Tag variant="gray" label="Part 2" className="text-[9px] px-[6px] py-[2px]" />
-          <span className="text-[9.5px] text-v2-text-muted">Places</span>
+          <Tag variant="gray" label="Part 2" className="text-[0.5625rem] px-[6px] py-[2px]" />
+          <span className="text-[0.59375rem] text-v2-text-muted">Places</span>
         </div>
-        <Tag variant="green" label="当季·新" className="text-[9px] px-[6px] py-[2px]" />
+        <Tag variant="green" label="当季·新" className="text-[0.5625rem] px-[6px] py-[2px]" />
       </div>
-      <p className="text-[13.5px] font-semibold text-v2-text-primary leading-[1.5]" lang="en">Describe a place you like to visit.</p>
-      <p className="text-[10px] text-brand-accent mt-2.5">想想你会怎么答？</p>
-      <p className="text-[9.5px] text-v2-text-muted mt-3 flex items-center gap-1"><RotateCw size={10} />点击翻面看答题要点</p>
+      <p className="text-[0.84375rem] font-semibold text-v2-text-primary leading-[1.5]" lang="en">Describe a place you like to visit.</p>
+      <p className="text-[0.625rem] text-brand-accent mt-2.5">想想你会怎么答？</p>
+      <p className="text-[0.59375rem] text-v2-text-muted mt-3 flex items-center gap-1"><RotateCw size={10} />点击翻面看答题要点</p>
     </div>
   )
 }
@@ -109,13 +109,13 @@ function PreviewAnki() {
       <div className="absolute inset-0 -rotate-2 bg-white rounded-[18px] shadow-[0_14px_32px_-12px_rgba(180,120,70,0.26)] overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: BRAND_GRADIENT_VERTICAL }} />
         <div className="h-full pl-4 pr-3 pt-3 pb-3.5 flex flex-col">
-          <Tag variant="green" label="感受" className="self-start text-[9px] px-[6px] py-[2px]" />
+          <Tag variant="green" label="感受" className="self-start text-[0.5625rem] px-[6px] py-[2px]" />
           <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <p className="text-[18px] font-bold text-v2-text-primary leading-tight">有点纠结</p>
-            <p className="text-[11px] text-brand-accent mt-2">想想英文怎么说?</p>
+            <p className="text-[1.125rem] font-bold text-v2-text-primary leading-tight">有点纠结</p>
+            <p className="text-[0.6875rem] text-brand-accent mt-2">想想英文怎么说?</p>
           </div>
           <div className="flex items-center justify-center gap-1.5">
-            <span className="text-[9px] text-v2-text-muted">记忆进度</span>
+            <span className="text-[0.5625rem] text-v2-text-muted">记忆进度</span>
             <span className="flex gap-[3px]">
               {[1, 2, 3, 4, 5].map(i => (
                 <span key={i} className={`w-[5px] h-[5px] rounded-full ${i <= 2 ? 'bg-brand-primary' : 'bg-warm-line'}`} />
@@ -131,19 +131,19 @@ function PreviewAnki() {
 function PreviewPron() {
   return (
     <div style={GRADIENT_BORDER_STYLE_FULL_OPAQUE} className="relative w-[290px] -rotate-1 rounded-[16px] px-4 py-3.5 shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)]">
-      <p className="text-[10px] text-v2-text-muted mb-[5px]">想说的词</p>
+      <p className="text-[0.625rem] text-v2-text-muted mb-[5px]">想说的词</p>
       <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">Gym</span><span className="ml-2 text-[11px] text-v2-text-secondary">/dʒɪm/</span></span>
+        <span className="text-[0.875rem] text-v2-text-primary"><span className="font-medium">Gym</span><span className="ml-2 text-[0.6875rem] text-v2-text-secondary">/dʒɪm/</span></span>
         <Volume2 size={13} className="text-v2-text-muted" />
       </div>
-      <p className="text-[10px] text-v2-text-muted mb-[5px]">被听成</p>
+      <p className="text-[0.625rem] text-v2-text-muted mb-[5px]">被听成</p>
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="text-[14px] text-v2-text-primary"><span className="font-medium">drink</span><span className="ml-2 text-[11px] text-v2-text-secondary">/drɪŋk/</span></span>
+        <span className="text-[0.875rem] text-v2-text-primary"><span className="font-medium">drink</span><span className="ml-2 text-[0.6875rem] text-v2-text-secondary">/drɪŋk/</span></span>
         <Volume2 size={13} className="text-v2-text-muted" />
       </div>
       <div className="rounded-[10px] bg-bg-page px-3 py-2.5">
-        <p className="text-[10px] text-v2-text-muted mb-0.5">怎么念</p>
-        <p className="text-[11px] text-v2-text-primary leading-[1.55]">起音是浊辅音 /dʒ/，别读成 /dr/；先咬住上齿龈再送气。</p>
+        <p className="text-[0.625rem] text-v2-text-muted mb-0.5">怎么念</p>
+        <p className="text-[0.6875rem] text-v2-text-primary leading-[1.55]">起音是浊辅音 /dʒ/，别读成 /dr/；先咬住上齿龈再送气。</p>
       </div>
     </div>
   )
@@ -153,25 +153,25 @@ function PreviewPron() {
 function PreviewFeedbackCard() {
   return (
     <div className="relative w-[290px] -rotate-1 bg-white rounded-[16px] border border-black/[0.05] shadow-[0_16px_36px_-14px_rgba(180,120,70,0.26)] px-4 py-3.5">
-      <p className="text-[10px] text-v2-text-muted mb-[5px]">原句</p>
+      <p className="text-[0.625rem] text-v2-text-muted mb-[5px]">原句</p>
       <div className="rounded-[12px] bg-white border border-black/[0.07] px-3 py-2">
-        <p className="text-[12px] text-v2-text-secondary leading-relaxed" lang="en">After work I feel very tired.</p>
+        <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed" lang="en">After work I feel very tired.</p>
       </div>
-      <p className="text-[10px] text-v2-text-muted mt-2.5 mb-[5px]">更地道的说法</p>
+      <p className="text-[0.625rem] text-v2-text-muted mt-2.5 mb-[5px]">更地道的说法</p>
       <div className="rounded-[12px] bg-tag-success-bg border border-tag-success-border px-3 py-2">
-        <p className="text-[12px] text-v2-text-primary leading-relaxed" lang="en">By the end of the day I&apos;m usually worn out.</p>
+        <p className="text-[0.75rem] text-v2-text-primary leading-relaxed" lang="en">By the end of the day I&apos;m usually worn out.</p>
       </div>
       <div className="mt-3 pt-3 border-t border-black/[0.05] flex flex-col gap-[7px]">
         <div className="flex flex-col gap-[3px]">
-          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">语法：</span>
-          <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+          <span className="text-[0.6875rem] font-semibold text-v2-text-muted tracking-wide">语法：</span>
+          <div className="flex gap-1.5 text-[0.75rem] leading-[1.4]">
             <span className="text-warm-taupe select-none">·</span>
             <span className="flex-1 min-w-0"><span className="text-v2-text-muted" lang="en">feel very tired</span><span className="text-warm-taupe mx-1">→</span><span className="text-v2-text-primary font-medium" lang="en">&apos;m worn out</span></span>
           </div>
         </div>
         <div className="flex flex-col gap-[3px]">
-          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">词组优化：</span>
-          <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+          <span className="text-[0.6875rem] font-semibold text-v2-text-muted tracking-wide">词组优化：</span>
+          <div className="flex gap-1.5 text-[0.75rem] leading-[1.4]">
             <span className="text-warm-taupe select-none">·</span>
             <span className="flex-1 min-w-0"><span className="text-v2-text-muted" lang="en">After work</span><span className="text-warm-taupe mx-1">→</span><span className="text-v2-text-primary font-medium" lang="en">By the end of the day</span></span>
           </div>
@@ -245,14 +245,14 @@ export default function HomeDesktop({
                     <button
                       onClick={onSelectMyStory}
                       aria-pressed={!ieltsMode}
-                      className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${!ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
+                      className={`flex-1 h-[34px] rounded-[8px] text-[0.8125rem] font-medium transition-colors ${!ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
                     >
                       我的故事
                     </button>
                     <button
                       onClick={onSelectIelts}
                       aria-pressed={ieltsMode}
-                      className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors ${ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
+                      className={`flex-1 h-[34px] rounded-[8px] text-[0.8125rem] font-medium transition-colors ${ieltsMode ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'}`}
                     >
                       雅思题
                     </button>
@@ -262,7 +262,7 @@ export default function HomeDesktop({
                     <Tag variant="green" icon={<Sparkles size={15} />} label="从一个真实经历开始" className="mb-6" />
                   )}
                   {!ieltsMode ? (
-                    <h1 className="text-[48px] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
+                    <h1 className="text-[3rem] font-bold leading-[1.14] tracking-tight text-v2-text-primary">
                       分享你的经历
                       {/* 第二行右移约一个字，错开成阶梯（个 在 享 下方）；文字逐字打字机浮现 */}
                       <span className="block text-brand-primary ml-[1em]">
@@ -277,25 +277,25 @@ export default function HomeDesktop({
                         <div className="mb-3 flex items-center gap-2">
                           <PartTag label={`Part ${question.part}`} />
                           {topicLabel && (
-                            <span className="text-[13px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+                            <span className="text-[0.8125rem] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
                           )}
                         </div>
                       )}
-                      <h1 className="text-[34px] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
+                      <h1 className="text-[2.125rem] font-bold leading-snug tracking-tight text-v2-text-primary min-h-[40px]">
                         {loading ? '换一题中…' : error ? '没取到题，点下面换一题重试' : exhausted ? '本季真题你都练过啦，换季会上新题' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
                       </h1>
                     </>
                   )}
-                  <p className="mt-6 text-[17px] leading-[1.7] text-v2-text-secondary max-w-[470px]">
+                  <p className="mt-6 text-[1.0625rem] leading-[1.7] text-v2-text-secondary max-w-[470px]">
                     {!ieltsMode ? '分享日常生活，就能精准匹配当季最新的雅思口语题，不用再硬串语料、背模板。' : '聊聊你的看法'}
                   </p>
                   {ieltsMode && !exhausted && (
-                    <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70">
+                    <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] text-v2-text-muted hover:opacity-70">
                       <RotateCw size={13} />换一题
                     </button>
                   )}
                   <div className="mt-9 flex items-center gap-5 flex-wrap">
-                    <GradientButton onClick={onStartRecording} loading={startingRec} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[15px] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                    <GradientButton onClick={onStartRecording} loading={startingRec} className="inline-flex items-center gap-2.5 px-7 py-[15px] rounded-full text-[0.9375rem] font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                       <Mic2 size={18} />开始录音
                     </GradientButton>
                     {/* 保留 <Link>（而非改 button）：右键「在新标签打开」/ 中键 / ctrl+click / 悬停预览 /
@@ -309,7 +309,7 @@ export default function HomeDesktop({
                         e.preventDefault()
                         onOpenWrite()
                       }}
-                      className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary"
+                      className="inline-flex items-center gap-1.5 text-[0.875rem] text-v2-text-muted hover:text-v2-text-secondary"
                     >
                       <Pencil size={15} />或用文字输入
                     </Link>
@@ -347,9 +347,9 @@ export default function HomeDesktop({
                         <Icon size={28} strokeWidth={2} />
                       </div>
                     )}
-                    <h3 className="text-[16px] font-semibold text-v2-text-primary">{title}</h3>
-                    <p className="mt-2 text-[13.5px] font-semibold text-brand-primary-dark">{lead}</p>
-                    <p className="mt-1.5 text-[13px] text-v2-text-secondary leading-relaxed">{desc}</p>
+                    <h3 className="text-[1rem] font-semibold text-v2-text-primary">{title}</h3>
+                    <p className="mt-2 text-[0.84375rem] font-semibold text-brand-primary-dark">{lead}</p>
+                    <p className="mt-1.5 text-[0.8125rem] text-v2-text-secondary leading-relaxed">{desc}</p>
                   </Card>
                   </Reveal>
                 ))}
@@ -381,14 +381,14 @@ export default function HomeDesktop({
                 <div className="flex flex-col gap-7">
                   {MATCH_STEPS.map(({ n, title, desc }, i) => (
                     <Reveal key={n} delay={i * 0.08} className="flex gap-4">
-                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[14px] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>{n}</div>
+                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[0.875rem] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>{n}</div>
                       <div>
-                        <h4 className="text-[15.5px] font-semibold text-v2-text-primary">{title}</h4>
-                        <p className="mt-1.5 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
+                        <h4 className="text-[0.96875rem] font-semibold text-v2-text-primary">{title}</h4>
+                        <p className="mt-1.5 text-[0.84375rem] text-v2-text-secondary leading-relaxed">{desc}</p>
                       </div>
                     </Reveal>
                   ))}
-                  <Reveal delay={MATCH_STEPS.length * 0.08} className="bg-bg-muted rounded-[12px] px-4 py-3.5 text-[12.5px] text-v2-text-secondary leading-relaxed">
+                  <Reveal delay={MATCH_STEPS.length * 0.08} className="bg-bg-muted rounded-[12px] px-4 py-3.5 text-[0.78125rem] text-v2-text-secondary leading-relaxed">
                     每道候选题按与语料的贴合度排序，优先展示最顺手的表达。判断依据是
                     <b className="text-v2-text-primary font-semibold">六个维度</b>
                     ：情绪、人际、空间、精神世界、成长、价值观。
@@ -414,9 +414,9 @@ export default function HomeDesktop({
                 <Card className="p-6">
                   {/* 题目条（练习页同款样式） */}
                   <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px] mb-4">
-                    <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part 1</span>
+                    <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">Part 1</span>
                     <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-                    <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">What do you usually do when you are resting?</span>
+                    <span className="text-[0.75rem] font-medium text-v2-text-secondary flex-1 truncate min-w-0">What do you usually do when you are resting?</span>
                   </div>
 
                   {/* 对话（真实气泡组件；用户气泡带 ✨ 优化反馈入口） */}
@@ -431,7 +431,7 @@ export default function HomeDesktop({
                     <OrbSoft size={40} />
                     <div className="flex flex-1 items-center justify-center gap-2 rounded-full py-3" style={GRADIENT_BORDER_STYLE}>
                       <Mic2 size={16} className="text-brand-primary" />
-                      <span className="text-[13px] font-medium text-v2-text-secondary">点击说话</span>
+                      <span className="text-[0.8125rem] font-medium text-v2-text-secondary">点击说话</span>
                     </div>
                   </div>
                 </Card>
@@ -443,12 +443,12 @@ export default function HomeDesktop({
                   {RESTRUCTURE_POINTS.map(({ title, desc }, i) => (
                     <Reveal key={title} delay={i * 0.08} className="flex gap-3.5">
                       {/* 与模块三步骤圆圈同款：30px 白底 + 深灰编号 + 官方 GRADIENT_BORDER_STYLE 渐变描边 */}
-                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[14px] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>
+                      <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 grid place-items-center text-[0.875rem] font-bold text-v2-text-secondary" style={GRADIENT_BORDER_STYLE}>
                         {i + 1}
                       </div>
                       <div>
-                        <h4 className="text-[15px] font-semibold text-v2-text-primary">{title}{i === 0 && <Sparkles size={14} className="inline align-[-2px] ml-1 text-brand-primary" />}</h4>
-                        <p className="mt-1 text-[13.5px] text-v2-text-secondary leading-relaxed">{desc}</p>
+                        <h4 className="text-[0.9375rem] font-semibold text-v2-text-primary">{title}{i === 0 && <Sparkles size={14} className="inline align-[-2px] ml-1 text-brand-primary" />}</h4>
+                        <p className="mt-1 text-[0.84375rem] text-v2-text-secondary leading-relaxed">{desc}</p>
                       </div>
                     </Reveal>
                   ))}
@@ -474,7 +474,7 @@ export default function HomeDesktop({
                       key={r.tab}
                       onClick={() => onSelectReuseTab(i)}
                       aria-pressed={reuseTab === i}
-                      className={`px-5 h-[38px] rounded-[9px] text-[14px] whitespace-nowrap transition-colors ${reuseTab === i ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
+                      className={`px-5 h-[38px] rounded-[9px] text-[0.875rem] whitespace-nowrap transition-colors ${reuseTab === i ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
                     >
                       {r.tab}
                     </button>
@@ -490,9 +490,9 @@ export default function HomeDesktop({
                     <ActivePreview />
                   </InertBlock>
                   <div>
-                    <p className="text-[12.5px] font-semibold text-brand-accent tracking-wide mb-2.5">{REUSE[reuseTab].eyebrow}</p>
-                    <h3 className="text-[26px] font-bold text-v2-text-primary tracking-tight">{REUSE[reuseTab].title}</h3>
-                    <p className="mt-3.5 text-[15px] text-v2-text-secondary leading-[1.8] max-w-[400px]">{REUSE[reuseTab].desc}</p>
+                    <p className="text-[0.78125rem] font-semibold text-brand-accent tracking-wide mb-2.5">{REUSE[reuseTab].eyebrow}</p>
+                    <h3 className="text-[1.625rem] font-bold text-v2-text-primary tracking-tight">{REUSE[reuseTab].title}</h3>
+                    <p className="mt-3.5 text-[0.9375rem] text-v2-text-secondary leading-[1.8] max-w-[400px]">{REUSE[reuseTab].desc}</p>
                   </div>
                 </div>
               </Reveal>

@@ -67,19 +67,19 @@ export default function TargetBandNudge(): JSX.Element | null {
     // 外层 relative z-40 建栈上下文，把 ProfileModal 内建的 z-50 压到同意硬闸（z-50）之下（串行门控已保证不同屏，z 只作防御）。
     <div className="relative z-40">
       <ProfileModal title="设个目标分，词组更贴你的水平" onClose={dismiss}>
-        <p className="text-[13px] text-v2-text-secondary leading-relaxed">
+        <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed">
           题目分析里的「可用词组」现在会按你的目标分来挑。设定后，给你的词组更贴近你要冲的分数，练得更有针对性。
         </p>
         <GradientButton
           onClick={goSetGoal}
-          className="w-full mt-5 py-3 rounded-full text-[14px] font-medium"
+          className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium"
         >
           去设目标分
         </GradientButton>
         <button
           type="button"
           onClick={dismiss}
-          className="w-full mt-2 min-h-[44px] text-[13px] text-v2-text-muted hover:text-v2-text-secondary transition-colors"
+          className="w-full mt-2 min-h-[44px] text-[0.8125rem] text-v2-text-muted hover:text-v2-text-secondary transition-colors"
         >
           以后再说
         </button>

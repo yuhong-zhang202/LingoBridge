@@ -61,30 +61,30 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
         className="rounded-[16px] px-[18px] pt-[18px] pb-4"
         style={{ ...GRADIENT_BORDER_STYLE, boxShadow: SOFT, marginBottom: 18 }}
       >
-        <h2 className="text-[16px] font-bold text-v2-text-primary tracking-[-0.2px]">故事版图</h2>
-        <p className="text-[12px] text-v2-text-muted mt-1 mb-[15px]">点亮的面越多，能聊的题越广</p>
+        <h2 className="text-[1rem] font-bold text-v2-text-primary tracking-[-0.2px]">故事版图</h2>
+        <p className="text-[0.75rem] text-v2-text-muted mt-1 mb-[15px]">点亮的面越多，能聊的题越广</p>
         <RadarChart dimensions={dimensionSummaries.map(d => ({ name: d.dimension, value: scoreById[DIM_EN[d.dimension]] ?? 0 }))} />
         <div className="border-t border-black/[0.04] mt-2 pt-3 flex items-center justify-between">
           <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{corpusCount}</p>
-            <p className="text-[10px] text-v2-text-muted">条语料</p>
+            <p className="text-[1.125rem] font-semibold text-v2-text-primary">{corpusCount}</p>
+            <p className="text-[0.625rem] text-v2-text-muted">条语料</p>
           </div>
           <div className="w-px h-7 bg-black/[0.06]" />
           <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{dimsCov}<span className="text-[11px] font-normal text-v2-text-muted"> / 6</span></p>
-            <p className="text-[10px] text-v2-text-muted">维度覆盖</p>
+            <p className="text-[1.125rem] font-semibold text-v2-text-primary">{dimsCov}<span className="text-[0.6875rem] font-normal text-v2-text-muted"> / 6</span></p>
+            <p className="text-[0.625rem] text-v2-text-muted">维度覆盖</p>
           </div>
           <div className="w-px h-7 bg-black/[0.06]" />
           <div className="text-center flex-1">
-            <p className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}<span className="text-[11px] font-normal text-v2-text-muted"> / {totalMapped}</span></p>
-            <p className="text-[10px] text-v2-text-muted">题目匹配</p>
+            <p className="text-[1.125rem] font-semibold text-v2-text-primary">{totalMatched}<span className="text-[0.6875rem] font-normal text-v2-text-muted"> / {totalMapped}</span></p>
+            <p className="text-[0.625rem] text-v2-text-muted">题目匹配</p>
           </div>
         </div>
       </div>
 
       {/* 各维度覆盖 · 从多到少 —— 桌面端专属右栏 */}
       <div className="hidden lg:block bg-bg-surface rounded-[16px] px-[18px] pt-[18px] pb-4" style={{ boxShadow: SOFT_SM, marginBottom: 18 }}>
-        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">各维度覆盖 · 从多到少</p>
+        <p className="text-[0.8125rem] font-semibold text-v2-text-secondary mb-3">各维度覆盖 · 从多到少</p>
         <div className="flex flex-col gap-3">
           {sorted.map((d, idx) => {
             const id = DIM_EN[d.dimension]
@@ -96,16 +96,16 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
               <div key={d.dimension} className="flex items-center gap-2.5">
                 <span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${lit > 0 ? 'bg-brand-primary' : 'bg-v2-text-muted'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-v2-text-primary">{d.dimension}</div>
+                  <div className="text-[0.8125rem] font-medium text-v2-text-primary">{d.dimension}</div>
                   {isLeast ? (
-                    <div className="text-[11px] text-v2-text-muted mt-1">还几乎空白 · 下次从这儿讲一个故事 →</div>
+                    <div className="text-[0.6875rem] text-v2-text-muted mt-1">还几乎空白 · 下次从这儿讲一个故事 →</div>
                   ) : (
                     <div className="h-1.5 rounded-full bg-bg-muted mt-1.5 overflow-hidden">
                       <div className="h-full rounded-full bg-brand-primary" style={{ width: `${Math.max(4, Math.round(cov * 100))}%` }} />
                     </div>
                   )}
                 </div>
-                <span className="text-[12px] text-v2-text-secondary flex-shrink-0">{lit} / {total}</span>
+                <span className="text-[0.75rem] text-v2-text-secondary flex-shrink-0">{lit} / {total}</span>
               </div>
             )
           })}
@@ -117,7 +117,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
       <div className="lg:hidden">
       {/* 分组小标题 */}
       <p
-        className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px]"
+        className="text-[0.75rem] font-semibold text-v2-text-muted tracking-[0.4px]"
         style={{ margin: '0 2px 12px' }}
       >
         六个维度
@@ -141,13 +141,13 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
               >
                 <div className="w-[7px] h-[7px] rounded-full bg-v2-text-muted flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-v2-text-muted">{dim}</p>
-                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
+                  <p className="text-[0.875rem] font-semibold text-v2-text-muted">{dim}</p>
+                  <p className="text-[0.6875rem] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
                 </div>
                 <Chip
                   variant="gradient"
                   onClick={() => navigate('/')}
-                  className="text-[11px] px-3 gap-[3px] flex-shrink-0"
+                  className="text-[0.6875rem] px-3 gap-[3px] flex-shrink-0"
                 >
                   讲述
                   <ChevronRight size={12} className="text-brand-primary-dark" />
@@ -168,10 +168,10 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
               >
                 <div className="w-[7px] h-[7px] rounded-full bg-brand-primary flex-shrink-0" />
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[14px] font-semibold text-v2-text-primary">{dim}</p>
-                  <p className="text-[11px] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
+                  <p className="text-[0.875rem] font-semibold text-v2-text-primary">{dim}</p>
+                  <p className="text-[0.6875rem] text-v2-text-muted mt-[1px]">{DIM_DESC[dim]}</p>
                 </div>
-                <span className="text-[12px] font-semibold text-v2-text-secondary">{lit}/{total}</span>
+                <span className="text-[0.75rem] font-semibold text-v2-text-secondary">{lit}/{total}</span>
                 <ChevronDown size={14} className={`text-v2-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -186,7 +186,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                     {q.matched
                       ? <CheckCircle2 size={14} className="text-brand-accent flex-shrink-0" />
                       : <Circle size={14} className="text-v2-text-muted flex-shrink-0" />}
-                    <p className={`flex-1 text-[12px] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-v2-text-muted'}`}>{q.displayText}</p>
+                    <p className={`flex-1 text-[0.75rem] leading-snug ${q.matched ? 'text-v2-text-primary' : 'text-v2-text-muted'}`}>{q.displayText}</p>
                     {q.matched && (
                       <PracticeChip pending={pendingQid === q.id} onClick={() => void gotoPractice(q.id)} />
                     )}
@@ -200,7 +200,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
 
       {/* 桌面端：按维度看题目 —— chip 选择器 + 单维度题目面板（参照 web.html DimTab 下半部） */}
       <div className="hidden lg:block">
-        <p className="text-[13px] font-semibold text-v2-text-secondary mb-3">按维度看题目</p>
+        <p className="text-[0.8125rem] font-semibold text-v2-text-secondary mb-3">按维度看题目</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {dimensionSummaries.map(s => (
             <Chip key={s.dimension} variant="ghost" active={sel === s.dimension} onClick={() => setSel(s.dimension)}>
@@ -222,12 +222,12 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
             <div className="bg-bg-surface rounded-[16px] px-[22px] pt-[18px] pb-2" style={{ boxShadow: SOFT_SM }}>
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="text-[16px] font-bold text-v2-text-primary">{sum.dimension}</div>
-                  <div className="text-[12px] text-v2-text-muted mt-1">{DIM_DESC[sum.dimension]}</div>
+                  <div className="text-[1rem] font-bold text-v2-text-primary">{sum.dimension}</div>
+                  <div className="text-[0.75rem] text-v2-text-muted mt-1">{DIM_DESC[sum.dimension]}</div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-4">
-                  <div className="text-[11px] text-v2-text-muted">已收集</div>
-                  <div className="text-[16px] font-semibold text-v2-text-primary">{lit} / {total}</div>
+                  <div className="text-[0.6875rem] text-v2-text-muted">已收集</div>
+                  <div className="text-[1rem] font-semibold text-v2-text-primary">{lit} / {total}</div>
                   <div className="mt-1.5"><SegmentDots total={12} filled={segFilled} /></div>
                 </div>
               </div>
@@ -235,8 +235,8 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
                   <CheckCircle2 size={16} className="text-brand-accent flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] text-v2-text-primary leading-snug">{q.displayText}</div>
-                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                    <div className="text-[0.875rem] text-v2-text-primary leading-snug">{q.displayText}</div>
+                    {q.displayTextZh && <div className="text-[0.6875rem] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
                   </div>
                   <PracticeChip pending={pendingQid === q.id} onClick={() => void gotoPractice(q.id)} />
                 </div>
@@ -245,13 +245,13 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
                 <div key={q.id} className="flex items-center gap-2.5 py-2.5 border-t border-black/[0.04]">
                   <Circle size={16} className="text-v2-text-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] text-v2-text-muted leading-snug">{q.displayText}</div>
-                    {q.displayTextZh && <div className="text-[11px] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
+                    <div className="text-[0.875rem] text-v2-text-muted leading-snug">{q.displayText}</div>
+                    {q.displayTextZh && <div className="text-[0.6875rem] text-v2-text-muted mt-0.5">{q.displayTextZh}</div>}
                   </div>
-                  <span className="text-[12px] text-v2-text-muted flex-shrink-0">还没讲到</span>
+                  <span className="text-[0.75rem] text-v2-text-muted flex-shrink-0">还没讲到</span>
                 </div>
               ))}
-              <div className="text-[12px] text-v2-text-muted text-center pt-3 pb-1.5 border-t border-black/[0.04]">
+              <div className="text-[0.75rem] text-v2-text-muted text-center pt-3 pb-1.5 border-t border-black/[0.04]">
                 还有 <b className="text-v2-text-secondary">{remain}</b> 道 · 讲更多故事来点亮 →
               </div>
             </div>

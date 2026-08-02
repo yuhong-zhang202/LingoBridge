@@ -40,13 +40,13 @@ function QuotaLine({ label, used, limit, fillClass, loading, highlight }: QuotaL
   return (
     <div className="mt-3 text-left first:mt-0">
       <div className="flex items-baseline justify-between">
-        <span className={cn('text-[13px]', highlight ? 'text-v2-text-primary font-medium' : 'text-v2-text-secondary')}>
+        <span className={cn('text-[0.8125rem]', highlight ? 'text-v2-text-primary font-medium' : 'text-v2-text-secondary')}>
           {label}
         </span>
         {loading ? (
           <Skeleton className="w-12 h-3.5" />
         ) : (
-          <span className="text-[13px] text-v2-text-secondary">
+          <span className="text-[0.8125rem] text-v2-text-secondary">
             <span className="font-semibold">{capped}</span>{' / '}{limit}
           </span>
         )}
@@ -123,16 +123,16 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const trialBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">试用已完成</h2>
+      <h2 id="quota-title" className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">试用已完成</h2>
       {/* 双口径在同一句讲清：匿名试用总量（ANON_CORPUS_LIMIT）↔ 注册后每月额度（STORY_MONTHLY_LIMIT），
           均读常量、绝不写死数字（口径调整文案自动跟随）。绝不给匿名显示「/10」或「10/10」月额度谎报。 */}
-      <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+      <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         免费试用的 {ANON_CORPUS_LIMIT} 次已用完，注册后每月可练 {STORY_MONTHLY_LIMIT} 次。
       </p>
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <GradientButton
           onClick={() => navigate('/login')}
-          className="px-6 py-3 rounded-full text-[14px] font-medium"
+          className="px-6 py-3 rounded-full text-[0.875rem] font-medium"
         >
           注册 / 登录
         </GradientButton>
@@ -147,12 +147,12 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const quotaCtas = (
     <div className="flex flex-col items-center gap-2.5 mt-5">
       {!reviewDone && (
-        <GradientButton onClick={handlePracticeIelts} className="px-6 py-3 rounded-full text-[14px] font-medium">
+        <GradientButton onClick={handlePracticeIelts} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
           练习雅思题
         </GradientButton>
       )}
       {!storyDone && (
-        <GradientButton onClick={() => navigate('/')} className="px-6 py-3 rounded-full text-[14px] font-medium">
+        <GradientButton onClick={() => navigate('/')} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
           讲个故事
         </GradientButton>
       )}
@@ -164,11 +164,11 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
     <>
       <button
         onClick={() => navigate('/profile')}
-        className="text-[13px] text-v2-text-secondary underline underline-offset-2 mt-6 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
+        className="text-[0.8125rem] text-v2-text-secondary underline underline-offset-2 mt-6 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
       >
         额度明细可在「我的 › 本月额度」查看
       </button>
-      <p className="text-[13px] text-v2-text-muted mt-4">
+      <p className="text-[0.8125rem] text-v2-text-muted mt-4">
         需要更多额度？添加开发者微信 <span className="text-v2-text-secondary font-medium">zyh202x</span>
       </p>
     </>
@@ -178,8 +178,8 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const dualQuotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">{quotaTitle}</h2>
-      <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+      <h2 id="quota-title" className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{quotaTitle}</h2>
+      <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>
 
@@ -198,8 +198,8 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const neutralQuotaBody = (
     <div className={cn('flex flex-col items-center text-center px-6 py-10', className)}>
       <Orb size={120} pulse={false} />
-      <h2 id="quota-title" className="text-[15px] font-medium text-v2-text-primary mt-5">{quotaTitle}</h2>
-      <p className="text-[13px] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
+      <h2 id="quota-title" className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{quotaTitle}</h2>
+      <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[260px] leading-relaxed">
         {nextMonthFirstLabel()} 自动恢复 · 先去别处逛逛？
       </p>
       {quotaCtas}

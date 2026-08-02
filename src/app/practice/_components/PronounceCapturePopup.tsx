@@ -41,16 +41,16 @@ export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose
       />
 
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[13px] font-semibold text-v2-text-primary">发音纠错</span>
+        <span className="text-[0.8125rem] font-semibold text-v2-text-primary">发音纠错</span>
         <button onClick={onClose} aria-label="关闭" className="active:opacity-60 transition-opacity">
           <X size={14} color="#A89990" />
         </button>
       </div>
 
-      <p className="text-[12px] text-v2-text-muted mb-2.5">
+      <p className="text-[0.75rem] text-v2-text-muted mb-2.5">
         听成了：<span className="text-brand-primary-dark font-medium">{heard}</span>
       </p>
-      <p className="text-[11px] text-v2-text-secondary mb-1.5">你真正想说的词是</p>
+      <p className="text-[0.6875rem] text-v2-text-secondary mb-1.5">你真正想说的词是</p>
       <div className="flex items-center gap-2">
         <input
           autoFocus
@@ -58,12 +58,12 @@ export default function PronounceCapturePopup({ heard, savedIds, onSave, onClose
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder="输入正确的词"
-          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-cream-subtle px-2.5 py-1.5 text-[16px] lg:text-[13px] text-v2-text-primary outline-none focus:border-brand-primary/40"
+          className="flex-1 min-w-0 border border-black/[0.12] rounded-[9px] bg-cream-subtle px-2.5 py-1.5 text-[1rem] lg:text-[0.8125rem] text-v2-text-primary outline-none focus:border-brand-primary/40"
         />
         <button
           onClick={submit}
           disabled={!trimmed || already}
-          className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[12px] font-medium active:scale-[0.97] transition-transform disabled:opacity-50 ${already ? 'text-brand-primary' : 'text-v2-text-secondary'}`}
+          className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-2 text-[0.75rem] font-medium active:scale-[0.97] transition-transform disabled:opacity-50 ${already ? 'text-brand-primary' : 'text-v2-text-secondary'}`}
           style={{ ...GRADIENT_BORDER_STYLE, borderRadius: 9999 }}
         >
           <Bookmark size={12} className={already ? 'fill-brand-primary text-brand-primary' : 'text-brand-primary'} />

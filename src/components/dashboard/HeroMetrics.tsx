@@ -53,17 +53,17 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         <TopBar color={BAR_PRIMARY} />
         <div className="px-5 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[14px]" aria-hidden="true">🧑‍💻</span>
-            <span className="text-[11px] text-v2-text-muted">今日核心活跃 · 注册用户</span>
+            <span className="text-[0.875rem]" aria-hidden="true">🧑‍💻</span>
+            <span className="text-[0.6875rem] text-v2-text-muted">今日核心活跃 · 注册用户</span>
           </div>
-          <div className="text-[40px] md:text-[44px] font-bold text-v2-text-primary leading-none tabular-nums">
+          <div className="text-[2.5rem] md:text-[2.75rem] font-bold text-v2-text-primary leading-none tabular-nums">
             {data.registeredActiveToday}
           </div>
           {/* 匿名副行：去重身份（匿名 user_id 按设备持久去重，非唯一真人），绝不与注册相加。为 0 时整行隐藏 */}
           {data.anonSessionsToday > 0 && (
             <div className="flex items-center gap-1.5 mt-2.5">
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-neutral-mid" />
-              <span className="text-[12px] text-v2-text-muted">
+              <span className="text-[0.75rem] text-v2-text-muted">
                 另有匿名试用 {data.anonSessionsToday} · 去重身份 · 按设备持久 · 非唯一真人
               </span>
             </div>
@@ -76,20 +76,20 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         <TopBar color={BAR_ACCENT} />
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[14px]" aria-hidden="true">🎯</span>
-            <span className="text-[11px] text-v2-text-muted">今日练习场次</span>
+            <span className="text-[0.875rem]" aria-hidden="true">🎯</span>
+            <span className="text-[0.6875rem] text-v2-text-muted">今日练习场次</span>
           </div>
-          <div className="text-[28px] font-bold text-v2-text-primary leading-none tabular-nums">
+          <div className="text-[1.75rem] font-bold text-v2-text-primary leading-none tabular-nums">
             {data.practiceTotal}
           </div>
           <div className="flex items-center gap-3 mt-2">
             <span className="inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-brand-primary" />
-              <span className="text-[11px] text-v2-text-secondary tabular-nums">新练 {data.practiceNew}</span>
+              <span className="text-[0.6875rem] text-v2-text-secondary tabular-nums">新练 {data.practiceNew}</span>
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-brand-accent" />
-              <span className="text-[11px] text-v2-text-secondary tabular-nums">复练 {data.practiceReview}</span>
+              <span className="text-[0.6875rem] text-v2-text-secondary tabular-nums">复练 {data.practiceReview}</span>
             </span>
           </div>
         </div>
@@ -105,25 +105,25 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         <TopBar color={hasFailure ? BAR_ERROR : BAR_OK} />
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[14px]" aria-hidden="true">{hasFailure ? '🚨' : '✅'}</span>
-            <span className="text-[11px] text-v2-text-muted">今日故障</span>
+            <span className="text-[0.875rem]" aria-hidden="true">{hasFailure ? '🚨' : '✅'}</span>
+            <span className="text-[0.6875rem] text-v2-text-muted">今日故障</span>
           </div>
           {hasFailure ? (
             <>
               <div className="flex items-baseline gap-1.5">
                 <span className="w-2 h-2 rounded-full flex-shrink-0 bg-error self-center" />
-                <span className="text-[28px] font-bold text-error leading-none tabular-nums">{data.todayFailuresTotal}</span>
-                <span className="text-[12px] text-error font-medium">卡在{topPhase}</span>
+                <span className="text-[1.75rem] font-bold text-error leading-none tabular-nums">{data.todayFailuresTotal}</span>
+                <span className="text-[0.75rem] text-error font-medium">卡在{topPhase}</span>
               </div>
-              <div className="text-[11px] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
+              <div className="text-[0.6875rem] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
             </>
           ) : (
             <>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full flex-shrink-0 bg-success" />
-                <span className="text-[18px] font-bold text-v2-text-primary">今日无故障</span>
+                <span className="text-[1.125rem] font-bold text-v2-text-primary">今日无故障</span>
               </div>
-              <div className="text-[11px] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
+              <div className="text-[0.6875rem] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
             </>
           )}
         </div>
@@ -134,13 +134,13 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         <TopBar color={BAR_COST} />
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[14px]" aria-hidden="true">💰</span>
-            <span className="text-[11px] text-v2-text-muted">今日成本</span>
+            <span className="text-[0.875rem]" aria-hidden="true">💰</span>
+            <span className="text-[0.6875rem] text-v2-text-muted">今日成本</span>
           </div>
-          <div className={`text-[28px] font-bold leading-none tabular-nums ${costWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
+          <div className={`text-[1.75rem] font-bold leading-none tabular-nums ${costWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
             {formatCny(data.todayCost)}
           </div>
-          <div className="text-[11px] text-v2-text-muted mt-2">
+          <div className="text-[0.6875rem] text-v2-text-muted mt-2">
             近7日均 {formatCny(data.avgDailyCost7)} · 预算¥{data.dailyBudget}
           </div>
         </div>

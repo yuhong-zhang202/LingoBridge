@@ -4,6 +4,14 @@
 
 @layer base {
   * { box-sizing: border-box; }
+
+  /* 全局字体档机制：显式钉死 16px 基准 × 用户所选档位系数 --fs-scale（默认 1）。
+     显式钉 16px（不吃浏览器默认字号）确保 scale=1.0 时 rem×16 精确还原设计稿原始 px、逐像素一致；
+     --fs-scale 一变，所有 rem 单位（含全站 text-[Nrem] 字号）随之联动缩放。
+     首屏由 layout.tsx <head> 内联同步脚本在 React 挂载前就 setProperty('--fs-scale')，杜绝 FOUC。
+     档位选择器见 settings 页；档值常量集中在 src/lib/fontScale.ts。 */
+  html { font-size: calc(16px * var(--fs-scale, 1)); }
+
   html, body {
     height: 100%;
     overflow: hidden;

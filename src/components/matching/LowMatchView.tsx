@@ -36,7 +36,7 @@ interface Props {
 function GroupHeaderMid({ label, count }: { label: string; count: number }): React.ReactElement {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className="text-[11px] text-v2-text-secondary font-medium">{label} · {count} 道</span>
+      <span className="text-[0.6875rem] text-v2-text-secondary font-medium">{label} · {count} 道</span>
       <div className="flex-1 h-px bg-black/[0.05]" />
     </div>
   )
@@ -76,9 +76,9 @@ export default function LowMatchView({
     <div>
       {/* 标题 + 识别维度 */}
       <div className="mb-4">
-        <h2 className="text-[20px] font-bold text-v2-text-primary">暂时没有完全贴合的题目</h2>
+        <h2 className="text-[1.25rem] font-bold text-v2-text-primary">暂时没有完全贴合的题目</h2>
         {primary && (
-          <p className="text-[12px] text-v2-text-muted mt-1">
+          <p className="text-[0.75rem] text-v2-text-muted mt-1">
             识别维度：{primary.dimension} · {primary.pointName}
             {secondary && ` ／ ${secondary.dimension} · ${secondary.pointName}`}
           </p>
@@ -87,10 +87,10 @@ export default function LowMatchView({
 
       {/* 说明卡：诚实告知这几道都算不上特别贴合，给「先练手」与「换故事」两条路 */}
       <Card className="px-4 py-3 mb-5">
-        <p className="text-[13px] text-v2-text-primary leading-snug mb-1">
+        <p className="text-[0.8125rem] text-v2-text-primary leading-snug mb-1">
           题库里和你的故事最相关的，就是下面这几道
         </p>
-        <p className="text-[12px] text-v2-text-secondary leading-relaxed">
+        <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed">
           它们都算不上特别贴合。可以先挑最相关的一道练手；也可以换个角度、重新讲一个故事，也许能遇到更合适的题。
         </p>
       </Card>
@@ -115,7 +115,7 @@ export default function LowMatchView({
       <div className="text-center mb-6">
         <button
           onClick={onExit}
-          className="min-h-[44px] inline-flex items-center justify-center px-3 text-[13px] font-medium text-brand-primary-dark active:opacity-60"
+          className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-brand-primary-dark active:opacity-60"
         >
           换个角度，重新讲一个故事 →
         </button>

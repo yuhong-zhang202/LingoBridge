@@ -26,7 +26,7 @@ export default function DailyFailureChart({ data }: { data: DayFailure[] }) {
   return (
     <div>
       {/* 状态不只靠颜色：总数与峰值日以文字/数字承载，柱上另标数字（见 LabelList） */}
-      <div className="text-[11px] text-v2-text-secondary mb-2">
+      <div className="text-[0.6875rem] text-v2-text-secondary mb-2">
         {total === 0
           ? <span>本期无失败</span>
           : <span>本期共 <span className="font-semibold text-error tabular-nums">{total}</span> 次失败，峰值 {peak.date} <span className="tabular-nums">{peak.failures}</span> 次</span>}
@@ -35,13 +35,13 @@ export default function DailyFailureChart({ data }: { data: DayFailure[] }) {
         aria-label={`每日失败次数柱状图，共 ${data.length} 天，合计 ${total} 次系统故障${total > 0 ? `，峰值 ${peak.date} 共 ${peak.failures} 次` : ''}。详细数据见下方数据表。`}>
         <ResponsiveContainer width="100%" height={100}>
           <BarChart data={data} barSize={10} margin={{ top: 12, right: 0, bottom: 0, left: -16 }}>
-            <XAxis dataKey="date" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            <XAxis dataKey="date" tick={{ fontSize: '0.5625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
             <Bar dataKey="failures" radius={[2, 2, 0, 0]} isAnimationActive={false}>
               {data.map((d, i) => (
                 <Cell key={i} fill={FAIL_COLOR} fillOpacity={d.failures > 0 ? 0.75 : 0.12} />
               ))}
               {/* 柱上标数字：仅 >0 时显示，0 的日子标一片"0"只会变成噪音 */}
-              <LabelList dataKey="failures" position="top" fontSize={9} fill={FAIL_COLOR}
+              <LabelList dataKey="failures" position="top" fontSize="0.5625rem" fill={FAIL_COLOR}
                 formatter={(v: unknown) => (Number(v) > 0 ? String(v) : '')} />
             </Bar>
           </BarChart>

@@ -34,7 +34,7 @@ export default function MatchingProgress({ className = '' }: { className?: strin
   return (
     <div className={className}>
       {/* aria-live=polite：文案切换时读屏播报，但不打断用户当前操作 */}
-      <p className="text-[13px] text-v2-text-secondary" aria-live="polite">
+      <p className="text-[0.8125rem] text-v2-text-secondary" aria-live="polite">
         {stageText(elapsedMs)}
       </p>
       <div

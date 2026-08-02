@@ -87,7 +87,7 @@ export default function AnalysisTopProgress(): JSX.Element {
           className="w-1.5 h-1.5 rounded-full animate-pulse motion-reduce:animate-none"
           style={{ background: BRAND_GRADIENT }}
         />
-        <span className="text-[13px] text-v2-text-secondary">{stage}</span>
+        <span className="text-[0.8125rem] text-v2-text-secondary">{stage}</span>
       </div>
     </>
   )

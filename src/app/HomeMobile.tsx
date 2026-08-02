@@ -52,12 +52,12 @@ export default function HomeMobile({
           >
             <ChevronLeft size={15} className="text-v2-text-secondary" />
           </button>
-          <span className="text-[16px] font-semibold text-v2-text-primary">写下你的故事</span>
+          <span className="text-[1rem] font-semibold text-v2-text-primary">写下你的故事</span>
           <div className="w-[30px]" />
         </div>
       ) : (
         <div className="flex items-center justify-between h-[52px] px-5 relative z-10">
-          <span className="text-[16px] font-bold text-v2-text-primary">LingoBridge</span>
+          <span className="text-[1rem] font-bold text-v2-text-primary">LingoBridge</span>
         </div>
       )}
 
@@ -69,14 +69,14 @@ export default function HomeMobile({
                 <button
                   onClick={onSelectMyStory}
                   aria-pressed={!ieltsMode}
-                  className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${!ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
+                  className={`flex-1 text-center py-2 text-[0.8125rem] font-semibold rounded-full transition-all ${!ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
                 >
                   我的故事
                 </button>
                 <button
                   onClick={onSelectIelts}
                   aria-pressed={ieltsMode}
-                  className={`flex-1 text-center py-2 text-[13px] font-semibold rounded-full transition-all ${ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
+                  className={`flex-1 text-center py-2 text-[0.8125rem] font-semibold rounded-full transition-all ${ieltsMode ? 'bg-bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.10)] text-brand-primary-dark' : 'bg-transparent text-v2-text-muted'}`}
                 >
                   雅思题
                 </button>
@@ -92,8 +92,8 @@ export default function HomeMobile({
               <div className="text-center w-full">
                 {!ieltsMode ? (
                   <>
-                    <h1 className="text-[20px] font-bold text-v2-text-primary tracking-tight">说说你的故事</h1>
-                    <p className="text-[13px] text-v2-text-muted mt-2">精准匹配雅思口语题目</p>
+                    <h1 className="text-[1.25rem] font-bold text-v2-text-primary tracking-tight">说说你的故事</h1>
+                    <p className="text-[0.8125rem] text-v2-text-muted mt-2">精准匹配雅思口语题目</p>
                   </>
                 ) : (
                   <>
@@ -102,22 +102,22 @@ export default function HomeMobile({
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <PartTag label={`Part ${question.part}`} />
                         {topicLabel && (
-                          <span className="text-[12px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+                          <span className="text-[0.75rem] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
                         )}
                       </div>
                     )}
                     {!loading && error ? (
-                      <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">没取到题，点下面换一题重试</p>
+                      <p className="w-full text-center text-[0.8125rem] text-v2-text-muted min-h-[28px]">没取到题，点下面换一题重试</p>
                     ) : !loading && exhausted ? (
-                      <p className="w-full text-center text-[13px] text-v2-text-muted min-h-[28px]">本季真题你都练过啦 · 换季会上新题</p>
+                      <p className="w-full text-center text-[0.8125rem] text-v2-text-muted min-h-[28px]">本季真题你都练过啦 · 换季会上新题</p>
                     ) : (
-                      <h1 className="w-full text-center text-[20px] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
+                      <h1 className="w-full text-center text-[1.25rem] font-bold text-v2-text-primary tracking-tight leading-snug min-h-[28px]">
                         {loading ? '换一题中…' : question ? (question.part === 2 ? (question.cue_card_title_zh ?? '') : question.question_text_zh) : ''}
                       </h1>
                     )}
-                    <p className="text-[13px] text-v2-text-muted mt-2">聊聊你的看法</p>
+                    <p className="text-[0.8125rem] text-v2-text-muted mt-2">聊聊你的看法</p>
                     {!exhausted && (
-                      <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-v2-text-muted active:opacity-60">
+                      <button onClick={onNext} className="mt-3 inline-flex items-center gap-1.5 text-[0.75rem] text-v2-text-muted active:opacity-60">
                         <RotateCw size={12} />换一题
                       </button>
                     )}
@@ -134,12 +134,12 @@ export default function HomeMobile({
                   <GradientButton
                     onClick={onStartRecording}
                     loading={startingRec}
-                    className="mx-auto flex items-center justify-center gap-2 w-[280px] h-[50px] rounded-full text-[14px] font-semibold"
+                    className="mx-auto flex items-center justify-center gap-2 w-[280px] h-[50px] rounded-full text-[0.875rem] font-semibold"
                   >
                     <Mic2 size={16} className="text-v2-text-secondary" />
                     开始录音
                   </GradientButton>
-                  <button onClick={() => onSetShowTextInput(true)} className="w-full text-center text-[13px] text-v2-text-muted mt-3 cursor-pointer">
+                  <button onClick={() => onSetShowTextInput(true)} className="w-full text-center text-[0.8125rem] text-v2-text-muted mt-3 cursor-pointer">
                     或用文字输入
                   </button>
                 </>

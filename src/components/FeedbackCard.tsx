@@ -45,7 +45,7 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing?: number
         className="w-full h-full flex items-center justify-center bg-white"
         style={{ borderRadius: 9999 }}
       >
-        <span className="text-brand-primary-dark" style={{ fontSize: 11, fontWeight: 500, lineHeight: 1, letterSpacing }}>
+        <span className="text-brand-primary-dark" style={{ fontSize: '0.6875rem', fontWeight: 500, lineHeight: 1, letterSpacing }}>
           {text}
         </span>
       </div>
@@ -61,7 +61,7 @@ function SentenceBlock({ text, variant, plain }: { text: string; variant: 'origi
     : (isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]')
   return (
     <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
-      <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${plain && isAi ? 'font-medium' : ''}`}>
+      <p className={`text-[0.875rem] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${plain && isAi ? 'font-medium' : ''}`}>
         {text}
       </p>
       <button
@@ -91,7 +91,7 @@ export default function FeedbackCard(props: FeedbackCardProps) {
     >
       <div className={`flex items-center justify-between ${plain ? 'mb-2' : 'mb-1.5'}`}>
         {plain ? (
-          <span className="inline-flex items-center rounded-full text-[11px] font-medium px-[10px] py-[5px] bg-brand-primary-light text-brand-primary-dark">原句</span>
+          <span className="inline-flex items-center rounded-full text-[0.6875rem] font-medium px-[10px] py-[5px] bg-brand-primary-light text-brand-primary-dark">原句</span>
         ) : (
           <InfoTag text="原句" letterSpacing={2} />
         )}
@@ -116,8 +116,8 @@ export default function FeedbackCard(props: FeedbackCardProps) {
       {/* 关键词 + 日期行：两者皆空时整行(连同 mt-3)不渲染，不占空间——避免收藏卡(date='')留一截空白 */}
       {(keywords.length > 0 || date) && (
         <div className="flex items-center justify-between mt-3">
-          <span className="text-[12px] text-v2-text-muted">{keywords.join(' · ')}</span>
-          <span className="text-[12px] text-v2-text-muted">{date}</span>
+          <span className="text-[0.75rem] text-v2-text-muted">{keywords.join(' · ')}</span>
+          <span className="text-[0.75rem] text-v2-text-muted">{date}</span>
         </div>
       )}
     </div>

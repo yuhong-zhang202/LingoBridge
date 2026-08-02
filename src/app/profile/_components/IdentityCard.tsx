@@ -54,18 +54,18 @@ export default function IdentityCard({ displayName, joinDays }: IdentityCardProp
           <Avatar avatarUrl={account?.avatarUrl} size={64} fallback={<OrbAvatar size={64} />} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-semibold text-v2-text-primary truncate">{nickname}</p>
-          <p className="text-[12px] text-v2-text-muted truncate mt-0.5">{displayName}</p>
+          <p className="text-[1rem] font-semibold text-v2-text-primary truncate">{nickname}</p>
+          <p className="text-[0.75rem] text-v2-text-muted truncate mt-0.5">{displayName}</p>
           {joinDays !== null && (
-            <p className="text-[13px] text-v2-text-muted mt-1">已加入 {joinDays} 天</p>
+            <p className="text-[0.8125rem] text-v2-text-muted mt-1">已加入 {joinDays} 天</p>
           )}
         </div>
-        <GradientButton onClick={() => setNameOpen(true)} className="shrink-0 px-5 py-2.5 rounded-full text-[13px] font-medium">
+        <GradientButton onClick={() => setNameOpen(true)} className="shrink-0 px-5 py-2.5 rounded-full text-[0.8125rem] font-medium">
           编辑资料
         </GradientButton>
       </div>
 
-      <div className="mt-5 pt-4 border-t border-black/[0.05] flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-v2-text-secondary">
+      <div className="mt-5 pt-4 border-t border-black/[0.05] flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.8125rem] text-v2-text-secondary">
         <div className="flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-brand-primary-light/50">
           <Flame size={14} className="text-brand-primary-dark" />
           <span className="text-brand-primary-dark font-medium">连续打卡 {streak} 天</span>

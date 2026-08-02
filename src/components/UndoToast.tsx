@@ -35,10 +35,10 @@ export default function UndoToast({ message, onUndo, onDismiss, duration = 5000 
       aria-live="polite"
       className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-[14px] shadow-lg bg-v2-text-primary text-white"
     >
-      <span className="text-[13px]">{message}</span>
+      <span className="text-[0.8125rem]">{message}</span>
       <button
         onClick={onUndo}
-        className="text-[13px] font-medium text-brand-primary hover:opacity-80 transition-opacity"
+        className="text-[0.8125rem] font-medium text-brand-primary hover:opacity-80 transition-opacity"
       >
         撤销
       </button>

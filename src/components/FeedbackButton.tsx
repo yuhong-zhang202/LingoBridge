@@ -16,7 +16,7 @@ export default function FeedbackButton() {
     <>
       <GradientButton
         onClick={() => setOpen(true)}
-        className="px-4 py-1.5 rounded-full text-[12px] font-medium"
+        className="px-4 py-1.5 rounded-full text-[0.75rem] font-medium"
       >
         反馈
       </GradientButton>

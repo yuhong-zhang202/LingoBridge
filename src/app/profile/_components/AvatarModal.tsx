@@ -94,7 +94,7 @@ export default function AvatarModal({ onClose }: { onClose: () => void }): JSX.E
         }
       >
         <UploadCloud size={20} className="text-v2-text-muted" />
-        <span className="text-[12px] text-v2-text-muted">
+        <span className="text-[0.75rem] text-v2-text-muted">
           {canUpload ? '点击上传图片，支持 JPG / PNG，不超过 2MB' : '登录后可上传自定义头像'}
         </span>
         <input
@@ -106,13 +106,13 @@ export default function AvatarModal({ onClose }: { onClose: () => void }): JSX.E
         />
       </label>
 
-      {err && <p className="text-[12px] text-error mt-2 px-1">{err}</p>}
+      {err && <p className="text-[0.75rem] text-error mt-2 px-1">{err}</p>}
 
       <GradientButton
         onClick={() => void handleSave()}
         disabled={!file || !canUpload}
         loading={saving}
-        className="w-full mt-5 py-3 rounded-full text-[14px] font-medium disabled:cursor-not-allowed"
+        className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed"
       >
         {saving ? '保存中…' : '保存头像'}
       </GradientButton>

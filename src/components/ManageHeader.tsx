@@ -32,16 +32,16 @@ interface ManageHeaderProps {
 export default function ManageHeader({ title, subtitle, right }: ManageHeaderProps): ReactNode {
   return (
     <div className="pt-6 pb-4">
-      <div className="flex items-center gap-[7px] text-[13px] text-v2-text-muted">
+      <div className="flex items-center gap-[7px] text-[0.8125rem] text-v2-text-muted">
         <ProgressLink href="/" className="hover:text-v2-text-secondary transition-colors">首页</ProgressLink>
         <ChevronRight size={14} />
         <span className="text-v2-text-secondary font-medium">{title}</span>
       </div>
       <div className="flex items-center justify-between gap-4 mt-2.5">
-        <h1 className="text-[26px] font-bold tracking-[-0.01em] text-v2-text-primary">{title}</h1>
+        <h1 className="text-[1.625rem] font-bold tracking-[-0.01em] text-v2-text-primary">{title}</h1>
         {right}
       </div>
-      {subtitle && <p className="text-[13px] text-v2-text-muted mt-1.5">{subtitle}</p>}
+      {subtitle && <p className="text-[0.8125rem] text-v2-text-muted mt-1.5">{subtitle}</p>}
     </div>
   )
 }

@@ -69,7 +69,7 @@ export default function ReviewPage(): JSX.Element {
             <X size={15} className="text-v2-text-muted" />
           </button>
           {!loading && !error && queue.length > 0 && current < queue.length && (
-            <span className="text-[13px] text-v2-text-muted">{current + 1} / {queue.length}</span>
+            <span className="text-[0.8125rem] text-v2-text-muted">{current + 1} / {queue.length}</span>
           )}
         </div>
         {!loading && !error && queue.length > 0 && current < queue.length && (

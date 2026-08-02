@@ -218,15 +218,15 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
           <IconButton icon={Trash2} label="选择" onClick={sel.enterSelecting} />
         ) : (
           <div className="flex items-center gap-4">
-            <button onClick={sel.exitSelecting} className="text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
-            <span className="text-[13px] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
-            <button onClick={sel.toggleSelectAll} className="text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
+            <button onClick={sel.exitSelecting} className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
+            <span className="text-[0.8125rem] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
+            <button onClick={sel.toggleSelectAll} className="text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
               {sel.allSelected ? '取消全选' : '全选'}
             </button>
             <button
               onClick={sel.deleteSelected}
               disabled={sel.selectedCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[0.8125rem] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={14} />删除 ({sel.selectedCount})
             </button>
@@ -266,7 +266,7 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
                       {/* 已就绪不显标签（产品方定：整块删除）；仅生成中显暖橙状态标签。
                           Tag 无橙变体，按 DESIGN §次要元素「brand-primary-light 底 + 深色文字」手写；带 Loader 文字、a11y 不只靠色。 */}
                       {!ready && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-[10px] py-[5px] bg-brand-primary-light border border-brand-primary-light text-brand-primary-dark">
+                        <span className="inline-flex items-center gap-1 text-[0.6875rem] font-medium rounded-full px-[10px] py-[5px] bg-brand-primary-light border border-brand-primary-light text-brand-primary-dark">
                           <Loader2 size={11} className="animate-spin" />
                           生成中…
                         </span>
@@ -274,7 +274,7 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
                     </div>
 
                     {/* 题面（Part2 用 cue card 标题），两行截断 */}
-                    <p className="text-[14px] font-medium text-v2-text-primary leading-[1.5] line-clamp-2">
+                    <p className="text-[0.875rem] font-medium text-v2-text-primary leading-[1.5] line-clamp-2">
                       {pairTitle(card)}
                     </p>
 
@@ -285,8 +285,8 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
                     <div className="flex items-start gap-1.5 lg:mt-auto">
                       <Link2 size={13} className="text-brand-primary-dark mt-[3px] flex-shrink-0" />
                       <div className="min-w-0">
-                        <span className="text-[12px] font-medium text-brand-primary-dark">你的故事</span>
-                        <p className="text-[13px] text-v2-text-secondary leading-[1.5] line-clamp-2 mt-0.5">
+                        <span className="text-[0.75rem] font-medium text-brand-primary-dark">你的故事</span>
+                        <p className="text-[0.8125rem] text-v2-text-secondary leading-[1.5] line-clamp-2 mt-0.5">
                           {card.corpusSummary ?? '你绑定的一段真实经历'}
                         </p>
                       </div>

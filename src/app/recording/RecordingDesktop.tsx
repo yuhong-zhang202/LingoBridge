@@ -73,11 +73,11 @@ function ListeningStage({
               <div className="h-7 flex items-center">
                 <Waveform active className="scale-[1.55]" />
               </div>
-              <span className="text-[13px] text-v2-text-muted italic">listening…</span>
+              <span className="text-[0.8125rem] text-v2-text-muted italic">listening…</span>
             </div>
 
             <div className="surface px-5 py-3.5 max-w-[360px] text-center mt-5">
-              <p className="text-[14px] text-v2-text-secondary leading-relaxed">
+              <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">
                 正在聆听，说完点「完成录音」自动转写
               </p>
             </div>
@@ -85,22 +85,22 @@ function ListeningStage({
             {/* 满 30s 进入推荐时长区间，计时器转 success 色轻点一下 */}
             <span
               className={
-                `mt-5 text-[22px] font-semibold tracking-[2px] tabular-nums transition-colors duration-500 ` +
+                `mt-5 text-[1.375rem] font-semibold tracking-[2px] tabular-nums transition-colors duration-500 ` +
                 (seconds >= 30 ? 'text-success' : 'text-v2-text-primary')
               }
             >
               {fmt(seconds)}
             </span>
-            <p className="mt-3 text-[12px] text-v2-text-muted text-center leading-relaxed">
+            <p className="mt-3 text-[0.75rem] text-v2-text-muted text-center leading-relaxed">
               建议说 30–60 秒，说得越具体效果越好 ✨
             </p>
           </>
         ) : (
-          <p className="mt-6 text-[14px] text-v2-text-muted">正在转写你的录音…</p>
+          <p className="mt-6 text-[0.875rem] text-v2-text-muted">正在转写你的录音…</p>
         )}
 
         {error && (
-          <p role="alert" className="mt-5 text-center text-[13px] text-error">{error}</p>
+          <p role="alert" className="mt-5 text-center text-[0.8125rem] text-error">{error}</p>
         )}
 
         </div>
@@ -111,7 +111,7 @@ function ListeningStage({
           <button
             onClick={onFinish}
             disabled={transcribing}
-            className="btn-gradient w-[280px] h-[56px] text-[16px] font-semibold disabled:opacity-50 transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            className="btn-gradient w-[280px] h-[56px] text-[1rem] font-semibold disabled:opacity-50 transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
             <div aria-hidden="true" className="w-[15px] h-[15px] bg-v2-text-secondary rounded-[3px]" />
             {transcribing ? '转写中…' : '完成录音'}
@@ -120,7 +120,7 @@ function ListeningStage({
             <button
               onClick={onRerecord}
               disabled={transcribing}
-              className="flex items-center gap-1.5 text-[13px] font-medium text-v2-text-muted opacity-60 hover:opacity-100 transition-opacity duration-200 disabled:opacity-30"
+              className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-v2-text-muted opacity-60 hover:opacity-100 transition-opacity duration-200 disabled:opacity-30"
             >
               <RotateCcw size={15} />
               重录
@@ -128,14 +128,14 @@ function ListeningStage({
             {/* 改用文字：对称 /write 的「改用录音」，跳 /write（带 qid） */}
             <button
               onClick={onSwitchToText}
-              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
+              className="inline-flex items-center gap-1.5 text-[0.875rem] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
             >
               <Pencil size={15} />改用文字
             </button>
           </div>
 
         {!transcribing && (
-          <p className="text-[12px] text-v2-text-muted">
+          <p className="text-[0.75rem] text-v2-text-muted">
             空格 完成录音 · R 重录 · Esc 退出
           </p>
         )}

@@ -27,7 +27,7 @@ interface GradientButtonProps {
  * @param onClick   点击回调（button 形态）
  * @param disabled  禁用态（自动降透明度，button 形态）
  * @param loading   请求中：自动禁用 + 显示 spinner + 吞掉重复 onClick（不传时行为与原来完全一致，button 形态）
- * @param className 尺寸/形状/宽度/字号/布局等（如 w-full px-6 py-3 rounded-full text-[14px] font-medium）
+ * @param className 尺寸/形状/宽度/字号/布局等（如 w-full px-6 py-3 rounded-full text-[0.875rem] font-medium）
  * @param href      传入则渲染为 <Link>（如「回首页」需 Cmd+click 新开），皮肤/文字色/active 回弹与 button 形态一致
  */
 export default function GradientButton({ children, onClick, disabled, loading = false, className, href }: GradientButtonProps) {

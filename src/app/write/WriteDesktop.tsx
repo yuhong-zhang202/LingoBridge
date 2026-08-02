@@ -49,8 +49,8 @@ export default function WriteDesktop({
 
         {/* 引导标题 + 副文案 */}
         <div className="mb-6 text-center">
-          <h1 className="text-[24px] font-bold text-v2-text-primary tracking-tight">说说你的故事</h1>
-          <p className="mt-2.5 text-[14px] text-v2-text-secondary leading-relaxed">
+          <h1 className="text-[1.5rem] font-bold text-v2-text-primary tracking-tight">说说你的故事</h1>
+          <p className="mt-2.5 text-[0.875rem] text-v2-text-secondary leading-relaxed">
             不用背模板。把发生过的事讲出来，我们帮你理清逻辑、补上地道表达，再匹配到合适的雅思口语题。
           </p>
         </div>
@@ -59,9 +59,9 @@ export default function WriteDesktop({
         {questionContext && (
           <div className="mb-5">
             <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-              <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {questionContext.part}</span>
+              <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">Part {questionContext.part}</span>
               <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-              <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">{questionContext.en}</span>
+              <span className="text-[0.75rem] font-medium text-v2-text-secondary flex-1 truncate min-w-0">{questionContext.en}</span>
             </div>
           </div>
         )}
@@ -74,10 +74,10 @@ export default function WriteDesktop({
             placeholder={WRITE_PLACEHOLDER}
             aria-label="写下你的故事"
             autoFocus
-            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[16px] lg:text-[15px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
+            className="w-full min-h-[260px] resize-none bg-transparent outline-none text-[1rem] lg:text-[0.9375rem] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted"
           />
           <div className="flex items-center justify-end pt-3 border-t border-black/[0.05]">
-            <span className="text-[12px] text-v2-text-muted tabular-nums">{textStory.trim().length} 字</span>
+            <span className="text-[0.75rem] text-v2-text-muted tabular-nums">{textStory.trim().length} 字</span>
           </div>
         </div>
 
@@ -86,7 +86,7 @@ export default function WriteDesktop({
           <div className="flex items-center gap-6">
             <button
               onClick={onSwitchToVoice}
-              className="inline-flex items-center gap-1.5 text-[14px] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
+              className="inline-flex items-center gap-1.5 text-[0.875rem] text-v2-text-muted hover:text-v2-text-secondary hover:-translate-y-[1px] transition-[color,transform] duration-200"
             >
               <Mic2 size={15} />改用录音
             </button>
@@ -94,12 +94,12 @@ export default function WriteDesktop({
               onClick={onSubmit}
               disabled={!canSubmit}
               loading={submitting}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
               语料梳理 →
             </GradientButton>
           </div>
-          <p className="text-[12px] text-v2-text-muted">⌘/Ctrl + Enter 提交 · Esc 退出</p>
+          <p className="text-[0.75rem] text-v2-text-muted">⌘/Ctrl + Enter 提交 · Esc 退出</p>
         </div>
       </div>
     </div>

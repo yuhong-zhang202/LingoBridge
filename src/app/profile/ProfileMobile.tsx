@@ -84,13 +84,13 @@ export default function ProfileMobile({ loggedIn, isAnon, email, onLogout }: Pro
                 aria-label="编辑昵称"
                 className="mt-3 flex items-center gap-1.5 active:scale-[0.97] transition-transform"
               >
-                <span className="text-[18px] font-semibold text-v2-text-primary">{nickname}</span>
+                <span className="text-[1.125rem] font-semibold text-v2-text-primary">{nickname}</span>
                 <Pencil size={14} className="text-v2-text-muted" />
               </button>
-              {maskedEmail && <p className="text-[12px] text-v2-text-muted mt-1">{maskedEmail}</p>}
+              {maskedEmail && <p className="text-[0.75rem] text-v2-text-muted mt-1">{maskedEmail}</p>}
             </>
           ) : (
-            <p className="text-[18px] font-semibold text-v2-text-primary mt-3">{nickname}</p>
+            <p className="text-[1.125rem] font-semibold text-v2-text-primary mt-3">{nickname}</p>
           )}
         </div>
 
@@ -112,7 +112,7 @@ export default function ProfileMobile({ loggedIn, isAnon, email, onLogout }: Pro
           <div className="text-center mt-5 mb-2">
             <button
               onClick={onLogout}
-              className="bg-transparent border-none text-[13px] text-v2-text-muted px-4 py-2 active:opacity-60"
+              className="bg-transparent border-none text-[0.8125rem] text-v2-text-muted px-4 py-2 active:opacity-60"
             >
               退出登录
             </button>

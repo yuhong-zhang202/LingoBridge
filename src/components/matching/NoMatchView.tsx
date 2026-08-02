@@ -25,14 +25,14 @@ export default function NoMatchView({ primaryDimension, primaryPointName, varian
 
   return (
     <div className="flex flex-col items-center text-center px-4 py-12">
-      <p className="text-[44px] mb-6">🌱</p>
-      <h2 className="text-[18px] font-bold text-v2-text-primary mb-2">{title}</h2>
-      <p className="text-[13px] text-v2-text-muted mb-1">{lead}</p>
-      <p className="text-[13px] font-semibold text-v2-text-primary mb-8">
+      <p className="text-[2.75rem] mb-6">🌱</p>
+      <h2 className="text-[1.125rem] font-bold text-v2-text-primary mb-2">{title}</h2>
+      <p className="text-[0.8125rem] text-v2-text-muted mb-1">{lead}</p>
+      <p className="text-[0.8125rem] font-semibold text-v2-text-primary mb-8">
         {primaryDimension} · {primaryPointName}
       </p>
 
-      <p className="text-[13px] text-v2-text-secondary leading-relaxed max-w-[300px] mb-8">
+      <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed max-w-[300px] mb-8">
         换个角度、或讲一个新的故事，也许能遇到更贴合的雅思题。
       </p>
 
@@ -40,13 +40,13 @@ export default function NoMatchView({ primaryDimension, primaryPointName, varian
       <div className="flex items-center gap-5">
         <button
           onClick={() => navigate('/')}
-          className="text-[13px] text-v2-text-muted active:opacity-60"
+          className="text-[0.8125rem] text-v2-text-muted active:opacity-60"
         >
           重新讲一个故事
         </button>
         <button
           onClick={() => navigate('/')}
-          className="text-[13px] font-medium text-brand-primary-dark active:opacity-60"
+          className="text-[0.8125rem] font-medium text-brand-primary-dark active:opacity-60"
         >
           换一道雅思题来练 →
         </button>

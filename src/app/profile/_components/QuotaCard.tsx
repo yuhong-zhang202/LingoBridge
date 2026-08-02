@@ -32,13 +32,13 @@ function QuotaRow({ label, used, limit, fillClass, loading, unlimited = false }:
   return (
     <div className="mt-3.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-[14px] text-v2-text-primary">{label}</span>
+        <span className="text-[0.875rem] text-v2-text-primary">{label}</span>
         {loading ? (
           <Skeleton className="w-12 h-3.5" />
         ) : unlimited ? (
-          <span className="text-[14px] text-v2-text-secondary font-semibold">不限</span>
+          <span className="text-[0.875rem] text-v2-text-secondary font-semibold">不限</span>
         ) : (
-          <span className="text-[14px] text-v2-text-secondary">
+          <span className="text-[0.875rem] text-v2-text-secondary">
             <span className="font-semibold">{capped}</span>
             {' / '}
             {limit}
@@ -100,8 +100,8 @@ export default function QuotaCard(): JSX.Element {
       style={{ boxShadow: SOFT_SM }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-v2-text-secondary">本月额度</span>
-        <span className="text-[12px] text-v2-text-muted">{nextMonthFirstLabel()} 重置</span>
+        <span className="text-[0.8125rem] font-medium text-v2-text-secondary">本月额度</span>
+        <span className="text-[0.75rem] text-v2-text-muted">{nextMonthFirstLabel()} 重置</span>
       </div>
       <QuotaRow label="故事练习" used={storyUsed}  limit={STORY_MONTHLY_LIMIT} fillClass="bg-brand-primary-light" loading={loading} unlimited={unlimited} />
       <QuotaRow label="题目练习" used={reviewUsed} limit={IELTS_MONTHLY_LIMIT} fillClass="bg-brand-accent-light" loading={loading} unlimited={unlimited} />

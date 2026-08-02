@@ -32,10 +32,10 @@ export default function TranscribeFailCard({ onRetry }: TranscribeFailCardProps)
 
   return (
     <div ref={rootRef} className="flex flex-col items-center gap-3">
-      <p className="text-[13px] text-v2-text-secondary text-center leading-[1.5]">
+      <p className="text-[0.8125rem] text-v2-text-secondary text-center leading-[1.5]">
         刚才这段没接住，网络或服务开了会儿小差
       </p>
-      <GradientButton onClick={onRetry} className="px-6 py-3 rounded-full text-[14px] font-medium">
+      <GradientButton onClick={onRetry} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
         重试转写
       </GradientButton>
     </div>

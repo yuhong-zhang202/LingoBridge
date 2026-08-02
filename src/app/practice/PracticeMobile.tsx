@@ -48,9 +48,9 @@ export default function PracticeMobile({
       {/* 题目条：固定在流程轴下方，不随对话滚动 */}
       <div className="flex-shrink-0 px-5 pt-2 pb-3">
         <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-          <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
+          <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
           <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-          <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
+          <span className="text-[0.75rem] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
             {scaffold?.displayEn ?? '加载中…'}
           </span>
         </div>
@@ -58,7 +58,7 @@ export default function PracticeMobile({
 
       <div className={`flex-1 min-h-0 overflow-y-auto px-5 pt-0 scroll-pb-[140px] relative z-10 lg:max-w-3xl lg:mx-auto lg:w-full ${capture ? 'pb-[220px]' : 'pb-[100px]'}`}>
         {phase === 'init' && (
-          <div className="text-center text-[13px] text-v2-text-muted py-16">教练正在准备…</div>
+          <div className="text-center text-[0.8125rem] text-v2-text-muted py-16">教练正在准备…</div>
         )}
         {phase === 'error' && (
           <EmptyState
@@ -98,7 +98,7 @@ export default function PracticeMobile({
         {(phase === 'transcribing' || phase === 'queued') && <UserBubble text="…" avatarUrl={avatarUrl} />}
         {phase === 'replying' && <AiBubble text="…" />}
         {error && phase === 'idle' && (
-          <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
+          <p className="text-center text-[0.75rem] text-v2-text-muted mb-2">{error}</p>
         )}
 
         <div ref={bottomRef} />
@@ -123,8 +123,8 @@ export default function PracticeMobile({
       >
         {isCapped ? (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
-            <GradientButton onClick={onEnd} className="px-6 py-3 rounded-full text-[14px] font-medium">
+            <p className="text-[0.8125rem] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
+            <GradientButton onClick={onEnd} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
               查看反馈
             </GradientButton>
           </div>
@@ -136,7 +136,7 @@ export default function PracticeMobile({
         <>
         {/* 临近上限提示：常驻一行小字（Part 2 含"2 分钟喊停"，其余朴素） */}
         {nearLimit && (
-          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning-text">
+          <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[0.6875rem] leading-[1.4] text-warning-text">
             <Clock size={13} className="flex-shrink-0 mt-px" />
             <span>{capHint}</span>
           </div>
@@ -144,7 +144,7 @@ export default function PracticeMobile({
 
         {/* 排队自动重试安抚微文案：明确「不用重说」，别让用户以为卡死 */}
         {phase === 'queued' && (
-          <p className="mb-2.5 px-1 text-[11px] leading-[1.4] text-v2-text-muted">
+          <p className="mb-2.5 px-1 text-[0.6875rem] leading-[1.4] text-v2-text-muted">
             现在人有点多，正在为你自动重试，不用重说，通常几秒就好
           </p>
         )}
@@ -173,7 +173,7 @@ export default function PracticeMobile({
                 <X size={19} />
               </button>
               <VoiceBar audioLevel={audioLevel} />
-              <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
+              <span className={`text-[0.75rem] font-medium flex-shrink-0 min-w-[28px] text-right ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
                 {recTime}
               </span>
               <button
@@ -195,12 +195,12 @@ export default function PracticeMobile({
               {phase === 'transcribing' || phase === 'queued'
                 ? <Loader2 size={19} className="text-brand-primary animate-spin" />
                 : <Mic size={19} className="text-brand-primary" />}
-              <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
+              <span className="text-[0.875rem] font-medium text-v2-text-secondary">{micLabel}</span>
             </button>
           )}
           <button
             onClick={onEnd}
-            className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform"
+            className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[0.8125rem] text-v2-text-muted active:scale-[0.97] transition-transform"
           >
             结束
           </button>

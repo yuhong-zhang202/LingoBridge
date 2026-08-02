@@ -37,7 +37,7 @@ export default function AnkiBookmarkButton({ state, onSave, savedTag = false, cl
       <div className={cn('flex items-center', className)}>
         {savedTag ? (
           // 已存态品牌橙（与移动端角标橙拼图一致，产品方定的存对子已存色）：Tag 无橙变体，按 DESIGN §次要元素手写橙 chip
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-brand-primary-light text-brand-primary-dark">
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium bg-brand-primary-light text-brand-primary-dark">
             <Puzzle size={12} className="fill-current" />已存题卡
           </span>
         ) : (
@@ -77,7 +77,7 @@ export default function AnkiBookmarkButton({ state, onSave, savedTag = false, cl
         className={cn(
           'pointer-events-none absolute top-full right-0 mt-1 z-20 w-[210px]',
           'rounded-[10px] bg-surface-inverse px-2.5 py-1.5',
-          'text-[11px] font-medium leading-relaxed text-white',
+          'text-[0.6875rem] font-medium leading-relaxed text-white',
           'opacity-0 transition-opacity duration-150',
           'group-hover:opacity-100 group-focus-within:opacity-100',
         )}

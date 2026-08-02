@@ -263,10 +263,10 @@ function RestructureContent() {
   if (loadError) {
     return (
       <div className="min-h-dvh bg-bg-page flex flex-col items-center justify-center gap-5 px-8 text-center">
-        <p className="text-[15px] text-v2-text-secondary leading-relaxed">没找到这条语料，可能已被删除或链接失效了。</p>
+        <p className="text-[0.9375rem] text-v2-text-secondary leading-relaxed">没找到这条语料，可能已被删除或链接失效了。</p>
         <GradientButton
           onClick={() => navigate('/')}
-          className="px-6 py-2.5 rounded-full text-[14px] font-medium"
+          className="px-6 py-2.5 rounded-full text-[0.875rem] font-medium"
         >
           回到首页
         </GradientButton>

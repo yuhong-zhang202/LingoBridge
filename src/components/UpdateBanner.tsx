@@ -46,10 +46,10 @@ export default function UpdateBanner(): JSX.Element | null {
       role="status"
       className="fixed bottom-[76px] lg:bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 pl-4 pr-1.5 py-1.5 bg-white border border-black/[0.08] rounded-full shadow-[0_6px_20px_rgba(0,0,0,0.10)] whitespace-nowrap"
     >
-      <span className="text-[13px] text-v2-text-primary">有新版本可用</span>
+      <span className="text-[0.8125rem] text-v2-text-primary">有新版本可用</span>
       <button
         onClick={() => window.location.reload()}
-        className="flex items-center gap-1 text-[13px] font-medium text-brand-primary-dark px-2 py-1 rounded-full hover:bg-bg-muted transition-colors"
+        className="flex items-center gap-1 text-[0.8125rem] font-medium text-brand-primary-dark px-2 py-1 rounded-full hover:bg-bg-muted transition-colors"
       >
         <RefreshCw size={13} />刷新
       </button>

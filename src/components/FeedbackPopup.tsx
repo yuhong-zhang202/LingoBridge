@@ -177,13 +177,13 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
           {done ? (
             <div className="flex flex-col items-center py-4">
               <Check size={28} className="text-brand-accent mb-2" />
-              <p className="text-[14px] text-v2-text-primary">已收到，谢谢你的反馈</p>
+              <p className="text-[0.875rem] text-v2-text-primary">已收到，谢谢你的反馈</p>
             </div>
           ) : (
             <>
-              <h3 className="text-[16px] font-semibold text-v2-text-primary text-center">{spec.title}</h3>
+              <h3 className="text-[1rem] font-semibold text-v2-text-primary text-center">{spec.title}</h3>
               {spec.subtitle && (
-                <p className="text-[12px] text-v2-text-muted text-center mt-1.5 leading-relaxed">{spec.subtitle}</p>
+                <p className="text-[0.75rem] text-v2-text-muted text-center mt-1.5 leading-relaxed">{spec.subtitle}</p>
               )}
 
               <div className="flex flex-wrap justify-center gap-2 mt-3.5">
@@ -209,7 +209,7 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
                   onChange={e => setText(e.target.value)}
                   placeholder={textPlaceholder}
                   rows={3}
-                  className="w-full bg-transparent text-[16px] lg:text-[13px] text-v2-text-primary placeholder:text-v2-text-muted outline-none resize-none leading-relaxed"
+                  className="w-full bg-transparent text-[1rem] lg:text-[0.8125rem] text-v2-text-primary placeholder:text-v2-text-muted outline-none resize-none leading-relaxed"
                 />
               </div>
 
@@ -220,16 +220,16 @@ export default function FeedbackPopup({ open, onClose, source }: Props) {
                   onChange={e => setEmail(e.target.value)}
                   placeholder="你的注册邮箱"
                   autoComplete="email"
-                  className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mt-3"
+                  className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3 text-[1rem] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mt-3"
                 />
               )}
 
-              {err && <p className="text-[12px] text-error mt-2 px-1">{err}</p>}
+              {err && <p className="text-[0.75rem] text-error mt-2 px-1">{err}</p>}
 
               <GradientButton
                 onClick={() => void handleSubmit()}
                 disabled={!canSubmit}
-                className="w-full mt-4 py-2.5 rounded-full text-[14px] font-medium disabled:cursor-not-allowed"
+                className="w-full mt-4 py-2.5 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed"
               >
                 {submitting ? '提交中…' : '提交反馈'}
               </GradientButton>

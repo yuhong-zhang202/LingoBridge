@@ -17,7 +17,9 @@ import ProgressLink from '@/components/ProgressLink'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import TopNav from '@/components/TopNav'
+import Chip from '@/components/Chip'
 import { MANAGE_CONTAINER } from '@/components/ManageHeader'
+import { FONT_SCALE_OPTIONS, FONT_SCALE_DEFAULT, readFontScale, saveFontScale } from '@/lib/fontScale'
 import Toast from '@/components/Toast'
 import PasswordModal from '@/app/profile/_components/PasswordModal'
 import { getAccount, logout, maskEmail } from '@/lib/auth'
@@ -42,12 +44,22 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [passwordOpen, setPasswordOpen] = useState(false)
+  // 字体档：初值取默认（SSR/首帧一致），挂载后从 localStorage 校正到用户实际所选
+  const [fontScale, setFontScale] = useState<number>(FONT_SCALE_DEFAULT)
 
   useEffect(() => {
     getAccount().then((acct) => {
       setLoggedIn(!!acct && !acct.isAnonymous && !!acct.email)
       setEmail(acct?.email ?? null)
     }).catch(() => { setLoggedIn(false); setEmail(null) })
+  }, [])
+
+  useEffect(() => { setFontScale(readFontScale()) }, [])
+
+  // 选档：即时写 localStorage + setProperty('--fs-scale')，全站字号实时联动
+  const handlePickFontScale = useCallback((scale: number): void => {
+    setFontScale(scale)
+    saveFontScale(scale)
   }, [])
 
   const displayEmail = loggedIn ? (email ? maskEmail(email) : '我的账号') : '未登录'
@@ -81,11 +93,11 @@ export default function SettingsPage() {
     <>
       {/* 账号 */}
       <section className="mb-6">
-        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
+        <h2 className="text-[0.75rem] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">账号</h2>
         <div className="flex flex-col gap-2">
           <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between">
-            <span className="text-[13px] text-v2-text-secondary">邮箱</span>
-            <span className="text-[14px] text-v2-text-primary">{displayEmail}</span>
+            <span className="text-[0.8125rem] text-v2-text-secondary">邮箱</span>
+            <span className="text-[0.875rem] text-v2-text-primary">{displayEmail}</span>
           </div>
           {/* 仅登录态：匿名/未登录用户没有密码可改 */}
           {loggedIn && (
@@ -93,21 +105,43 @@ export default function SettingsPage() {
               onClick={() => setPasswordOpen(true)}
               className="w-full bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 flex items-center justify-between active:scale-[0.99] transition-transform duration-150"
             >
-              <span className="text-[14px] text-v2-text-primary">修改密码</span>
+              <span className="text-[0.875rem] text-v2-text-primary">修改密码</span>
               <ChevronRight size={15} className="text-v2-text-muted" />
             </button>
           )}
         </div>
       </section>
 
+      {/* 字体大小：全站字号档，选中即时 setProperty('--fs-scale') 实时生效 + 持久化 */}
+      <section className="mb-6">
+        <h2 className="text-[0.75rem] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">字体大小</h2>
+        <div className="bg-white rounded-[16px] border border-black/[0.05] px-4 py-3.5">
+          <div className="flex items-center gap-2">
+            {FONT_SCALE_OPTIONS.map((opt) => (
+              <Chip
+                key={opt.value}
+                variant="ghost"
+                active={fontScale === opt.value}
+                ariaPressed={fontScale === opt.value}
+                onClick={() => handlePickFontScale(opt.value)}
+                className="flex-1 justify-center"
+              >
+                {opt.label}
+              </Chip>
+            ))}
+          </div>
+          <p className="text-[0.75rem] text-v2-text-muted mt-3 leading-relaxed">调整全站文字大小，选择后立即生效。</p>
+        </div>
+      </section>
+
       {/* 隐私 */}
       <section className="mb-6">
-        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">隐私</h2>
+        <h2 className="text-[0.75rem] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">隐私</h2>
         <div className="flex flex-col gap-2">
-          <ProgressLink href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+          <ProgressLink href="/privacy" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[0.875rem] text-v2-text-primary">
             《隐私政策》
           </ProgressLink>
-          <ProgressLink href="/privacy/beta" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[14px] text-v2-text-primary">
+          <ProgressLink href="/privacy/beta" className="block bg-white rounded-[16px] border border-black/[0.05] px-4 py-3 text-[0.875rem] text-v2-text-primary">
             内测数据处理说明
           </ProgressLink>
         </div>
@@ -115,13 +149,13 @@ export default function SettingsPage() {
 
       {/* 危险区 */}
       <section>
-        <h2 className="text-[12px] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">危险区</h2>
-        <p className="text-[12px] text-v2-text-muted leading-relaxed mb-3 px-1">
+        <h2 className="text-[0.75rem] font-semibold text-v2-text-muted tracking-[0.4px] mb-2">危险区</h2>
+        <p className="text-[0.75rem] text-v2-text-muted leading-relaxed mb-3 px-1">
           删除后将永久移除你的账号、所有故事和练习记录，不可恢复。
         </p>
         <button
           onClick={() => setConfirming(true)}
-          className="w-full bg-white border border-error text-error text-[14px] font-medium rounded-full py-3 active:scale-[0.97] transition-transform duration-150"
+          className="w-full bg-white border border-error text-error text-[0.875rem] font-medium rounded-full py-3 active:scale-[0.97] transition-transform duration-150"
         >
           删除我的数据
         </button>
@@ -152,7 +186,7 @@ export default function SettingsPage() {
           <div className="max-w-[640px] mx-auto w-full">
             <button
               onClick={() => router.back()}
-              className="inline-flex items-center gap-1 -ml-1 mb-4 text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
+              className="inline-flex items-center gap-1 -ml-1 mb-4 text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
             >
               <ChevronLeft size={16} />
               返回
@@ -169,8 +203,8 @@ export default function SettingsPage() {
             className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 animate-fade-up"
             style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
           >
-            <h3 className="text-[16px] font-semibold text-v2-text-primary text-center">确定删除全部数据？</h3>
-            <p className="text-[13px] text-v2-text-secondary text-center mt-2 leading-relaxed">
+            <h3 className="text-[1rem] font-semibold text-v2-text-primary text-center">确定删除全部数据？</h3>
+            <p className="text-[0.8125rem] text-v2-text-secondary text-center mt-2 leading-relaxed">
               此操作不可恢复，将永久删除你的账号、所有故事和练习记录。
             </p>
             <div className="flex gap-3 mt-5">
@@ -184,7 +218,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => void handleConfirmDelete()}
                 disabled={deleting}
-                className="flex-1 h-[48px] bg-white border border-error text-error text-[14px] font-medium rounded-full active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+                className="flex-1 h-[48px] bg-white border border-error text-error text-[0.875rem] font-medium rounded-full active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
               >
                 {deleting ? '删除中…' : '确认删除'}
               </button>

@@ -43,7 +43,7 @@ export default function FeedbackMobile({
       <TopBar
         title="反馈卡片"
         right={loaded && total > 0 && !done
-          ? <span className="text-[13px] text-v2-text-muted">{Math.min(index + 1, total)} / {total}</span>
+          ? <span className="text-[0.8125rem] text-v2-text-muted">{Math.min(index + 1, total)} / {total}</span>
           : undefined}
       />
       <StepBar currentStep="practice" />
@@ -54,23 +54,23 @@ export default function FeedbackMobile({
         {loaded && total === 0 && (
           <div className="flex flex-col items-center justify-center text-center flex-1 gap-3">
             <Sparkles size={34} className="text-brand-primary" />
-            <p className="text-[15px] font-semibold text-v2-text-primary">这次没有要回顾的句子</p>
-            <p className="text-[13px] text-v2-text-muted leading-relaxed max-w-[240px]">
+            <p className="text-[0.9375rem] font-semibold text-v2-text-primary">这次没有要回顾的句子</p>
+            <p className="text-[0.8125rem] text-v2-text-muted leading-relaxed max-w-[240px]">
               练习时点句子左上角的 ✨ 星标，就能把更好的表达攒到这里。
             </p>
-            <GradientButton onClick={onBackHome} className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium">回首页</GradientButton>
+            <GradientButton onClick={onBackHome} className="mt-3 px-6 py-2.5 rounded-full text-[0.875rem] font-medium">回首页</GradientButton>
           </div>
         )}
 
         {/* 完成态 */}
         {done && (
           <div className="flex flex-col items-center justify-center text-center flex-1 gap-3">
-            <div className="text-[34px]">✨</div>
-            <p className="text-[15px] font-semibold text-v2-text-primary">这次回顾完成啦</p>
-            <p className="text-[13px] text-v2-text-muted leading-relaxed max-w-[240px]">
+            <div className="text-[2.125rem]">✨</div>
+            <p className="text-[0.9375rem] font-semibold text-v2-text-primary">这次回顾完成啦</p>
+            <p className="text-[0.8125rem] text-v2-text-muted leading-relaxed max-w-[240px]">
               你留下了 {savedCount} 句更好的表达，慢慢就攒成你自己的表达库。
             </p>
-            <GradientButton onClick={onBackHome} className="mt-3 px-6 py-2.5 rounded-full text-[14px] font-medium">回首页</GradientButton>
+            <GradientButton onClick={onBackHome} className="mt-3 px-6 py-2.5 rounded-full text-[0.875rem] font-medium">回首页</GradientButton>
           </div>
         )}
 
@@ -109,9 +109,9 @@ export default function FeedbackMobile({
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-3">
-              <span className="text-[12px] text-neutral-mute">← 跳过</span>
-              <span className="text-[12px] text-neutral-mute">—</span>
-              <span className="text-[12px] text-v2-text-muted">收藏 →</span>
+              <span className="text-[0.75rem] text-neutral-mute">← 跳过</span>
+              <span className="text-[0.75rem] text-neutral-mute">—</span>
+              <span className="text-[0.75rem] text-v2-text-muted">收藏 →</span>
             </div>
 
             <div className="flex gap-3 mb-4">
@@ -125,11 +125,11 @@ export default function FeedbackMobile({
               {/* 收藏 = 收藏当前卡（共享真源 onCollect）+ 前进到下一张（移动端导航 onSkip），行为与拆分前一致 */}
               <GradientButton onClick={() => { onCollect(current); onSkip() }} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
                 <Heart size={16} className="text-v2-text-secondary" />
-                <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>
+                <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">收藏</span>
               </GradientButton>
             </div>
 
-            <p className="text-[12px] text-neutral-mute text-center">还有 {total - index - 1} 张卡片</p>
+            <p className="text-[0.75rem] text-neutral-mute text-center">还有 {total - index - 1} 张卡片</p>
           </>
         )}
       </div>

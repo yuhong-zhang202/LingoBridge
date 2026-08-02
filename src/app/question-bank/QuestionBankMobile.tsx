@@ -36,7 +36,7 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 h-[34px] rounded-[8px] text-[13px] font-medium transition-colors duration-150 ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
+                className={`flex-1 h-[34px] rounded-[8px] text-[0.8125rem] font-medium transition-colors duration-150 ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted font-medium'}`}
               >
                 {tab}
               </button>
@@ -86,7 +86,7 @@ export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQu
           typeof navigator !== 'undefined' && !navigator.onLine ? (
             <OfflineState onRetry={() => window.location.reload()} />
           ) : (
-            <p className="text-[13px] text-error text-center pt-16">{qb.error}</p>
+            <p className="text-[0.8125rem] text-error text-center pt-16">{qb.error}</p>
           )
         )}
         {isEmpty && (

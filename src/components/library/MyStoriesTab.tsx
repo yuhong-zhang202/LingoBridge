@@ -110,15 +110,15 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
           <IconButton icon={Trash2} label="选择" onClick={sel.enterSelecting} />
         ) : (
           <div className="flex items-center gap-4">
-            <button onClick={sel.exitSelecting} className="text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
-            <span className="text-[13px] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
-            <button onClick={sel.toggleSelectAll} className="text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
+            <button onClick={sel.exitSelecting} className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
+            <span className="text-[0.8125rem] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
+            <button onClick={sel.toggleSelectAll} className="text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
               {sel.allSelected ? '取消全选' : '全选'}
             </button>
             <button
               onClick={() => setConfirmOpen(true)}
               disabled={sel.selectedCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[0.8125rem] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={14} />删除 ({sel.selectedCount})
             </button>
@@ -148,21 +148,21 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
                     <div className="flex-shrink-0 inline-flex" style={{ background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
                       <div className="flex items-center gap-1 bg-white" style={{ borderRadius: 9999, padding: '2px 8px' }}>
                         <Mic2 size={11} className="text-brand-primary-dark" />
-                        <span className="text-[11px] font-medium text-brand-primary-dark">{story.duration}</span>
+                        <span className="text-[0.6875rem] font-medium text-brand-primary-dark">{story.duration}</span>
                       </div>
                     </div>
                   ) : (
                     <div className="flex-shrink-0 inline-flex" style={{ background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
                       <div className="flex items-center gap-1 bg-white" style={{ borderRadius: 9999, padding: '2px 8px' }}>
                         <Keyboard size={11} className="text-brand-primary-dark" />
-                        <span className="text-[11px] font-medium text-brand-primary-dark">文本</span>
+                        <span className="text-[0.6875rem] font-medium text-brand-primary-dark">文本</span>
                       </div>
                     </div>
                   )}
-                  <span className="text-[12px] text-v2-text-muted">{story.createdAt}</span>
+                  <span className="text-[0.75rem] text-v2-text-muted">{story.createdAt}</span>
                 </div>
                 {/* lg:min-h 4.8em = 3 × leading-[1.6]，恰为三行文本盒高，短语料也占满三行（随字号自适应，不写死 px） */}
-                <p className="text-[14px] text-v2-text-primary leading-[1.6] line-clamp-3 mb-2.5 lg:min-h-[4.8em]">
+                <p className="text-[0.875rem] text-v2-text-primary leading-[1.6] line-clamp-3 mb-2.5 lg:min-h-[4.8em]">
                   {story.content}
                 </p>
                 {/* 元信息行容器恒渲染、内容仍条件渲染：桌面留出定高一行保证卡片等高；移动端无 min-h 时空行高度为 0 */}
@@ -170,10 +170,10 @@ export default function MyStoriesTab({ stories, onDelete, onRefresh, toolbarSlot
                   {story.dimension && <Tag variant="green" label={story.dimension} />}
                   {story.matchedCount > 0 && (
                     <>
-                      <span className="text-[12px] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
+                      <span className="text-[0.75rem] text-v2-text-muted">已匹配 {story.matchedCount} 道题</span>
                       <button
                         onClick={() => navigate(`/matching?corpusId=${story.id}`)}
-                        className="flex items-center gap-0.5 text-[12px] font-medium text-brand-primary"
+                        className="flex items-center gap-0.5 text-[0.75rem] font-medium text-brand-primary"
                       >
                         查看<ChevronRight size={13} />
                       </button>

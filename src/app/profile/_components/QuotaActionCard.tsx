@@ -30,13 +30,13 @@ function MiniBar({ label, used, limit, fillClass, loading, unlimited = false }: 
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[12px] text-v2-text-secondary">{label}</span>
+        <span className="text-[0.75rem] text-v2-text-secondary">{label}</span>
         {loading ? (
           <Skeleton className="w-9 h-3" />
         ) : unlimited ? (
-          <span className="text-[12px] text-v2-text-secondary font-semibold">不限</span>
+          <span className="text-[0.75rem] text-v2-text-secondary font-semibold">不限</span>
         ) : (
-          <span className="text-[12px] text-v2-text-muted">
+          <span className="text-[0.75rem] text-v2-text-muted">
             <b className="font-semibold text-v2-text-secondary">{capped}</b> / {limit}
           </span>
         )}
@@ -64,8 +64,8 @@ export default function QuotaActionCard({ onOpen }: { onOpen: () => void }): JSX
     <button onClick={onOpen} aria-busy={loading} className="text-left w-full h-full">
       <Card className="p-5 h-full flex flex-col transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]">
         <div className="flex items-center justify-between mb-3.5">
-          <span className="text-[14px] font-semibold text-v2-text-primary">本月额度</span>
-          <span className="text-[12px] text-v2-text-muted">详情 →</span>
+          <span className="text-[0.875rem] font-semibold text-v2-text-primary">本月额度</span>
+          <span className="text-[0.75rem] text-v2-text-muted">详情 →</span>
         </div>
         <div className="flex flex-col gap-3 mt-auto">
           <MiniBar label="故事练习" used={storyUsed}  limit={STORY_MONTHLY_LIMIT} fillClass="bg-brand-primary" loading={loading} unlimited={unlimited} />

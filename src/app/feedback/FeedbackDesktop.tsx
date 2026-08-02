@@ -28,10 +28,10 @@ function TerminalState({ tone, title, desc }: {
   return (
     <div className="flex flex-col items-center text-center gap-4 max-w-[380px]">
       <Sparkles size={40} className={iconClass} />
-      <p className="text-[24px] font-bold text-v2-text-primary">{title}</p>
-      <p className="text-[15px] text-v2-text-muted leading-relaxed">{desc}</p>
+      <p className="text-[1.5rem] font-bold text-v2-text-primary">{title}</p>
+      <p className="text-[0.9375rem] text-v2-text-muted leading-relaxed">{desc}</p>
       {/* 回首页用 <Link> 形态的 GradientButton（可 Cmd+click 新开），皮肤统一由组件维护、不再复刻 */}
-      <GradientButton href="/" className="mt-3 inline-flex items-center justify-center px-6 py-3 rounded-full text-[15px] font-medium">
+      <GradientButton href="/" className="mt-3 inline-flex items-center justify-center px-6 py-3 rounded-full text-[0.9375rem] font-medium">
         回首页
       </GradientButton>
     </div>
@@ -116,7 +116,7 @@ export default function FeedbackDesktop({
 
   return (
     <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center px-8 pt-6 pb-24">
-      <p className="text-[13px] text-v2-text-muted mb-8 tabular-nums">本场回顾 · 还剩 {remaining.length} / {total}</p>
+      <p className="text-[0.8125rem] text-v2-text-muted mb-8 tabular-nums">本场回顾 · 还剩 {remaining.length} / {total}</p>
 
       {/* 三卡 coverflow：中心清晰、两侧模糊缩小；hover 侧卡滑到中心。
           环形取位——首张左侧显示末张、末张右侧显示首张，保证两边都有虚化卡（remaining≥3 时）。 */}
@@ -173,11 +173,11 @@ export default function FeedbackDesktop({
           className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
         >
           <Heart size={16} className="text-v2-text-secondary" />
-          <span className="text-[13px] font-semibold text-v2-text-secondary">收藏</span>
+          <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">收藏</span>
         </GradientButton>
       </div>
 
-      <p className="mt-6 text-[12px] text-v2-text-muted">← → 切换卡片 · Esc 退出</p>
+      <p className="mt-6 text-[0.75rem] text-v2-text-muted">← → 切换卡片 · Esc 退出</p>
     </div>
   )
 }

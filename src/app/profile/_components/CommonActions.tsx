@@ -26,8 +26,8 @@ function ActionCard({ icon, iconBg, title, subtitle, onClick }: ActionCardProps)
     <button onClick={onClick} className="text-left w-full h-full">
       <Card className="p-5 h-full flex flex-col transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]">
         <div className={`w-9 h-9 rounded-[10px] ${iconBg} flex items-center justify-center mb-3`}>{icon}</div>
-        <div className="text-[14px] font-semibold text-v2-text-primary mb-1">{title}</div>
-        <div className="text-[12px] text-v2-text-muted">{subtitle}</div>
+        <div className="text-[0.875rem] font-semibold text-v2-text-primary mb-1">{title}</div>
+        <div className="text-[0.75rem] text-v2-text-muted">{subtitle}</div>
       </Card>
     </button>
   )
@@ -41,7 +41,7 @@ export default function CommonActions(): JSX.Element {
 
   return (
     <div>
-      <div className="text-[12px] font-medium text-v2-text-muted mb-2.5 px-1">常用操作</div>
+      <div className="text-[0.75rem] font-medium text-v2-text-muted mb-2.5 px-1">常用操作</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
         <QuotaActionCard onOpen={() => setModal('quota')} />
         <ActionCard

@@ -84,13 +84,13 @@ export default function ConfirmDialog({
         className="bg-white rounded-2xl px-6 py-5 max-w-[400px] w-full mx-4 shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="text-[16px] font-semibold text-v2-text-primary mb-2">{title}</h2>
-        <p className="text-[13px] text-v2-text-secondary mb-5 leading-relaxed">{description}</p>
+        <h2 id="confirm-dialog-title" className="text-[1rem] font-semibold text-v2-text-primary mb-2">{title}</h2>
+        <p className="text-[0.8125rem] text-v2-text-secondary mb-5 leading-relaxed">{description}</p>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 rounded-full text-[13px] text-v2-text-muted hover:bg-bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 rounded-full text-[0.8125rem] text-v2-text-muted hover:bg-bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
@@ -99,7 +99,7 @@ export default function ConfirmDialog({
             <button
               onClick={onConfirm}
               disabled={loading}
-              className="px-4 py-2 rounded-full text-[13px] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-error"
+              className="px-4 py-2 rounded-full text-[0.8125rem] text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed bg-error"
             >
               {loading ? loadingText : confirmText}
             </button>
@@ -107,7 +107,7 @@ export default function ConfirmDialog({
             <GradientButton
               onClick={onConfirm}
               loading={loading}
-              className="px-4 py-2 rounded-full text-[13px] font-medium disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-full text-[0.8125rem] font-medium disabled:cursor-not-allowed"
             >
               {loading ? loadingText : confirmText}
             </GradientButton>

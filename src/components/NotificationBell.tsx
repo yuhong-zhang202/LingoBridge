@@ -87,17 +87,17 @@ export default function NotificationBell(): JSX.Element {
           tabIndex={-1}
           className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] max-h-[420px] overflow-y-auto overscroll-contain bg-white border border-black/[0.08] rounded-[16px] shadow-[0_6px_20px_rgba(0,0,0,0.10)] px-5 py-4 outline-none"
         >
-          <p className="text-[14px] font-semibold text-v2-text-primary">更新日志</p>
+          <p className="text-[0.875rem] font-semibold text-v2-text-primary">更新日志</p>
           {CHANGELOG.map((entry) => (
             <div key={entry.version} className="mt-3 pt-3 border-t border-black/[0.05]">
               <div className="flex items-baseline gap-2">
-                <span className="text-[13px] font-semibold text-brand-primary-dark">{entry.version}</span>
-                <span className="text-[11px] text-v2-text-muted">{entry.date}</span>
+                <span className="text-[0.8125rem] font-semibold text-brand-primary-dark">{entry.version}</span>
+                <span className="text-[0.6875rem] text-v2-text-muted">{entry.date}</span>
               </div>
-              <p className="text-[13px] font-medium text-v2-text-primary mt-1">{entry.title}</p>
+              <p className="text-[0.8125rem] font-medium text-v2-text-primary mt-1">{entry.title}</p>
               <ul className="mt-1.5 flex flex-col gap-1">
                 {entry.notes.map((note) => (
-                  <li key={note} className="flex gap-1.5 text-[12px] text-v2-text-secondary leading-relaxed">
+                  <li key={note} className="flex gap-1.5 text-[0.75rem] text-v2-text-secondary leading-relaxed">
                     <span aria-hidden="true" className="text-brand-accent">·</span>
                     {note}
                   </li>

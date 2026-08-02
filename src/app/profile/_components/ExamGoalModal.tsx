@@ -70,7 +70,7 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
       {/* 单一提交控件：日期框内按 Enter 即可提交（Band 按钮均为 type=button，不会误提交） */}
       <form onSubmit={(e) => { e.preventDefault(); void handleSave() }}>
         <div role="group" aria-label="目标分数">
-          <p className="text-[12px] text-v2-text-secondary mb-2">目标分数</p>
+          <p className="text-[0.75rem] text-v2-text-secondary mb-2">目标分数</p>
           <div className="grid grid-cols-4 gap-2">
             {BANDS.map((b) => {
               const selected = b === band
@@ -81,7 +81,7 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
                   onClick={() => setBand(b)}
                   aria-pressed={selected}
                   className={
-                    `h-9 rounded-[10px] text-[13px] font-medium tabular-nums transition-colors ` +
+                    `h-9 rounded-[10px] text-[0.8125rem] font-medium tabular-nums transition-colors ` +
                     (selected
                       ? 'bg-brand-primary-light text-brand-primary-dark border border-brand-primary'
                       : 'bg-bg-surface text-v2-text-secondary border border-black/[0.08] hover:bg-bg-muted')
@@ -95,7 +95,7 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
         </div>
 
         <div className="mt-5">
-          <label htmlFor="exam-date" className="text-[12px] text-v2-text-secondary mb-1.5 block">
+          <label htmlFor="exam-date" className="text-[0.75rem] text-v2-text-secondary mb-1.5 block">
             考试日期<span className="text-v2-text-muted">（可留空）</span>
           </label>
           <div className="flex items-center gap-2">
@@ -106,13 +106,13 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
               value={date}
               min={todayLocalISO()}
               onChange={(e) => setDate(e.target.value)}
-              className="flex-1 h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[16px] lg:text-[13px] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
+              className="flex-1 h-[40px] px-3.5 rounded-[10px] border border-black/[0.1] text-[1rem] lg:text-[0.8125rem] text-v2-text-primary bg-bg-surface outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 transition-colors"
             />
             {date !== '' && (
               <button
                 type="button"
                 onClick={() => setDate('')}
-                className="text-[13px] text-v2-text-muted hover:text-v2-text-primary px-2 py-1 rounded-[8px] transition-colors"
+                className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary px-2 py-1 rounded-[8px] transition-colors"
               >
                 清除
               </button>
@@ -120,13 +120,13 @@ export default function ExamGoalModal({ targetBand, examDate, onClose }: ExamGoa
           </div>
         </div>
 
-        {err && <p role="alert" className="text-[12px] text-error mt-3 px-1">{err}</p>}
+        {err && <p role="alert" className="text-[0.75rem] text-error mt-3 px-1">{err}</p>}
 
         {/* 不传 onClick：form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
         <GradientButton
           disabled={saving}
           loading={saving}
-          className="w-full mt-5 py-3 rounded-full text-[14px] font-medium disabled:cursor-not-allowed"
+          className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed"
         >
           {saving ? '保存中…' : '保存目标'}
         </GradientButton>

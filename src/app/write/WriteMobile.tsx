@@ -28,7 +28,7 @@ export default function WriteMobile({
         >
           <ChevronLeft size={15} className="text-v2-text-secondary" />
         </button>
-        <span className="text-[16px] font-semibold text-v2-text-primary">写下你的故事</span>
+        <span className="text-[1rem] font-semibold text-v2-text-primary">写下你的故事</span>
         <div className="w-[30px]" />
       </div>
 
@@ -37,9 +37,9 @@ export default function WriteMobile({
         {questionContext && (
           <div className="mb-4">
             <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-              <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {questionContext.part}</span>
+              <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">Part {questionContext.part}</span>
               <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-              <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">{questionContext.en}</span>
+              <span className="text-[0.75rem] font-medium text-v2-text-secondary flex-1 truncate min-w-0">{questionContext.en}</span>
             </div>
           </div>
         )}

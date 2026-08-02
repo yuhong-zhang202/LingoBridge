@@ -14,7 +14,7 @@ import { parseNote, type NoteItem } from '@/lib/polish-note'
 /** 一条改动项渲染：前端补装饰圆点 + 类型/原/箭头/改 分色 */
 function NoteItemRow({ item }: { item: NoteItem }): JSX.Element {
   return (
-    <div className="flex gap-1.5 text-[12px] leading-[1.4]">
+    <div className="flex gap-1.5 text-[0.75rem] leading-[1.4]">
       <span className="text-warm-taupe select-none">·</span>
       <span className="flex-1 min-w-0">
         {item.raw !== undefined ? (
@@ -46,13 +46,13 @@ interface PolishNoteProps {
 export default function PolishNote({ note, className }: PolishNoteProps): JSX.Element {
   const sections = parseNote(note)
   if (!sections) {
-    return <p className={cn('text-[12px] text-v2-text-muted leading-[1.45]', className)}>{note}</p>
+    return <p className={cn('text-[0.75rem] text-v2-text-muted leading-[1.45]', className)}>{note}</p>
   }
   return (
     <div className={cn('flex flex-col gap-[7px]', className)}>
       {sections.map((sec) => (
         <div key={sec.kind} className="flex flex-col gap-[3px]">
-          <span className="text-[11px] font-semibold text-v2-text-muted tracking-wide">
+          <span className="text-[0.6875rem] font-semibold text-v2-text-muted tracking-wide">
             {sec.kind === 'grammar' ? '语法：' : '词组优化：'}
           </span>
           {sec.items.map((item, i) => (

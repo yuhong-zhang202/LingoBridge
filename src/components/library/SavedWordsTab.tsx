@@ -116,15 +116,15 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
           <IconButton icon={Trash2} label="选择" onClick={sel.enterSelecting} />
         ) : (
           <div className="flex items-center gap-4">
-            <button onClick={sel.exitSelecting} className="text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
-            <span className="text-[13px] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
-            <button onClick={sel.toggleSelectAll} className="text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
+            <button onClick={sel.exitSelecting} className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
+            <span className="text-[0.8125rem] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
+            <button onClick={sel.toggleSelectAll} className="text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
               {sel.allSelected ? '取消全选' : '全选'}
             </button>
             <button
               onClick={sel.deleteSelected}
               disabled={sel.selectedCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[0.8125rem] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={14} />删除 ({sel.selectedCount})
             </button>
@@ -144,10 +144,10 @@ export default function SavedWordsTab({ toolbarSlotRef, onSelectingChange, searc
             className={`flex items-center gap-2.5 bg-white rounded-[14px] border border-black/[0.05] px-4 py-3 active:scale-[0.99] transition-transform duration-150 lg:col-span-2 ${sel.selecting ? 'pointer-events-none' : ''}`}
           >
             <Layers size={16} className="text-brand-primary" />
-            <span className="text-[13px] font-medium text-v2-text-primary">
+            <span className="text-[0.8125rem] font-medium text-v2-text-primary">
               {dueCount > 0 ? `待复习 ${dueCount} 张` : '记忆卡片'}
             </span>
-            <span className="ml-auto flex items-center gap-0.5 text-[12px] text-v2-text-muted">
+            <span className="ml-auto flex items-center gap-0.5 text-[0.75rem] text-v2-text-muted">
               {dueCount > 0 ? '开始复习' : '暂无待复习'}
               <ChevronRight size={14} />
             </span>

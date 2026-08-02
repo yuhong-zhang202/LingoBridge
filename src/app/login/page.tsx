@@ -99,10 +99,10 @@ export default function LoginPage() {
         <Orb size={220} pulse={false} />
 
         <div className="text-center mt-6 mb-6">
-          <h1 className="text-[20px] font-semibold text-v2-text-primary">
+          <h1 className="text-[1.25rem] font-semibold text-v2-text-primary">
             欢迎来到 LingoBridge
           </h1>
-          <p className="text-[13px] text-v2-text-secondary mt-1.5">
+          <p className="text-[0.8125rem] text-v2-text-secondary mt-1.5">
             {mode === 'register' ? '创建账号，保存你的练习进度' : '登录'}
           </p>
         </div>
@@ -113,7 +113,7 @@ export default function LoginPage() {
             <button
               key={m}
               onClick={() => switchMode(m)}
-              className={`flex-1 text-[13px] py-1.5 rounded-full transition-colors ${
+              className={`flex-1 text-[0.8125rem] py-1.5 rounded-full transition-colors ${
                 mode === m ? 'bg-white text-v2-text-primary font-semibold shadow-sm' : 'text-v2-text-muted'
               }`}
             >
@@ -129,7 +129,7 @@ export default function LoginPage() {
             onChange={e => setEmail(e.target.value)}
             placeholder="邮箱"
             autoComplete="email"
-            className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
+            className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[1rem] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
           />
 
           <div className="relative mb-1.5">
@@ -139,7 +139,7 @@ export default function LoginPage() {
               onChange={e => setPwd(e.target.value)}
               placeholder="密码（至少 6 位）"
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
+              className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[1rem] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
             />
             <button
               type="button"
@@ -151,15 +151,15 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {info && <p className="text-[12px] text-v2-text-secondary mt-1 mb-1.5 px-1">{info}</p>}
-          {err && <p className="text-[12px] text-error mt-1 mb-1.5 px-1">{err}</p>}
+          {info && <p className="text-[0.75rem] text-v2-text-secondary mt-1 mb-1.5 px-1">{info}</p>}
+          {err && <p className="text-[0.75rem] text-error mt-1 mb-1.5 px-1">{err}</p>}
 
           {/* 忘记密码（仅登录模式） */}
           {mode === 'login' && (
             <div className="flex justify-end mt-1 mb-2">
               <button
                 onClick={() => { setForgotOpen(true); setResetEmail(email); setResetMsg(null) }}
-                className="text-[12px] text-v2-text-muted active:opacity-60"
+                className="text-[0.75rem] text-v2-text-muted active:opacity-60"
               >
                 忘记密码？
               </button>
@@ -171,19 +171,19 @@ export default function LoginPage() {
           <GradientButton
             onClick={() => void handleSubmit()}
             loading={submitting}
-            className="w-full h-[50px] mt-4 flex items-center justify-center rounded-full text-[14px] font-semibold"
+            className="w-full h-[50px] mt-4 flex items-center justify-center rounded-full text-[0.875rem] font-semibold"
           >
             {submitting ? '处理中…' : (mode === 'register' ? '创建账号' : '登录')}
           </GradientButton>
 
-          <p className="text-[12px] text-v2-text-muted text-center mt-3 leading-relaxed">
+          <p className="text-[0.75rem] text-v2-text-muted text-center mt-3 leading-relaxed">
             继续即表示同意我们的
             <ProgressLink href="/privacy" className="text-brand-primary underline">《隐私政策》</ProgressLink>
             。我们仅用邮箱保存你的学习进度。
           </p>
 
           <div className="flex justify-center mt-2">
-            <button onClick={() => navigate('/')} className="text-[13px] text-v2-text-muted">
+            <button onClick={() => navigate('/')} className="text-[0.8125rem] text-v2-text-muted">
               暂不登录，先看看
             </button>
           </div>
@@ -198,21 +198,21 @@ export default function LoginPage() {
             className="w-full max-w-[430px] bg-white rounded-t-[20px] px-5 pt-5 animate-fade-up"
             style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}
           >
-            <h3 className="text-[16px] font-semibold text-v2-text-primary text-center mb-2">重置密码</h3>
-            <p className="text-[12px] text-v2-text-muted text-center mb-3">填邮箱，发送重置链接到你的邮箱</p>
+            <h3 className="text-[1rem] font-semibold text-v2-text-primary text-center mb-2">重置密码</h3>
+            <p className="text-[0.75rem] text-v2-text-muted text-center mb-3">填邮箱，发送重置链接到你的邮箱</p>
             <input
               type="email"
               value={resetEmail}
               onChange={e => setResetEmail(e.target.value)}
               placeholder="邮箱"
               autoComplete="email"
-              className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
+              className="w-full bg-white border border-neutral-line rounded-[16px] px-4 py-3.5 text-[1rem] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors mb-3"
             />
-            {resetMsg && <p className="text-[12px] text-v2-text-secondary leading-relaxed mb-2 px-1">{resetMsg}</p>}
+            {resetMsg && <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed mb-2 px-1">{resetMsg}</p>}
             <div className="flex justify-center mb-3">
               <button
                 onClick={() => { setForgotOpen(false); setContactOpen(true) }}
-                className="text-[12px] text-brand-primary underline active:opacity-60"
+                className="text-[0.75rem] text-brand-primary underline active:opacity-60"
               >
                 仍收不到？联系开发者人工重置
               </button>
@@ -227,7 +227,7 @@ export default function LoginPage() {
               <GradientButton
                 onClick={() => void handleSendReset()}
                 loading={resetting}
-                className="flex-1 h-[48px] flex items-center justify-center rounded-full text-[14px] font-semibold"
+                className="flex-1 h-[48px] flex items-center justify-center rounded-full text-[0.875rem] font-semibold"
               >
                 {resetting ? '发送中…' : '发送重置链接'}
               </GradientButton>

@@ -35,7 +35,7 @@ interface Props {
 function Dots({ box }: { box: number }): JSX.Element {
   return (
     <div className="flex items-center justify-center gap-2 mt-[22px]">
-      <span className="text-[11px] text-v2-text-muted">记忆进度</span>
+      <span className="text-[0.6875rem] text-v2-text-muted">记忆进度</span>
       <span className="flex gap-[5px]">
         {[1, 2, 3, 4, 5, 6, 7].map(i => (
           <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-warm-line'}`} />
@@ -74,18 +74,18 @@ function Face({ card, back }: { card: PhraseCard; back: boolean }): JSX.Element 
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           {back ? (
             <>
-              <p className="text-[25px] font-bold text-v2-text-primary tracking-[-0.3px]">{card.text}</p>
-              <p className="text-[15px] text-v2-text-secondary mt-3">{card.meaning}</p>
+              <p className="text-[1.5625rem] font-bold text-v2-text-primary tracking-[-0.3px]">{card.text}</p>
+              <p className="text-[0.9375rem] text-v2-text-secondary mt-3">{card.meaning}</p>
               {card.scene && (
-                <div className="w-full bg-bg-page rounded-[12px] px-3 py-2.5 mt-3.5 text-left text-[12px] leading-[1.6] text-v2-text-secondary">
+                <div className="w-full bg-bg-page rounded-[12px] px-3 py-2.5 mt-3.5 text-left text-[0.75rem] leading-[1.6] text-v2-text-secondary">
                   {card.scene}
                 </div>
               )}
             </>
           ) : (
             <>
-              <p className="text-[23px] font-semibold text-v2-text-primary leading-[1.4]">{card.meaning}</p>
-              <p className="text-[13px] text-brand-accent mt-3.5">想想英文怎么说?</p>
+              <p className="text-[1.4375rem] font-semibold text-v2-text-primary leading-[1.4]">{card.meaning}</p>
+              <p className="text-[0.8125rem] text-brand-accent mt-3.5">想想英文怎么说?</p>
             </>
           )}
         </div>
@@ -169,16 +169,16 @@ export default function FlashCard({ card, onGrade }: Props): JSX.Element {
       </div>
 
       {!flipped ? (
-        <p className="text-center text-[13px] text-v2-text-secondary mt-[18px] flex items-center justify-center gap-1.5">
+        <p className="text-center text-[0.8125rem] text-v2-text-secondary mt-[18px] flex items-center justify-center gap-1.5">
           <RotateCw size={14} />点击卡片翻面看英文
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px]">
-          <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-error active:opacity-60">
+          <button onClick={() => flyOut(false)} className="flex items-center gap-1 text-[0.8125rem] text-error active:opacity-60">
             <ArrowLeft size={15} />重复
           </button>
-          <span className="text-[12px] text-warm-mute">左右滑动</span>
-          <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-tag-success-text active:opacity-60">
+          <span className="text-[0.75rem] text-warm-mute">左右滑动</span>
+          <button onClick={() => flyOut(true)} className="flex items-center gap-1 text-[0.8125rem] text-tag-success-text active:opacity-60">
             熟知<ArrowRight size={15} />
           </button>
         </div>

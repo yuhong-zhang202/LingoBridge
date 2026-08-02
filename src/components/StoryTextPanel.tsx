@@ -53,11 +53,11 @@ export default function StoryTextPanel({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full ${minH} resize-none bg-transparent outline-none text-[16px] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted`}
+          className={`w-full ${minH} resize-none bg-transparent outline-none text-[1rem] leading-[1.85] text-v2-text-primary placeholder:text-v2-text-muted`}
           autoFocus
         />
         <div className="flex items-center justify-between pt-[11px] border-t border-black/[0.05]">
-          <button onClick={onSwitchToVoice} className="flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:opacity-70 active:opacity-60">
+          <button onClick={onSwitchToVoice} className="flex items-center gap-1.5 text-[0.8125rem] text-v2-text-muted hover:opacity-70 active:opacity-60">
             <Mic2 size={15} />改用录音
           </button>
           <button
@@ -72,12 +72,12 @@ export default function StoryTextPanel({
       </div>
       <div className="mt-[22px] px-1">
         <div className="flex items-baseline justify-between mb-[11px]">
-          <span className="text-[12px] text-v2-text-muted tracking-[0.3px]">丰富度</span>
-          <span className={`text-[13px] ${isRich ? 'text-brand-accent font-medium' : 'text-v2-text-secondary'}`}>{richState}</span>
+          <span className="text-[0.75rem] text-v2-text-muted tracking-[0.3px]">丰富度</span>
+          <span className={`text-[0.8125rem] ${isRich ? 'text-brand-accent font-medium' : 'text-v2-text-secondary'}`}>{richState}</span>
         </div>
         <SegmentDots total={18} filled={richnessFilled} />
       </div>
-      <div className="mt-4 px-1 text-[12px] leading-[1.7] text-v2-text-muted">
+      <div className="mt-4 px-1 text-[0.75rem] leading-[1.7] text-v2-text-muted">
         试着带到：<span className="text-v2-text-secondary font-medium">时间 · 人物 · 发生的事 · 你的做法和感受</span>
       </div>
     </div>

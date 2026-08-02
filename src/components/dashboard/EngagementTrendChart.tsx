@@ -38,7 +38,7 @@ type TipProps = { active?: boolean; payload?: TooltipEntry[]; label?: string; se
 function CustomTip({ active, payload, label, series }: TipProps) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[11px] shadow-sm">
+    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[0.6875rem] shadow-sm">
       <div className="text-v2-text-muted mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.name} className="flex items-center gap-1.5 mb-0.5">
@@ -78,7 +78,7 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
         {series.map(s => (
           <span key={s.key} className="inline-flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-            <span className="text-[11px] text-v2-text-secondary">{s.name}</span>
+            <span className="text-[0.6875rem] text-v2-text-secondary">{s.name}</span>
           </span>
         ))}
       </div>
@@ -87,14 +87,14 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
         aria-label={`每日参与度趋势图，共 ${data.length} 天，核心活跃人数合计 ${totalActive}（峰值 ${peakActive.date} 共 ${peakActive.activeUsers} 人），练习场次合计 ${totalSessions}${ariaNewReg}。注：${METRIC_DEFINITION_CHANGED_AT} 起活跃口径放宽（AI/闪卡/收藏任一即算），此后活跃线台阶式抬升属口径变化非自然增长。详细数据见下方数据表。`}>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
+            <XAxis dataKey="date" tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
               allowDecimals={false} width={32} />
             <Tooltip content={<CustomTip series={series} />} />
             {/* 口径变更竖虚线：仅当窗口覆盖到生效日那天才渲染（see showChangeLine）；读屏等价物在上方 aria-label */}
             {showChangeLine && (
               <ReferenceLine x={METRIC_CHANGE_KEY} strokeWidth={1} strokeDasharray="3 3" stroke={METRIC_CHANGE_LINE}
-                label={{ value: '口径变更', position: 'top', fontSize: 9, fill: METRIC_CHANGE_LINE }} />
+                label={{ value: '口径变更', position: 'top', fontSize: '0.5625rem', fill: METRIC_CHANGE_LINE }} />
             )}
             {series.map(s => (
               <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color}

@@ -58,20 +58,20 @@ export default function MicPermissionSheet({ open, reason, onUseText, onDismiss 
           <MicOff size={24} className="text-v2-text-muted" />
         </div>
 
-        <h3 className="text-[16px] font-semibold text-v2-text-primary text-center mt-3">{title}</h3>
+        <h3 className="text-[1rem] font-semibold text-v2-text-primary text-center mt-3">{title}</h3>
 
-        <p className="text-[13px] text-v2-text-secondary leading-relaxed text-center mt-3">{body}</p>
+        <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed text-center mt-3">{body}</p>
 
         <GradientButton
           onClick={onUseText}
-          className="w-full mt-5 py-3 rounded-full text-[14px] font-medium"
+          className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium"
         >
           用文字输入
         </GradientButton>
 
         {/* unavailable 时去设置无意义，只保留「用文字输入」 */}
         {reason !== 'unavailable' && (
-          <button onClick={onDismiss} className="text-[13px] text-v2-text-muted mt-3">
+          <button onClick={onDismiss} className="text-[0.8125rem] text-v2-text-muted mt-3">
             知道了
           </button>
         )}

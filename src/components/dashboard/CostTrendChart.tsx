@@ -28,7 +28,7 @@ type TipProps = { active?: boolean; payload?: TooltipEntry[]; label?: string }
 function CustomTip({ active, payload, label }: TipProps) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[11px] shadow-sm">
+    <div className="bg-white rounded-[12px] border border-black/[0.05] px-3 py-2 text-[0.6875rem] shadow-sm">
       <div className="text-v2-text-muted mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.name} className="flex items-center gap-1.5 mb-0.5">
@@ -70,12 +70,12 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
           <span key={s.key} className="inline-flex items-center gap-1.5"
             style={{ opacity: !selectedService || selectedService === s.key ? 1 : 0.35 }}>
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-            <span className="text-[11px] text-v2-text-secondary">{s.name}</span>
+            <span className="text-[0.6875rem] text-v2-text-secondary">{s.name}</span>
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5 ml-auto">
           <span className="w-3 h-0 border-t border-dashed flex-shrink-0" style={{ borderColor: '#AB5344' }} />
-          <span className="text-[11px] text-v2-text-secondary">日预算 ¥{dailyBudget}</span>
+          <span className="text-[0.6875rem] text-v2-text-secondary">日预算 ¥{dailyBudget}</span>
         </span>
       </div>
       {/* 图表可视区：SVG 对读屏不可读，给 role+aria-label 概述，另附下方 sr-only 数据表兜底 */}
@@ -91,8 +91,8 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
                 </linearGradient>
               ))}
             </defs>
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
+            <XAxis dataKey="date" tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: '0.625rem', fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false}
               tickFormatter={v => `¥${v}`} width={40} />
             <Tooltip content={<CustomTip />} />
             {SERVICES.map(s => (
@@ -103,7 +103,7 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
             ))}
             {/* 日预算目标线（红色虚线）+ 超线日在总额顶部染红点。非堆叠透明面积仅用于承载红点。 */}
             <ReferenceLine y={dailyBudget} stroke="#AB5344" strokeDasharray="4 3" strokeOpacity={0.6}
-              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: 9, fill: '#AB5344' }} />
+              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: '0.5625rem', fill: '#AB5344' }} />
             <Area type="monotone" dataKey="total" stroke="none" fill="none" activeDot={false}
               dot={OverBudgetDot(dailyBudget)} isAnimationActive={false} legendType="none" />
           </AreaChart>

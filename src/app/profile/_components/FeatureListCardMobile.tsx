@@ -25,8 +25,8 @@ function RowBody({ Icon, label, badge }: { Icon: typeof Info; label: string; bad
   return (
     <>
       <Icon size={18} color="#6B5B52" />
-      <span className="flex-1 text-left text-[14px] text-v2-text-primary ml-3">{label}</span>
-      {badge && <span className="text-[12px] text-v2-text-muted mr-1.5">{badge}</span>}
+      <span className="flex-1 text-left text-[0.875rem] text-v2-text-primary ml-3">{label}</span>
+      {badge && <span className="text-[0.75rem] text-v2-text-muted mr-1.5">{badge}</span>}
       <ChevronRight size={15} color="#C8BCB2" />
     </>
   )

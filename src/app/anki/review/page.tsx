@@ -262,7 +262,7 @@ function AnkiReviewContent(): JSX.Element {
             <X size={15} className="text-v2-text-muted" />
           </button>
           {!loading && !error && visibleQueue.length > 0 && current < visibleQueue.length && (
-            <span className="text-[13px] text-v2-text-muted">{current + 1} / {visibleQueue.length}</span>
+            <span className="text-[0.8125rem] text-v2-text-muted">{current + 1} / {visibleQueue.length}</span>
           )}
         </div>
         {!loading && !error && visibleQueue.length > 0 && current < visibleQueue.length && (
@@ -310,11 +310,11 @@ function AnkiReviewContent(): JSX.Element {
                       type="button"
                       onClick={() => switchMode(t.due)}
                       aria-pressed={dueMode === t.due}
-                      className={`flex items-center gap-1.5 text-[13px] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${dueMode === t.due ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                      className={`flex items-center gap-1.5 text-[0.8125rem] px-[18px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${dueMode === t.due ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                     >
                       {t.label}
                       {/* 到期数角标（范式同 LibraryDesktop Tab 计数）：一眼知道今天有几张 */}
-                      {t.due && <span className="text-[12px] text-v2-text-muted">{dueBadge}</span>}
+                      {t.due && <span className="text-[0.75rem] text-v2-text-muted">{dueBadge}</span>}
                     </button>
                   ))}
                 </div>

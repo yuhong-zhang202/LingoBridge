@@ -48,7 +48,7 @@ export default function RestructureDesktop({
     return (
       <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-4">
         <Orb size={160} />
-        <p className="text-[14px] text-v2-text-muted">AI 正在整理你的故事…</p>
+        <p className="text-[0.875rem] text-v2-text-muted">AI 正在整理你的故事…</p>
       </div>
     )
   }
@@ -56,10 +56,10 @@ export default function RestructureDesktop({
   if (error) {
     return (
       <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-4 px-8 text-center">
-        <p className="text-[15px] text-error">{error}</p>
+        <p className="text-[0.9375rem] text-error">{error}</p>
         <button
           onClick={onReRestructure}
-          className="flex items-center gap-1.5 text-[14px] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
+          className="flex items-center gap-1.5 text-[0.875rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
         >
           <RefreshCw size={15} />重试
         </button>
@@ -72,7 +72,7 @@ export default function RestructureDesktop({
       <div className="max-w-[960px] mx-auto w-full">
 
         {/* 旁白定调：温暖、口语、指路（左原话 / 右可改） */}
-        <div className="mb-7 flex items-center justify-center gap-2 text-[13px] text-v2-text-muted">
+        <div className="mb-7 flex items-center justify-center gap-2 text-[0.8125rem] text-v2-text-muted">
           <Sparkles size={14} className="text-brand-accent" />
           <span>你刚才讲的我顺了一遍 · 左边是原话，右边可以直接改</span>
         </div>
@@ -81,16 +81,16 @@ export default function RestructureDesktop({
 
           {/* 左栏：原话（安静的参照） */}
           <div>
-            <p className="mb-2.5 text-[12px] font-semibold tracking-[0.03em] text-v2-text-muted">原话</p>
+            <p className="mb-2.5 text-[0.75rem] font-semibold tracking-[0.03em] text-v2-text-muted">原话</p>
             <Card className="px-7 py-6 min-h-[300px] flex flex-col justify-center">
-              <p className="text-[15px] text-v2-text-secondary leading-[1.9]">{rawStory}</p>
+              <p className="text-[0.9375rem] text-v2-text-secondary leading-[1.9]">{rawStory}</p>
             </Card>
           </div>
 
           {/* 右栏：整理后（主角，渐变描边 + 可编辑） */}
           <div>
             <div className="mb-2.5 flex items-center">
-              <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.03em] text-brand-primary-dark">
+              <span className="flex items-center gap-1.5 text-[0.75rem] font-semibold tracking-[0.03em] text-brand-primary-dark">
                 <Sparkles size={13} className="text-brand-accent" />整理后
               </span>
             </div>
@@ -105,17 +105,17 @@ export default function RestructureDesktop({
                   value={aiText}
                   onChange={e => onAiChange(e.target.value)}
                   aria-label="编辑整理后的故事"
-                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-transparent text-[16px] text-v2-text-primary leading-[1.9] outline-none"
+                  className="w-full min-h-[240px] resize-none rounded-[14px] bg-transparent text-[1rem] text-v2-text-primary leading-[1.9] outline-none"
                   autoFocus
                 />
               ) : (
-                <p className={`text-[16px] text-v2-text-primary leading-[1.9] ${canSaveAnki ? 'pr-10' : ''}`}>{aiText}</p>
+                <p className={`text-[1rem] text-v2-text-primary leading-[1.9] ${canSaveAnki ? 'pr-10' : ''}`}>{aiText}</p>
               )}
               {/* 编辑入口：卡右下角，带 hover/focus tooltip */}
               <CorpusEditChip isEditing={isEditing} onToggle={onToggleEdit} />
             </Card>
             {usable === false && (
-              <p className="mt-2.5 text-[12px] text-v2-text-muted leading-relaxed">
+              <p className="mt-2.5 text-[0.75rem] text-v2-text-muted leading-relaxed">
                 这段可以再丰富些，补点细节后面练习更有料；直接继续也行。
               </p>
             )}
@@ -124,23 +124,23 @@ export default function RestructureDesktop({
 
         {/* 底部动作区：重新整理 + CTA（右对齐，与整理后一栏收口） */}
         <div className="mt-9 flex items-center justify-end gap-5">
-          {saveError && <p className="text-[13px] text-error mr-auto">{saveError}</p>}
+          {saveError && <p className="text-[0.8125rem] text-error mr-auto">{saveError}</p>}
           <button
             onClick={onReRestructure}
-            className="flex items-center gap-1.5 text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors"
+            className="flex items-center gap-1.5 text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors"
           >
             <RefreshCw size={14} />重新整理
           </button>
           <GradientButton
             onClick={onMatch}
             loading={isSaving}
-            className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[15px] font-medium"
+            className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium"
           >
             {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}
           </GradientButton>
         </div>
 
-        <p className="mt-4 text-center text-[12px] text-v2-text-muted">⌘/Ctrl + Enter 继续 · Esc 退出</p>
+        <p className="mt-4 text-center text-[0.75rem] text-v2-text-muted">⌘/Ctrl + Enter 继续 · Esc 退出</p>
       </div>
     </div>
   )

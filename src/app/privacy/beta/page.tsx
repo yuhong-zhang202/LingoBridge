@@ -24,14 +24,14 @@ export default function BetaPrivacyPage() {
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-10 relative z-10 lg:max-w-[640px] lg:mx-auto lg:w-full lg:px-10">
         <DesktopBackLink fallback="/" />
         <h1 className="sr-only">{BETA_PRIVACY_TITLE}</h1>
-        <p className="text-[12px] text-v2-text-muted mb-4">最后更新：{BETA_PRIVACY_UPDATED_AT}</p>
+        <p className="text-[0.75rem] text-v2-text-muted mb-4">最后更新：{BETA_PRIVACY_UPDATED_AT}</p>
 
         {BETA_PRIVACY_SECTIONS.map((section) => (
           <section key={section.heading} className="mb-6">
-            <h2 className="text-[16px] font-semibold text-v2-text-primary mb-2 lg:text-[17px]">{section.heading}</h2>
+            <h2 className="text-[1rem] font-semibold text-v2-text-primary mb-2 lg:text-[1.0625rem]">{section.heading}</h2>
             <ul className="list-disc pl-5 space-y-2">
               {section.paragraphs.map((text, i) => (
-                <li key={i} className="text-[15px] text-v2-text-secondary leading-relaxed">
+                <li key={i} className="text-[0.9375rem] text-v2-text-secondary leading-relaxed">
                   {text}
                 </li>
               ))}

@@ -22,12 +22,12 @@ export default function QuotaModal({ onClose }: { onClose: () => void }): JSX.El
       <div className="flex items-center gap-3 rounded-[12px] bg-bg-muted px-4 py-3">
         <CalendarClock size={18} className="text-brand-primary-dark shrink-0" />
         <div>
-          <p className="text-[13px] font-medium text-v2-text-primary">{nextMonthFirstLabel()} 重置</p>
-          <p className="text-[12px] text-v2-text-muted mt-0.5">每月额度会在这天清零，重新开始计数</p>
+          <p className="text-[0.8125rem] font-medium text-v2-text-primary">{nextMonthFirstLabel()} 重置</p>
+          <p className="text-[0.75rem] text-v2-text-muted mt-0.5">每月额度会在这天清零，重新开始计数</p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 text-[13px] text-v2-text-secondary leading-relaxed">
+      <div className="mt-4 flex flex-col gap-3 text-[0.8125rem] text-v2-text-secondary leading-relaxed">
         <p>
           <b className="font-semibold text-v2-text-primary">故事练习</b>
           ：每月可整理并匹配 {STORY_MONTHLY_LIMIT} 段新故事。

@@ -36,11 +36,11 @@ function speak(text: string): void {
 function WordRow({ label, word, ipa }: { label: string; word: string; ipa?: string }): JSX.Element {
   return (
     <>
-      <p className="text-[11px] text-v2-text-muted mb-[5px]">{label}</p>
+      <p className="text-[0.6875rem] text-v2-text-muted mb-[5px]">{label}</p>
       <div className="flex items-center gap-1.5 mb-[11px]">
-        <span className="text-[15px] text-v2-text-primary">
+        <span className="text-[0.9375rem] text-v2-text-primary">
           <span className="font-medium">{word}</span>
-          {ipa && <span className="ml-2 text-[12px] text-v2-text-secondary">{ipa}</span>}
+          {ipa && <span className="ml-2 text-[0.75rem] text-v2-text-secondary">{ipa}</span>}
         </span>
         <button
           onClick={() => speak(word)}
@@ -103,13 +103,13 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
       <WordRow label="被听成" word={item.heard} ipa={data?.ipaHeard} />
 
       <div className="rounded-[12px] bg-bg-page px-3 py-2.5 mb-[11px]">
-        <p className="text-[11px] text-v2-text-muted mb-1">怎么念</p>
+        <p className="text-[0.6875rem] text-v2-text-muted mb-1">怎么念</p>
         {data
-          ? <p className="text-[12px] text-v2-text-primary leading-[1.6]">{data.tip}</p>
-          : <p className="text-[12px] text-v2-text-muted leading-[1.6]">{loading ? '发音提示生成中…' : '稍后再试'}</p>}
+          ? <p className="text-[0.75rem] text-v2-text-primary leading-[1.6]">{data.tip}</p>
+          : <p className="text-[0.75rem] text-v2-text-muted leading-[1.6]">{loading ? '发音提示生成中…' : '稍后再试'}</p>}
       </div>
 
-      <p className="text-[11px] text-v2-text-muted leading-[1.5]">出处：{item.context}</p>
+      <p className="text-[0.6875rem] text-v2-text-muted leading-[1.5]">出处：{item.context}</p>
     </div>
   )
 }
@@ -178,15 +178,15 @@ export default function PronunciationTab({ toolbarSlotRef, onSelectingChange, se
           <IconButton icon={Trash2} label="选择" onClick={sel.enterSelecting} />
         ) : (
           <div className="flex items-center gap-4">
-            <button onClick={sel.exitSelecting} className="text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
-            <span className="text-[13px] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
-            <button onClick={sel.toggleSelectAll} className="text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
+            <button onClick={sel.exitSelecting} className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
+            <span className="text-[0.8125rem] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
+            <button onClick={sel.toggleSelectAll} className="text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
               {sel.allSelected ? '取消全选' : '全选'}
             </button>
             <button
               onClick={sel.deleteSelected}
               disabled={sel.selectedCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[0.8125rem] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={14} />删除 ({sel.selectedCount})
             </button>

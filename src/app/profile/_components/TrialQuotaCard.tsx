@@ -29,16 +29,16 @@ export default function TrialQuotaCard(): JSX.Element {
       style={{ boxShadow: SOFT_SM }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-v2-text-secondary">试用额度</span>
-        <span className="text-[12px] text-v2-text-muted">注册后每月 {STORY_MONTHLY_LIMIT} 次</span>
+        <span className="text-[0.8125rem] font-medium text-v2-text-secondary">试用额度</span>
+        <span className="text-[0.75rem] text-v2-text-muted">注册后每月 {STORY_MONTHLY_LIMIT} 次</span>
       </div>
       <div className="mt-3.5">
         <div className="flex items-baseline justify-between">
-          <span className="text-[14px] text-v2-text-primary">免费试用</span>
+          <span className="text-[0.875rem] text-v2-text-primary">免费试用</span>
           {isLoading ? (
             <Skeleton className="w-12 h-3.5" />
           ) : (
-            <span className="text-[14px] text-v2-text-secondary">
+            <span className="text-[0.875rem] text-v2-text-secondary">
               <span className="font-semibold">{used}</span>
               {' / '}
               {ANON_CORPUS_LIMIT}

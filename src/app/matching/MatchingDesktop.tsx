@@ -54,7 +54,7 @@ function GroupHeader({ label, count, variant }: { label: string; count: number; 
     : 'text-v2-text-muted font-medium'
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className={`text-[11px] ${textClass}`}>{label} · {count} 道</span>
+      <span className={`text-[0.6875rem] ${textClass}`}>{label} · {count} 道</span>
       <div className="flex-1 h-px bg-black/[0.05]" />
     </div>
   )
@@ -66,7 +66,7 @@ function TierBadge({ tier }: { tier: Tier }) {
     high: { label: '高匹配', cls: 'text-brand-accent bg-brand-accent/10 border-brand-accent/25' },
     mid:  { label: '中匹配', cls: 'text-v2-text-secondary bg-black/[0.04] border-black/[0.08]' },
   }[tier]
-  return <span className={`text-[11px] font-medium px-[9px] py-[3px] rounded-full border ${map.cls}`}>{map.label}</span>
+  return <span className={`text-[0.6875rem] font-medium px-[9px] py-[3px] rounded-full border ${map.cls}`}>{map.label}</span>
 }
 
 /** 左栏紧凑可点题目行 —— 视觉 DNA 对齐 MatchedQuestionCard，但行内不放 CTA（CTA 归右栏） */
@@ -99,13 +99,13 @@ function QuestionRow({ q, isHigh, selected, onSelect }: {
           <Tag variant="green" label={q.dimension} />
           {q.is_new && <Tag variant="green" label="新题" />}
           {needSwitch && (
-            <span className="text-[10px] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
+            <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
               需切换角度
             </span>
           )}
         </div>
-        <p className="text-[14px] font-bold text-v2-text-primary leading-snug truncate">{enText}</p>
-        {zhText && <p className="text-[12px] text-v2-text-muted mt-0.5 truncate">{zhText}</p>}
+        <p className="text-[0.875rem] font-bold text-v2-text-primary leading-snug truncate">{enText}</p>
+        {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5 truncate">{zhText}</p>}
       </div>
     </button>
   )
@@ -121,7 +121,7 @@ function DetailPane({ q, onPractice, saveState, onSave }: {
   if (!q) {
     return (
       <Card className="flex items-center justify-center px-8 py-16 text-center">
-        <p className="text-[13px] text-v2-text-muted">从左侧选择一道题查看详情</p>
+        <p className="text-[0.8125rem] text-v2-text-muted">从左侧选择一道题查看详情</p>
       </Card>
     )
   }
@@ -144,25 +144,25 @@ function DetailPane({ q, onPractice, saveState, onSave }: {
             <AnkiBookmarkButton state={saveState} onSave={onSave} savedTag />
           </span>
         </div>
-        <p className="text-[20px] font-bold text-v2-text-primary leading-snug mb-1.5">{enText}</p>
-        {zhText && <p className="text-[14px] text-v2-text-muted mb-6">{zhText}</p>}
+        <p className="text-[1.25rem] font-bold text-v2-text-primary leading-snug mb-1.5">{enText}</p>
+        {zhText && <p className="text-[0.875rem] text-v2-text-muted mb-6">{zhText}</p>}
 
         <div className="border-t border-black/[0.05] pt-5">
-          <p className="text-[11px] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">识别维度{obs ? ' · 观察点' : ''}</p>
-          <p className="text-[14px] text-v2-text-secondary leading-relaxed">{q.dimension}{obs ? ` · ${obs}` : ''}</p>
+          <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">识别维度{obs ? ' · 观察点' : ''}</p>
+          <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">{q.dimension}{obs ? ` · ${obs}` : ''}</p>
         </div>
 
         {q.relevanceReason && (
           <div className="mt-5 border-t border-black/[0.05] pt-5">
-            <p className="text-[11px] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">为什么这道题适合你</p>
-            <p className="text-[14px] text-v2-text-secondary leading-relaxed">{q.relevanceReason}</p>
+            <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">为什么这道题适合你</p>
+            <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">{q.relevanceReason}</p>
           </div>
         )}
       </div>
       <div className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex justify-end">
         <GradientButton
           onClick={() => onPractice(q.id)}
-          className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[15px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+          className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
         >
           题目分析 →
         </GradientButton>
@@ -353,17 +353,17 @@ export default function MatchingDesktop({
 
         {/* 顶部定调开场（横跨两栏） */}
         <div className="shrink-0 mb-5">
-          <h2 className="text-[22px] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
+          <h2 className="text-[1.375rem] font-bold text-v2-text-primary">匹配到 {totalVisible} 道当季真题</h2>
           {result.primary && (
-            <p className="text-[13px] text-v2-text-muted mt-1">
+            <p className="text-[0.8125rem] text-v2-text-muted mt-1">
               识别维度：{result.primary.dimension} · {result.primary.pointName}
               {result.secondary && ` ／ ${result.secondary.dimension} · ${result.secondary.pointName}`}
             </p>
           )}
           {result.matchedViaSecondary && result.secondary && (
             <Card className="px-4 py-3 mt-3">
-              <p className="text-[13px] text-v2-text-primary leading-snug mb-1">暂时没匹配到完全契合的雅思真题</p>
-              <p className="text-[12px] text-v2-text-secondary leading-relaxed">
+              <p className="text-[0.8125rem] text-v2-text-primary leading-snug mb-1">暂时没匹配到完全契合的雅思真题</p>
+              <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed">
                 不过把重点放在{' '}
                 <span className="text-brand-primary-dark font-medium">
                   {result.secondary.dimension} · {result.secondary.pointName}
@@ -409,7 +409,7 @@ export default function MatchingDesktop({
                 </div>
               )}
               {noneVisible && (
-                <div className="text-center text-[13px] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
+                <div className="text-center text-[0.8125rem] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
               )}
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function MatchingDesktop({
         </div>
 
         {/* 极简键盘提示 */}
-        <p className="shrink-0 mt-4 text-center text-[12px] text-v2-text-muted">↑↓ 切题 · Enter 分析 · Esc 退出</p>
+        <p className="shrink-0 mt-4 text-center text-[0.75rem] text-v2-text-muted">↑↓ 切题 · Enter 分析 · Esc 退出</p>
       </div>
     </div>
   )

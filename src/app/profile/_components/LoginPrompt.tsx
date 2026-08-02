@@ -54,7 +54,7 @@ export default function LoginPrompt({
   // 「注册」措辞纪律同下方 card 分支注释（承诺只在注册＝升级匿名账号路径成立）。
   if (variant === 'slim') {
     return (
-      <p className={cn('flex items-center gap-2 text-[13px] text-v2-text-muted', className)}>
+      <p className={cn('flex items-center gap-2 text-[0.8125rem] text-v2-text-muted', className)}>
         <CloudOff size={15} className="flex-shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">只存在这台设备上，注册后永久保存不丢失</span>
         <button
@@ -73,10 +73,10 @@ export default function LoginPrompt({
       style={GRADIENT_BORDER_STYLE_FULL}
     >
       <div className="flex flex-col items-center">
-        <TitleTag className="text-[14px] font-medium text-v2-text-primary text-center">
+        <TitleTag className="text-[0.875rem] font-medium text-v2-text-primary text-center">
           {title}
         </TitleTag>
-        <p className="text-[12px] text-v2-text-secondary text-center mt-1.5">
+        <p className="text-[0.75rem] text-v2-text-secondary text-center mt-1.5">
           {subtitle}
         </p>
         <button

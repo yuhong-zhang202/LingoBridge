@@ -39,7 +39,7 @@ export default function RadarChart({ dimensions, size = 200 }: Props) {
       })}
       {dimensions.map((d, i) => {
         const [x, y] = xy(angles[i], LABEL_R)
-        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="9" className={`font-sans ${d.value > 0 ? 'fill-v2-text-primary' : 'fill-v2-text-muted'}`}>{d.name}</text>
+        return <text key={i} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor="middle" dominantBaseline="middle" fontSize="0.5625rem" className={`font-sans ${d.value > 0 ? 'fill-v2-text-primary' : 'fill-v2-text-muted'}`}>{d.name}</text>
       })}
     </svg>
   )

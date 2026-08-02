@@ -162,15 +162,15 @@ export default function FirstUseConsent() {
           // 次要出口的阻断视图：用户选择不同意 → 可「再想想」回到同意，或「退出登录并离开」真正离开
           <>
             <div className={CONSENT_TEXT_COL}>
-              <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center lg:text-left lg:text-[15px]">暂时无法使用</h3>
-              <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3 lg:mt-1.5 lg:text-[12.5px] lg:leading-[1.45]">
+              <h3 id="consent-dialog-title" className="text-[1rem] font-semibold text-v2-text-primary text-center lg:text-left lg:text-[0.9375rem]">暂时无法使用</h3>
+              <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-3 lg:mt-1.5 lg:text-[0.78125rem] lg:leading-[1.45]">
                 练习功能需要把你的录音与文字发送给第三方 AI 处理，未同意则无法开始。你可以再想想，或退出登录直接离开。
               </p>
             </div>
             <div className={CONSENT_ACTIONS}>
               <GradientButton
                 onClick={() => setDeclined(false)}
-                className="w-full mt-5 py-3 rounded-full text-[14px] font-medium lg:w-full lg:px-8 lg:py-2.5 lg:mt-0 lg:font-semibold lg:text-[15px]"
+                className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium lg:w-full lg:px-8 lg:py-2.5 lg:mt-0 lg:font-semibold lg:text-[0.9375rem]"
               >
                 我再想想
               </GradientButton>
@@ -178,7 +178,7 @@ export default function FirstUseConsent() {
                 type="button"
                 onClick={() => void handleLeave()}
                 disabled={leaving}
-                className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50 lg:w-full lg:mt-0 lg:min-h-0 lg:py-1 lg:text-[13px] lg:whitespace-nowrap"
+                className="w-full mt-3 min-h-[44px] text-[0.75rem] text-v2-text-muted underline disabled:opacity-50 lg:w-full lg:mt-0 lg:min-h-0 lg:py-1 lg:text-[0.8125rem] lg:whitespace-nowrap"
               >
                 退出登录并离开
               </button>
@@ -187,23 +187,23 @@ export default function FirstUseConsent() {
         ) : (
           <>
             <div className={CONSENT_TEXT_COL}>
-              <h3 id="consent-dialog-title" className="text-[16px] font-semibold text-v2-text-primary text-center lg:text-left lg:text-[15px]">{CONSENT_POPUP_TITLE}</h3>
+              <h3 id="consent-dialog-title" className="text-[1rem] font-semibold text-v2-text-primary text-center lg:text-left lg:text-[0.9375rem]">{CONSENT_POPUP_TITLE}</h3>
               {CONSENT_POPUP_DISCLOSURE.map((para, i) => (
-                <p key={i} className="text-[13px] text-v2-text-secondary leading-relaxed mt-3 lg:mt-1.5 lg:text-[12.5px] lg:leading-[1.45]">
+                <p key={i} className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-3 lg:mt-1.5 lg:text-[0.78125rem] lg:leading-[1.45]">
                   {para}
                 </p>
               ))}
               {/* 链接行：移动端 44px 触控高度不动；桌面无触控约束，min-h 归零是通栏减高的主要来源 */}
               <div className="flex justify-center gap-4 mt-3 lg:justify-start lg:mt-1">
-                <ProgressLink href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
+                <ProgressLink href="/privacy/beta" className="min-h-[44px] inline-flex items-center text-[0.75rem] text-brand-accent-dark underline lg:min-h-0">
                   内测数据处理说明
                 </ProgressLink>
-                <ProgressLink href="/privacy" className="min-h-[44px] inline-flex items-center text-[12px] text-brand-accent-dark underline lg:min-h-0">
+                <ProgressLink href="/privacy" className="min-h-[44px] inline-flex items-center text-[0.75rem] text-brand-accent-dark underline lg:min-h-0">
                   完整隐私政策
                 </ProgressLink>
               </div>
               {failed && (
-                <p className="text-[12px] text-error text-center mt-3 lg:text-left lg:mt-1">
+                <p className="text-[0.75rem] text-error text-center mt-3 lg:text-left lg:mt-1">
                   保存同意记录失败，请检查网络后重试。
                 </p>
               )}
@@ -212,7 +212,7 @@ export default function FirstUseConsent() {
               <GradientButton
                 onClick={handleAgree}
                 loading={submitting}
-                className="w-full mt-5 py-3 rounded-full text-[14px] font-medium lg:w-full lg:px-8 lg:py-2.5 lg:mt-0 lg:font-semibold lg:text-[15px]"
+                className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium lg:w-full lg:px-8 lg:py-2.5 lg:mt-0 lg:font-semibold lg:text-[0.9375rem]"
               >
                 同意并开始
               </GradientButton>
@@ -220,7 +220,7 @@ export default function FirstUseConsent() {
                 type="button"
                 onClick={() => setDeclined(true)}
                 disabled={submitting}
-                className="w-full mt-3 min-h-[44px] text-[12px] text-v2-text-muted underline disabled:opacity-50 lg:w-full lg:mt-0 lg:min-h-0 lg:py-1 lg:text-[13px] lg:whitespace-nowrap"
+                className="w-full mt-3 min-h-[44px] text-[0.75rem] text-v2-text-muted underline disabled:opacity-50 lg:w-full lg:mt-0 lg:min-h-0 lg:py-1 lg:text-[0.8125rem] lg:whitespace-nowrap"
               >
                 不同意，暂不使用
               </button>

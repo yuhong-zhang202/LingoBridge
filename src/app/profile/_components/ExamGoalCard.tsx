@@ -91,8 +91,8 @@ export default function ExamGoalCard(): JSX.Element | null {
               <Target size={18} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[15px] font-semibold text-v2-text-primary">设置你的备考目标 →</span>
-              <span className="block text-[12.5px] text-v2-text-secondary mt-0.5">定个分数和考试日期，我们帮你盯着倒计时</span>
+              <span className="block text-[0.9375rem] font-semibold text-v2-text-primary">设置你的备考目标 →</span>
+              <span className="block text-[0.78125rem] text-v2-text-secondary mt-0.5">定个分数和考试日期，我们帮你盯着倒计时</span>
             </span>
           </button>
         </Card>
@@ -108,13 +108,13 @@ export default function ExamGoalCard(): JSX.Element | null {
     return (
       <>
         <GoalShell onEdit={() => setEditing(true)}>
-          <p className="text-[12px] text-v2-text-secondary">备考目标</p>
-          <p className="mt-1 text-[26px] font-bold text-v2-text-primary leading-none tabular-nums">
+          <p className="text-[0.75rem] text-v2-text-secondary">备考目标</p>
+          <p className="mt-1 text-[1.625rem] font-bold text-v2-text-primary leading-none tabular-nums">
             Band {bandLabel}
           </p>
           <button
             onClick={() => setEditing(true)}
-            className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-primary-dark hover:opacity-80 transition-opacity"
+            className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-brand-primary-dark hover:opacity-80 transition-opacity"
           >
             <CalendarDays size={14} />设置考试日期
           </button>
@@ -131,11 +131,11 @@ export default function ExamGoalCard(): JSX.Element | null {
     return (
       <>
         <GoalShell onEdit={() => setEditing(true)}>
-          <p className="text-[12px] text-v2-text-secondary">备考目标</p>
-          <p className="mt-1 text-[26px] font-bold text-v2-text-primary leading-none tabular-nums">
+          <p className="text-[0.75rem] text-v2-text-secondary">备考目标</p>
+          <p className="mt-1 text-[1.625rem] font-bold text-v2-text-primary leading-none tabular-nums">
             Band {bandLabel}
           </p>
-          <p className="mt-2.5 text-[12px] text-v2-text-muted">考试日 {examLabel} 已过</p>
+          <p className="mt-2.5 text-[0.75rem] text-v2-text-muted">考试日 {examLabel} 已过</p>
         </GoalShell>
         {modal}
       </>
@@ -146,16 +146,16 @@ export default function ExamGoalCard(): JSX.Element | null {
   return (
     <>
       <GoalShell onEdit={() => setEditing(true)}>
-        <p className="text-[12px] text-v2-text-secondary">距离考试</p>
+        <p className="text-[0.75rem] text-v2-text-secondary">距离考试</p>
         {days === 0 ? (
-          <p className="mt-1 text-[32px] font-bold text-brand-primary-dark leading-none">就是今天</p>
+          <p className="mt-1 text-[2rem] font-bold text-brand-primary-dark leading-none">就是今天</p>
         ) : (
           <p className="mt-1 flex items-baseline gap-1.5 text-brand-primary-dark">
-            <span className="text-[40px] font-bold leading-none tabular-nums">{days}</span>
-            <span className="text-[15px] font-semibold">天</span>
+            <span className="text-[2.5rem] font-bold leading-none tabular-nums">{days}</span>
+            <span className="text-[0.9375rem] font-semibold">天</span>
           </p>
         )}
-        <div className="mt-3.5 pt-3 border-t border-black/[0.05] flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px]">
+        <div className="mt-3.5 pt-3 border-t border-black/[0.05] flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[0.8125rem]">
           <span className="flex items-center gap-1.5 text-v2-text-secondary">
             <Target size={14} className="text-v2-text-muted" />
             目标 <b className="font-semibold text-v2-text-primary tabular-nums">Band {bandLabel}</b>

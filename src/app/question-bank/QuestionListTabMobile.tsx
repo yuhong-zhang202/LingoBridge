@@ -57,10 +57,10 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
       <div style={PROG}>
         <div className="bg-white rounded-[16px] px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[13px] font-medium text-v2-text-secondary">你的故事已覆盖</span>
+            <span className="text-[0.8125rem] font-medium text-v2-text-secondary">你的故事已覆盖</span>
             <div>
-              <span className="text-[18px] font-semibold text-v2-text-primary">{totalMatched}</span>
-              <span className="text-[12px] text-v2-text-muted"> / {totalMapped} 题</span>
+              <span className="text-[1.125rem] font-semibold text-v2-text-primary">{totalMatched}</span>
+              <span className="text-[0.75rem] text-v2-text-muted"> / {totalMapped} 题</span>
             </div>
           </div>
           {(() => {
@@ -80,9 +80,9 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
             )
           })()}
           {totalMatched === 0
-            ? <p className="text-[12px] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
+            ? <p className="text-[0.75rem] text-v2-text-muted mt-1.5">讲一个故事，点亮可练习的题目</p>
             /* text-v2-text-muted 而非 warm-taupe：后者 #C4B5A9 在白底约 2.0:1，11px 正文远低于 WCAG AA 4.5 */
-            : <p className="text-[11px] text-v2-text-muted mt-1.5">每一段都是你自己的答题素材</p>}
+            : <p className="text-[0.6875rem] text-v2-text-muted mt-1.5">每一段都是你自己的答题素材</p>}
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
 
       {matchedQ.length > 0 && <>
         <button onClick={() => setMatchedOpen(v => !v)} aria-expanded={matchedOpen} className="flex items-center gap-1.5 py-1">
-          <span className="text-[12px] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
+          <span className="text-[0.75rem] font-medium text-v2-text-secondary">可以练习 · {matchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-secondary transition-transform duration-200 ${matchedOpen ? '' : '-rotate-90'}`} />
         </button>
         {matchedOpen && <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2.5">
@@ -123,7 +123,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
               <div className="flex-1 px-[14px] py-[10px] flex items-center gap-[10px]">
                 <div className="flex-1 min-w-0">
                   <PartTag label={`Part ${q.part}`} />
-                  <p className="text-[14px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
+                  <p className="text-[0.875rem] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
                 </div>
                 <Chip
                   variant="gradient"
@@ -139,14 +139,14 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
 
       {unmatchedQ.length > 0 && <>
         <button onClick={() => setUnmatchedOpen(v => !v)} aria-expanded={unmatchedOpen} className="flex items-center gap-1.5 py-1">
-          <span className="text-[12px] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
+          <span className="text-[0.75rem] font-medium text-v2-text-muted">等待语料 · {unmatchedQ.length} 道</span>
           <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${unmatchedOpen ? '' : '-rotate-90'}`} />
         </button>
         {unmatchedOpen && <div className="flex flex-col gap-2">
           {unmatchedQ.map(q => (
             <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
-              <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
-              <p className="text-[14px] text-v2-text-secondary flex-1">{q.displayText}</p>
+              <span className="text-[0.6875rem] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              <p className="text-[0.875rem] text-v2-text-secondary flex-1">{q.displayText}</p>
             </div>
           ))}
         </div>}
@@ -155,7 +155,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
       {/* 已过季题目：默认收起的折叠块，块内镜像当季结构。交互与当季完全一致，过季题照常进练习 */}
       {offseasonQ.length > 0 && <>
         <button onClick={() => setOffseasonOpen(v => !v)} aria-expanded={offseasonOpen} className="flex items-center gap-1.5 py-1">
-          <span className="text-[12px] font-medium text-v2-text-muted">已过季题目 · {offseasonQ.length}</span>
+          <span className="text-[0.75rem] font-medium text-v2-text-muted">已过季题目 · {offseasonQ.length}</span>
           <ChevronDown size={12} className={`text-v2-text-muted transition-transform duration-200 ${offseasonOpen ? '' : '-rotate-90'}`} />
         </button>
         {offseasonOpen && <div className="flex flex-col gap-2">
@@ -185,7 +185,7 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
                     <PartTag label={`Part ${q.part}`} />
                     <Tag variant="gray" label="已过季" />
                   </div>
-                  <p className="text-[14px] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
+                  <p className="text-[0.875rem] font-semibold text-v2-text-primary leading-tight mt-1">{q.displayText}</p>
                 </div>
                 <Chip
                   variant="gradient"
@@ -198,10 +198,10 @@ export default function QuestionListTab({ mappedQuestions, offseasonQuestions, t
           ))}
           {offUnmatched.map(q => (
             <div key={q.id} className="bg-bg-muted rounded-[12px] border border-black/[0.03] px-[14px] py-[10px] flex items-center gap-2">
-              <span className="text-[11px] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
+              <span className="text-[0.6875rem] font-medium border border-black/[0.06] text-v2-text-muted px-[7px] py-[2px] rounded-full flex-shrink-0">Part {q.part}</span>
               {/* 灰底行 gray 标签文字上调到 secondary 保 WCAG AA（muted 在 bg-muted 上仅 4.28） */}
               <Tag variant="gray" label="已过季" className="text-v2-text-secondary flex-shrink-0" />
-              <p className="text-[14px] text-v2-text-secondary flex-1">{q.displayText}</p>
+              <p className="text-[0.875rem] text-v2-text-secondary flex-1">{q.displayText}</p>
             </div>
           ))}
         </div>}

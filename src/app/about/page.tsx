@@ -23,7 +23,7 @@ function StepNum({ n }: { n: number }) {
       style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 22, height: 22 }}
     >
       <span className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-v2-text-secondary">{n}</span>
+        <span className="text-[0.6875rem] font-bold leading-none text-v2-text-secondary">{n}</span>
       </span>
     </span>
   )
@@ -46,33 +46,33 @@ export default function AboutPage(): JSX.Element {
       <div className="lg:hidden"><TopBar title="关于 LingoBridge" /></div>
 
       <main className="max-w-[640px] mx-auto px-6 pt-8 pb-20 lg:pt-14">
-        <h1 className="text-[24px] lg:text-[28px] font-bold tracking-tight text-v2-text-primary text-balance">
+        <h1 className="text-[1.5rem] lg:text-[1.75rem] font-bold tracking-tight text-v2-text-primary text-balance">
           关于 LingoBridge
         </h1>
 
         <section className="mt-9">
-          <h2 className="text-[16px] font-bold text-v2-text-primary">LingoBridge 是什么</h2>
-          <p className="mt-2.5 text-[15px] leading-[1.85] text-v2-text-secondary">
+          <h2 className="text-[1rem] font-bold text-v2-text-primary">LingoBridge 是什么</h2>
+          <p className="mt-2.5 text-[0.9375rem] leading-[1.85] text-v2-text-secondary">
             一款为雅思口语备考打造的练习工具。它不让你背题库范文，而是把你真实经历过的生活小事，变成能在考场上用得出来的口语素材。
           </p>
         </section>
 
         <section className="mt-9">
-          <h2 className="text-[16px] font-bold text-v2-text-primary">为什么是“讲故事”，而不是“背题”</h2>
-          <p className="mt-2.5 text-[15px] leading-[1.85] text-v2-text-secondary">
+          <h2 className="text-[1rem] font-bold text-v2-text-primary">为什么是“讲故事”，而不是“背题”</h2>
+          <p className="mt-2.5 text-[0.9375rem] leading-[1.85] text-v2-text-secondary">
             背下来的答案，一旦考官换个问法就卡住；而你亲身经历的事，怎么问你都讲得出、讲得真。LingoBridge
             相信：最好的口语素材，是你自己的故事——它只负责帮你把这些故事理清楚、补上地道表达，再匹配到合适的雅思题目上。
           </p>
         </section>
 
         <section className="mt-9">
-          <h2 className="text-[16px] font-bold text-v2-text-primary">怎么用</h2>
+          <h2 className="text-[1rem] font-bold text-v2-text-primary">怎么用</h2>
           <Card className="mt-3 px-6 py-5">
             <ol className="flex flex-col gap-4">
               {STEPS.map(({ lead, rest }, i) => (
                 <li key={lead} className="flex items-start gap-3">
                   <StepNum n={i + 1} />
-                  <p className="text-[14px] leading-[1.75] text-v2-text-secondary">
+                  <p className="text-[0.875rem] leading-[1.75] text-v2-text-secondary">
                     <strong className="font-semibold text-v2-text-primary">{lead}</strong>
                     ：{rest}
                   </p>
@@ -83,8 +83,8 @@ export default function AboutPage(): JSX.Element {
         </section>
 
         <section className="mt-9">
-          <h2 className="text-[16px] font-bold text-v2-text-primary">给谁</h2>
-          <p className="mt-2.5 text-[15px] leading-[1.85] text-v2-text-secondary">
+          <h2 className="text-[1rem] font-bold text-v2-text-primary">给谁</h2>
+          <p className="mt-2.5 text-[0.9375rem] leading-[1.85] text-v2-text-secondary">
             给不想再死记硬背、希望说出来的英文是自己的、真实的、临场也不慌的雅思考生。
           </p>
         </section>
@@ -92,7 +92,7 @@ export default function AboutPage(): JSX.Element {
         {/* 收尾 tagline：全页唯一的渐变强调时刻 */}
         <blockquote className="mt-12">
           <Card variant="gradient" className="px-8 py-7 text-center">
-            <p className="text-[16px] lg:text-[17px] font-semibold text-v2-text-primary text-balance">
+            <p className="text-[1rem] lg:text-[1.0625rem] font-semibold text-v2-text-primary text-balance">
               LingoBridge，把你的生活，变成你的口语。
             </p>
           </Card>

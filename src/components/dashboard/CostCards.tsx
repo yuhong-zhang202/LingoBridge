@@ -79,23 +79,23 @@ export default function CostCards({ data }: { data: CostCardData }) {
             <div className="px-4 pt-3 pb-4">
               <div className="flex items-center gap-1.5 mb-2">
                 {/* 纯装饰 emoji：读屏会把它念成"条形图"之类的名字，对旁边的卡片标签是纯干扰 */}
-                <span className="text-[14px]" aria-hidden="true">{card.icon}</span>
-                <span className="text-[11px] text-v2-text-muted">{card.getLabel(data)}</span>
+                <span className="text-[0.875rem]" aria-hidden="true">{card.icon}</span>
+                <span className="text-[0.6875rem] text-v2-text-muted">{card.getLabel(data)}</span>
               </div>
-              <div className="text-[26px] font-bold text-v2-text-primary leading-tight">
+              <div className="text-[1.625rem] font-bold text-v2-text-primary leading-tight">
                 ¥{formatCnyNumber(cost)}
               </div>
               {/* USD 副行为估算：带"≈"避免误读为精确换算，汇率脚注见卡区下方 */}
-              <div className="text-[11px] text-v2-text-muted mt-0.5">
+              <div className="text-[0.6875rem] text-v2-text-muted mt-0.5">
                 ≈ ${(cost / USD_RATE).toFixed(2)}
               </div>
               {/* 副行改用语气色承载：涨费用警示暖色、跌费用绿（不再用安抚绿弱化涨的警示） */}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: card.accent }} />
-                <span className={`text-[11px] font-medium ${SUB_TONE_CLASS[sub.tone]}`}>{sub.text}</span>
+                <span className={`text-[0.6875rem] font-medium ${SUB_TONE_CLASS[sub.tone]}`}>{sub.text}</span>
               </div>
               {/* 时间范围标注：三张卡口径各不同（全部历史 / 本月 / 今日），与下方饼图·趋势的「近 N 天区间」不是一回事，逐卡标清防混淆 */}
-              <div className="text-[10px] text-v2-text-muted mt-1.5">{card.range}</div>
+              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">{card.range}</div>
             </div>
           </div>
         )

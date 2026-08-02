@@ -36,7 +36,7 @@ const PHASE_LABEL: Record<string, string> = {
 function Badge({ s }: { s: string }) {
   const [n, c] = SVC[s] ?? [s, '#A89990']
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border border-black/[0.06] bg-black/[0.02] text-v2-text-secondary">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.625rem] font-medium border border-black/[0.06] bg-black/[0.02] text-v2-text-secondary">
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />{n}
     </span>
   )
@@ -45,7 +45,7 @@ function Badge({ s }: { s: string }) {
 function SourceTag({ src }: { src?: string }) {
   const isEstimate = src === 'estimate'
   return (
-    <span className={`inline-flex items-center px-1 py-px rounded text-[9px] font-medium ${isEstimate ? 'bg-warning/15 text-warning-text' : 'bg-tag-success-bg text-tag-success-text'}`}>
+    <span className={`inline-flex items-center px-1 py-px rounded text-[0.5625rem] font-medium ${isEstimate ? 'bg-warning/15 text-warning-text' : 'bg-tag-success-bg text-tag-success-text'}`}>
       {isEstimate ? '估' : '实'}
     </span>
   )
@@ -147,7 +147,7 @@ function humanReason(log: Log): string | null {
 function TypeChip({ log }: { log: Log }) {
   const { text, tone } = failureType(log)
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${TYPE_TONE_CLASS[tone]}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[0.625rem] font-medium whitespace-nowrap ${TYPE_TONE_CLASS[tone]}`}>
       {text}
     </span>
   )
@@ -177,13 +177,13 @@ export default function RecentCallsTable({
   return (
     <div className="bg-white rounded-[16px] border border-black/[0.05] overflow-hidden">
       <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between gap-3">
-        <h2 className="text-[13px] font-semibold text-v2-text-primary">{mode === 'failed' && views.length === 1 ? '失败明细' : '调用明细'}</h2>
+        <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">{mode === 'failed' && views.length === 1 ? '失败明细' : '调用明细'}</h2>
         {/* 视图切换：命中区 min-h-[44px] 达触控标准。单视图（如故障组只给失败）时不渲染切换器 */}
         {views.length > 1 && (
           <div className="flex bg-black/[0.03] rounded-full p-0.5 gap-0.5" role="group" aria-label="调用明细视图">
             {views.map(m => (
               <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[11px] font-medium transition-colors ${mode === m ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
+                className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${mode === m ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
                 {MODE_LABEL[m]}
               </button>
             ))}
@@ -191,7 +191,7 @@ export default function RecentCallsTable({
         )}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-[0.6875rem]">
           <thead>
             <tr className="border-b border-black/[0.04]">
               {cols.map(h => <th key={h} className="px-3 py-2 text-left font-medium text-v2-text-muted whitespace-nowrap">{h}</th>)}
@@ -218,15 +218,15 @@ export default function RecentCallsTable({
                     <td className="px-3 py-2" title={log.metadata?.error_message ?? undefined}>
                       <TypeChip log={log} />
                       {humanReason(log) && (
-                        <div className="text-[10px] text-v2-text-secondary mt-0.5">{humanReason(log)}</div>
+                        <div className="text-[0.625rem] text-v2-text-secondary mt-0.5">{humanReason(log)}</div>
                       )}
                       {log.metadata?.error_code !== undefined && log.metadata.error_code !== 'unknown' && (
-                        <div className="text-[9px] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
+                        <div className="text-[0.5625rem] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
                           {log.metadata.error_code}
                         </div>
                       )}
                       {log.metadata?.error_message && (
-                        <div className="text-[9px] text-v2-text-muted max-w-[200px] truncate">{log.metadata.error_message}</div>
+                        <div className="text-[0.5625rem] text-v2-text-muted max-w-[200px] truncate">{log.metadata.error_message}</div>
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap"><Badge s={log.service} /></td>
@@ -247,7 +247,7 @@ export default function RecentCallsTable({
                   <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap">{when}</td>
                   <td className="px-3 py-2 whitespace-nowrap"><Badge s={log.service} /></td>
                   <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap"
-                    style={{ fontFamily: 'monospace', fontSize: 10 }}>
+                    style={{ fontFamily: 'monospace', fontSize: '0.625rem' }}>
                     {log.endpoint.split('/').pop() ?? log.endpoint}
                   </td>
                   <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{log.usage_amount.toFixed(1)} {log.usage_unit}</td>
@@ -271,7 +271,7 @@ export default function RecentCallsTable({
         </table>
       </div>
       {extra > 0 && (
-        <div className="px-4 py-2.5 text-center text-[11px] text-v2-text-muted border-t border-black/[0.04]">
+        <div className="px-4 py-2.5 text-center text-[0.6875rem] text-v2-text-muted border-t border-black/[0.04]">
           还有 {extra} 条记录未显示
         </div>
       )}

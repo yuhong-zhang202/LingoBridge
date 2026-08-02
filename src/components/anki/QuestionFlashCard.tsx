@@ -90,7 +90,7 @@ function StepNum({ n }: { n: number }): JSX.Element {
   return (
     <div style={{ background: BRAND_GRADIENT_SOFT, padding: 1, borderRadius: '50%', width: 20, height: 20, flexShrink: 0 }}>
       <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-        <span className="text-[11px] font-bold leading-none text-neutral-mid">{n}</span>
+        <span className="text-[0.6875rem] font-bold leading-none text-neutral-mid">{n}</span>
       </div>
     </div>
   )
@@ -138,14 +138,14 @@ function PointBody({ p, hasCorpus, genDone }: {
   if (p.en !== null) {
     return (
       <div className="flex items-start justify-between gap-2 mt-1.5">
-        <p className="text-[15px] lg:text-[17px] text-v2-text-primary leading-[1.5] flex-1 min-w-0" lang="en">{p.en}</p>
+        <p className="text-[0.9375rem] lg:text-[1.0625rem] text-v2-text-primary leading-[1.5] flex-1 min-w-0" lang="en">{p.en}</p>
         <PlayBtn idx={p.idx} text={p.en} />
       </div>
     )
   }
   if (!hasCorpus) return null
   return (
-    <p className="text-[13px] lg:text-[14px] text-v2-text-muted leading-[1.5] mt-1.5">
+    <p className="text-[0.8125rem] lg:text-[0.875rem] text-v2-text-muted leading-[1.5] mt-1.5">
       {genDone ? '这点你没讲到' : '例句生成中…'}
     </p>
   )
@@ -159,7 +159,7 @@ function PointRow({ p, hasCorpus, genDone }: {
     <li className="flex items-start gap-2.5">
       <StepNum n={p.idx + 1} />
       <div className="flex-1 min-w-0 pt-[1px]">
-        <p className="text-[14px] lg:text-[16px] leading-[1.6]">
+        <p className="text-[0.875rem] lg:text-[1rem] leading-[1.6]">
           <span className="font-semibold text-v2-text-primary">{p.title}</span>
           <span className="text-v2-text-secondary">：{p.desc}</span>
         </p>
@@ -181,13 +181,13 @@ function CardFront({ card }: { card: AnkiCard }): JSX.Element {
       <div className="absolute top-0 left-0 flex items-center gap-2">
         <Tag variant="gray" label={`Part ${card.part}`} />
         {topicLabel && (
-          <span className="text-[11px] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
+          <span className="text-[0.6875rem] font-medium text-v2-text-muted whitespace-nowrap">{topicLabel}</span>
         )}
       </div>
-      <p className="text-[19px] lg:text-[26px] font-semibold text-v2-text-primary leading-[1.5]" lang="en">{heading}</p>
-      <p className="text-[13px] lg:text-[15px] text-brand-accent mt-5 lg:mt-7">想想你会怎么答？</p>
+      <p className="text-[1.1875rem] lg:text-[1.625rem] font-semibold text-v2-text-primary leading-[1.5]" lang="en">{heading}</p>
+      <p className="text-[0.8125rem] lg:text-[0.9375rem] text-brand-accent mt-5 lg:mt-7">想想你会怎么答？</p>
       {summary && (
-        <p className="text-[13px] lg:text-[14px] text-v2-text-muted leading-[1.5] mt-3 lg:mt-4 max-w-[85%]">
+        <p className="text-[0.8125rem] lg:text-[0.875rem] text-v2-text-muted leading-[1.5] mt-3 lg:mt-4 max-w-[85%]">
           你的语料 · {summary}
         </p>
       )}
@@ -206,7 +206,7 @@ function CardFront({ card }: { card: AnkiCard }): JSX.Element {
 function MemoryDots({ box }: { box: number }): JSX.Element {
   return (
     <div className="flex items-center justify-center gap-2 pt-3 shrink-0">
-      <span className="text-[11px] text-v2-text-muted">记忆进度</span>
+      <span className="text-[0.6875rem] text-v2-text-muted">记忆进度</span>
       <span className="flex gap-[5px]">
         {[1, 2, 3, 4, 5, 6, 7].map((i) => (
           <span key={i} className={`w-[7px] h-[7px] rounded-full ${i <= box ? 'bg-brand-primary' : 'bg-warm-line'}`} />
@@ -238,7 +238,7 @@ function CardBack({ card, onSupplement, anonymous, analysisPending }: {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 flex items-center justify-center text-center">
-          <p className="text-[13px] text-v2-text-muted">{analysisPending ? '加载中…' : '这道题还没有可展示的答题要点'}</p>
+          <p className="text-[0.8125rem] text-v2-text-muted">{analysisPending ? '加载中…' : '这道题还没有可展示的答题要点'}</p>
         </div>
         {!anonymous && <MemoryDots box={card.box} />}
       </div>
@@ -266,7 +266,7 @@ function CardBack({ card, onSupplement, anonymous, analysisPending }: {
             type="button"
             onClick={(e) => { e.stopPropagation(); onSupplement?.(card.questionId) }}
             disabled={!onSupplement}
-            className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[14px] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
+            className="mt-4 min-h-[44px] flex items-center justify-center gap-0.5 text-[0.875rem] font-medium text-brand-primary-dark active:opacity-60 disabled:opacity-70 disabled:cursor-default"
           >
             分享你的想法
             <ChevronRight size={14} />
@@ -419,16 +419,16 @@ export default function QuestionFlashCard({ card, onGrade, onSupplement, anonymo
 
       {/* 匿名与注册【同一套 UI】：未翻面提示翻面，翻面后显红左/绿右评级箭头（匿名点了也只是前进、不落库、不弹注册）。 */}
       {!flipped ? (
-        <p className="text-center text-[13px] text-v2-text-secondary mt-[18px] lg:mt-6 flex items-center justify-center gap-1.5">
+        <p className="text-center text-[0.8125rem] text-v2-text-secondary mt-[18px] lg:mt-6 flex items-center justify-center gap-1.5">
           <RotateCw size={14} />点击卡片翻面看答题要点
         </p>
       ) : (
         <div className="flex items-center justify-center gap-5 mt-[18px] lg:mt-6">
-          <button type="button" onClick={() => flyOut(false)} className="flex items-center gap-1 text-[13px] text-error active:opacity-60">
+          <button type="button" onClick={() => flyOut(false)} className="flex items-center gap-1 text-[0.8125rem] text-error active:opacity-60">
             <ArrowLeft size={15} />不熟悉
           </button>
-          <span className="text-[12px] text-v2-text-muted">左右滑动</span>
-          <button type="button" onClick={() => flyOut(true)} className="flex items-center gap-1 text-[13px] text-tag-success-text active:opacity-60">
+          <span className="text-[0.75rem] text-v2-text-muted">左右滑动</span>
+          <button type="button" onClick={() => flyOut(true)} className="flex items-center gap-1 text-[0.8125rem] text-tag-success-text active:opacity-60">
             熟悉<ArrowRight size={15} />
           </button>
         </div>

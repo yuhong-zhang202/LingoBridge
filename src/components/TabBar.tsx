@@ -29,11 +29,11 @@ export default function TabBar() {
         <span className="grid size-9 place-items-center rounded-[12px] bg-bg-muted">
           <span className="size-4 rounded-full bg-brand-primary" />
         </span>
-        <span className="text-[17px] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
+        <span className="text-[1.0625rem] font-bold tracking-tight text-v2-text-primary">LingoBridge</span>
       </ProgressLink>
 
       {/* 导航分区标签 —— 仅桌面端 */}
-      <p className="hidden lg:block lg:px-3 lg:pb-2 text-[11px] font-semibold uppercase tracking-wider text-v2-text-muted">导航</p>
+      <p className="hidden lg:block lg:px-3 lg:pb-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-v2-text-muted">导航</p>
 
       {TABS.map(({ href, label, Icon }) => {
         const active = path === href
@@ -52,7 +52,7 @@ export default function TabBar() {
               size={20}
               className={active ? 'text-v2-text-primary lg:text-brand-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'}
             />
-            <span className={`text-[10px] font-medium lg:text-[14px] ${
+            <span className={`text-[0.625rem] font-medium lg:text-[0.875rem] ${
               active ? 'text-v2-text-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'
             }`}>
               {label}
@@ -71,7 +71,7 @@ export default function TabBar() {
           ${settingsActive ? 'lg:bg-bg-muted' : 'lg:hover:bg-bg-muted/60'}`}
       >
         <Settings size={20} className={settingsActive ? 'text-v2-text-primary lg:text-brand-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'} />
-        <span className={`text-[14px] font-medium ${settingsActive ? 'text-v2-text-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'}`}>
+        <span className={`text-[0.875rem] font-medium ${settingsActive ? 'text-v2-text-primary' : 'text-v2-text-muted lg:text-v2-text-secondary'}`}>
           设置
         </span>
       </ProgressLink>

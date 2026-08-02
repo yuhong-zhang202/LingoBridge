@@ -41,7 +41,7 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
           style={{ borderRadius: 999, padding: '5px 10px' }}
         >
           {icon}
-          <span className="text-[11px] font-medium leading-none" style={GRAD_TEXT}>{label}</span>
+          <span className="text-[0.6875rem] font-medium leading-none" style={GRAD_TEXT}>{label}</span>
         </div>
       </div>
     )
@@ -53,7 +53,7 @@ export default function Tag({ label, variant = 'green', icon, className }: TagPr
 
   return (
     <span className={cn(
-      'text-[11px] font-medium rounded-full inline-flex items-center gap-1.5 px-[10px] py-[5px]',
+      'text-[0.6875rem] font-medium rounded-full inline-flex items-center gap-1.5 px-[10px] py-[5px]',
       variantClass,
       className,
     )}>

@@ -45,7 +45,7 @@ export default function RecordingMobile({
             <X size={14} className="text-v2-text-primary" />
           </span>
         </button>
-        <span className="text-[16px] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
+        <span className="text-[1rem] font-semibold text-v2-text-primary">{transcribing ? '转写中' : '正在录音'}</span>
         <div className="w-11" />
       </div>
 
@@ -58,23 +58,23 @@ export default function RecordingMobile({
           <>
             <div className="flex flex-col items-center gap-2.5">
               <Waveform active />
-              <span className="text-[13px] text-v2-text-muted italic">listening...</span>
+              <span className="text-[0.8125rem] text-v2-text-muted italic">listening...</span>
             </div>
 
             <div className="surface px-4 py-3 max-w-[260px] text-center">
-              <p className="text-[14px] text-v2-text-secondary leading-relaxed">
+              <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">
                 正在聆听，说完点下方「完成录音」自动转写
               </p>
             </div>
 
-            <span className="text-[22px] font-semibold text-v2-text-primary tracking-[2px]">{fmt(seconds)}</span>
+            <span className="text-[1.375rem] font-semibold text-v2-text-primary tracking-[2px]">{fmt(seconds)}</span>
 
-            <p className="text-[12px] text-neutral-mute text-center px-8 leading-relaxed">
+            <p className="text-[0.75rem] text-neutral-mute text-center px-8 leading-relaxed">
               建议说 30–60 秒，说得越具体效果越好 ✨
             </p>
           </>
         ) : (
-          <p className="text-[13px] text-v2-text-muted">正在转写你的录音…</p>
+          <p className="text-[0.8125rem] text-v2-text-muted">正在转写你的录音…</p>
         )}
       </div>
 
@@ -84,11 +84,11 @@ export default function RecordingMobile({
         style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))', paddingTop: 20 }}
       >
         {/* role=alert：视觉保持灰色温柔基调不变色，仅让读屏即时播报错误（对齐 Desktop 可访问性） */}
-        {error && <p role="alert" className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>}
+        {error && <p role="alert" className="text-center text-[0.75rem] text-v2-text-muted mb-2">{error}</p>}
         <button
           onClick={onFinish}
           disabled={transcribing}
-          className="btn-gradient w-full h-[56px] text-[16px] font-semibold disabled:opacity-50"
+          className="btn-gradient w-full h-[56px] text-[1rem] font-semibold disabled:opacity-50"
         >
           <div className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />
           {transcribing ? '转写中…' : '完成录音'}
@@ -97,7 +97,7 @@ export default function RecordingMobile({
           <button
             onClick={onRerecord}
             disabled={transcribing}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-v2-text-muted disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[0.75rem] font-medium text-v2-text-muted disabled:opacity-50"
           >
             <RotateCcw size={15} />
             重录

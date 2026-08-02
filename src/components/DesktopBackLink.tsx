@@ -64,7 +64,7 @@ export default function DesktopBackLink(props: DesktopBackLinkProps): JSX.Elemen
     <button
       type="button"
       onClick={handleClick}
-      className="hidden lg:inline-flex self-start items-center gap-1 -ml-1 mb-4 text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
+      className="hidden lg:inline-flex self-start items-center gap-1 -ml-1 mb-4 text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors"
     >
       <ChevronLeft size={16} />
       {label}

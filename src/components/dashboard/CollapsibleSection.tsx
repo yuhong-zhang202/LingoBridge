@@ -23,8 +23,8 @@ export default function CollapsibleSection({
   return (
     <details open={defaultOpen} className="group bg-white rounded-[16px] border border-black/[0.05] mb-3 overflow-hidden">
       <summary className="flex items-center gap-2 min-h-[44px] px-4 cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
-        <span className="text-[13px] font-semibold text-v2-text-primary">{title}</span>
-        {subtitle && <span className="text-[11px] text-v2-text-muted">{subtitle}</span>}
+        <span className="text-[0.8125rem] font-semibold text-v2-text-primary">{title}</span>
+        {subtitle && <span className="text-[0.6875rem] text-v2-text-muted">{subtitle}</span>}
         {/* chevron：展开时旋转 180°；纯装饰，对读屏隐藏（展开态由 details 原生语义承载） */}
         <svg className="ml-auto flex-shrink-0 transition-transform duration-200 group-open:rotate-180"
           width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">

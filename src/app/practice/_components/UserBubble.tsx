@@ -39,7 +39,7 @@ export default function UserBubble({ text, onPolish, onWordTap, avatarUrl }: Use
             <Sparkles size={12} />
           </button>
         )}
-        <p className="text-[14px] text-v2-text-primary leading-[1.6]">
+        <p className="text-[0.875rem] text-v2-text-primary leading-[1.6]">
           {onWordTap
             ? text.split(/(\s+)/).map((tok, i) => {
                 const w = cleanWord(tok)

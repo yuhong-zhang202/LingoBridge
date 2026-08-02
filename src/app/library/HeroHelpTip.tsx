@@ -84,7 +84,7 @@ export default function HeroHelpTip({ text }: { text: string }): JSX.Element {
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
           onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-          className="fixed z-[60] rounded-[12px] bg-bg-surface border border-black/[0.06] shadow-[0_6px_20px_rgba(0,0,0,0.10)] px-3 py-2.5 text-[12px] leading-relaxed text-v2-text-secondary text-left font-normal"
+          className="fixed z-[60] rounded-[12px] bg-bg-surface border border-black/[0.06] shadow-[0_6px_20px_rgba(0,0,0,0.10)] px-3 py-2.5 text-[0.75rem] leading-relaxed text-v2-text-secondary text-left font-normal"
           style={{ top: pos.top, left: pos.left, width: TIP_WIDTH }}
         >
           {text}

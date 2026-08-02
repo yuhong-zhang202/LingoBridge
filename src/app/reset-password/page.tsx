@@ -76,17 +76,17 @@ export default function ResetPasswordPage() {
         <DesktopBackLink to="/login" label="返回登录" />
         <h1 className="sr-only">重置密码</h1>
         {hasRecoverySession === null && (
-          <p role="status" className="text-[13px] text-v2-text-muted text-center pt-16">加载中…</p>
+          <p role="status" className="text-[0.8125rem] text-v2-text-muted text-center pt-16">加载中…</p>
         )}
 
         {hasRecoverySession === false && (
           <div className="pt-16 text-center">
-            <p className="text-[14px] text-v2-text-primary mb-2">链接已失效</p>
-            <p className="text-[13px] text-v2-text-muted leading-relaxed">
+            <p className="text-[0.875rem] text-v2-text-primary mb-2">链接已失效</p>
+            <p className="text-[0.8125rem] text-v2-text-muted leading-relaxed">
               请重新发起重置：返回登录页 → 「忘记密码？」
             </p>
             <div className="mt-5 flex justify-center">
-              <GradientButton onClick={() => router.replace('/login')} className="px-6 py-2.5 rounded-full text-[14px] font-medium">
+              <GradientButton onClick={() => router.replace('/login')} className="px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
                 返回登录
               </GradientButton>
             </div>
@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
 
         {hasRecoverySession === true && !done && (
           <div className="pt-6">
-            <p className="text-[13px] text-v2-text-secondary mb-3">为你的账号设置新密码（至少 6 位）。</p>
+            <p className="text-[0.8125rem] text-v2-text-secondary mb-3">为你的账号设置新密码（至少 6 位）。</p>
             <label htmlFor="new-password" className="sr-only">新密码</label>
             <div className="relative mb-2">
               <input
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
                 aria-invalid={!!err}
                 aria-describedby={err ? 'new-password-error' : undefined}
-                className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[16px] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
+                className="w-full bg-white border border-neutral-line rounded-[16px] pl-4 pr-12 py-3.5 text-[1rem] text-v2-text-primary placeholder:text-neutral-mute outline-none focus:border-brand-primary transition-colors"
               />
               <button
                 type="button"
@@ -118,11 +118,11 @@ export default function ResetPasswordPage() {
                 {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {err && <p id="new-password-error" role="alert" className="text-[13px] text-error mt-1 mb-2 px-1">{err}</p>}
+            {err && <p id="new-password-error" role="alert" className="text-[0.8125rem] text-error mt-1 mb-2 px-1">{err}</p>}
             <GradientButton
               onClick={() => void handleSubmit()}
               disabled={submitting}
-              className="w-full h-[48px] mt-4 rounded-full text-[14px] font-medium"
+              className="w-full h-[48px] mt-4 rounded-full text-[0.875rem] font-medium"
             >
               {submitting ? '保存中…' : '保存新密码'}
             </GradientButton>
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
         )}
 
         {done && (
-          <p role="status" className="text-[14px] text-v2-text-primary text-center pt-16">
+          <p role="status" className="text-[0.875rem] text-v2-text-primary text-center pt-16">
             ✓ 密码已更新，正在返回登录…
           </p>
         )}

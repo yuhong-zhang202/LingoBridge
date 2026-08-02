@@ -46,7 +46,7 @@ function InfoTag({ text, letterSpacing }: { text: string; letterSpacing: number 
   return (
     <div className="flex-shrink-0" style={{ width: 56, height: 24, background: BRAND_GRADIENT_SOFT, borderRadius: 9999, padding: 1 }}>
       <div className="w-full h-full flex items-center justify-center bg-white rounded-full">
-        <span className="text-brand-primary-dark" style={{ fontSize: 11, fontWeight: 500, lineHeight: 1, letterSpacing }}>
+        <span className="text-brand-primary-dark" style={{ fontSize: '0.6875rem', fontWeight: 500, lineHeight: 1, letterSpacing }}>
           {text}
         </span>
       </div>
@@ -70,7 +70,7 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
   const box = isAi ? 'bg-tag-success-bg border border-tag-success-border' : 'bg-white border border-black/[0.07]'
   return (
     <div className={`relative rounded-[14px] px-3 py-2.5 ${box}`}>
-      <p className={`text-[14px] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${isLong && !expanded ? 'line-clamp-3' : ''}`}>
+      <p className={`text-[0.875rem] leading-relaxed pr-7 ${isAi ? 'text-v2-text-primary' : 'text-v2-text-secondary'} ${isLong && !expanded ? 'line-clamp-3' : ''}`}>
         {text}
       </p>
       {isLong && (
@@ -78,7 +78,7 @@ function SentenceBlock({ text, variant }: { text: string; variant: 'original' | 
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
           aria-expanded={expanded}
-          className="mt-1 min-h-[32px] text-[12px] font-medium text-brand-primary-dark active:opacity-60"
+          className="mt-1 min-h-[32px] text-[0.75rem] font-medium text-brand-primary-dark active:opacity-60"
         >
           {expanded ? '收起' : '查看更多'}
         </button>
@@ -165,8 +165,8 @@ export default function CollectedCard({
         {card.note && card.note.trim() && <ExplanationBlock note={card.note} />}
         {/* 卡尾显示关键词 + 日期（feedback 同款日期行） */}
         <div className="flex items-center justify-between mt-3">
-          <span className="text-[12px] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
-          <span className="text-[12px] text-v2-text-muted">{card.collectedAt}</span>
+          <span className="text-[0.75rem] text-v2-text-muted">{(card.keywords ?? []).join(' · ')}</span>
+          <span className="text-[0.75rem] text-v2-text-muted">{card.collectedAt}</span>
         </div>
       </div>
     </div>

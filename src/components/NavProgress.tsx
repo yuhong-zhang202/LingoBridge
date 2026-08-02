@@ -121,7 +121,7 @@ export function NavProgress(): ReactNode {
         className="pointer-events-none fixed inset-x-0 top-1/2 z-[100] flex justify-center px-6 transition-opacity duration-300"
         style={{ opacity: slowHint ? 1 : 0 }}
       >
-        <span className="rounded-full bg-white/95 px-4 py-2 text-[13px] text-v2-text-secondary shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-black/[0.05]">
+        <span className="rounded-full bg-white/95 px-4 py-2 text-[0.8125rem] text-v2-text-secondary shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-black/[0.05]">
           网络较慢，正在加载，请稍候…
         </span>
       </div>

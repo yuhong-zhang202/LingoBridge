@@ -29,9 +29,9 @@ function toSec(ms: number): string {
 function Cell({ label, main, sub }: { label: string; main: ReactNode; sub?: string }) {
   return (
     <div className="flex-1 px-4 py-3">
-      <div className="text-[11px] text-v2-text-muted mb-1">{label}</div>
+      <div className="text-[0.6875rem] text-v2-text-muted mb-1">{label}</div>
       {main}
-      {sub && <div className="text-[10px] text-v2-text-muted mt-0.5">{sub}</div>}
+      {sub && <div className="text-[0.625rem] text-v2-text-muted mt-0.5">{sub}</div>}
     </div>
   )
 }
@@ -76,7 +76,7 @@ export default function TodayStatusBar({
         main={
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${hasFailure ? 'bg-error' : 'bg-success'}`} />
-            <span className={`text-[18px] font-bold tabular-nums ${hasFailure ? 'text-error' : 'text-v2-text-primary'}`}>
+            <span className={`text-[1.125rem] font-bold tabular-nums ${hasFailure ? 'text-error' : 'text-v2-text-primary'}`}>
               {hasFailure ? `今日失败 ${status.todayFailures} 次` : '今日无失败'}
             </span>
           </div>
@@ -86,9 +86,9 @@ export default function TodayStatusBar({
       <Cell
         label="今日花费"
         main={
-          <div className={`text-[14px] font-semibold tabular-nums ${costWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
+          <div className={`text-[0.875rem] font-semibold tabular-nums ${costWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
             {formatCny(todayCost)}
-            {costWarn && <span className="ml-1.5 text-[11px] font-medium">偏高</span>}
+            {costWarn && <span className="ml-1.5 text-[0.6875rem] font-medium">偏高</span>}
           </div>
         }
         sub={`近 7 日日均 ${formatCny(status.avgDailyCost7)} · 日预算 ¥${dailyBudget}`}
@@ -96,9 +96,9 @@ export default function TodayStatusBar({
       <Cell
         label="最慢环节"
         main={
-          <div className={`text-[14px] font-semibold tabular-nums ${slowWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
+          <div className={`text-[0.875rem] font-semibold tabular-nums ${slowWarn ? 'text-warning-text' : 'text-v2-text-primary'}`}>
             {slow ? `${slow.name} P90 ${toSec(slow.p90)}s` : '暂无耗时数据'}
-            {slowWarn && <span className="ml-1.5 text-[11px] font-medium">超 {toSec(latencyWarnMs)}s</span>}
+            {slowWarn && <span className="ml-1.5 text-[0.6875rem] font-medium">超 {toSec(latencyWarnMs)}s</span>}
           </div>
         }
         sub={slow ? `P90 超 ${toSec(latencyWarnMs)}s 即标记` : undefined}

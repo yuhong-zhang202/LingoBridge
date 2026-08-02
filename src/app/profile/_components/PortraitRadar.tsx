@@ -126,7 +126,7 @@ export default function PortraitRadar({ values }: PortraitRadarProps): JSX.Eleme
             x={x}
             y={y}
             textAnchor={anchor}
-            fontSize={10}
+            fontSize="0.625rem"
             className="fill-v2-text-secondary"
             fontFamily="'Plus Jakarta Sans', 'PingFang SC', sans-serif"
             fontWeight={500}

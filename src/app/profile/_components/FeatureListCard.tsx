@@ -29,8 +29,8 @@ function RowBody({ Icon, label, badge }: { Icon: typeof Info; label: string; bad
   return (
     <>
       <Icon size={18} className="text-v2-text-secondary" />
-      <span className="flex-1 text-left text-[14px] text-v2-text-primary ml-3">{label}</span>
-      {badge && <span className="text-[12px] text-v2-text-muted mr-1.5">{badge}</span>}
+      <span className="flex-1 text-left text-[0.875rem] text-v2-text-primary ml-3">{label}</span>
+      {badge && <span className="text-[0.75rem] text-v2-text-muted mr-1.5">{badge}</span>}
       <ChevronRight size={15} className="text-v2-text-muted" />
     </>
   )
@@ -68,7 +68,7 @@ export default function FeatureListCard({ version, onLogout }: FeatureListCardPr
             className="w-full flex items-center px-[18px] py-[14px] border-t border-black/[0.05] text-error active:bg-bg-muted/40 transition-colors"
           >
             <LogOut size={16} className="text-error" />
-            <span className="flex-1 text-left text-[14px] ml-3">退出登录</span>
+            <span className="flex-1 text-left text-[0.875rem] ml-3">退出登录</span>
           </button>
         )}
       </Card>

@@ -63,7 +63,7 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   aria-pressed={activeTab === tab}
-                  className={`text-[13px] px-[18px] py-[7px] rounded-[8px] transition-colors ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                  className={`text-[0.8125rem] px-[18px] py-[7px] rounded-[8px] transition-colors ${activeTab === tab ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
                 >
                   {tab}
                 </button>

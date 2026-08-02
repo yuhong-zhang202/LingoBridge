@@ -32,7 +32,7 @@ export default function TopBar({
       {!isOnline && (
         <div className="flex items-center justify-center gap-1.5 py-2 bg-warning/15 text-warning-text">
           <WifiOff size={14} />
-          <span className="text-[12.5px] font-medium">你已离线，部分功能暂不可用</span>
+          <span className="text-[0.78125rem] font-medium">你已离线，部分功能暂不可用</span>
         </div>
       )}
 
@@ -50,7 +50,7 @@ export default function TopBar({
           )}
         </div>
         {title && (
-          <span className="absolute left-1/2 -translate-x-1/2 text-[16px] font-semibold text-v2-text-primary pointer-events-none lg:left-10 lg:translate-x-0 lg:text-[18px] lg:font-bold">
+          <span className="absolute left-1/2 -translate-x-1/2 text-[1rem] font-semibold text-v2-text-primary pointer-events-none lg:left-10 lg:translate-x-0 lg:text-[1.125rem] lg:font-bold">
             {title}
           </span>
         )}

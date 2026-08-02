@@ -90,7 +90,7 @@ export default function PracticeDesktop({
   if (phase === 'init') {
     return (
       <div className={`${STAGE} flex items-center justify-center px-8`}>
-        <p className="text-[13px] text-v2-text-muted">教练正在准备…</p>
+        <p className="text-[0.8125rem] text-v2-text-muted">教练正在准备…</p>
       </div>
     )
   }
@@ -118,9 +118,9 @@ export default function PracticeDesktop({
         {/* 题目条（舞台顶部安静 caption，样式对齐移动端题目条） */}
         <div className="shrink-0 pt-6 pb-3">
           <div className="flex items-center gap-2 bg-bg-page border border-black/[0.05] rounded-[8px] px-[11px] py-[6px]">
-            <span className="text-[11px] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
+            <span className="text-[0.6875rem] text-v2-text-muted flex-shrink-0">Part {scaffold?.part ?? 1}</span>
             <div className="w-px h-3 bg-black/10 flex-shrink-0" />
-            <span className="text-[12px] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
+            <span className="text-[0.75rem] font-medium text-v2-text-secondary flex-1 truncate min-w-0">
               {scaffold?.displayEn ?? '加载中…'}
             </span>
           </div>
@@ -153,7 +153,7 @@ export default function PracticeDesktop({
           {(phase === 'transcribing' || phase === 'queued') && <UserBubble text="…" avatarUrl={avatarUrl} />}
           {phase === 'replying' && <AiBubble text="…" />}
           {error && phase === 'idle' && (
-            <p className="text-center text-[12px] text-v2-text-muted mb-2">{error}</p>
+            <p className="text-center text-[0.75rem] text-v2-text-muted mb-2">{error}</p>
           )}
           <div ref={bottomRef} />
         </div>
@@ -168,10 +168,10 @@ export default function PracticeDesktop({
         <div className="shrink-0 border-t border-black/[0.05] pt-4 pb-6">
           {isCapped ? (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-[13px] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
+              <p className="text-[0.8125rem] text-v2-text-secondary">聊得很充分啦，这轮就到这里吧</p>
               <GradientButton
                 onClick={onEnd}
-                className="px-6 py-3 rounded-full text-[14px] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+                className="px-6 py-3 rounded-full text-[0.875rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
               >
                 查看反馈
               </GradientButton>
@@ -183,7 +183,7 @@ export default function PracticeDesktop({
           ) : (
             <>
               {nearLimit && (
-                <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[11px] leading-[1.4] text-warning-text">
+                <div className="flex items-start gap-1.5 mb-2.5 px-1 text-[0.6875rem] leading-[1.4] text-warning-text">
                   <Clock size={13} className="flex-shrink-0 mt-px" />
                   <span>{capHint}</span>
                 </div>
@@ -191,7 +191,7 @@ export default function PracticeDesktop({
 
               {/* 排队自动重试安抚微文案：明确「不用重说」，别让用户以为卡死 */}
               {phase === 'queued' && (
-                <p className="mb-2.5 px-1 text-[11px] leading-[1.4] text-v2-text-muted">
+                <p className="mb-2.5 px-1 text-[0.6875rem] leading-[1.4] text-v2-text-muted">
                   现在人有点多，正在为你自动重试，不用重说，通常几秒就好
                 </p>
               )}
@@ -220,7 +220,7 @@ export default function PracticeDesktop({
                       <X size={19} />
                     </button>
                     <div className="contents" aria-hidden="true"><VoiceBar audioLevel={audioLevel} /></div>
-                    <span className={`text-[12px] font-medium flex-shrink-0 min-w-[28px] text-right tabular-nums ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
+                    <span className={`text-[0.75rem] font-medium flex-shrink-0 min-w-[28px] text-right tabular-nums ${nearLimit ? 'text-warning-text' : 'text-v2-text-muted'}`}>
                       {recTime}
                     </span>
                     <button
@@ -242,19 +242,19 @@ export default function PracticeDesktop({
                     {phase === 'transcribing' || phase === 'queued'
                       ? <Loader2 size={19} className="text-brand-primary animate-spin" />
                       : <Mic size={19} className="text-brand-primary" />}
-                    <span className="text-[14px] font-medium text-v2-text-secondary">{micLabel}</span>
+                    <span className="text-[0.875rem] font-medium text-v2-text-secondary">{micLabel}</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setConfirmEnd(true)}
-                  className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[13px] text-v2-text-muted active:scale-[0.97] transition-transform hover:-translate-y-[1px]"
+                  className="flex-shrink-0 rounded-full border border-black/[0.12] px-4 py-2 text-[0.8125rem] text-v2-text-muted active:scale-[0.97] transition-transform hover:-translate-y-[1px]"
                 >
                   结束
                 </button>
               </div>
 
-              <p className="mt-3 text-center text-[12px] text-v2-text-muted">Space 说话 / 发送 · Esc 取消</p>
+              <p className="mt-3 text-center text-[0.75rem] text-v2-text-muted">Space 说话 / 发送 · Esc 取消</p>
             </>
           )}
         </div>

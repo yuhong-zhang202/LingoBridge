@@ -66,10 +66,10 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
           <X size={16} />
         </button>
 
-        <h2 id="practice-intro-title" className="text-[16px] font-semibold text-v2-text-primary pr-8">
+        <h2 id="practice-intro-title" className="text-[1rem] font-semibold text-v2-text-primary pr-8">
           聊之前，先认识两个小帮手
         </h2>
-        <p className="text-[13px] text-v2-text-secondary mt-1.5">
+        <p className="text-[0.8125rem] text-v2-text-secondary mt-1.5">
           都在你说过的话上操作，随时能用
         </p>
 
@@ -80,8 +80,8 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
               <Sparkles size={16} className="text-brand-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-v2-text-primary">换个说法</p>
-              <p className="text-[12px] text-v2-text-secondary leading-relaxed mt-0.5">
+              <p className="text-[0.875rem] font-semibold text-v2-text-primary">换个说法</p>
+              <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed mt-0.5">
                 点你说过的那句话左上角的 ✨，教练给你一版更地道的说法。
               </p>
             </div>
@@ -93,8 +93,8 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
               <AudioLines size={16} className="text-brand-accent" />
             </div>
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-v2-text-primary">发音纠错</p>
-              <p className="text-[12px] text-v2-text-secondary leading-relaxed mt-0.5">
+              <p className="text-[0.875rem] font-semibold text-v2-text-primary">发音纠错</p>
+              <p className="text-[0.75rem] text-v2-text-secondary leading-relaxed mt-0.5">
                 单词被听错了？点它，填上你真正想说的词，记下来专门练。
               </p>
             </div>
@@ -102,13 +102,13 @@ export default function PracticeIntroDialog({ open, onClose }: PracticeIntroDial
         </div>
 
         {/* 两功能的联动提示：先纠发音、再换说法，优化时会用你真正想说的词，不误判成错误 */}
-        <p className="text-[11px] text-v2-text-muted leading-relaxed mt-4 px-0.5">
+        <p className="text-[0.6875rem] text-v2-text-muted leading-relaxed mt-4 px-0.5">
           小技巧：先把听错的词纠正，再点 ✨ 换个说法——它会按你<span className="text-v2-text-secondary">真正想说的词</span>来优化，不会把听错的词当成语法或用词错误。
         </p>
 
         <GradientButton
           onClick={onClose}
-          className="w-full mt-6 px-6 py-3 rounded-full text-[14px] font-medium"
+          className="w-full mt-6 px-6 py-3 rounded-full text-[0.875rem] font-medium"
         >
           开始练习
         </GradientButton>

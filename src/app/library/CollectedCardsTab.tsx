@@ -96,15 +96,15 @@ export default function CollectedCardsTab({ cards, toolbarSlotRef, onSelectingCh
           <IconButton icon={Trash2} label="选择" onClick={sel.enterSelecting} />
         ) : (
           <div className="flex items-center gap-4">
-            <button onClick={sel.exitSelecting} className="text-[13px] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
-            <span className="text-[13px] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
-            <button onClick={sel.toggleSelectAll} className="text-[13px] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
+            <button onClick={sel.exitSelecting} className="text-[0.8125rem] text-v2-text-muted hover:text-v2-text-primary transition-colors">取消</button>
+            <span className="text-[0.8125rem] text-v2-text-muted">已选 {sel.selectedCount} 项</span>
+            <button onClick={sel.toggleSelectAll} className="text-[0.8125rem] text-v2-text-secondary hover:text-v2-text-primary transition-colors">
               {sel.allSelected ? '取消全选' : '全选'}
             </button>
             <button
               onClick={sel.deleteSelected}
               disabled={sel.selectedCount === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[0.8125rem] font-medium text-white bg-error active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={14} />删除 ({sel.selectedCount})
             </button>

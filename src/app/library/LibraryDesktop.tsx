@@ -144,7 +144,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         <Card variant="gradient" className="px-[26px] py-[22px] mb-4">
           {/* 标题行（Link 外：HeroHelpTip 是可点气泡，嵌 Link 内是交互嵌套） */}
           <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
+            <h2 className="text-[1.25rem] font-bold text-v2-text-primary tracking-[-0.2px]">题库速览</h2>
             <Tag label="当季·新" variant="green" />
             <HeroHelpTip text={HERO_HELP_TEXT} />
           </div>
@@ -176,10 +176,10 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                   className="absolute w-[78px] h-[102px] rounded-[14px] bg-bg-surface flex flex-col items-center justify-center overflow-hidden px-2"
                   style={{ boxShadow: DECK_SHADOW, top: 9, left: 9, transform: 'rotate(-2deg)' }}
                 >
-                  <span className="text-[10px] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
+                  <span className="text-[0.625rem] font-bold text-brand-primary-dark">Part {ankiSample?.part ?? 1}</span>
                   <div className="w-[26px] h-[3px] rounded-full my-1" style={{ background: BRAND_GRADIENT }} />
                   <span
-                    className="text-[10px] leading-tight text-v2-text-secondary text-center break-words"
+                    className="text-[0.625rem] leading-tight text-v2-text-secondary text-center break-words"
                     style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                   >
                     {ankiSample?.text ?? '当季题卡'}
@@ -191,18 +191,18 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
               <div className="flex-1 min-w-0">
                 {/* 计数：真实当季张数；匿名不显「待复习」段（due 队列只含已答卡，匿名恒空）；
                     0 / 取数失败退通用文案不带 0（当季恒有题，绝不显「暂无」） */}
-                <p className="text-[12px] text-v2-text-muted">
+                <p className="text-[0.75rem] text-v2-text-muted">
                   {ankiLoading
                     ? '加载中…'
                     : ankiHasCards
                       ? isAnon
                         ? <>当季 {ankiSeasonCount} 张</>
-                        : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[15px]">{ankiDueCount}</span> 张</>
+                        : <>当季 {ankiSeasonCount} 张 · 待复习 <span className="text-brand-primary-dark font-bold text-[0.9375rem]">{ankiDueCount}</span> 张</>
                       : HERO_EMPTY_FALLBACK}
                 </p>
                 {/* 说明文案（紧跟计数行、Hero 卡内）：入口是什么 + 结对价值；操作指引在标题旁问号气泡 */}
-                <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
-                <p className="text-[13px] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
+                <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-3">{HERO_TITLE_DESC}</p>
+                <p className="text-[0.8125rem] text-v2-text-secondary leading-relaxed mt-2">{HERO_PAIR_DESC}</p>
               </div>
             </ProgressLink>
 
@@ -210,7 +210,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
             <div className="flex flex-col items-stretch flex-shrink-0">
               <ProgressLink
                 href="/anki/review"
-                className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[14px] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
+                className="inline-flex items-center justify-center gap-[3px] min-h-[44px] rounded-full px-6 py-3 text-[0.875rem] font-medium active:scale-[0.97] transition-transform focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2"
                 style={GRADIENT_BORDER_STYLE}
               >
                 <span className="text-v2-text-secondary">开始刷题卡</span>
@@ -224,15 +224,15 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         <ProgressLink href="/review" className="block focus-visible:outline-2 focus-visible:outline-brand-primary focus-visible:outline-offset-2">
           <Card variant="gradient" className="px-[22px] py-[18px] flex items-center gap-5 active:scale-[0.99] transition-transform">
             <div className="flex-1 min-w-0">
-              <span className="text-[12px] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>
-              <p className="text-[17px] font-bold text-v2-text-primary mt-1">
+              <span className="text-[0.75rem] font-semibold text-brand-primary-dark">今日复习 · 词组闪卡</span>
+              <p className="text-[1.0625rem] font-bold text-v2-text-primary mt-1">
                 {dueCount > 0
                   ? <><span className="text-brand-primary-dark">{dueCount}</span> 张词卡，等你翻一翻</>
                   : '今天没有要复习的卡'}
               </p>
-              <p className="text-[13px] text-v2-text-secondary mt-1">把收藏的词组记牢——一天几张，不费劲。</p>
+              <p className="text-[0.8125rem] text-v2-text-secondary mt-1">把收藏的词组记牢——一天几张，不费劲。</p>
             </div>
-            <span className="inline-flex items-center gap-[3px] rounded-full px-5 py-2.5 text-[14px] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
+            <span className="inline-flex items-center gap-[3px] rounded-full px-5 py-2.5 text-[0.875rem] font-medium flex-shrink-0" style={GRADIENT_BORDER_STYLE}>
               <span className="text-v2-text-secondary">开始复习</span>
               <span className="text-brand-primary-dark">›</span>
             </span>
@@ -247,15 +247,15 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
                 key={t.id}
                 onClick={() => selectTab(t.id)}
                 aria-pressed={tab === t.id}
-                className={`flex items-center gap-1.5 text-[13px] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
+                className={`flex items-center gap-1.5 text-[0.8125rem] px-[16px] py-[7px] rounded-[8px] whitespace-nowrap transition-colors ${tab === t.id ? 'bg-white text-v2-text-primary font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-v2-text-muted font-medium'}`}
               >
                 {t.label}
                 {searching && t.id === tab && activeCounts ? (
-                  <span className="text-[12px] text-v2-text-secondary">
+                  <span className="text-[0.75rem] text-v2-text-secondary">
                     {activeCounts.matched}<span className="text-v2-text-muted">/{activeCounts.total}</span>
                   </span>
                 ) : (
-                  <span className="text-[12px] text-v2-text-muted">{t.count}</span>
+                  <span className="text-[0.75rem] text-v2-text-muted">{t.count}</span>
                 )}
               </button>
             ))}
