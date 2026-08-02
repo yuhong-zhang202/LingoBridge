@@ -9,6 +9,12 @@
  *
  * 注意：src/lib/llm.ts 含 `import 'server-only'`，该包在 Next.js 之外会无条件抛错，
  * 因此本脚本直接内联同等的 DashScope HTTP 调用逻辑，不 import callLLMJson。
+ *
+ * 2026-08-03：读库由「anon key + signInAnonymously()」改为 service_role 直连。
+ * 本脚本纯读、不验证 RLS 语义，此前的匿名登录只为拿一个 authenticated 角色，
+ * 却让每次运行都在生产 auth.users 里留下一个与真实用户无法区分的匿名账号
+ * （污染匿名用户数/漏斗统计）。改后【一个账号都不建】。
+ * 需要的环境变量随之从 NEXT_PUBLIC_SUPABASE_ANON_KEY 改为 SUPABASE_SERVICE_ROLE_KEY。
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -241,18 +247,20 @@ async function main(): Promise<void> {
   console.log('═'.repeat(64))
 
   // ── Step 1: Supabase 读取 ─────────────────────────────────────────────────
+  // 用 service_role 直连（绕 RLS 只读 questions），【不再 signInAnonymously】：
+  // 本脚本纯读、且不验证任何 RLS 语义，此前的匿名登录只是为了拿一个 authenticated 角色，
+  // 代价却是每跑一次就在生产 auth.users 里留下一个与真实用户无法区分的匿名账号。
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('缺少 NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 环境变量')
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('缺少 NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 环境变量')
   }
 
-  const sb: SupabaseClient = createClient(supabaseUrl, supabaseKey)
-
-  console.log('\n[Step 1] 匿名登录…')
-  const { error: authErr } = await sb.auth.signInAnonymously()
-  if (authErr) throw new Error(`匿名登录失败：${authErr.message}`)
-  console.log('  ✅ 登录成功')
+  const sb: SupabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  console.log('\n[Step 1] 连接 Supabase（service_role，只读）…')
+  console.log('  ✅ 已连接')
 
   console.log('\n[Step 2] 读取 Part 1 / question_text_zh 非 null 的题目…')
   const { data: rows, error: fetchErr } = await sb
