@@ -334,6 +334,10 @@ export interface PolishResult {
   // 失败/额度态标记：note 承载的是「没能生成/额度已满/网络不稳」这类失败消息，而非「句子已够好」。
   // 与 needsWork=false（句子够好）区分，供 UI 决定是否配成功勾——失败态绝不配绿 ✓。缺省 undefined = 非失败。
   failed?: boolean
+  // 该失败是否值得重试：瞬时故障（解析失败 fallback / 网络抖动）置 true，UI 才给「再试一次」；
+  // 额度类（429 当日上限）一律不设 = false —— 重试必然再失败，给按钮等于骗用户。
+  // ⚠️ 只认这个布尔量，绝不用 note 字符串匹配判可重试：note 是模型/服务端可变文案（429 的甚至来自 body.error）。
+  retryable?: boolean
 }
 
 // ── practice 对话 ──

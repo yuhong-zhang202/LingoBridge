@@ -29,7 +29,7 @@ export default function PracticeMobile({
   scaffold, messages, phase, error, showPolish, polishLoading, polishResult, capture, audioLevel,
   recTime, nearLimit, micLabel, capHint, isCapped,
   popupRef, orbRef, bottomRef, pronounceRef,
-  onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
+  onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onRetryPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
   onRetryTranscribe,
   onRetryReply, replyFailAttempt,
@@ -112,6 +112,7 @@ export default function PracticeMobile({
           result={polishResult}
           onClose={onClosePolish}
           popupRef={popupRef}
+          onRetry={onRetryPolish}
         />
       )}
 

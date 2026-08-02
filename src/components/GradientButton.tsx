@@ -19,6 +19,8 @@ interface GradientButtonProps {
   className?: string
   /** 传了就渲染成 Next <Link>（支持 Cmd+click 新开），共用同一套皮肤；disabled/loading/onClick 属 button 语义，链接形态不适用 */
   href?: string
+  /** 无障碍名称覆盖：按钮文字过短、语境靠上下文时补全（如「再试一次」→「重新生成优化建议」）。不传则用可见文字 */
+  'aria-label'?: string
 }
 
 /**
@@ -29,8 +31,9 @@ interface GradientButtonProps {
  * @param loading   请求中：自动禁用 + 显示 spinner + 吞掉重复 onClick（不传时行为与原来完全一致，button 形态）
  * @param className 尺寸/形状/宽度/字号/布局等（如 w-full px-6 py-3 rounded-full text-[0.875rem] font-medium）
  * @param href      传入则渲染为 <Link>（如「回首页」需 Cmd+click 新开），皮肤/文字色/active 回弹与 button 形态一致
+ * @param ariaLabel 无障碍名称覆盖（可选），两形态都透传
  */
-export default function GradientButton({ children, onClick, disabled, loading = false, className, href }: GradientButtonProps) {
+export default function GradientButton({ children, onClick, disabled, loading = false, className, href, 'aria-label': ariaLabel }: GradientButtonProps) {
   // button 与 link 两形态共用：皮肤 className + 内容（loading 时套 spinner）
   const classes = cn(
     'text-v2-text-secondary transition-transform duration-150 active:scale-[0.97] disabled:opacity-50',
@@ -47,7 +50,7 @@ export default function GradientButton({ children, onClick, disabled, loading = 
   // 链接形态：渲染 Next <Link>，支持 Cmd+click 新开；不承载 button 的 disabled/loading/onClick 语义
   if (href) {
     return (
-      <Link href={href} style={GRADIENT_BORDER_STYLE} className={classes}>
+      <Link href={href} aria-label={ariaLabel} style={GRADIENT_BORDER_STYLE} className={classes}>
         {content}
       </Link>
     )
@@ -57,6 +60,7 @@ export default function GradientButton({ children, onClick, disabled, loading = 
     <button
       onClick={loading ? undefined : onClick}
       disabled={disabled || loading}
+      aria-label={ariaLabel}
       aria-busy={loading}
       style={GRADIENT_BORDER_STYLE}
       className={classes}

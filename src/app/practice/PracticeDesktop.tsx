@@ -34,7 +34,7 @@ export default function PracticeDesktop({
   scaffold, messages, phase, error, showPolish, polishLoading, polishResult, capture, audioLevel,
   recTime, nearLimit, micLabel, capHint, isCapped,
   popupRef, orbRef, bottomRef, pronounceRef,
-  onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onReopenPolish, onClosePolish,
+  onStartRecord, onCancelRecord, onSend, onWordTap, onPolish, onRetryPolish, onReopenPolish, onClosePolish,
   onSavePronunciation, onCloseCapture, onEnd, onRetry,
   onRetryTranscribe,
   onRetryReply, replyFailAttempt,
@@ -161,7 +161,7 @@ export default function PracticeDesktop({
         {/* 遮罩 + 换个说法弹窗（desktop 变体：absolute 收进本列，宽度与对话气泡对齐） */}
         {showPolish && <div className="fixed inset-0 z-[19]" onClick={onClosePolish} />}
         {showPolish && (
-          <RephrasePopup loading={polishLoading} result={polishResult} onClose={onClosePolish} popupRef={popupRef} variant="desktop" />
+          <RephrasePopup loading={polishLoading} result={polishResult} onClose={onClosePolish} popupRef={popupRef} onRetry={onRetryPolish} variant="desktop" />
         )}
 
         {/* 输入区：flex 钉底（不 fixed），随 600px 列居中 */}

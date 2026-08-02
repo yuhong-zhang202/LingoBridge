@@ -131,6 +131,8 @@ function PracticeContent(): JSX.Element {
   scaffoldRef.current = scaffold
   // 打破 scheduleRetry ↔ runTranscribeAttempt 的相互引用：scheduleRetry 经此 ref 调最新的重试函数
   const runTranscribeAttemptRef = useRef<() => void>(() => {})
+  // 上次优化请求的入参，供失败态「再试一次」原样重发（详见 handlePolish 首行注释）
+  const lastPolishArgsRef = useRef<[string, string | undefined] | null>(null)
 
   /** 清掉待触发的重试计时器（卸载 / 结束 / 取消录音 / 提交文字时都要清，防泄漏与错发） */
   const clearRetryTimer = useCallback(() => {
@@ -342,6 +344,9 @@ function PracticeContent(): JSX.Element {
   }, [clearRetryTimer, runTranscribeAttempt])
 
   const handlePolish = useCallback(async (sentence: string, aiQuestion?: string) => {
+    // 失败态「再试一次」要逐字重发同一次请求：sentence 已是 applyPronunciationFixes 处理过的串，
+    // 存这个（而非原始气泡文本）才能复现同一次调用。用 ref 不用 state —— 只在重试时读一次，进 state 会触发无谓重渲。
+    lastPolishArgsRef.current = [sentence, aiQuestion]
     setShowPolish(true)
     setPolishResult(null)
     setPolishLoading(true)
@@ -358,6 +363,7 @@ function PracticeContent(): JSX.Element {
       if (res.status === 402) { setShowPolish(false); setQuotaVariant('trial'); return }
       if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null
+        // 不设 retryable：当日额度已用尽，重试必然再撞 429，给「再试一次」等于骗用户。
         setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试', failed: true })
         return
       }
@@ -376,7 +382,7 @@ function PracticeContent(): JSX.Element {
     } catch {
       // 到此只剩瞬时网络/服务故障（额度已在上面按 402/429 分流）。诊断官+latency 取证：生产超时 0 次，
       // 故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
-      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true })
+      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
     } finally {
       setPolishLoading(false)
     }
@@ -384,6 +390,16 @@ function PracticeContent(): JSX.Element {
   }, [scaffold, router])
   // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
   const [runPolish] = useAsyncAction(handlePolish)
+
+  /** 优化失败态「再试一次」：用上次同一组参数原地重发（弹窗不关，自动切回「优化中…」）。 */
+  const onRetryPolish = useCallback(() => {
+    const args = lastPolishArgsRef.current
+    if (!args) return
+    // 按钮会随 loading 分支被卸载、焦点掉回 body；先把焦点收到弹窗根容器（tabIndex=-1），读屏用户不掉线
+    popupRef.current?.focus()
+    // 必须走 runPolish（useAsyncAction 包装）而非裸 handlePolish —— 防重入靠它的单 ref 守卫
+    void runPolish(...args)
+  }, [runPolish])
 
   // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"异步落库；成功后失效缓存供素材库读到最新
   const handleSavePronunciation = useCallback((intended: string) => {
@@ -512,6 +528,7 @@ function PracticeContent(): JSX.Element {
     replyFailAttempt,
     onWordTap,
     onPolish,
+    onRetryPolish,
     onReopenPolish: () => { if (polishResult) setShowPolish(true) },
     onClosePolish: () => setShowPolish(false),
     onSavePronunciation: handleSavePronunciation,

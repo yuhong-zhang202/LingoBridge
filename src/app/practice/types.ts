@@ -67,6 +67,8 @@ export interface PracticeViewProps {
   replyFailAttempt?: number
   onWordTap: (word: string, content: string, index: number) => void
   onPolish: (content: string, index: number) => void
+  /** 优化失败态「再试一次」：用上次同一组参数原地重发（弹窗不关，自动切回「优化中…」）；额度类失败不给按钮 */
+  onRetryPolish: () => void
   onReopenPolish: () => void
   onClosePolish: () => void
   onSavePronunciation: (intended: string) => void
