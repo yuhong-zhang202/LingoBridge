@@ -1,7 +1,8 @@
 /**
  * @module   ManageHeader
- * @desc     管理页（题库/素材库/我的）统一页头 —— 面包屑行（首页 › 当前页 + 右侧工具位）+ 标题行（H1 + 右侧插槽）。
- *           配合 MANAGE_CONTAINER 容器，使三页页头密度/对齐一致。对齐 lingobridge-questionbank-c (v3)。
+ * @desc     管理页（题库/素材库）统一页头 —— 面包屑行（首页 › 当前页 + 右侧工具位）+ 标题行（H1 + 右侧插槽）。
+ *           「我的」(profile) 页不用本组件、只共用下方 MANAGE_CONTAINER 容器常量，自行拼页头；
+ *           三页靠同一容器保持密度/对齐一致。对齐 lingobridge-questionbank-c (v3)。
  * @author   LingoBridge
  * @created  2026-06-30
  */
