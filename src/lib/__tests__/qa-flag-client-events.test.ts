@@ -4,7 +4,9 @@
  *           【不 mock api-client】：track → apiFetch → fetch 全走真实实现、只把最外层 fetch 打桩，
  *           这样验的是真实请求形态（URL / 方法 / 头 / body / keepalive），而不是几个 mock 的自洽。
  *           守卫四条：
- *             A) ?qa=<token> 写入、?qa=0 清除、无参数不动（标记只能显式开关，不会被普通导航冲掉）；
+ *             A) ?qa=<token> 写入、?qa=0 清除、无参数不动（标记只能显式开关，不会被普通导航冲掉），
+ *                且写入/读出两处都过【形态】白名单 —— 非 ASCII/含换行的值会让 Headers 构造抛错、
+ *                使受害者全站 API 永久发不出请求（形态校验在客户端，语义校验仍在服务端）；
  *             B) 无 session 时一个请求都不发（全新访客首页无 session，否则一串 401 噪音）；
  *             C) 有标记时请求头带 X-QA-Traffic —— 漏斗末级 flow.corpus_bound 全靠它才标得上 QA；
  *             D) fire-and-forget：数字取整、undefined 丢弃、fetch 抛错不外溢到调用方。
@@ -68,7 +70,7 @@ afterEach(() => {
 })
 
 describe('A) qa-flag —— 标记只能显式开关', () => {
-  test('?qa=<token> 原样写入本地（客户端不校验，判定权在服务端）', () => {
+  test('?qa=<合法形态 token> 写入本地（是否有效仍由服务端判）', () => {
     setup('?qa=s3cret-token', 'tok')
     syncQaFlagFromUrl()
     expect(qaToken()).toBe('s3cret-token')
@@ -93,6 +95,23 @@ describe('A) qa-flag —— 标记只能显式开关', () => {
   test('?qa=（空值）→ 不写也不清', () => {
     setup('?qa=', 'tok')
     syncQaFlagFromUrl()
+    expect(qaToken()).toBeNull()
+  })
+
+  // 形态白名单（客户端自保，非语义校验）：这些值一旦进了 X-QA-Traffic 头，浏览器构造 Headers 就抛
+  // TypeError → 受害者的每个 API 请求都发不出去，且本模块不自动过期 = 永久瘫痪。一条链接即可触发。
+  test.each(['中', '中文token', 'a\nb', 'a b', 'x'.repeat(65), 'tok%0d%0aX-Evil:1'])(
+    '?qa=%s（非法形态）→ 一个字都不写',
+    (bad) => {
+      setup(`?qa=${bad}`, 'tok')
+      syncQaFlagFromUrl()
+      expect(qaToken()).toBeNull()
+    },
+  )
+
+  test('本次修复前写进 localStorage 的历史脏值 → 读出口也当没有标记', () => {
+    setup('', 'tok')
+    localStorage.setItem('lingobridge:qa', '中')
     expect(qaToken()).toBeNull()
   })
 })
