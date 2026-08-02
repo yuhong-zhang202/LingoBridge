@@ -101,6 +101,11 @@ export const env = {
    * ⚠️ fail-closed：本值未配置（空串）时，任何请求头都不该匹配 —— 比对方必须先判空，
    *    绝不能写出 `header === env.qaTrafficToken` 在两边都为空/undefined 时判真的形态，
    *    否则「没配 token」会变成「全站流量都被标成 QA」，统计整段作废。
+   *
+   * 【为什么 trim】2026-08-02 实测踩过：配置值尾随一个空格 → 服务端 configured 带空格，
+   * 而 HTTP 规范会剥掉请求头值的首尾空白（客户端发什么都收到无空格版），严格 === 必然不匹配。
+   * 表现是【完全静默】：角标照亮、请求头照带、is_qa 恒 false，自测流量全量混进真实基线，
+   * 没有任何报错或日志能提示。控制台粘贴环境变量时多一个空格是极常见的手误，故在此收口。
    */
-  qaTrafficToken: process.env.QA_TRAFFIC_TOKEN ?? '',
+  qaTrafficToken: (process.env.QA_TRAFFIC_TOKEN ?? '').trim(),
 }
