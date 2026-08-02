@@ -13,11 +13,15 @@
  * 内测数据处理说明 / 同意披露的版本号：措辞实质变更时 +1。
  * 兼作 consent_records.consent_version 与同意闸 localStorage 缓存 key 的唯一版本源（别再手维两套）。
  * v2（2026-07-18）：新增「人读披露」句（内部人员可能阅读故事内容）——属实质新增，bump 后老用户重弹重签。
+ * v3（2026-08-03）：新增「使用行为统计」披露。此前披露通篇只讲「内容发给第三方 AI」，
+ *   一字未提我们还记录使用行为（flow_events 带 user_id，按 PIPL 属个人信息处理）；
+ *   2026-08-02 那批把埋点事件从 4 类扩到 10 类、首次覆盖到「开口之前」的整段行为，据实补上。
+ *   属实质新增 → bump → 老用户重弹重签（缓存 key 含版本号，v2 缓存自然失效，无需手动清）。
  */
-export const BETA_PRIVACY_VERSION = 2
+export const BETA_PRIVACY_VERSION = 3
 
 /** 本版说明的最后更新日期 'YYYY-MM-DD' */
-export const BETA_PRIVACY_UPDATED_AT = '2026-07-18'
+export const BETA_PRIVACY_UPDATED_AT = '2026-08-03'
 
 /**
  * 服务商措辞常量 —— 唯一真源。
@@ -38,6 +42,22 @@ export const PRIVACY_VENDOR = {
 export const PRIVACY_HUMAN_READ_DISCLOSURE =
   '为改进产品与建立评测基准，我方内部人员可能阅读你的故事内容。'
 
+/**
+ * 使用行为统计披露句（v3 新增）—— 诚实告知：我们记录不含内容的使用行为。
+ *
+ * 【为什么必须补】此前披露只讲「内容会发给第三方 AI」，完全没提我们还在记录使用行为；
+ * 而 flow_events 每行都带 user_id，按 PIPL 属个人信息处理。2026-08-02 那批把事件从 4 类
+ * 扩到 10 类、并首次覆盖到「用户开口之前」的整段行为（点了哪个入口、麦克风授权结果、
+ * 采集开始/提交结局/中途放弃、AI 调用成败与耗时），据实补上。
+ *
+ * 【措辞的两条硬要求】① 举的例子必须是我们真的在记的（别写没记的东西充数）；
+ * ② 必须明写「不包含你说的话或写的文字」——这是 props 白名单机制的用户侧承诺，
+ *    对应 api/events 的 sanitize（只放行枚举/整数/布尔，任何自由文本字段一律不设）。
+ *    这条边界一旦在代码里被破坏，这句披露就成了假话，所以两边要互相引着看。
+ */
+export const PRIVACY_USAGE_ANALYTICS_DISCLOSURE =
+  '为了解产品哪一步不好用，我们会记录不含内容的使用行为，例如点了哪个入口、录音持续了多久、某一步是成功还是失败。这些记录不包含你说的话或写的文字。'
+
 /** 首次同意弹窗标题（唯一真源，同时进 scope_snapshot 快照） */
 export const CONSENT_POPUP_TITLE = '开始前，关于你的隐私'
 
@@ -49,6 +69,7 @@ export const CONSENT_POPUP_TITLE = '开始前，关于你的隐私'
 export const CONSENT_POPUP_DISCLOSURE: readonly string[] = [
   `为了把你说的话转成文字、并生成题目和练习反馈，你的录音与文字会发送给第三方 AI 服务处理——语音转写用${PRIVACY_VENDOR.voice}，内容分析用${PRIVACY_VENDOR.text}。仅用于练习功能，不出售你的数据。我们会将内部的 AI 分析日志保留 30 天用于改进产品，到期自动删除。`,
   PRIVACY_HUMAN_READ_DISCLOSURE,
+  PRIVACY_USAGE_ANALYTICS_DISCLOSURE,
 ]
 
 /**
@@ -91,6 +112,15 @@ export const BETA_PRIVACY_SECTIONS: BetaPrivacySection[] = [
     // v2 新增：人读披露（诚实告知内部人员可能阅读故事内容）。留存那节按台账 094 一字不动。
     heading: '谁会阅读你的内容',
     paragraphs: [PRIVACY_HUMAN_READ_DISCLOSURE],
+  },
+  {
+    // v3 新增：使用行为统计披露。上面两节讲的是「内容去了哪、谁会读」，这节讲「我们还记了什么」。
+    heading: '我们记录哪些使用行为',
+    paragraphs: [
+      PRIVACY_USAGE_ANALYTICS_DISCLOSURE,
+      '记录的都是状态与数字，比如某个按钮有没有被点、录音持续了多少秒、输入了多少个字、某次处理是成功还是失败、失败的原因属于哪一类。',
+      '这些记录里不会出现你的故事原文、语音转写的内容，也不会出现你输入的文字。',
+    ],
   },
   {
     heading: '数据保留多久',
