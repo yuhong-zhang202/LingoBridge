@@ -41,9 +41,10 @@ const PRACTICE_TURN_LIMIT = 8
  * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
  * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
  */
-type AiResult = 'ok' | 'consent_403' | 'quota_402' | 'rate_429' | 'bad_input_400' | 'server_5xx' | 'other' | 'network'
+type AiResult = 'ok' | 'consent_403' | 'quota_402' | 'rate_429' | 'bad_input_400' | 'auth_401' | 'server_5xx' | 'other' | 'network'
 
-/** storyId 入库前的 UUID 校验（同 api/events、api/questions 口径）：非 UUID 深链脏值绝不写进 story_id */
+/** storyId 入库前的 UUID 校验（同 api/questions 口径；埋点侧的同款校验收口在 lib/events.logEvent）：
+ *  非 UUID 深链脏值绝不写进 story_id */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // ——— 转写 503（ASR 并发闸「人多」）自动重试参数 ———
@@ -386,9 +387,29 @@ function PracticeContent(): JSX.Element {
         setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试', failed: true })
         return
       }
+      // ——— 确定性失败（400/401）与瞬时失败（5xx/网络）分家 ———
+      // 这两类【不能 throw 进 catch】：catch 一律给 retryable:true，而同一份输入重发必然再撞同一个 400，
+      // 用户点「再试一次」只会永远转圈（生产实测：练习页传给 polish 的是整条气泡、无截断，
+      // 转写文本 p90=620 字符、14.7% 超 500 → 长回答点「换个说法」必吃 400）。与 429 同档处理。
+      if (res.status === 400) {
+        // 400 要透出服务端的真实原因（如「句子过长，请精简后再试」），显示「网络不太稳」是误导：
+        // 用户会以为是信号问题、反复重试，而真正该做的是把这句说短一点。
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        reportAi('bad_input_400', 400)
+        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '这句暂时没法优化，换句短一点的试试', failed: true })
+        return
+      }
+      if (res.status === 401) {
+        // 401 = 会话失效（重试同样会 401）。只给中性文案，绝不回显服务端原始错误（可能含鉴权细节）。
+        reportAi('auth_401', 401)
+        setPolishResult({ needsWork: false, optimized: '', note: '登录状态已失效，请重新登录后再试', failed: true })
+        return
+      }
       if (!res.ok) {
-        reportAi(res.status >= 500 ? 'server_5xx' : res.status === 400 ? 'bad_input_400' : 'other', res.status)
-        throw new Error('优化失败')
+        // 5xx / 其余未知状态：属瞬时故障，保留「再试一次」（与 catch 的网络分支同档）
+        reportAi(res.status >= 500 ? 'server_5xx' : 'other', res.status)
+        setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
+        return
       }
       const data = (await res.json()) as PolishResult
       reportAi('ok', 200)
@@ -403,8 +424,9 @@ function PracticeContent(): JSX.Element {
         }])
       }
     } catch {
-      // 到此只剩瞬时网络/服务故障（额度已在上面按 402/429 分流）。诊断官+latency 取证：生产超时 0 次，
-      // 故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
+      // 到此只剩【真·网络 reject】：非 2xx 一律在上面按状态码分流后 return，不再 throw 进这里
+      // （否则确定性的 400/401 会被误标成 network、并拿到不该给的「再试一次」）。
+      // 诊断官+latency 取证：生产超时 0 次，故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
       reportAi('network', 0)
       setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
     } finally {
