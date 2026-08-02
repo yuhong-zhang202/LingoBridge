@@ -9,9 +9,11 @@
  *   Authorization: Bearer。用它 = 100% 收 401、数据全丢；又因 fire-and-forget 吞掉错误，
  *   本地测不出来、只会以为埋成功了。页面离开时的上报一律用 fetch keepalive（opts.keepalive）。
  *
- *   ⚠️ 数据口径警告：recording/page.tsx 的 newFlowId() 位于两个早退分支之后，早退时 sessionStorage
- *   里可能残留上一次流程的 flow_id，并被 apiFetch 自动注入到本次上报。故【分析 P0 事件时必须忽略
- *   flow_id，一律按 user_id 聚合】—— 用 flow_id 串会串错人/串错流程。
+ *   ⚠️ 数据口径警告：【分析 P0 事件时必须忽略 flow_id，一律按 user_id 聚合】—— 用 flow_id 串会串错流程。
+ *   理由（2026-08-02 更新，原写的「newFlowId() 位于早退分支之后」已被 commit 3e07e53 修掉、不再成立）：
+ *   capture_started / capture_abandoned 是在页面【挂载/卸载】时报的，早于本次流程的任何 newFlowId()
+ *   调用（那是在点「完成」/「提交」时才换的）。故这两条事件携带的是 sessionStorage 里【上一次流程】
+ *   的 flow_id —— 事件本身没错，错的是拿它当本次流程的 join key。结论未变，别因为原理由已过期就推翻它。
  *
  * @author   LingoBridge
  * @created  2026-08-02

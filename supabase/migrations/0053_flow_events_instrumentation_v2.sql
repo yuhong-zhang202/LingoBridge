@@ -34,6 +34,10 @@
 --
 -- Created   : 2026-08-02
 -- Note      : 用 `npm run db:push` 应用。
+-- Note      : 2026-08-02【本次仅修正下方 ③ 的注释表述，SQL 语句一字未变】——
+--             本迁移已应用到生产，注释改动不影响既成结果，也无需重跑。
+--             原表述「recording 页早退时残留上次流程的 flow_id」的理由已过期（commit 3e07e53 已把
+--             newFlowId() 提到函数最开头）；结论（按 user_id 聚合）仍然成立，真正的理由见新注释。
 -- -----------------------------------------------------------------------------
 
 -- ① 事件名 CHECK 由枚举白名单放宽为前缀正则（只放宽不收窄，现有 4 类全部仍合法）
@@ -44,7 +48,8 @@ alter table public.flow_events add constraint flow_events_event_check
 -- ② QA 流量标记列（纯统计用，红线见上）
 alter table public.flow_events add column if not exists is_qa boolean not null default false;
 
--- ③ 按人聚合的漏斗查询索引（分析 P0 事件时忽略 flow_id、一律按 user_id 聚合，
---    因为 recording 页早退时 sessionStorage 可能残留上次流程的 flow_id，见 client-events.ts 顶注）
+-- ③ 按人聚合的漏斗查询索引（分析 P0 事件时忽略 flow_id、一律按 user_id 聚合：
+--    capture_started / capture_abandoned 在页面挂载/卸载时上报，早于本次流程的 newFlowId()，
+--    携带的是 sessionStorage 里上一次流程的 flow_id，见 client-events.ts 顶注）
 create index if not exists flow_events_user_created_idx
   on public.flow_events (user_id, created_at desc);
