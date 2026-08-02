@@ -20,8 +20,19 @@ export interface ChangelogEntry {
 /** 最新在前；发版时在数组开头加新条目 */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    // 版本号用 semver（vX.Y.Z）——isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
+    // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.0',
+    date: '2026-08-02',
+    title: '字体与体验优化',
+    notes: [
+      '设置页新增字体大小选择，四档任选，全站生效',
+      '讲完故事没找到高度匹配的题目时不再空手，会给出最相关的几道并说明原因',
+      '修复练习页「优化失败」：区分额度用尽与真实故障，失败时可一键重试',
+      '素材库、题库的反馈入口调整到更顺手的位置',
+    ],
+  },
+  {
     version: 'v0.9.0',
     date: '2026-07-31',
     title: '练习反馈升级',
