@@ -47,7 +47,7 @@
     justify-content: center;
     gap: 8px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 0.875rem; /* =14px @ scale 1.0；rem 化使按钮文字随全站字体档缩放 */
     color: #333333;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.15s;
@@ -87,7 +87,7 @@
     justify-content: center;
     gap: 6px;
     font-weight: 500;
-    font-size: 13px;
+    font-size: 0.8125rem; /* =13px @ scale 1.0；rem 化使按钮文字随全站字体档缩放 */
     color: #666666;
     cursor: pointer;
     transition: opacity 0.15s;

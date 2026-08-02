@@ -332,6 +332,33 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
   })
 
   /**
+   * 降级不冻结快照（机制①服务端不变式）：rankingDegraded=true（候选存在但重排一分没产出）是瞬时失败，
+   * 冻进快照会让前端降级态的「重试」命中降级档、永不重跑重排，重试形同虚设。故降级结果绝不写档；
+   * 正常结果照常写档。这条守的是「降级不冻结快照、让重试真生效」——此前服务端无测试覆盖。
+   */
+  test('13. 重排整体降级（rankingDegraded=true）→ 不写快照；正常结果 → 写快照', async () => {
+    // 降级结果：不写档
+    const degraded = makeResult('fresh')
+    degraded.rankingDegraded = true
+    mockMatchByStory.mockResolvedValue(degraded)
+
+    const res1 = await POST(makeReq())
+    expect(res1.status).toBe(200)
+    expect(mockUpsertSnapshot).not.toHaveBeenCalled()
+
+    // 对照：正常结果（rankingDegraded 缺省 → falsy）→ 照常写档。
+    // 只清快照 mock 的调用记录，beforeEach 设的各 mock 实现照旧生效（clearAllMocks/mockClear 只清 calls 不清实现）。
+    mockUpsertSnapshot.mockClear()
+    mockMatchByStory.mockResolvedValue(makeResult('fresh'))
+
+    const res2 = await POST(makeReq())
+    expect(res2.status).toBe(200)
+    expect(mockUpsertSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
+    )
+  })
+
+  /**
    * 失败可诊断性（2026-07-20）：matchByStory 抛错时，catch 里的失败记账要带 metadata.phase，
    * 否则空 metadata 会掉进看板 other 桶、辨不出是匹配接口挂的。萃取 / 重排两步同在 matchByStory 内深处，
    * 从 catch 处无法判定挂在哪步，故用能表意的兜底值 'matching'。系统故障不补 error_kind（缺键即系统故障）。

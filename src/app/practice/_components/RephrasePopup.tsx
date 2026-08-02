@@ -58,6 +58,12 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
             </div>
             {result.note && <PolishNote note={result.note} className="px-1" />}
           </div>
+        ) : result.failed ? (
+          // 失败/额度态（没能生成 / 额度已满 / 网络不稳）：note 是失败消息，绝不配成功勾。
+          // 用中性提示色（同「优化中…」的 v2-text-muted），不新造样式 token。
+          <div className="px-1 py-1.5">
+            <p className="text-[0.8125rem] text-v2-text-muted">{result.note}</p>
+          </div>
         ) : (
           <div className="flex items-center gap-1.5 px-1 py-1.5">
             <Check size={14} className="text-brand-accent flex-shrink-0" />

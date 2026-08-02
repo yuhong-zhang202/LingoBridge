@@ -331,6 +331,9 @@ export interface PolishResult {
   needsWork: boolean  // 这句是否需要优化；false = 已经够好，不给改写句
   optimized: string   // 优化后的英文句子（needsWork=false 时为空字符串）
   note: string        // 一句中文说明改进点（needsWork=false 时为空字符串）
+  // 失败/额度态标记：note 承载的是「没能生成/额度已满/网络不稳」这类失败消息，而非「句子已够好」。
+  // 与 needsWork=false（句子够好）区分，供 UI 决定是否配成功勾——失败态绝不配绿 ✓。缺省 undefined = 非失败。
+  failed?: boolean
 }
 
 // ── practice 对话 ──

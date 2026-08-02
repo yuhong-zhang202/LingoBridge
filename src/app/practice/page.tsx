@@ -35,6 +35,9 @@ import type { PracticePhase, PracticeViewProps } from './types'
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
 
+/** storyId 入库前的 UUID 校验（同 api/events、api/questions 口径）：非 UUID 深链脏值绝不写进 story_id */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // ——— 转写 503（ASR 并发闸「人多」）自动重试参数 ———
 // 与 api/transcribe 的 Retry-After:5 对齐；每次实际延迟 = max(Retry-After 头, 退避基数_n)。
 // 上限双闸：最多重试 ASR_RETRY_MAX 次，或累计等待超 ASR_RETRY_TOTAL_CAP_MS 即转失败态（避免无休止等）。
@@ -72,6 +75,10 @@ function PracticeContent(): JSX.Element {
   const rankParam = params.get('rank')
   const rankParsed = rankParam !== null && /^[1-9]\d*$/.test(rankParam) ? Number(rankParam) : null
   const rank = rankParsed !== null && rankParsed <= 10000 ? rankParsed : null
+  // storyId 入库前的 UUID 格式校验（与 rank 的 1..10000 收敛对称）：storyId 会写进 practice_sessions.story_id，
+  // 深链构造的脏值直接落库会让 insert 撞 uuid 类型抛错。非 UUID → 作 null（泛题池流本就传 null），不硬写脏值。
+  // 仅约束写库路径，不动 storyId 本身（scaffold 取语料走 getCorpusByIdServer，非 UUID 自然取空、无副作用）。
+  const storyIdForRecord = UUID_RE.test(storyId) ? storyId : null
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -351,7 +358,7 @@ function PracticeContent(): JSX.Element {
       if (res.status === 402) { setShowPolish(false); setQuotaVariant('trial'); return }
       if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null
-        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试' })
+        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试', failed: true })
         return
       }
       if (!res.ok) throw new Error('优化失败')
@@ -369,7 +376,7 @@ function PracticeContent(): JSX.Element {
     } catch {
       // 到此只剩瞬时网络/服务故障（额度已在上面按 402/429 分流）。诊断官+latency 取证：生产超时 0 次，
       // 故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
-      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次' })
+      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true })
     } finally {
       setPolishLoading(false)
     }
@@ -463,11 +470,12 @@ function PracticeContent(): JSX.Element {
     // 重试（3 次，约 3.2s 内）后台跑，全失败由反馈页弹提示。
     if (userTurnCount >= 1) {
       // storyId/rank 仅故事流有（storyId 空串 = 泛题池流）→ 空则 null，不写脏值（乙.2）
-      startPracticeSessionRecord(questionId || null, isReview, storyId || null, rank)
+      // storyIdForRecord 已做 UUID 校验：非 UUID/空串 → null，绝不把脏值写进 story_id
+      startPracticeSessionRecord(questionId || null, isReview, storyIdForRecord, rank)
     }
     // navigate：点「结束」瞬间即亮顶部条（反馈页需生成总结、非瞬时），避免用户以为结束按钮没反应重复点。
     navigate('/feedback')
-  }, [polishHistory, questionId, isReview, storyId, rank, navigate, userTurnCount, clearRetryTimer])
+  }, [polishHistory, questionId, isReview, storyIdForRecord, rank, navigate, userTurnCount, clearRetryTimer])
   // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
   const [endSession] = useAsyncAction(handleEnd)
   const capHint =

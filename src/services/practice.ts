@@ -250,10 +250,12 @@ export async function polishSentence(
     // polish 是唯一曾无 fallback 的 AI 调用：解析用尽 2 轮会硬 throw→500→前端一律「优化失败」。
     // 这里给一个诚实降级：不误报「已优化」（needsWork:false + optimized 留空，不会写进优化历史），
     // 只在 note 里如实告知这次没生成建议。不动 llm.ts 默认 maxAttempts（仍 2 轮），只加本处 fallback。
+    // failed:true 明确标记这是「没生成」而非「句子已够好」，UI 据此不配成功勾。
     fallback: (): PolishResult => ({
       needsWork: false,
       optimized: '',
       note: '这次没能生成优化建议，可以再说一遍试试',
+      failed: true,
     }),
     call: {
       provider: 'dashscope',
