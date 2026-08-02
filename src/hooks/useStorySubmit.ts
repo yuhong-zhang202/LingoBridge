@@ -19,16 +19,12 @@ import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
+// 提交结局 / AI 调用结局的取值域【一律来自 event-schema 这一份真源】，本 hook 不再手抄：
+// 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { CaptureOutcome, AiResult } from '@/lib/event-schema'
 
-/**
- * 文字路径会上报的提交结局 —— 逐字对齐 /api/events 的 CAPTURE_OUTCOME 白名单。
- * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
- * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
- */
-export type CaptureOutcome = 'proceed' | 'garbage' | 'text_too_short' | 'quota_blocked' | 'consent_blocked'
-
-/** 本 hook 会上报的 AI 调用结局 —— 同样逐字对齐 /api/events 的 AI_RESULT 白名单 */
-type AiResult = 'ok' | 'quota_402' | 'consent_403' | 'server_5xx' | 'other' | 'network'
+// CaptureOutcome 继续从本模块转出：/write 的 onOutcome 回调一直从这里 import，不改调用方引用路径。
+export type { CaptureOutcome }
 
 interface UseStorySubmitArgs {
   /** 待提交的故事文本 */

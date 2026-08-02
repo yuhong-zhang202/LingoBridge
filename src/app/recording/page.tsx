@@ -21,20 +21,9 @@ import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import type { RecordingViewProps } from './types'
-
-/**
- * 本页会上报的提交结局 —— 逐字对齐 /api/events 的 CAPTURE_OUTCOME 白名单。
- * 单列一个类型是为了让拼错的枚举值在 tsc 就炸掉：服务端 sanitize 遇到不认识的值是【静默丢弃】，
- * 打错一个字母就是「埋了但库里查不到」，本地永远测不出来。
- */
-type CaptureOutcome =
-  | 'proceed' | 'too_short' | 'quota_blocked' | 'no_audio' | 'too_large'
-  | 'garbage' | 'text_too_short' | 'consent_blocked' | 'ai_failed' | 'aborted'
-
-/** 本页会上报的 AI 调用结局 —— 同样逐字对齐 /api/events 的 AI_RESULT 白名单（只列本页用得到的） */
-type AiResult =
-  | 'ok' | 'consent_403' | 'quota_402' | 'busy_503' | 'empty_422'
-  | 'server_5xx' | 'other' | 'network' | 'aborted'
+// 提交结局 / AI 调用结局的取值域【一律来自 event-schema 这一份真源】，本页不再手抄：
+// 服务端 sanitize 遇到不认识的值是【静默丢弃】，打错一个字母就是「埋了但库里查不到」，本地永远测不出来。
+import type { CaptureOutcome, AiResult } from '@/lib/event-schema'
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()

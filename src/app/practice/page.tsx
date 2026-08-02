@@ -25,6 +25,9 @@ import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { startPracticeSessionRecord } from '@/lib/practice-session-record'
 import { apiFetch, readQuotaReason } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
+// 优化（polish）调用结局的取值域【来自 event-schema 这一份真源】，本页不再手抄：
+// 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { AiResult } from '@/lib/event-schema'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -35,13 +38,6 @@ import type { PracticePhase, PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
-
-/**
- * 优化（polish）调用会上报的结局 —— 逐字对齐 /api/events 的 AI_RESULT 白名单。
- * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
- * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
- */
-type AiResult = 'ok' | 'consent_403' | 'quota_402' | 'rate_429' | 'bad_input_400' | 'auth_401' | 'server_5xx' | 'other' | 'network'
 
 /** storyId 入库前的 UUID 校验（同 api/questions 口径；埋点侧的同款校验收口在 lib/events.logEvent）：
  *  非 UUID 深链脏值绝不写进 story_id */
