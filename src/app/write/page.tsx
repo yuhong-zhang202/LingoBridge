@@ -99,7 +99,9 @@ function WriteContent(): JSX.Element {
   async function handleSwitchToVoice(): Promise<void> {
     // 【必须在额度守卫之前报】被额度拦下的人也是点了「切换到语音」的人；埋在守卫之后，
     // 额度拦截就会伪装成「用户根本没点」。fire-and-forget，不影响下面的分支。
-    track('flow.story_entry', { entry: 'record_from_write', mode: 'story' })
+    // mode 必须按 qid 判：首页三个入口全是 ieltsMode ? 'ielts' : 'story'，此处此前写死 'story'，
+    // 于是「带着题目进来、改用语音」的雅思用户会被记成故事模式，两种模式的入口分布长期偏斜。
+    track('flow.story_entry', { entry: 'record_from_write', mode: qid ? 'ielts' : 'story' })
     if (await storyQuota.checkBlocked()) return
     navigate(qid ? `/recording?qid=${qid}` : '/recording')
   }

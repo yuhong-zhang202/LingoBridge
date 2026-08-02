@@ -50,7 +50,8 @@ function RecordingContent(): JSX.Element {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   // 预检 402（匿名整理额度用尽）→ 弹试用结束覆盖层，不带用户去 restructure 页再失败一次
   const [quotaReached, setQuotaReached] = useState(false)
-  const { audioLevel, start, stop } = useAudioRecorder()
+  // surface='recording'：本页的授权失败才是「故事采集」这一格（练习页共用本 hook，传 'practice'）
+  const { audioLevel, start, stop } = useAudioRecorder({ surface: 'recording' })
 
   // 建新故事额度守卫（匿名试用总条数 / 注册用户月额度，共享 hook）。
   // 【为何拦在「完成」而不是挂载】本页深链/浏览器后退可直达，首页与 /write 的入口守卫覆盖不到；

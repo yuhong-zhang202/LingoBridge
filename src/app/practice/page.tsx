@@ -122,7 +122,9 @@ function PracticeContent(): JSX.Element {
   const orbRef    = useRef<HTMLButtonElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const pronounceRef = useRef<HTMLDivElement>(null)
-  const { start, stop, audioLevel } = useAudioRecorder()
+  // surface='practice'：本页每轮对话都调 start()，若沿用录音页的 'recording' 会把练习页的授权失败
+  // 一轮一条地灌进故事采集那一格，故事采集的授权失败率会被永久带偏
+  const { start, stop, audioLevel } = useAudioRecorder({ surface: 'practice' })
 
   // ——— 转写重试/文字输入所需的留存态（都用 ref：跨 setTimeout 重试链读最新，不进 useCallback 依赖）———
   // 录音 blob 留存：转写失败/文字取消后要用同一段重发。⚠️ Request body 被消费过不能复用，

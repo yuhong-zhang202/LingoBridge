@@ -20,6 +20,19 @@ interface RecordingResult {
   durationMs: number
 }
 
+/**
+ * 麦克风授权失败埋点归属的界面。
+ * ⚠️ 必传、且【逐字对齐 /api/events 的 MIC_SURFACE 白名单】：服务端 sanitize 对不认识的值是静默丢弃，
+ * 写死一个常量就会把另一个界面的失败全灌进同一格（本 hook 被录音页与练习页共用，练习页每轮对话都调
+ * start()，写死 'recording' 会让拒过麦克风的练习用户每轮刷一条，把故事采集的授权失败率灌高）。
+ */
+export type MicSurface = 'recording' | 'practice'
+
+interface UseAudioRecorderOptions {
+  /** 本次挂载所属界面，进 flow.mic_permission 的 surface 字段 */
+  surface: MicSurface
+}
+
 interface UseAudioRecorderReturn {
   audioLevel: number
   isRecording: boolean
@@ -31,9 +44,10 @@ interface UseAudioRecorderReturn {
 
 /**
  * 录音 hook
+ * @param  options  { surface } 本次挂载所属界面（授权失败埋点用，必传）
  * @returns 电平、录音状态、start/stop 方法
  */
-export function useAudioRecorder(): UseAudioRecorderReturn {
+export function useAudioRecorder({ surface }: UseAudioRecorderOptions): UseAudioRecorderReturn {
   const [audioLevel, setAudioLevel] = useState(0)
   const [isRecording, setIsRecording] = useState(false)
 
@@ -107,13 +121,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       // 这里必须埋：后退/刷新直达录音页时不经首页那次探测，缺了它这条路径的授权失败全是黑的。
       track('flow.mic_permission', {
         result: (e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'unavailable',
-        surface: 'recording',
+        surface,
       })
       cleanup()
     } finally {
       startingRef.current = false
     }
-  }, [cleanup])
+  }, [cleanup, surface])
 
   const stop = useCallback((): Promise<RecordingResult | null> => {
     return new Promise((resolve) => {

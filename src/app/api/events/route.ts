@@ -120,7 +120,8 @@ function pickInt(o: Record<string, unknown>, key: string, min: number, max: numb
 const STORY_ENTRY = ['record', 'text', 'write', 'record_from_write'] as const
 const STORY_MODE = ['story', 'ielts'] as const
 const MIC_RESULT = ['granted', 'denied', 'unavailable'] as const
-const MIC_SURFACE = ['home', 'recording'] as const
+// 'practice'：练习页与录音页共用 useAudioRecorder，两处的授权失败必须分得开（见 useAudioRecorder.MicSurface）
+const MIC_SURFACE = ['home', 'recording', 'practice'] as const
 const CAPTURE_MODE = ['voice', 'text'] as const
 const CAPTURE_OUTCOME = [
   'proceed', 'too_short', 'quota_blocked', 'no_audio', 'too_large', 'garbage',
