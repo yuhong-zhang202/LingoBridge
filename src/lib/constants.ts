@@ -73,6 +73,13 @@ export const SCORE_HIGH = 85
 /** score ≥ 此值且 < SCORE_HIGH：中匹配，折叠进"查看更多"。低于此值：不展示、不入库 */
 export const SCORE_MID  = 60
 
+// ── noMatch 空态·B 类「低相关兜底展示」上限 ──
+// 当候选有分但全部 < SCORE_MID（谁都算不上贴合）时，不再一刀切走 NoMatchView，而是把相关性最高的
+// 前 N 道如实展示出来（B 类）。这是【展示上限】、不是新阈值——它不改任何分档/入库判定，只从既有
+// relevanceScore 派生一个展示切片。不回填任何占位分：无分的题绝不进这个切片（避免重蹈 `?? 100`）。
+/** B 类低相关兜底：最多展示相关性最高的前几道 */
+export const LOW_MATCH_SHOW_MAX = 5
+
 // ── 重排三维合成（第一阶段：AI 分维度 + 代码按权重合成，藏在 RANKING_DIMENSIONAL 开关后）
 //
 // 现状路径让 AI 直接吐 0-100 总分，病根是「话题字面相关→模型累加冲高」。维度路径改为让 AI 逐题

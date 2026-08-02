@@ -310,6 +310,12 @@ export async function matchByStory(
     }
   }
 
+  // 机制①重排整体降级：候选题存在，但重排一分没产出（返回空数组降级 / 或返回分全部与候选对不上）
+  // → allQuestions 全部无 relevanceScore。此时置 rankingDegraded 透传前端走「排序暂不可用·重试」态。
+  // 红线：绝不给未打分题回填占位分（覆辙 `?? 100`），无分就是无分——这里只是【读】现状、不改任何分。
+  // 部分未打分（机制②：至少一道有分）不算降级：它有低分可展示，前端走 B 类。noMatch（无候选）亦非降级。
+  const rankingDegraded = allQuestions.length > 0 && allQuestions.every((q) => q.relevanceScore == null)
+
   return {
     primary,
     secondary,
@@ -319,5 +325,6 @@ export async function matchByStory(
     matchedViaNeighbor,
     neighborPointsUsed,
     noMatch,
+    rankingDegraded,
   }
 }

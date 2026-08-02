@@ -17,8 +17,9 @@ import EmptyState from '@/components/EmptyState'
 import OfflineState from '@/components/OfflineState'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
 import NoMatchView from '@/components/matching/NoMatchView'
+import LowMatchView from '@/components/matching/LowMatchView'
 import MatchingProgress from '@/components/matching/MatchingProgress'
-import type { MatchingViewProps } from './types'
+import type { MatchingViewProps, FunnelQuestion } from './types'
 
 /** 分组标题行：label + 横线 */
 function GroupHeader({ label, count, variant }: {
@@ -42,13 +43,19 @@ function GroupHeader({ label, count, variant }: {
 
 export default function MatchingMobile({
   result, loading, error, dailyLimitHit, totalVisible, availableTabs, activeTab,
-  highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible,
+  highGroup, midGroup, foldedCount, hasMore, noneVisible, globalNoneVisible, rankingDegraded, lowShown,
   selectedId, expanded, savedIds, savingId,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onSavePair, onRetry, onBack, onExit,
-}: MatchingViewProps & { globalNoneVisible: boolean }) {
+}: MatchingViewProps & { globalNoneVisible: boolean; rankingDegraded: boolean; lowShown: FunnelQuestion[] }) {
   // 单题存对子三态：进行中 > 已存 > 未存（saving 优先于 saved，避免刚点完瞬间闪回未存）
   const saveStateOf = (id: string): 'idle' | 'saving' | 'saved' =>
     savingId === id ? 'saving' : savedIds.has(id) ? 'saved' : 'idle'
+  // 空态四支互斥判定（顺序即优先级，见 page.tsx 决策树）：真没题 A 类 → 机制①降级 → B 类低相关 → 正常首屏。
+  // 降级支【优先于】B 类，且兜住「globalNoneVisible 但无低分可展示」这一等价于机制①的组合，杜绝「文案+零张卡」空洞。
+  const isNoMatch = !!result && result.noMatch
+  const isDegraded = !!result && !result.noMatch && (rankingDegraded || (globalNoneVisible && lowShown.length === 0))
+  const isLowMatch = !!result && !result.noMatch && !isDegraded && globalNoneVisible   // 走到这里 lowShown.length>0 必然成立
+  const isNormal = !!result && !result.noMatch && !isDegraded && !globalNoneVisible
   return (
     <div className="relative h-dvh overflow-hidden bg-bg-page flex flex-col">
       <TopBar title="题目匹配" onBack={onBack} />
@@ -121,16 +128,43 @@ export default function MatchingMobile({
           )
         )}
 
-        {/* noMatch（真没题）与 globalNoneVisible（有题但全部低分被隐藏）统一升级为 NoMatchView 引导 */}
-        {!loading && !error && result && (result.noMatch || globalNoneVisible) && (
+        {/* A 类·真没题（三层漏斗全空）：NoMatchView 换故事引导，一字不动 */}
+        {!loading && !error && isNoMatch && result && (
           <NoMatchView
             primaryDimension={result.primary?.dimension ?? ''}
             primaryPointName={result.primary?.pointName ?? ''}
-            variant={result.noMatch ? 'noMatch' : 'lowScore'}
+            variant="noMatch"
           />
         )}
 
-        {!loading && !error && result && !result.noMatch && !globalNoneVisible && (
+        {/* 机制①降级·重排一分没产出（无分可展示）：不走 NoMatchView 换故事，给「重试」复用 onRetry 重新匹配 */}
+        {!loading && !error && isDegraded && (
+          <EmptyState
+            title="排序暂时不可用"
+            subtitle="题目匹配好了，但排序没算出来。点下面重试一下就好。"
+            ctaLabel="重试"
+            onCta={onRetry}
+            orbSize={100}
+          />
+        )}
+
+        {/* B 类·低相关兜底展示（候选有分但全部 < SCORE_MID）：如实展示最相关的前几道 + 换故事出口 */}
+        {!loading && !error && isLowMatch && result && (
+          <LowMatchView
+            primary={result.primary}
+            secondary={result.secondary}
+            lowShown={lowShown}
+            selectedId={selectedId}
+            savedIds={savedIds}
+            savingId={savingId}
+            onToggleSelect={onToggleSelect}
+            onPractice={onPractice}
+            onSavePair={onSavePair}
+            onExit={onExit}
+          />
+        )}
+
+        {!loading && !error && isNormal && result && (
           <>
             {/* 匹配标题 + 识别出的维度 */}
             <div className="mb-4">

@@ -33,6 +33,11 @@ export interface FunnelResult {
   count: number
   matchedViaSecondary: boolean
   noMatch: boolean
+  /**
+   * 机制①重排整体降级：候选存在但重排一分没产出（全部题无 relevanceScore）。前端据此走「排序暂不可用·重试」
+   * 降级态，与 B 类低相关展示区分。可选：流式中途骨架不带此字段（undefined→falsy），只有 done 定稿 DTO 才带真值。
+   */
+  rankingDegraded?: boolean
 }
 
 /**

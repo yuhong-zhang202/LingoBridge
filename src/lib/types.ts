@@ -265,6 +265,13 @@ export interface FunnelMatchResult {
   /** 邻居兜底层实际借用（贡献了题）的相邻观察点，按借用顺序，供前端「换个角度」文案 */
   neighborPointsUsed: MatchedPoint[]
   noMatch: boolean
+  /**
+   * 机制①重排整体降级：候选题存在（noMatch=false）但重排一分没产出（全部题无 relevanceScore）。
+   * 与「有低分可展示」（机制②，部分未打分/全是低分）区分——前端据此走「排序暂不可用·重试」降级态，
+   * 而非 B 类低相关展示。红线：降级时绝不给未打分题回填占位分，无分就是无分。可选字段：旧快照缺此字段时
+   * 读为 undefined（falsy），前端按未降级处理。
+   */
+  rankingDegraded?: boolean
 }
 
 // ── feedback 收藏 ──
