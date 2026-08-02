@@ -24,6 +24,7 @@ import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/libr
 import { applyPronunciationFixes } from '@/lib/pronunciation'
 import { startPracticeSessionRecord } from '@/lib/practice-session-record'
 import { apiFetch, readQuotaReason } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
 import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -34,6 +35,13 @@ import type { PracticePhase, PracticeViewProps } from './types'
 
 /** 用户发言达此轮数后温柔收尾，不再允许新录音 */
 const PRACTICE_TURN_LIMIT = 8
+
+/**
+ * 优化（polish）调用会上报的结局 —— 逐字对齐 /api/events 的 AI_RESULT 白名单。
+ * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
+ * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+ */
+type AiResult = 'ok' | 'consent_403' | 'quota_402' | 'rate_429' | 'bad_input_400' | 'server_5xx' | 'other' | 'network'
 
 /** storyId 入库前的 UUID 校验（同 api/events、api/questions 口径）：非 UUID 深链脏值绝不写进 story_id */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -350,25 +358,40 @@ function PracticeContent(): JSX.Element {
     setShowPolish(true)
     setPolishResult(null)
     setPolishLoading(true)
+    // ——— 本次优化调用的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 失败态「再试一次」会再走一遍本函数、自然再报一条 —— 用户视角确实是两次尝试，不去重。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 这一次调用只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就把同一次调用记两遍 */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'polish', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     try {
       const res = await apiFetch('/api/practice/polish', {
         method: 'POST',
         json: { sentence, aiQuestion, level },
       })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在优化失败态。
-      if (res.status === 403) { router.push('/'); return }
+      if (res.status === 403) { reportAi('consent_403', 403); router.push('/'); return }
       // 额度类拦截，区分对待、不再一律「优化失败」误导用户：
       //   402＝匿名试用次数用尽（polish 402 仅对匿名返回）→ 关弹窗、弹既有额度覆盖层引导注册；
       //   429＝注册用户当日达上限 → 在优化气泡内诚实说明真实原因，可明天再来。
-      if (res.status === 402) { setShowPolish(false); setQuotaVariant('trial'); return }
+      if (res.status === 402) { reportAi('quota_402', 402); setShowPolish(false); setQuotaVariant('trial'); return }
       if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null
+        reportAi('rate_429', 429)
         // 不设 retryable：当日额度已用尽，重试必然再撞 429，给「再试一次」等于骗用户。
         setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试', failed: true })
         return
       }
-      if (!res.ok) throw new Error('优化失败')
+      if (!res.ok) {
+        reportAi(res.status >= 500 ? 'server_5xx' : res.status === 400 ? 'bad_input_400' : 'other', res.status)
+        throw new Error('优化失败')
+      }
       const data = (await res.json()) as PolishResult
+      reportAi('ok', 200)
       setPolishResult(data)
       if (data.needsWork && data.optimized) {
         setPolishHistory(h => [...h, {
@@ -382,6 +405,7 @@ function PracticeContent(): JSX.Element {
     } catch {
       // 到此只剩瞬时网络/服务故障（额度已在上面按 402/429 分流）。诊断官+latency 取证：生产超时 0 次，
       // 故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
+      reportAi('network', 0)
       setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
     } finally {
       setPolishLoading(false)
