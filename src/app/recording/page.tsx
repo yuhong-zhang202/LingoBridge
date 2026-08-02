@@ -252,7 +252,10 @@ function RecordingContent(): JSX.Element {
             setTranscribing(false)
             return
           }
-          if (ac.signal.aborted) return          // 已跳页则不再导航
+          // 中断也是一种提交结局：不报的话，「整理阶段被中断」的人在提交结局分布里凭空消失，
+          // 而那正是耗时最长、最容易被用户中途退掉的一段（转写阶段的中断在下面 catch 里报了 aborted，
+          // 同一个「中断」两段口径不一致，横向比不了）。reportSubmit 自带去重，不会重复。
+          if (ac.signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航
           reportSubmit('proceed')
           router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText, summary: checkData.summary ?? '' })}${qid ? `&qid=${qid}` : ''}`)
           return
@@ -272,7 +275,7 @@ function RecordingContent(): JSX.Element {
         // 下面的 router.push 之前会报 proceed；这里再报一条就是同一次提交记两遍。
         track('flow.ai_call', { stage: 'restructure', mode: 'voice', result: 'network', httpStatus: 0, latencyMs: since(t1) })
       }
-      if (ac.signal.aborted) return          // 已跳页则不再导航
+      if (ac.signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航（同上：中断也要报）
       reportSubmit('proceed')
       router.push(`/restructure?h=${putHandoff(data.text)}${qid ? `&qid=${qid}` : ''}`)
     } catch (e) {

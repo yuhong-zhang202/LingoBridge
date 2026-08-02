@@ -10,7 +10,7 @@
  * @created  2026-05-15
  */
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
@@ -61,6 +61,16 @@ export default function HomePage() {
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
   }, [])
+  // 文字采集只算【开始一次】：面板开→关→开三次会报三条 capture_started，把这一级的分母灌大、
+  // 转化率被稀释（同一个人同一次停留其实只开始了一次采集）。ref 守卫，同一次页面停留只报一次；
+  // 两个开面板入口（文本按钮 / 麦克风失败后「改用文字」）共用它，换哪条路进来都只算一次。
+  const textCaptureStartedRef = useRef(false)
+  /** 报一次文字采集开始（同一次页面停留只报一次） */
+  const trackTextCaptureStarted = (): void => {
+    if (textCaptureStartedRef.current) return
+    textCaptureStartedRef.current = true
+    track('flow.capture_started', { mode: 'text' })
+  }
   const { question, loading, error, exhausted, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
   const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
@@ -113,7 +123,7 @@ export default function HomePage() {
     // 整个「被额度拦掉多少人」就靠这两者的差值，颠倒任一个差值恒为 0。
     if (v) track('flow.story_entry', { entry: 'text', mode: ieltsMode ? 'ielts' : 'story' })
     if (v && await storyQuota.checkBlocked()) return
-    if (v) track('flow.capture_started', { mode: 'text' })
+    if (v) trackTextCaptureStarted()
     setShowTextInput(v)
   }
 
@@ -184,7 +194,8 @@ export default function HomePage() {
           // 会被算成「点了入口但没进采集」，与真正被额度拦掉的人混在同一格里。
           // 只报 capture_started：story_entry 在点「开始录音」时已报过（entry='record'），
           // 额度守卫也已在 handleStartRecording 里过完，此处不重复。
-          track('flow.capture_started', { mode: 'text' })
+          // 走同一个 ref 守卫：这条路径与文本按钮开的是同一个面板，同一次停留只算开始一次采集。
+          trackTextCaptureStarted()
           setShowTextInput(true)
         }}
         onDismiss={() => setMicSheet(null)}

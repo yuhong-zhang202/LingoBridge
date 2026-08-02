@@ -12,7 +12,7 @@
  * @author   LingoBridge
  * @created  2026-07-09
  */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNav } from '@/components/NavProgress'
 import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST_MSG } from '@/lib/utils'
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
@@ -25,7 +25,7 @@ import { track } from '@/lib/client-events'
  * 单列类型是为了让拼错的枚举在 tsc 就炸掉：服务端 sanitize 对不认识的值是【静默丢弃】，
  * 打错一个字母就成了「埋了但库里查不到」，本地测不出来。
  */
-type CaptureOutcome = 'proceed' | 'garbage' | 'text_too_short' | 'quota_blocked' | 'consent_blocked'
+export type CaptureOutcome = 'proceed' | 'garbage' | 'text_too_short' | 'quota_blocked' | 'consent_blocked'
 
 /** 本 hook 会上报的 AI 调用结局 —— 同样逐字对齐 /api/events 的 AI_RESULT 白名单 */
 type AiResult = 'ok' | 'quota_402' | 'consent_403' | 'server_5xx' | 'other' | 'network'
@@ -35,6 +35,12 @@ interface UseStorySubmitArgs {
   text: string
   /** 雅思模式携带的题目 id（无则 null，跳转不带 &qid） */
   qid: string | null
+  /**
+   * 本次提交定局时回调结局（与上报 capture_submitted 同一时刻、同一个值）。
+   * 存在的理由：/write 需要知道「用户是被放行了还是被打回了」才能判断他到底算不算离开采集态
+   * （被打回时人还在页面上），而 submit() 内部才知道结局。纯通知，绝不参与任何分支/时序。
+   */
+  onOutcome?: (outcome: CaptureOutcome) => void
 }
 
 interface UseStorySubmitReturn {
@@ -53,9 +59,12 @@ interface UseStorySubmitReturn {
  * @param  args  { text, qid }
  * @returns      { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota }
  */
-export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmitReturn {
+export function useStorySubmit({ text, qid, onOutcome }: UseStorySubmitArgs): UseStorySubmitReturn {
   // 用 useNav 而非 useRouter：跳 /restructure（会加载/AI 页）时点击当帧即亮顶部进度条，消除跳转白屏窗口
   const { navigate } = useNav()
+  // 回调存 ref、不进 submit 的依赖：调用方多半传内联箭头函数，进依赖会让 submit 每次渲染都换新引用
+  const onOutcomeRef = useRef(onOutcome)
+  onOutcomeRef.current = onOutcome
   const [submitting, setSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [quotaReached, setQuotaReached] = useState(false)
@@ -71,6 +80,7 @@ export function useStorySubmit({ text, qid }: UseStorySubmitArgs): UseStorySubmi
         if (submitReported) return
         submitReported = true
         track('flow.capture_submitted', { mode: 'text', outcome, charCount })
+        onOutcomeRef.current?.(outcome)
       }
       /** 整理调用的起始时刻；null = 请求还没发出（预检就退了）→ 不带 latencyMs */
       let t0: number | null = null
