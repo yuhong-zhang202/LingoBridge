@@ -272,7 +272,20 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const { userId } = await requireUserAllowAnon(req)
-    const body = (await req.json()) as { event?: unknown; storyId?: unknown; props?: unknown }
+    // body 解析【单独】try：本端点任意客户端可调，非法 JSON / 空 body / body:null 是【客户端错误】，
+    // 落进外层 catch 会记成 logErr + 500 —— 既污染服务端错误告警，也给了「随便发脏包刷错误日志」的口子。
+    // 解析失败一律 400 且不写 logErr；其余错误路径（鉴权 / 落库失败）保持原样走外层 catch。
+    let raw: unknown
+    try {
+      raw = await req.json()
+    } catch {
+      return NextResponse.json({ error: '请求体不是合法 JSON' }, { status: 400 })
+    }
+    // JSON 合法但不是对象（body 为 null / 数字 / 字符串）同样是客户端错误，走同一条 400。
+    if (typeof raw !== 'object' || raw === null) {
+      return NextResponse.json({ error: '请求体不是合法 JSON' }, { status: 400 })
+    }
+    const body = raw as { event?: unknown; storyId?: unknown; props?: unknown }
     // 查表分发：未注册的事件名立即 400、不落库。这是唯一的事件名闸门，绝不可改成「未知事件也放行」。
     const spec = typeof body.event === 'string' ? EVENT_SPECS.get(body.event) : undefined
     if (!spec) {
