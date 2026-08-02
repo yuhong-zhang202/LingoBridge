@@ -19,6 +19,10 @@ const partLabel = (p: 1 | 2 | 3) => `Part ${p}` as 'Part 1' | 'Part 2' | 'Part 3
 /** 侧卡水平偏移（间距宽度） */
 const COVERFLOW_OFFSET = 420
 
+/** 舞台高度（px）：舞台固定高与中心卡内滚上限同源，避免两处各写一遍再漂移。
+ *  走内联 style 而非 Tailwind 任意值——`h-[${常量}px]` 是运行时拼接，Tailwind 扫不到、不会生成该类。 */
+const STAGE_HEIGHT = 480
+
 /** 终态（空态 / 完成态）：极简居中 —— 星标图标 + 文案 + 回首页，无卡片盒子。
  *  tone 区分空态（暖橙）/完成态（绿蓝成功感）。回首页用 Link（可 Cmd+click 新开）。*/
 function TerminalState({ tone, title, desc }: {
@@ -120,7 +124,7 @@ export default function FeedbackDesktop({
 
       {/* 三卡 coverflow：中心清晰、两侧模糊缩小；hover 侧卡滑到中心。
           环形取位——首张左侧显示末张、末张右侧显示首张，保证两边都有虚化卡（remaining≥3 时）。 */}
-      <div className="relative w-full h-[480px] flex items-center justify-center overflow-hidden mb-8">
+      <div className="relative w-full flex items-center justify-center overflow-hidden mb-8" style={{ height: STAGE_HEIGHT }}>
         {remaining.map((item, i) => {
           const n = remaining.length
           let rel = i - center
@@ -142,7 +146,22 @@ export default function FeedbackDesktop({
                 cursor: isCenter ? 'default' : 'pointer',
               }}
             >
-              <div className="w-[400px]">
+              {/* 卡片 wrapper 提供圆角 + 阴影 + 高度上限（同 CollectedCard 桌面端做法）：
+                  卡片自 01bb78f 加了约 130px 常显解释区后，句子超过约 130 字符且带 note 就必然高于舞台，
+                  舞台 overflow-hidden + 居中 = 上下各裁一半（500 字符实测 841px、各裁约 180px，
+                  原句标签/原句上半段/note/日期行全没了）。改成中心卡内滚，内容再长也读得全。
+                  阴影必须挂在这层：留在 FeedbackCard 上会被本层滚动裁切吃掉；
+                  rounded-[16px] 也必须有，否则裁切会把卡片圆角切成直角。
+                  只有中心卡可滚：侧卡是 blur(3px)+opacity .4 的装饰，滚轮落在它身上滚它很怪（hover 已会把它变中心）。 */}
+              <div
+                className={`w-[400px] rounded-[16px] overscroll-contain ${
+                  isCenter
+                    ? 'overflow-y-auto shadow-[0_8px_28px_rgba(0,0,0,0.10)]'
+                    : 'overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]'
+                }`}
+                style={{ maxHeight: STAGE_HEIGHT }}
+                tabIndex={isCenter ? 0 : -1}
+              >
                 <FeedbackCard
                   part={partLabel(item.p.part)}
                   originalSentence={item.p.original}
@@ -151,7 +170,6 @@ export default function FeedbackDesktop({
                   keywords={[]}
                   date={today}
                   compact
-                  className={isCenter ? 'shadow-[0_8px_28px_rgba(0,0,0,0.10)]' : 'shadow-[0_2px_12px_rgba(0,0,0,0.06)]'}
                 />
               </div>
             </div>
