@@ -227,6 +227,60 @@ note 是【单个字符串】，内部用换行把内容组织成两段（不要
   正确示例："note":"别只说「I was scared」"`
 
 /**
+ * polish 的输出上限。绝不吃 llm.ts 的 30s / 无上限默认——那条注释就是写给本环节的：
+ * 输出越长生成越久，长输出场景不显式给值就会在 fetch 层被 abort，一个字节都拿不到。
+ *
+ * 推算（输入上限 800 字符，见 api/practice/polish/route.ts 的上限注释）：
+ * · optimized：prompt 要求「长度与原句相当」→ 800 英文字符 ≈ 200–230 token；
+ * · note：800 字符约 3–6 句，语法段 + 词组段合计撑死 8–10 行，每行 20–30 token ≈ 200–300 token；
+ * · JSON 字段名与结构 ≈ 20 token。
+ * 合计推算上限约 550 token；取 1024 留约 1.9× 余量（与 extraction 的 1024 同档，便于横向比对）。
+ * 实测参照一（2026-08-02 查 api_usage_logs，phase=polish 成功 47 条、输入均在旧 500 上限内）：
+ * completion_tokens p50=131、p90=194、max=292。
+ * 实测参照二（2026-08-03 直连千问补打 3 次长输入）：737 字符 → 306 token；814 字符 → 456 / 421 token，
+ * 三次输出都完整、JSON 未被截断。即上限附近真实用量 ≈ 300–460 token，1024 有 2.2× 以上余量。
+ * 另一层作用：模型偶发跑飞（复读、把整段 prompt 抄回来）时把生成时间钉死在下面的超时预算之内。
+ */
+const POLISH_MAX_TOKENS = 1024
+
+/**
+ * polish 的超时预算 = BASE + PER_INPUT_CHAR × 输入字符数，随输入规模走。
+ *
+ * 【与 analysis 的取舍不同，故常量单独标定、没有照抄它的 55s/40ms】
+ * analysis 没有 fallback，超时 = 用户直接看到报错页，所以那边「宁可给宽」；
+ * polish 有 fallback，超时的代价是【用户等满超时、再等第二轮，才看到「请重试」】。
+ * callLLMJson 默认 maxAttempts=2，用户实际感知的最坏等待 = 2 × 本预算 —— 预算给宽等于把等待翻倍地宽。
+ * 所以这里反过来「宁可给紧」：紧超时 + 自带重试 ≈ 对长尾延迟做对冲（第一轮撞上慢尾就掐掉重发，
+ * 通常第二轮很快就回来），总等待有上界；真的两轮都超，也还有 fallback 兜着，不是白屏。
+ *
+ * 标定依据（2026-08-02 查 api_usage_logs，phase=polish 成功 47 条，cost_source 全为 actual）：
+ * · 端到端 latency_ms：p50 3.8s、p90 5.5s、max 7.0s（含鉴权/同意/计次等路由开销，纯模型时间还更短）；
+ * · 拟合生成速率 ≈ 1.5s 固定开销 + 19ms × completion_tokens（c=292 → 7.0s、c=71 → 2.4s 均落在这条线附近）。
+ * · BASE 11_000：实测 max 7.0s 的约 1.6×。注意这 47 条样本的输入都在旧 500 上限内、多数不足 250 字符，
+ *   所以 BASE 只负责覆盖「短句 + 一次慢尾」，长输入的增量交给下面的每字符项。
+ * · PER_INPUT_CHAR 12ms：先按「800 字符比 200 字符多产出约 300 token × 19ms」推算需约 5.7s，取 12ms/字符
+ *   （600 字符 → 7.2s）留一点余量；随后【补了 3 次真实长输入调用验证】（2026-08-03，直连千问、未过 DB）：
+ *     737 字符 → completion 306 token / 6.4s；814 字符 → 456 token / 12.9s；814 字符 → 421 token / 8.0s。
+ *   即上限附近实际耗时 8–13s，本预算给到 21.6s，最紧的一次仍有 1.7× 余量。
+ *   ⚠️ 样本只有 3 次、且慢的那次生成速率是 28ms/token（比拟合的 19ms 慢近 5 成），说明速率本身有波动；
+ *   等现网攒够真实长输入（盯 latency_ms 是否出现贴近预算的值、以及 polish 失败行）再回来重标。
+ * 结果：典型 200 字符句（userMsg ≈ 300）→ 14.6s；800 字符上限（userMsg ≈ 900）→ 21.8s。
+ * 与 POLISH_MAX_TOKENS 的关系：真按 28ms/token 的慢速率跑满 1024 token 要约 30s，超过本预算——
+ * 也就是说【超时是先咬住的那道闸，token 上限管的是「模型跑飞时别无限生成」】，两者职责不同、不必对齐。
+ */
+const POLISH_TIMEOUT_BASE_MS = 11_000
+const POLISH_TIMEOUT_PER_INPUT_CHAR_MS = 12
+
+/**
+ * 按输入规模算 polish 的超时预算
+ * @param userMsg  送给模型的 user 消息（含目标水平、教练问题与用户原句，是输出长度的主要驱动）
+ * @returns        本次调用的超时毫秒数
+ */
+function polishTimeoutFor(userMsg: string): number {
+  return POLISH_TIMEOUT_BASE_MS + POLISH_TIMEOUT_PER_INPUT_CHAR_MS * userMsg.length
+}
+
+/**
  * 对用户刚说的一句英文做地道度优化
  * @param sentence    用户原句（可能来自语音转写）
  * @param aiQuestion  上下文：教练刚问的问题（可选）
@@ -247,6 +301,7 @@ export async function polishSentence(
   return callLLMJson<PolishResult>({
     label: '[Polish]',
     onUsage,
+    timeoutMs: polishTimeoutFor(userMsg),
     // polish 是唯一曾无 fallback 的 AI 调用：解析用尽 2 轮会硬 throw→500→前端一律「优化失败」。
     // 这里给一个诚实降级：不误报「已优化」（needsWork:false + optimized 留空，不会写进优化历史），
     // 只在 note 里如实告知这次没生成建议。不动 llm.ts 默认 maxAttempts（仍 2 轮），只加本处 fallback。
@@ -264,6 +319,7 @@ export async function polishSentence(
       endpoint: `${env.dashscopeBaseUrl}/chat/completions`,
       apiKey: env.dashscopeApiKey,
       model: MODEL_PRACTICE,
+      maxTokens: POLISH_MAX_TOKENS,
       messages: [
         { role: 'system', content: POLISH_SYSTEM },
         { role: 'user', content: userMsg },
