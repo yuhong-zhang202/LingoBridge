@@ -6,6 +6,7 @@
  */
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { track } from '@/lib/client-events'
 
 /**
  * 一段录音的结果 + 采集信号（供「假空率」区分真空/假空）：
@@ -101,8 +102,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       startTsRef.current = Date.now()   // 起录墙钟时刻，供 stop 算 durationMs
       recorderRef.current = recorder
       setIsRecording(true)
-    } catch {
-      // 无麦克风权限 / 不支持 —— 静默清理
+    } catch (e) {
+      // 无麦克风权限 / 不支持 —— 静默清理（埋点 fire-and-forget，清理行为一字未改）。
+      // 这里必须埋：后退/刷新直达录音页时不经首页那次探测，缺了它这条路径的授权失败全是黑的。
+      track('flow.mic_permission', {
+        result: (e as DOMException)?.name === 'NotAllowedError' ? 'denied' : 'unavailable',
+        surface: 'recording',
+      })
       cleanup()
     } finally {
       startingRef.current = false
