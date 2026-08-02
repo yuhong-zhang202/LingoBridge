@@ -38,7 +38,16 @@ describe('retryRecordPracticeSession · 重试策略', () => {
     mockRecord.mockResolvedValue(undefined)
     await expect(runAll()).resolves.toBe(true)
     expect(mockRecord).toHaveBeenCalledTimes(1)
-    expect(mockRecord).toHaveBeenCalledWith('q1', false)
+    // storyId/rank 未传时默认 null（泛题池流口径）
+    expect(mockRecord).toHaveBeenCalledWith('q1', false, null, null)
+  })
+
+  test('storyId/rank 原样透传给 recordPracticeSession（故事流选题埋点·乙.2）', async () => {
+    mockRecord.mockResolvedValue(undefined)
+    const p = retryRecordPracticeSession('q9', false, 'story-abc', 3)
+    await jest.advanceTimersByTimeAsync(10_000)
+    await expect(p).resolves.toBe(true)
+    expect(mockRecord).toHaveBeenCalledWith('q9', false, 'story-abc', 3)
   })
 
   test('第二次成功 → 停手，不跑第三次', async () => {

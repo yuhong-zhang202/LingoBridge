@@ -22,13 +22,20 @@ function monthStartISO(): string {
  * 记录一次练习完成，显式传 user_id（表无 default auth.uid()）
  * @param  questionId  练习的题目 UUID，无则 null
  * @param  isReview    是否复练（题库/用完页发起 = true；故事链路自带 = false）
+ * @param  storyId     选题行为埋点：来源故事 corpus.id；仅故事流(from=matching)有，泛题池流传 null（见 0051 迁移）
+ * @param  rank        选题行为埋点：该题在匹配结果里的 1-based 排位；仅故事流有，泛题池流传 null
  * @sideEffect         向 practice_sessions 表 insert 一行
  */
-export async function recordPracticeSession(questionId: string | null, isReview: boolean): Promise<void> {
+export async function recordPracticeSession(
+  questionId: string | null,
+  isReview: boolean,
+  storyId: string | null = null,
+  rank: number | null = null,
+): Promise<void> {
   const userId = await ensureSession()
   const { error } = await getSupabase()
     .from('practice_sessions')
-    .insert({ user_id: userId, question_id: questionId, is_review: isReview })
+    .insert({ user_id: userId, question_id: questionId, is_review: isReview, story_id: storyId, rank })
   if (error) throw new Error(`记录练习场次失败：${error.message}`)
 }
 

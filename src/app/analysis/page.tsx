@@ -57,6 +57,11 @@ function AnalysisContent() {
   const questionId = params.get('questionId') ?? ''
   const storyId    = params.get('storyId') ?? ''
   const review     = params.get('review') === '1'
+  // 选题行为埋点(乙.2)：rank 从匹配页跳转 query 透传而来（仅故事流有），此页只做「有则续传给 practice」的管道，
+  // 自身不解读；泛题池流无此 query → 空串 → 不拼进 practice URL。仅接受 1..10000 正整数字符串（上界与
+  // events 侧 route.ts 收敛口径对齐，防深链构造超大 rank），脏值/超界忽略、不续传。
+  const rankParam  = params.get('rank')
+  const rank       = rankParam !== null && /^[1-9]\d*$/.test(rankParam) && Number(rankParam) <= 10000 ? rankParam : ''
   // 流向判别：from=matching（故事流）→ 回匹配页；from=restructure（雅思流）→ 回整理页（带 qid）；
   // from=question-bank（题库练习入口）→ 回题库页；深链缺 from → 安全默认回首页，绝不静默走错分支。
   const from       = params.get('from')
@@ -254,7 +259,7 @@ function AnalysisContent() {
     onTogglePhrase: (key) => setOpenPhrase(key),
     onToggleSave: toggleSave,
     // navigate：点「开始练习」瞬间即亮顶部条，练习页初始化对话（AI 调用）期间有跳转反馈。
-    onStartPractice: () => navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}`),
+    onStartPractice: () => navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}${rank ? `&rank=${rank}` : ''}`),
     // 复习卡/返回上一步/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
     onReviewCards: () => navigate('/review'),
     onBack: () => navigate(backTarget.href),

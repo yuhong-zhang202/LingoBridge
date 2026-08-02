@@ -66,6 +66,12 @@ function PracticeContent(): JSX.Element {
   const storyId = params.get('storyId') ?? ''
   const level = params.get('level') ?? '6.0'
   const isReview = params.get('review') === '1'
+  // 选题行为埋点(乙.2)：rank = 该题在匹配结果里的 1-based 排位，随故事流(from=matching)经 analysis 一路透传而来；
+  // 泛题池流(qid 直达、不走排序)无此 query → null，不硬造。仅接受 1..10000 正整数字符串（上界与 events
+  // 侧 route.ts 收敛口径对齐，防深链构造超大 rank 触发 int 写库 out-of-range），脏值/超界一律作 null。
+  const rankParam = params.get('rank')
+  const rankParsed = rankParam !== null && /^[1-9]\d*$/.test(rankParam) ? Number(rankParam) : null
+  const rank = rankParsed !== null && rankParsed <= 10000 ? rankParsed : null
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -445,11 +451,12 @@ function PracticeContent(): JSX.Element {
     // 也会误计练习总数 / 复练月额度。打卡「发起即走」不 await —— 点结束就该马上看反馈页；
     // 重试（3 次，约 3.2s 内）后台跑，全失败由反馈页弹提示。
     if (userTurnCount >= 1) {
-      startPracticeSessionRecord(questionId || null, isReview)
+      // storyId/rank 仅故事流有（storyId 空串 = 泛题池流）→ 空则 null，不写脏值（乙.2）
+      startPracticeSessionRecord(questionId || null, isReview, storyId || null, rank)
     }
     // navigate：点「结束」瞬间即亮顶部条（反馈页需生成总结、非瞬时），避免用户以为结束按钮没反应重复点。
     navigate('/feedback')
-  }, [polishHistory, questionId, isReview, navigate, userTurnCount, clearRetryTimer])
+  }, [polishHistory, questionId, isReview, storyId, rank, navigate, userTurnCount, clearRetryTimer])
   // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
   const [endSession] = useAsyncAction(handleEnd)
   const capHint =

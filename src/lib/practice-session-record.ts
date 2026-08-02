@@ -50,14 +50,21 @@ function sleep(ms: number): Promise<void> {
  * 带重试地写入一次练习场次记录。
  * @param questionId  题目 UUID，无则 null
  * @param isReview    是否复练
+ * @param storyId     选题行为埋点：来源故事 corpus.id，仅故事流有、泛题池流传 null（透传给 recordPracticeSession）
+ * @param rank        选题行为埋点：该题 1-based 排位，仅故事流有、泛题池流传 null
  * @returns           true = 某次尝试成功；false = 3 次全失败
  * @sideEffect        最多 3 次 practice_sessions insert；失败时 console.warn 留痕
  */
-export async function retryRecordPracticeSession(questionId: string | null, isReview: boolean): Promise<boolean> {
+export async function retryRecordPracticeSession(
+  questionId: string | null,
+  isReview: boolean,
+  storyId: string | null = null,
+  rank: number | null = null,
+): Promise<boolean> {
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     if (attempt > 0) await sleep(RETRY_DELAYS_MS[attempt - 1])
     try {
-      await recordPracticeSession(questionId, isReview)
+      await recordPracticeSession(questionId, isReview, storyId, rank)
       return true
     } catch (e) {
       console.warn(`[Practice] 记录练习场次失败（第 ${attempt + 1} 次）`, e)
@@ -70,10 +77,17 @@ export async function retryRecordPracticeSession(questionId: string | null, isRe
  * 发起打卡记录写入，不阻塞调用方（调用后可立即跳转）。全部重试失败时落标记 + 派事件，供反馈页提示用户。
  * @param questionId  题目 UUID，无则 null
  * @param isReview    是否复练
+ * @param storyId     选题行为埋点：来源故事 corpus.id，仅故事流有、泛题池流传 null
+ * @param rank        选题行为埋点：该题 1-based 排位，仅故事流有、泛题池流传 null
  * @sideEffect        后台写库；失败时写 sessionStorage 标记并派发 window 事件
  */
-export function startPracticeSessionRecord(questionId: string | null, isReview: boolean): void {
-  void retryRecordPracticeSession(questionId, isReview).then((ok) => {
+export function startPracticeSessionRecord(
+  questionId: string | null,
+  isReview: boolean,
+  storyId: string | null = null,
+  rank: number | null = null,
+): void {
+  void retryRecordPracticeSession(questionId, isReview, storyId, rank).then((ok) => {
     if (ok || typeof window === 'undefined') return
     // 两条告知路径都留：反馈页已挂载 → 事件立刻接住；还没挂载 → 标记等它来取。
     sessionStorage.setItem(FAIL_FLAG_KEY, String(Date.now()))

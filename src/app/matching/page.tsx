@@ -14,7 +14,7 @@ import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
-import { SCORE_HIGH, SCORE_MID, targetBandToLevel } from '@/lib/constants'
+import { SCORE_HIGH, SCORE_MID, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { useAccount } from '@/hooks/useAccount'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
@@ -446,11 +446,15 @@ function MatchingContent() {
           json: {
             event: 'match.question_opened',
             storyId: corpusId,
-            props: { rank, candidateCount: result.questions.length, ...(dwellMs != null ? { dwellMs } : {}) },
+            // 乙.1：补 questionId（= 点开的题 UUID）+ algoVersion（当前排序算法版本常量），去掉「靠 rank
+            // join 快照 result.questions[rank-1]、遇算法升级错位」的脆耦合。服务端 sanitize 按 UUID/短枚举放行。
+            // flowId 无需在此显式带：apiFetch 已自动注入 X-Flow-Id 头，route 侧读该头写入（乙.3 复用现成机制）。
+            props: { rank, candidateCount: result.questions.length, questionId: id, algoVersion: RANKING_ALGO_VERSION, ...(dwellMs != null ? { dwellMs } : {}) },
           },
         }).catch(() => {})
       }
-      navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching`)
+      // rank 随 query 透传给 analysis→practice，最终写入 practice_sessions（乙.2）；仅故事流有 rank，rank<1 不拼。
+      navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching${rank >= 1 ? `&rank=${rank}` : ''}`)
     },
     savedIds,
     savingId,

@@ -40,17 +40,26 @@ function sanitizeViewRendered(raw: unknown): Record<string, number | boolean> {
 const QUESTION_OPENED_NUMERIC = ['rank', 'candidateCount'] as const
 /** dwellMs 上限 = 30 分钟（毫秒）。超过即视作离散脏数据（开着标签页离开等），丢弃。 */
 const DWELL_MS_MAX = 30 * 60 * 1000
+/** questionId 白名单校验：标准 UUID v1-v5 格式（题目主键），非此形态一律丢弃——只是内部 id 引用、无原文。 */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/**
+ * algoVersion 白名单校验：短枚举串（形如 'v1-2026-07-17'）。收敛为「首字母数字 + 仅 [a-z0-9._-]、≤32 字符」，
+ * 杜绝任何自由文本/原文经此字段混入。只放行这一固定形态，不放开通用字符串字段（隐私铁律）。
+ */
+const ALGO_VERSION_RE = /^[a-z0-9][a-z0-9._-]{0,31}$/i
 
 /**
  * 从客户端 props 里只挑白名单字段并强制类型（沿用 sanitizeViewRendered 同款「挑白名单 + 丢非法」风格）：
  *   · rank / candidateCount：有限正整数 1..10000；
- *   · dwellMs：用户在匹配页的【活跃浏览时长】(ms)，有限整数 0..30min（0 允许=一眼即点；口径见客户端）。
- * 非法值（负数 / 非整数 / 非数字 / 超大值）一律丢弃、不抛错。
+ *   · dwellMs：用户在匹配页的【活跃浏览时长】(ms)，有限整数 0..30min（0 允许=一眼即点；口径见客户端）；
+ *   · questionId：题目 UUID（严格 UUID 格式，仅内部 id 引用，无原文）；
+ *   · algoVersion：排序算法版本短枚举串（≤32 字符、仅 [a-z0-9._-]，无原文）。
+ * 非法值（负数 / 非整数 / 非数字 / 超大值 / 非 UUID / 非枚举形态）一律丢弃、不抛错。
  * @param raw  客户端上报的 props（unknown）
- * @returns    收敛后的安全 props
+ * @returns    收敛后的安全 props（数字字段 + questionId/algoVersion 字符串字段）
  */
-function sanitizeQuestionOpened(raw: unknown): Record<string, number> {
-  const out: Record<string, number> = {}
+function sanitizeQuestionOpened(raw: unknown): Record<string, number | string> {
+  const out: Record<string, number | string> = {}
   if (typeof raw !== 'object' || raw === null) return out
   const o = raw as Record<string, unknown>
   for (const k of QUESTION_OPENED_NUMERIC) {
@@ -59,6 +68,10 @@ function sanitizeQuestionOpened(raw: unknown): Record<string, number> {
   }
   const dwell = o.dwellMs
   if (typeof dwell === 'number' && Number.isInteger(dwell) && dwell >= 0 && dwell <= DWELL_MS_MAX) out.dwellMs = dwell
+  const qid = o.questionId
+  if (typeof qid === 'string' && UUID_RE.test(qid)) out.questionId = qid
+  const algo = o.algoVersion
+  if (typeof algo === 'string' && ALGO_VERSION_RE.test(algo)) out.algoVersion = algo
   return out
 }
 
