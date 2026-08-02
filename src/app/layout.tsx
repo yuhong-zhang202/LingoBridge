@@ -4,6 +4,7 @@ import './globals.css'
 import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
 import StandaloneZoomFix from '@/components/StandaloneZoomFix'
+import { QaBadge } from '@/components/QaBadge'
 import { NavProvider, NavProgress } from '@/components/NavProgress'
 import { SELF_HEAL_CHUNK_SCRIPT } from './self-heal-chunk'
 import { FONT_SCALE_INIT_SCRIPT } from './font-scale-init'
@@ -89,6 +90,9 @@ export default function RootLayout({
         <UpdateBanner />
         {/* 修 iOS standalone 输入框自动放大残留（真机取证:登录框15px→scale=1.066） */}
         <StandaloneZoomFix />
+        {/* QA 流量标记：挂载时按 ?qa= 同步标记，带标记时右下角显示「QA」角标（真实用户看不到）。
+            放根布局 = 任意页面带 ?qa=<token> 进入都生效、?qa=0 任意页面都能关。 */}
+        <QaBadge />
       </body>
     </html>
   )
