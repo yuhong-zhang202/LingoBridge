@@ -41,17 +41,11 @@
 import { apiFetch, authHeaders } from '@/lib/api-client'
 import { currentFlowId } from '@/lib/flow-id'
 import { qaToken } from '@/lib/qa-flag'
+import type { ClientEventName, ClientEventPropsMap } from '@/lib/event-schema'
 
-/** 客户端可上报的事件名（须与 /api/events 的分发表逐一对应，服务端未注册即 400） */
-export type ClientEventName =
-  | 'flow.story_entry'
-  | 'flow.mic_permission'
-  | 'flow.capture_started'
-  | 'flow.capture_submitted'
-  | 'flow.capture_abandoned'
-  | 'flow.ai_call'
-  | 'match.view_rendered'
-  | 'match.question_opened'
+// 事件名与各事件的 props 契约【一律来自 lib/event-schema.ts】，本文件不再手抄一份。
+// 转出 ClientEventName 是为了让既有调用方（含测试）继续从这里 import，不改它们的引用路径。
+export type { ClientEventName }
 
 /** 事件 props：只允许枚举串 / 数字 / 布尔；undefined 视为「本次没这个字段」直接丢弃。绝不放原文（隐私铁律）。 */
 export type ClientEventProps = Record<string, string | number | boolean | undefined>
@@ -136,7 +130,11 @@ function sendKeepalive(body: EventBody): void {
 }
 
 /**
- * 上报一条客户端埋点事件。fire-and-forget：不返回 Promise、绝不 await、绝不进任何 if 条件、
+ * 上报一条客户端埋点事件。事件名与 props 由 event-schema 的契约收窄：key 写错 / 枚举值写错 /
+ * 漏传必填字段一律【tsc 编译报错】—— 挡的正是「事件照常落库、只有那一个字段静默消失」这类
+ * 本地测不出来、几周后才发现某维度全空的哑故障。
+ *
+ * fire-and-forget：不返回 Promise、绝不 await、绝不进任何 if 条件、
  * 不影响任何调用方的返回值或跳转 —— 埋点失败必须对用户完全无感（沿用 matching/page.tsx 已验证的范式）。
  *
  * 刻意【不做本地队列、不做重试】：重试会让同一次动作被计多次，distinct 计数与漏斗转化率随即失真；
@@ -149,9 +147,9 @@ function sendKeepalive(body: EventBody): void {
  * @sideEffect    POST /api/events；无 session 时静默不发（全新访客首页尚无 session，
  *                不短路会打出一串 401 噪音）；任何失败一律吞掉
  */
-export function track(
-  event: ClientEventName,
-  props: ClientEventProps,
+export function track<E extends ClientEventName>(
+  event: E,
+  props: ClientEventPropsMap[E],
   opts?: { storyId?: string; keepalive?: boolean },
 ): void {
   if (typeof window === 'undefined') return

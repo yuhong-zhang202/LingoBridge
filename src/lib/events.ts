@@ -14,34 +14,18 @@
  */
 import 'server-only'
 import { getSupabaseServer } from './supabase-server'
+import type { ClientEventName, ServerOnlyEventName } from './event-schema'
 
 /**
- * 内测埋点事件名。
+ * 内测埋点事件名 = 客户端可上报的事件 + 服务端自发的事件，两者均派生自【唯一真源】lib/event-schema.ts
+ * （新增事件名先改那里，本文件不再手抄；改哪几处、哪些漏改会静默丢数据，见该文件顶注）。
  * 0018 建 3 个 + 0050 增 match.question_opened；0053 起 DB 的 event CHECK 由枚举白名单放宽为前缀正则，
- * 故【本联合类型 + /api/events 的分发表】才是事件名的真闸 —— 新增事件名必须先加进这里。
- * ⚠️ 未跑 migration 0053 前，下面 7 个新事件会被旧 CHECK 拒绝、并被 logEvent 的 catch 静默吞掉（= 零数据）。
+ * 故【本联合类型 + /api/events 的分发表】才是事件名的真闸。
+ *
+ * ⚠️⚠️ flow.capture_abandoned【永久禁止做任何比率的分子】——只能当归因样本用；
+ * 完整理由与「放弃率的唯一正确口径」写在 event-schema.ts 的同名条目上方，动它之前必读那段。
  */
-export type FlowEventName =
-  | 'match.result'
-  | 'flow.corpus_bound'
-  | 'match.view_rendered'
-  | 'match.question_opened'
-  | 'flow.story_entry'
-  | 'flow.mic_permission'
-  | 'flow.capture_started'
-  | 'flow.capture_submitted'
-  // ⚠️⚠️ flow.capture_abandoned【永久禁止做任何比率的分子】——只能当归因样本用。
-  // 它的丢失概率与「用户怎么离开」强相关，是方向已知、大小未知的系统性偏差，改代码消不掉：
-  //   · 站内跳走（React 卸载）实测 3/3 到；关标签页/地址栏跳走实测 0/8（前者进 bfcache 刻意不报，
-  //     后者是 keepalive 请求已创建但未发出，浏览器侧丢包，与我方代码/鉴权/落库都无关）。
-  //   · 也就是说：越是「彻底不玩了」越报不出来，越是「站内溜达一圈」越报得出来。
-  // ⇒ 拿 count(*) 算放弃率会系统性低估，且低估幅度不可校正（大小未知 = 无法加权修正）。
-  // 【放弃率的唯一正确来源是离线推断口径】：有 capture_started、但窗口内该 user 没有新增 corpus 行。
-  // 它的输入（capture_started 在挂载时报、早于用户做任何决定；corpus 是服务端事实）丢失与结局无关，
-  // 只缩小样本、不偏移比率。口径全文见 docs/交接-用户反馈批次-2026-08-02.md §3.5。
-  | 'flow.capture_abandoned'
-  | 'flow.ai_call'
-  | 'flow.consent_granted'
+export type FlowEventName = ClientEventName | ServerOnlyEventName
 
 /** 一条埋点事件；props 仅承载计数/布尔/code，绝不放原文 */
 export interface FlowEvent {

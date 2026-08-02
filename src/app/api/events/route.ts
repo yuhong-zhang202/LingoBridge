@@ -8,6 +8,10 @@
  *   故【本文件的 EVENT_SPECS 分发表是事件名唯一的真闸】：查表未命中一律 400，绝不许放行落库。
  *   同理，绝不许写「所有整数字段一律放行」的通用 sanitize —— 那等于把 props 变成客户端可控的自由 key 空间。
  *
+ *   ⚠️ 各字段的取值域白名单一律【从 lib/event-schema.ts import】，本文件不再手抄一份 ——
+ *   抄错一个值 = 客户端发得好好的、服务端静默丢弃该字段，本地测不出来。
+ *   但校验【只在服务端做】：客户端类型再严也只是编译期约束，请求体永远当作不可信输入逐字段收敛。
+ *
  * @author   LingoBridge
  * @created  2026-07-17
  */
@@ -16,13 +20,11 @@ import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { logEvent, type FlowEventName } from '@/lib/events'
 import { isQaRequest } from '@/lib/qa-traffic'
-
-/** view_rendered 允许上报的字段白名单（全为计数/布尔，无原文）。服务端据此重建 props，丢弃其余一切。 */
-const VIEW_RENDERED_NUMERIC = ['candidateCount', 'highCount', 'midCount', 'visibleCount', 'unscoredCount'] as const
-// rankingDegraded：matching/page.tsx 一直在发，但白名单里没有 → 一路被 sanitize 丢弃（生产核查：
-// match.view_rendered 138 行、带该字段的 0 行）。它用来区分两类空态（重排整体降级 vs B 类低相关展示），
-// 缺了它这两件事在数据里长得一模一样。补白名单，不是删发送端。
-const VIEW_RENDERED_BOOL = ['noMatch', 'globalNoneVisible', 'rankingDegraded'] as const
+import {
+  STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
+  CAPTURE_EXIT, AI_STAGE, AI_RESULT,
+  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC,
+} from '@/lib/event-schema'
 
 /**
  * 从客户端 props 里只挑白名单字段并强制类型：数字字段取有限数、布尔字段取布尔，其余一律丢弃。
@@ -45,8 +47,6 @@ function sanitizeViewRendered(raw: unknown): Record<string, number | boolean> {
   return out
 }
 
-/** question_opened 白名单·正整数 1..10000：rank 1-based 排位 / candidateCount 列表总数（均无原文）。 */
-const QUESTION_OPENED_NUMERIC = ['rank', 'candidateCount'] as const
 /** dwellMs 上限 = 30 分钟（毫秒）。超过即视作离散脏数据（开着标签页离开等），丢弃。 */
 const DWELL_MS_MAX = 30 * 60 * 1000
 /** questionId 白名单校验：标准 UUID v1-v5 格式（题目主键），非此形态一律丢弃——只是内部 id 引用、无原文。 */
@@ -120,22 +120,8 @@ function pickInt(o: Record<string, unknown>, key: string, min: number, max: numb
 
 // ── P0/P1 六个新客户端事件的 sanitize（一事件一函数，字段逐个显式列出）───────────────────
 
-const STORY_ENTRY = ['record', 'text', 'write', 'record_from_write'] as const
-const STORY_MODE = ['story', 'ielts'] as const
-const MIC_RESULT = ['granted', 'denied', 'unavailable'] as const
-// 'practice'：练习页与录音页共用 useAudioRecorder，两处的授权失败必须分得开（见 useAudioRecorder.MicSurface）
-const MIC_SURFACE = ['home', 'recording', 'practice'] as const
-const CAPTURE_MODE = ['voice', 'text'] as const
-const CAPTURE_OUTCOME = [
-  'proceed', 'too_short', 'quota_blocked', 'no_audio', 'too_large', 'garbage',
-  'text_too_short', 'consent_blocked', 'ai_failed', 'aborted',
-] as const
-const CAPTURE_EXIT = ['nav', 'pagehide'] as const
-const AI_STAGE = ['transcribe', 'restructure', 'polish'] as const
-const AI_RESULT = [
-  'ok', 'consent_403', 'quota_402', 'rate_429', 'bad_input_400', 'empty_422', 'auth_401',
-  'busy_503', 'server_5xx', 'parse_fail', 'network', 'timeout', 'aborted', 'other',
-] as const
+// 各事件的枚举白名单（STORY_ENTRY / MIC_SURFACE / CAPTURE_OUTCOME / AI_RESULT 等）已上移至
+// lib/event-schema.ts 并在文件顶部 import —— 服务端校验用的就是客户端类型所依据的那一份，不存在抄错。
 
 /** 采集时长上限 = 1 小时（秒）；字数上限 10 万字。超界即脏数据，丢弃。 */
 const DURATION_SEC_MAX = 3600
