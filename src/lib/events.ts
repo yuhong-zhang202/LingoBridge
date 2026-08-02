@@ -54,7 +54,33 @@ export interface FlowEvent {
 }
 
 /**
+ * story_id 列是 uuid 类型：非 UUID 形态的值会让 insert 撞 22P02，被下面的 catch 静默吞掉 ——
+ * 表现为「埋点在跑、这条事件零数据」，页面上一点异常都看不出来。故入库前收敛为 null。
+ */
+const STORY_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/**
+ * flow_id 是【客户端可控】的请求头（X-Flow-Id），而 flow_id 列是无上限的 text：
+ * 实测已被灌进 4013 字符的值，配合 /api/events 无限流 = 每请求可写 16KB 垃圾（正常 id 仅 36 字节）。
+ * ⚠️ 白名单必须容得下自家格式：newFlowId() 产出 crypto.randomUUID() 或 `base36-base36`
+ * （形如 msc7vzqp-t8m2dn96），【不是】标准 UUID —— 用 UUID 正则会把正常流程全误杀。
+ */
+const FLOW_ID_RE = /^[A-Za-z0-9._-]{1,64}$/
+
+/**
+ * 收敛一个 id 形态字段：命中白名单才原样返回，其余（含空串 / 超长 / 脏值）一律 null。
+ * 一处收口 —— 四个调用点一行不用改，也不会有人漏加校验。
+ * @param  v   原始值（可能来自客户端头 / URL 深链）
+ * @param  re  该字段的形态白名单
+ * @returns    合法值或 null
+ */
+function safeId(v: string | null | undefined, re: RegExp): string | null {
+  return typeof v === 'string' && re.test(v) ? v : null
+}
+
+/**
  * 将一条埋点事件写入 flow_events 表。
+ * flowId / storyId 入库前按形态白名单收敛（脏值置 null，不拒整条事件：宁可少一个 join key，
+ * 也不能让整条事件因一个脏字段消失 —— 那正是最难查的「埋点全在跑、库里零数据」）。
  * @param  e  事件数据
  * @returns   Promise<void>，写入失败静默处理（只 console.error，绝不阻断主链路）
  * @sideEffect 用 service_role 向 flow_events insert 一行（绕 RLS，无需 session）
@@ -63,8 +89,8 @@ export async function logEvent(e: FlowEvent): Promise<void> {
   try {
     const { error } = await getSupabaseServer().from('flow_events').insert({
       event:    e.event,
-      flow_id:  e.flowId ?? null,
-      story_id: e.storyId ?? null,
+      flow_id:  safeId(e.flowId, FLOW_ID_RE),
+      story_id: safeId(e.storyId, STORY_ID_RE),
       user_id:  e.userId ?? null,
       props:    e.props ?? {},
       is_qa:    e.isQa ?? false,
