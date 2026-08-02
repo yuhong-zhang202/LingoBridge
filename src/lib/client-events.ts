@@ -9,6 +9,26 @@
  *   Authorization: Bearer。用它 = 100% 收 401、数据全丢；又因 fire-and-forget 吞掉错误，
  *   本地测不出来、只会以为埋成功了。页面离开时的上报一律用 fetch keepalive（opts.keepalive）。
  *
+ *   ⚠️⚠️ keepalive 生效的前提：**fetch 必须在页面卸载【之前】就被创建出来** ⚠️⚠️
+ *   keepalive 保的是「已发出的请求在页面消失后继续跑完」，它保不了「还没发出的请求」。
+ *   故本文件的 keepalive 路径（sendKeepalive）【不允许出现任何 await / then / 异步取值】：
+ *   Authorization 走下面的模块级缓存同步取，flow_id / QA token 走同步 storage 读。
+ *   原实现是「先 await authHeaders()（内部 supabase getSession()）再 fetch」——本地 session 命中时它很快，
+ *   但 getSession 可能要抢 navigator 锁、token 过期时还会发网络刷新，卸载窗口里跑不完就等于请求根本没发出。
+ *   这里不赌它快，直接把这条路上的异步全部消掉。
+ *
+ *   ⚠️ 2026-08-02 实测澄清（别把下面这条当成「已经修好了」）：改成同步发之后，整页离开的
+ *   capture_abandoned 送达率**没有可测改善**（同条件 A/B：改前 6/10 落库、改后 7/9、复测 4/7 与 2/8）。
+ *   受控取证结论是丢失点不在这段 await：
+ *     · 「DB 侧 pagehide 0/5」的直接原因是 **pagehide 的 e.persisted=1（bfcache）**，
+ *       而 recording/write 两页刻意「persisted=true 不报」（见各自 useEffect 注释）—— 代码根本没走到 track。
+ *     · 关掉 bfcache 后（真卸载），改前也照样创建出了带 Authorization 的 keepalive fetch（页面内 fetch 包装探针）。
+ *     · 前置代理取证：一次 8 个已创建的 keepalive 请求只有 2 个到达服务端，而**到达的 100% 落库**
+ *       （代理 200 → flow_events 行数一一对应）。⇒ 残余丢失在「浏览器已创建 → 请求真的发出去」这段，
+ *       服务端与落库没有问题。
+ *   所以「关标签页/地址栏跳走的放弃事件偏低」这个指标问题仍然开着，需要重新归因（bfcache 口径 + keepalive
+ *   在导航中的丢包），不是本文件能解决的。别因为这里改成了同步就以为漏斗「放弃」那一格已经准了。
+ *
  *   ⚠️ 数据口径警告：【分析 P0 事件时必须忽略 flow_id，一律按 user_id 聚合】—— 用 flow_id 串会串错流程。
  *   理由（2026-08-02 更新，原写的「newFlowId() 位于早退分支之后」已被 commit 3e07e53 修掉、不再成立）：
  *   capture_started / capture_abandoned 是在页面【挂载/卸载】时报的，早于本次流程的任何 newFlowId()
@@ -19,6 +39,8 @@
  * @created  2026-08-02
  */
 import { apiFetch, authHeaders } from '@/lib/api-client'
+import { currentFlowId } from '@/lib/flow-id'
+import { qaToken } from '@/lib/qa-flag'
 
 /** 客户端可上报的事件名（须与 /api/events 的分发表逐一对应，服务端未注册即 400） */
 export type ClientEventName =
@@ -55,6 +77,51 @@ function normalize(props: ClientEventProps): Record<string, string | number | bo
 }
 
 /**
+ * 最近一次成功取到的 Authorization 头值（模块级缓存），仅供 keepalive 卸载路径【同步】取用。
+ * 由正常上报路径每次 authHeaders() 成功后顺手写入 —— 卸载前页面上必已发过至少一条埋点
+ * （capture_started 在采集开始时就报了），故缓存到那时几乎必然是热的。
+ * 空串 = 还没热起来，此时 keepalive 路径退回 await 版（那种情况本来也丢，不算退步）。
+ * 【刻意不做刷新】：token 过期会让偶尔一条埋点收 401 丢掉，可接受——埋点本就不保证送达；
+ * 为它引入刷新逻辑就等于在卸载路径上加异步，正是顶注那个坑。
+ */
+let cachedAuthorization = ''
+
+/** /api/events 的请求体形态（keepalive 路径与常规路径共用同一份，避免两路字段分叉）。 */
+interface EventBody {
+  event: ClientEventName
+  storyId: string | null
+  props: Record<string, string | number | boolean>
+}
+
+/**
+ * 卸载路径专用发送：**全同步**组头 + 立即创建 fetch(keepalive)，中途不 await 任何东西。
+ * 头部字段与 apiFetch 注入的保持一致（Authorization / Content-Type / X-Flow-Id / X-QA-Traffic），
+ * 之所以不复用 apiFetch：它内部 `await authHeaders()`，一 await 就回到本文件顶注记的那个坑。
+ * @param  body  已规范化的事件体
+ * @returns      无
+ * @sideEffect   同步读 sessionStorage(flow_id) / localStorage(QA token) 并发出 POST；任何失败一律吞掉
+ */
+function sendKeepalive(body: EventBody): void {
+  const flowId = currentFlowId()
+  const qa = qaToken()
+  try {
+    void fetch('/api/events', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        Authorization: cachedAuthorization,
+        'Content-Type': 'application/json',
+        ...(flowId ? { 'X-Flow-Id': flowId } : {}),
+        ...(qa ? { 'X-QA-Traffic': qa } : {}),
+      },
+      body: JSON.stringify(body),
+    }).catch(() => {})
+  } catch {
+    // Headers 构造 / JSON 序列化等同步抛错：埋点失败必须对用户完全无感
+  }
+}
+
+/**
  * 上报一条客户端埋点事件。fire-and-forget：不返回 Promise、绝不 await、绝不进任何 if 条件、
  * 不影响任何调用方的返回值或跳转 —— 埋点失败必须对用户完全无感（沿用 matching/page.tsx 已验证的范式）。
  *
@@ -65,7 +132,7 @@ function normalize(props: ClientEventProps): Record<string, string | number | bo
  * @param  props  事件字段（枚举串/数字/布尔，无原文）
  * @param  opts   storyId = corpus.id（有则带）；keepalive = 页面离开时上报（pagehide/卸载路径必须传 true）
  * @returns       无
- * @sideEffect    异步 POST /api/events；无 session 时静默不发（全新访客首页尚无 session，
+ * @sideEffect    POST /api/events；无 session 时静默不发（全新访客首页尚无 session，
  *                不短路会打出一串 401 噪音）；任何失败一律吞掉
  */
 export function track(
@@ -74,17 +141,21 @@ export function track(
   opts?: { storyId?: string; keepalive?: boolean },
 ): void {
   if (typeof window === 'undefined') return
+  const body: EventBody = { event, storyId: opts?.storyId ?? null, props: normalize(props) }
+  // 卸载路径：缓存里有 token 就【同步】发，一个 await 都不许有（理由见顶注「keepalive 生效的前提」）。
+  if (opts?.keepalive && cachedAuthorization) {
+    sendKeepalive(body)
+    return
+  }
+  // 常规路径：行为与改动前逐字一致，仅多一句「顺手把 token 存进缓存」（无可观察副作用）。
   void (async () => {
     const headers = await authHeaders()
     if (!headers.Authorization) return
+    cachedAuthorization = headers.Authorization
     await apiFetch('/api/events', {
       method: 'POST',
       keepalive: opts?.keepalive,
-      json: {
-        event,
-        storyId: opts?.storyId ?? null,
-        props: normalize(props),
-      },
+      json: body,
     })
   })().catch(() => {})
 }
