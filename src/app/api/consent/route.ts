@@ -15,6 +15,8 @@ import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { BETA_PRIVACY_VERSION, CONSENT_SCOPE_SNAPSHOT } from '@/lib/privacy-copy'
+import { logEvent } from '@/lib/events'
+import { isQaRequest } from '@/lib/qa-traffic'
 
 export async function POST(req: Request): Promise<NextResponse> {
   // 性能取证：把「验 token」与「插库」两段耗时经 Server-Timing 头暴露到浏览器 DevTools。
@@ -36,6 +38,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     })
     if (error) throw error
     const t2 = performance.now()
+
+    // 漏斗 D0：同意即成为漏斗第一级，与 D1–D5 同走 flow_events，同源同口径（一张表一把尺）。
+    // 刻意【不给 consent_records 加 is_qa 列】：那是合规证据表，多一个客户端可控列就多一份举证成本，
+    // 且会经 own_consent_records_select 回显给用户本人。QA 标记只落 flow_events 这张统计表。
+    // 补这条事件还顺带补上一类此前完全看不见的用户：「点了同意就退出」的人，在 flow_events 里
+    // 必然有且仅有这一条记录。logEvent 内部已吞异常，不阻断同意返回。
+    await logEvent({
+      event: 'flow.consent_granted',
+      flowId: req.headers.get('x-flow-id'),
+      userId,
+      isQa: isQaRequest(req, userId),
+    })
 
     const authMs = Math.round(t1 - t0)
     const insertMs = Math.round(t2 - t1)

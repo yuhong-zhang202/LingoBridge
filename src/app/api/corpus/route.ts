@@ -11,6 +11,7 @@ import { logErr } from '@/lib/log'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { logEvent } from '@/lib/events'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { countCorpusThisMonthServer, countCorpusForUserServer, createCorpusServer } from '@/lib/db/corpus-server'
 import { isInternalAccount } from '@/lib/internal-accounts'
 import { STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
@@ -64,6 +65,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       storyId: corpus.id,
       userId,
       props: { source },
+      // 漏斗末级 D5 就靠这条：漏了 is_qa，产品方自测建的故事会算进真实转化率里，末级整段作废
+      isQa: isQaRequest(req, userId),
     })
     return NextResponse.json({ corpus })
   } catch (e) {

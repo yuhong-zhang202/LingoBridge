@@ -21,6 +21,7 @@ import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/li
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
+import { isQaRequest } from '@/lib/qa-traffic'
 import {
   SCORE_HIGH, SCORE_MID, RANKING_ALGO_VERSION,
   ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
@@ -207,6 +208,8 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       flowId: req.headers.get('x-flow-id'),
       storyId: corpusId,
       userId,
+      // 不标 QA 的话，产品方自测的匹配结果会混进 ranking 质量分析（分布/假空率）里
+      isQa: isQaRequest(req, userId),
       props: {
         primaryCode: result.primary?.pointCode ?? null,
         secondaryCode: result.secondary?.pointCode ?? null,
