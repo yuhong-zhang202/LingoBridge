@@ -19,6 +19,7 @@
  * 用法：node --env-file=.env.local scripts/stability/probe-anon-quota-free.mjs --base-url https://lingobridge.zeabur.app
  */
 import { createClient } from '@supabase/supabase-js'
+import { signInAnonymouslyTagged } from '../lib/qa-anon-auth.mjs'
 
 const BASE = (process.argv.find((a) => a.startsWith('--base-url='))?.split('=')[1]
   ?? process.argv[process.argv.indexOf('--base-url') + 1] ?? '').replace(/\/$/, '')
@@ -51,7 +52,9 @@ let uid = null
 try {
   // ── 1) 匿名登录 ────────────────────────────────────────────
   const cli = createClient(URL, ANON, { auth: { persistSession: false } })
-  const { data: ad, error: ae } = await cli.auth.signInAnonymously()
+  // 建号带 lb_qa_script 标记（scripts/lib/qa-anon-auth.mjs）：本脚本 finally 会自删，
+  // 但中途崩溃时账号会残留 —— 有标记才能被 scripts/cleanup-qa-anon.mjs 事后清掉。
+  const { data: ad, error: ae } = await signInAnonymouslyTagged(cli, 'probe-anon-quota-free')
   if (ae) { console.error(`❌ 匿名登录失败：${ae.message}`); process.exit(2) }
   uid = ad.user.id
   const token = ad.session.access_token

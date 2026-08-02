@@ -23,6 +23,7 @@
  * 用法：node --env-file=.env.local scripts/stability/probe-allowlist-control.mjs
  */
 import { createClient } from '@supabase/supabase-js'
+import { signInAnonymouslyTagged } from '../lib/qa-anon-auth.mjs'
 
 const URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '')
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -73,7 +74,8 @@ try {
   // ══ 对照 B：匿名 updateUser（名单内）════════════════════════════
   log('\n════ 对照 B：signInAnonymously → updateUser，邮箱【在】名单内 ════')
   const cB = createClient(URL, ANON, { auth: { persistSession: false } })
-  const { data: anonD, error: anonE } = await cB.auth.signInAnonymously()
+  // 带 lb_qa_script 标记建号（finally 会自删；崩溃残留时靠标记被 cleanup-qa-anon.mjs 清掉）
+  const { data: anonD, error: anonE } = await signInAnonymouslyTagged(cB, 'probe-allowlist-control')
   if (anonE) {
     log(`⚠️ 匿名登录失败：${anonE.message}`)
     results.push(['对照B updateUser', 'INCONCLUSIVE', anonE.message])

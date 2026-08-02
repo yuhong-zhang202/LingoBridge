@@ -3,9 +3,14 @@
  * 再用已登录 session 读取各表真实行数。
  * 运行：node --env-file=.env.local scripts/inspect-db-auth.mjs
  * 只做 SELECT 查询，绝对不 insert / update / delete。
+ *
+ * ⚠️ 本脚本会在生产 auth.users 里真建一个匿名账号（用 service_role 会绕过 RLS、
+ *    本脚本「用 authenticated 角色实测能读到什么」的目的就没了，故不能改）。
+ *    建号走 scripts/lib/qa-anon-auth.mjs 打标记，事后用 scripts/cleanup-qa-anon.mjs 清理。
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { signInAnonymouslyTagged } from './lib/qa-anon-auth.mjs'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -49,7 +54,7 @@ async function main() {
 
   // ── Step 1: 匿名登录取得 authenticated session ──────────────────────────
   hr('Step 1 — signInAnonymously()')
-  const { data: authData, error: authErr } = await sb.auth.signInAnonymously()
+  const { data: authData, error: authErr } = await signInAnonymouslyTagged(sb, 'inspect-db-auth')
   if (authErr) {
     console.error(`❌ 登录失败: ${authErr.message}`)
     process.exit(1)

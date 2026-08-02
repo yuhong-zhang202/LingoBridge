@@ -19,6 +19,10 @@
  *   quota-anon  匿名 restructure 每日 5 次上限，第 6 次 402（花钱但极便宜，qwen-flash 短文本）
  *   cleanup     删号（--cleanup 独立开关，不在 parts 里）
  *
+ * ⚠️ 自造匿名账号：consent / quota-anon 两段【各建 1 个真的匿名账号】（测的就是匿名链路，无法用
+ *   service_role 替代）。两处均带 lb_qa_script 标记（scripts/lib/qa-anon-auth.mjs），
+ *   跑完用 `node --env-file=.env.local scripts/cleanup-qa-anon.mjs`（默认 dry-run）清理。
+ *
  * 环境变量（只读变量名，脚本内不打印任何值）：
  *   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
  */
@@ -302,7 +306,7 @@ if (PARTS.includes('authz')) {
 
 // ══════════════ consent：同意闸 ══════════════
 if (PARTS.includes('consent')) {
-  const anon = await auth.signInAnonymously()
+  const anon = await auth.signInAnonymously('l1-e2e:consent')
   // 新匿名会话没有 consent_records → 所有 AI 出口必须 403 CONSENT_REQUIRED，且不产生任何 AI 费用
   const r1 = await timedFetch(`${BASE}/api/restructure`, {
     method: 'POST', headers: { authorization: `Bearer ${anon.token}`, 'content-type': 'application/json' },
@@ -325,7 +329,7 @@ if (PARTS.includes('consent')) {
 
 // ══════════════ quota-anon：匿名 restructure 每日上限 ══════════════
 if (PARTS.includes('quota-anon')) {
-  const anon = await auth.signInAnonymously()
+  const anon = await auth.signInAnonymously('l1-e2e:quota-anon')
   const c = await timedFetch(`${BASE}/api/consent`, { method: 'POST', headers: { authorization: `Bearer ${anon.token}`, 'content-type': 'application/json' }, body: '{}' }, 30_000)
   check('匿名可签同意', c.status === 200, `status=${c.status}`)
   const seen = []

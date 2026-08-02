@@ -14,6 +14,7 @@ import { readFileSync, statSync, mkdirSync, appendFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildQaAnonMetadata } from '../lib/qa-anon-auth.mjs'
 
 export const HERE = dirname(fileURLToPath(import.meta.url))
 export const OUT_DIR = join(HERE, 'out')
@@ -269,9 +270,16 @@ export function makeAuth({ supabaseUrl, anonKey, log }) {
       log(`登录成功：user=${body.user?.id} anonymous=${body.user?.is_anonymous ?? false}`)
       return body.access_token
     },
-    /** 匿名会话（用于测同意闸 / 匿名配额） */
-    async signInAnonymously() {
-      const { status, body } = await post('/auth/v1/signup', {})
+    /**
+     * 匿名会话（用于测同意闸 / 匿名配额）
+     * @param  scriptName  建号脚本名（必填），写进 user_metadata 供事后识别/清理，
+     *                     同一脚本内多处建号要带段名区分（如 'l1-e2e:consent'）。
+     *                     GoTrue 的 POST /auth/v1/signup 的 `data` 字段即 user_metadata，
+     *                     与 supabase-js signInAnonymously({options:{data}}) 走同一个端点同一个字段。
+     * @sideEffect         在 auth.users 里真建一个匿名账号（带标记，见 scripts/lib/qa-anon-auth.mjs）
+     */
+    async signInAnonymously(scriptName) {
+      const { status, body } = await post('/auth/v1/signup', { data: buildQaAnonMetadata(scriptName) })
       if (status !== 200 || !body.access_token) fail(`匿名登录失败（${status}）：${JSON.stringify(body)}`)
       log(`匿名会话建立：user=${body.user?.id}`)
       return { token: body.access_token, userId: body.user?.id }
