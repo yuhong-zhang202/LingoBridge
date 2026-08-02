@@ -73,6 +73,16 @@ describe('question_opened · sanitize 白名单（乙.1）', () => {
     expect(capturedProps()).toEqual({ rank: 1 })
   })
 
+  test('view_rendered 的 rankingDegraded 必须放行（曾发了却被 sanitize 丢弃、生产 138 行里 0 行有它）', async () => {
+    const req = new Request('http://localhost/api/events', {
+      method: 'POST',
+      headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
+      body: JSON.stringify({ event: 'match.view_rendered', props: { visibleCount: 0, noMatch: false, rankingDegraded: true } }),
+    })
+    await POST(req)
+    expect(capturedProps()).toEqual({ visibleCount: 0, noMatch: false, rankingDegraded: true })
+  })
+
   test('白名单外的任意键（原文字段）绝不进库', async () => {
     await POST(makeReq({ rank: 2, note: '我的隐私故事', transcript: 'hello world' }))
     expect(capturedProps()).toEqual({ rank: 2 })

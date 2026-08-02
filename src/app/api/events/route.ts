@@ -19,7 +19,10 @@ import { isQaRequest } from '@/lib/qa-traffic'
 
 /** view_rendered 允许上报的字段白名单（全为计数/布尔，无原文）。服务端据此重建 props，丢弃其余一切。 */
 const VIEW_RENDERED_NUMERIC = ['candidateCount', 'highCount', 'midCount', 'visibleCount', 'unscoredCount'] as const
-const VIEW_RENDERED_BOOL = ['noMatch', 'globalNoneVisible'] as const
+// rankingDegraded：matching/page.tsx 一直在发，但白名单里没有 → 一路被 sanitize 丢弃（生产核查：
+// match.view_rendered 138 行、带该字段的 0 行）。它用来区分两类空态（重排整体降级 vs B 类低相关展示），
+// 缺了它这两件事在数据里长得一模一样。补白名单，不是删发送端。
+const VIEW_RENDERED_BOOL = ['noMatch', 'globalNoneVisible', 'rankingDegraded'] as const
 
 /**
  * 从客户端 props 里只挑白名单字段并强制类型：数字字段取有限数、布尔字段取布尔，其余一律丢弃。
