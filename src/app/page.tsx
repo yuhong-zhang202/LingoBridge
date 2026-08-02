@@ -24,6 +24,7 @@ import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
 import { computeRichness } from '@/lib/story-richness'
+import { track } from '@/lib/client-events'
 import type { HomeViewProps } from './types'
 
 // 路由级代码分割：移动/桌面两套纯展示视图各自独立 chunk，按视口【互斥渲染】——移动端只下载 HomeMobile、
@@ -87,13 +88,18 @@ export default function HomePage() {
   // 点「开始录音」先核额度、再探测麦克风：有权限照常进录音页，没权限弹 sheet（避免录音页静默卡死）。
   // checkBlocked / getUserMedia 都是异步慢操作，此前 fire-and-forget 无反馈 → 用户以为按钮坏了。
   async function handleStartRecording() {
+    // 【必须在额度守卫之前报】被额度拦下的人也是「点了开始录音」的人；埋在守卫之后，
+    // 额度拦截就会伪装成「用户根本没点」，漏斗直接归错格。埋点 fire-and-forget，不影响下面任何分支。
+    track('flow.story_entry', { entry: 'record', mode: ieltsMode ? 'ielts' : 'story' })
     if (await storyQuota.checkBlocked()) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      track('flow.mic_permission', { result: 'granted', surface: 'home' })
       stream.getTracks().forEach((t) => t.stop())   // 拿到权限即释放，录音页会重新获取
       navigate(ieltsMode && question ? `/recording?qid=${question.id}` : '/recording')
     } catch (err) {
       const name = (err as DOMException)?.name
+      track('flow.mic_permission', { result: name === 'NotAllowedError' ? 'denied' : 'unavailable', surface: 'home' })
       setMicSheet(name === 'NotAllowedError' ? 'denied' : 'unavailable')
     }
   }
@@ -102,7 +108,12 @@ export default function HomePage() {
 
   /** 「文本输入」入口：打开面板前同样核额度；关闭面板不核（无消耗动作） */
   async function handleSetShowTextInput(v: boolean): Promise<void> {
+    // 只有「打开面板」才算一次入口动作，关面板不报。
+    // story_entry 在守卫【之前】（被拦下的人也点了），capture_started 在守卫【之后】（真进到输入态才算开始采集）——
+    // 整个「被额度拦掉多少人」就靠这两者的差值，颠倒任一个差值恒为 0。
+    if (v) track('flow.story_entry', { entry: 'text', mode: ieltsMode ? 'ielts' : 'story' })
     if (v && await storyQuota.checkBlocked()) return
+    if (v) track('flow.capture_started', { mode: 'text' })
     setShowTextInput(v)
   }
 
@@ -110,6 +121,8 @@ export default function HomePage() {
   // 用户会先进 /write 写完、点提交才被 /write 的守卫拦下 —— 等于白写一场，故前置到这里。
   const writeHref = ieltsMode && question ? `/write?qid=${question.id}` : '/write'
   async function handleOpenWrite(): Promise<void> {
+    // 同上：在守卫之前报，否则被额度拦下的桌面用户不产生入口事件
+    track('flow.story_entry', { entry: 'write', mode: ieltsMode ? 'ielts' : 'story' })
     if (await storyQuota.checkBlocked()) return
     navigate(writeHref)
   }
