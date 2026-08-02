@@ -8,6 +8,7 @@
  */
 import { getSupabase } from '@/lib/supabase'
 import { currentFlowId } from '@/lib/flow-id'
+import { qaToken } from '@/lib/qa-flag'
 
 /**
  * 取当前 Supabase session 的 Bearer 鉴权头，供受保护 API 的 fetch 使用。
@@ -69,10 +70,15 @@ export async function apiFetch(input: string, init: ApiFetchInit = {}): Promise<
   // 全链路 flow_id 走 X-Flow-Id 头透传（非 URL / 非 body）：一处注入，transcribe / restructure /
   // corpus / matching / events 全覆盖；无 flow_id（如浏览页请求）时不带，服务端读到 null 即可。
   const flowId = currentFlowId()
+  // QA 流量标记同样一处注入：漏斗最后一级 flow.corpus_bound 是服务端写的，服务端只能从这个头
+  // 认出「这是产品方自测」，缺了它漏斗末级永远标不上 QA、只能整段作废。
+  // ⚠️ 客户端可控、可伪造：服务端仅用于统计列，绝不可接业务闸（见 qa-flag.ts 顶注红线）。
+  const qa = qaToken()
   const merged: Record<string, string> = {
     ...(await authHeaders()),
     ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(flowId ? { 'X-Flow-Id': flowId } : {}),
+    ...(qa ? { 'X-QA-Traffic': qa } : {}),
     ...headers,
   }
   return fetch(input, {
