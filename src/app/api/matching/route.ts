@@ -279,8 +279,15 @@ function sseFrame(event: string, data: unknown): Uint8Array {
 }
 
 /**
- * match.result 埋点 props（与 handleBuffered 内联口径逐字一致，两处须保持同步）：
+ * match.result 埋点 props（与 handleBuffered 内联口径逐字一致）：
  * 观察点分布 + 命中来源 + noMatch + 可见/未打分计数 + served_from。visibleCount 与前端 totalVisible 同口径。
+ *
+ * ⚠️ 全站共【三处】发 match.result，须保持同步：handleBuffered 内联一处 + handleStreaming 的
+ * 「快照命中」与「新算」各一处。原注释写「两处」，正是漏数了流式两条中的一条。
+ * ⚠️ 本函数只统一了 props，logEvent 的外层字段（flowId / storyId / userId / **isQa**）仍在三处各写各的
+ * —— 这就是 2026-08-02 那次「流式两处漏 isQa、生产 match.result 全部 is_qa=false」的成因：
+ * 抽了 props 公共函数，容易误以为「口径已经统一了」，而 isQa 根本不在这个函数的管辖范围内。
+ * 新增/修改任何外层字段时，请三处一起改，别只看这个函数。
  */
 function matchResultEventProps(result: FunnelMatchResult, servedFrom: 'fresh' | 'cache'): Record<string, unknown> {
   return {
@@ -346,6 +353,11 @@ async function handleStreaming(req: Request): Promise<Response> {
     const cached: FunnelMatchResult | null =
       snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
     const flowId = req.headers.get('x-flow-id')
+    // QA 标记在开流【前】算好、闭包带入：两处 match.result 埋点都在 start(controller) 回调里，
+    // 回调内重复调用没有收益（isQaRequest 是纯函数，结果不会变）。
+    // ⚠️ 2026-08-02 修复：此前这两处漏了 isQa，而前端默认走流式（?stream=0 只是兜底），
+    // 导致生产库 match.result 全部 is_qa=false —— 产品方自测数据混进 ranking 质量分析。
+    const isQa = isQaRequest(req, userId)
 
     // 配额硬防线：仅「真要跑模型」这一路计次，且在任何 AI 调用之前——放在读档判定之后（命中存档零成本、不计次）。
     // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429。与 handleBuffered 同口径，早退返回普通 JSON。
@@ -386,7 +398,7 @@ async function handleStreaming(req: Request): Promise<Response> {
               candidateCount: cached.questions.length,
             }))
             for (const q of cached.questions) safeEnqueue(sseFrame('question', q))
-            await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(cached, 'cache') })
+            await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(cached, 'cache') })
             const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache')
             safeEnqueue(sseFrame('done', dto))
             safeClose()
@@ -422,7 +434,7 @@ async function handleStreaming(req: Request): Promise<Response> {
             )
           }
           pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
-          afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, props: matchResultEventProps(result, 'fresh') }))
+          afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, 'fresh') }))
           await Promise.all(afterTasks)
 
           const dto = await buildStreamDto(result, userId, isAnonymous, 'fresh')
