@@ -43,11 +43,15 @@ export type EnumFieldCoverage = {
   values: EnumValueStat[]
 }
 
+/** 「该我们修」桶最近一条失败明细（S4 下钻；窗口内无该桶失败时 null） */
+export type LatestOursFailure = { stageName: string; result: string; createdAt: string }
+
 /** 「客户端链路观测」整块的返回结构 */
 export type FlowHealth = {
   windowDays: number; windowStart: string; baselineStart: string
   preBaselineRows: number; totalRows: number; qaRows: number; truncated: boolean
   aiCall: AiStageStat[]; eventCounts: EventCountStat[]; enumCoverage: EnumFieldCoverage[]
+  latestOurs: LatestOursFailure | null
 }
 
 /** hook 返回的三态 + 重试入口（两个消费区块共用同一份，保证口径与状态一致） */

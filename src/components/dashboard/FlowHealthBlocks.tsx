@@ -22,8 +22,21 @@
 import type { ReactNode } from 'react'
 import type {
   AiResultBucket, AiStageStat, EnumFieldCoverage, EnumValueStat,
-  EventCountStat, FlowHealth, FlowHealthState,
+  EventCountStat, FlowHealth, FlowHealthState, LatestOursFailure,
 } from '@/hooks/useFlowHealth'
+import { jumpToAnchor } from '@/components/dashboard/anchor'
+import { ANCHOR_FAILURE_DETAIL } from '@/lib/dashboard-verdict'
+
+// 部署在香港、DB 存 UTC：展示时间按东八区折算（与看板其余口径一致）
+const HK_OFFSET_MS = 8 * 60 * 60 * 1000
+
+/** ISO 时刻 → 东八区「M/D HH:mm」（「该我们修」下钻明细的时间展示用） */
+function hkDateTime(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + HK_OFFSET_MS)
+  const hh = String(d.getUTCHours()).padStart(2, '0')
+  const mm = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${hh}:${mm}`
+}
 
 /** 区块外壳（沿用同页 PhaseCostBreakdown / PhaseFailureBreakdown 的卡片范式，不另造视觉） */
 function Block({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
@@ -171,9 +184,12 @@ function detailText(sum: AttributionSummary, hint: string): string {
 /**
  * 归属三格：整块最顶，「该我们修」2 倍字号。
  * 四格同大小 = 四格同重要 = 等于没分类，所以这里刻意不等大；成功不占格（它在下方阶段列表与桥接行里）。
- * @param stages  全部阶段统计
+ * 「该我们修」>0 时格内附最近一条明细 + 失败明细锚点 + 互证文案（S4 告警四件套④：静音误报教训——
+ * 归类可能有误，必须给一条与计费明细互证的路）。
+ * @param stages      全部阶段统计
+ * @param latestOurs  「该我们修」桶最近一条失败明细（可空；旧部署 API 无此字段时 undefined 同样兜住）
  */
-function AttributionGrid({ stages }: { stages: AiStageStat[] }) {
+function AttributionGrid({ stages, latestOurs }: { stages: AiStageStat[]; latestOurs: LatestOursFailure | null }) {
   const rows = ATTRIBUTION_META.map(m => ({ meta: m, sum: summarizeAttribution(stages, m.bucket, m.withStage) }))
   return (
     <>
@@ -188,6 +204,25 @@ function AttributionGrid({ stages }: { stages: AiStageStat[] }) {
             <div className="text-[0.6875rem] text-v2-text-muted mt-2 leading-relaxed">
               {sum.total === 0 ? meta.zeroText : detailText(sum, meta.hint)}
             </div>
+            {/* 「该我们修」格下钻（仅 >0 时）：最近一条明细 + 计费明细锚点 + 互证提示 */}
+            {meta.bucket === 'ours' && sum.total > 0 && (
+              <div className="mt-2 border-t border-black/[0.05] pt-2">
+                {latestOurs && (
+                  <div className="text-[0.6875rem] text-v2-text-secondary">
+                    最近一条：{latestOurs.stageName}
+                    {' · '}<span style={{ fontFamily: 'monospace' }}>{latestOurs.result}</span>
+                    {' · '}<span className="tabular-nums">{hkDateTime(latestOurs.createdAt)}</span>
+                  </div>
+                )}
+                <button onClick={() => jumpToAnchor(ANCHOR_FAILURE_DETAIL)}
+                  className="inline-flex items-center min-h-[44px] text-[0.6875rem] font-medium text-v2-text-secondary underline decoration-dotted focus-visible:ring-2 focus-visible:ring-brand-primary/40">
+                  查看失败明细
+                </button>
+                <div className="text-[0.625rem] text-v2-text-muted leading-relaxed">
+                  若下方明细里的类型是空录音/网络，说明归类可能有误，以明细行的错误类型为准。
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -329,7 +364,7 @@ export function AiOutcomeBlock({ state }: { state: FlowHealthState }) {
               用户侧早退（未同意 / 额度 / 日限 / 并发满）与网络失败不产生计费，上方失败柱与明细表看不见它们，只在本块可见。
             </div>
             {d.truncated && <TruncatedAlert />}
-            <AttributionGrid stages={d.aiCall} />
+            <AttributionGrid stages={d.aiCall} latestOurs={d.latestOurs ?? null} />
 
             {abnormal.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">

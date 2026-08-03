@@ -229,6 +229,8 @@ type RecentRow = {
   usage_amount: number; usage_unit: string; estimated_cost_cny: number
   latency_ms: number; status: string; metadata: LogMeta
 }
+// 失败明细行（多取归属两列，供「影响者」列；user_id 在返回前被截前 8 位替换，完整 id 不出接口）
+type FailedRow = RecentRow & { user_id: string | null; is_anonymous: boolean | null }
 
 /**
  * 这条失败是不是「系统故障」（用于错误率口径）。
@@ -419,9 +421,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       // 失败明细（区间内 status='error'，时间倒序）：每日失败柱图的下钻出口。
       // 刻意【不】在 SQL 层摘掉 user_input —— 明细表要能看到"这条失败到底是哪一类"，
       // 由前端按 error_kind 列展示；柱图的计数口径才只数系统故障（与 errorRate 一致）。
+      // 另取 user_id + is_anonymous（S4 告警四件套①「带影响者」）：返回前截前 8 位，完整 id 不出接口。
       supabase
         .from('api_usage_logs')
-        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
+        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata, user_id, is_anonymous')
         .or(EXCLUDE_INTERNAL_BY_USER)
         .eq('status', 'error')
         .gte('created_at', rangeStartDate.toISOString())
@@ -471,7 +474,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     const profilesTdRows   = profilesRes.data
     const recent  = (recentRes.data ?? []) as RecentRow[]
     const costly  = (costlyRes.data ?? []) as RecentRow[]
-    const failed  = (failedRes.data ?? []) as RecentRow[]
+    // 失败明细带影响者（S4①）：服务端截 user_id 前 8 位（辨识够用、完整 id 不出接口），匿名标记随行。
+    const failed  = ((failedRes.data ?? []) as FailedRow[]).map(({ user_id, is_anonymous, ...rest }) => ({
+      ...rest,
+      userIdShort: user_id ? user_id.slice(0, 8) : null,
+      isAnonymous: is_anonymous,
+    }))
 
     // ── 三张费用卡 ──
     const allTimeCost   = r2(allRows.reduce((s, r) => s + r.estimated_cost_cny, 0))

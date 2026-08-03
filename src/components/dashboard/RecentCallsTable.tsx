@@ -3,21 +3,25 @@
  * @module   dashboard/RecentCallsTable
  * @desc     API 调用明细表格，可在「最近」（时间序）/「最贵」（成本降序 Top-N）/「失败」三视图间切换；
  *           调用方可用 views 限定只渲染其中某几个视图（故障组只给失败、技术明细组给最近/最贵）。
- *           · 失败视图列序 = 环节 / 错误码 / 服务 / 延迟 / 费用 / 时间：删「状态」（全是失败、零信息）、
- *             删「接口/用量」，把环节提到最前、时间挪到最右，并展示 error_code（hover/小字见 error_message），
- *             让「并发超限 / 真故障」一眼可辨。
+ *           · 失败视图列序 = 环节 / 错误类型 / 用户 / 服务 / 延迟 / 费用 / 时间（S4 告警四件套）：
+ *             「用户」列显服务端截好的 user_id 前 8 位（匿名标出）；错误类型四分类中，凡由
+ *             error_code/message 事后推断（而非记账时实测写入 error_kind）的挂中性「推断」角标；
+ *             error_message 全文走【行内展开】（aria-expanded、命中区 44px），替代 hover title
+ *             （触屏/键盘不可达）。
  *           · 最近/最贵视图列序保持原样（时间 / 服务 / 接口 / 用量 / 费用 / 延迟 / 状态）。
  *           · 延迟一律以秒展示（保留 1 位小数），与看板其余口径统一。
  * @author   LingoBridge
  * @created  2026-06-04
  */
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { formatCny } from '@/lib/format-cost'
 import { classifyErrorKindFromLog } from '@/types/errors'
 
 type Log = { id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
-  metadata?: { phase?: string; cost_source?: string; error_kind?: string; error_code?: string; error_message?: string; logId?: string } | null }
+  metadata?: { phase?: string; cost_source?: string; error_kind?: string; error_code?: string; error_message?: string; logId?: string } | null
+  // 影响者（仅失败明细行有；服务端已截前 8 位，完整 id 不出接口）：旧部署 API 无此字段，标可选
+  userIdShort?: string | null; isAnonymous?: boolean | null }
 const SVC: Record<string, [string, string]> = {
   doubao_asr:    ['豆包 ASR',      '#D4875A'],
   qwen_flash:    ['千问 Qwen',     '#7BA699'],
@@ -54,8 +58,9 @@ function SourceTag({ src }: { src?: string }) {
 // 最近/最贵视图列序（含成功行，故保留「状态」）。失败视图列序独立、见 FAILED_COLS。
 const BASE_COLS = ['时间', '服务', '接口', '用量', '费用', '延迟', '状态']
 // 失败视图列序（pm 方案 §2.1 + 创始人「错误类型写清楚」）：环节提到最前、时间挪到最右，删状态/接口/用量；
-// 第二列「错误类型」= 四分类统一中文（空录音 / 容量繁忙 / 网络中断 / 系统故障 / 未记录），error_code 退成技术副字。
-const FAILED_COLS = ['环节', '错误类型', '服务', '延迟', '费用', '时间']
+// 第二列「错误类型」= 四分类统一中文（空录音 / 容量繁忙 / 网络中断 / 系统故障 / 未记录），error_code 退成技术副字；
+// 「用户」列 = 影响者（user_id 前 8 位，匿名标出）——知道是谁被影响，才知道要不要去道歉/回访。
+const FAILED_COLS = ['环节', '错误类型', '用户', '服务', '延迟', '费用', '时间']
 const SHOW = 20
 type Mode = 'recent' | 'costly' | 'failed'
 const MODE_LABEL: Record<Mode, string> = { recent: '最近', costly: '最贵', failed: '失败' }
@@ -100,18 +105,23 @@ function phaseName(log: Log): string {
  *   · 重算仍为 null 但有 error_code/error_message（真失败、记账三键已落）→ 系统故障（唯一告警项）
  *   · 既无有效kind 又无 code/message（埋点前更老数据，无法归因）→ —（原因未记录，诚实兜底、不瞎猜）
  * 前三类走非告警淡色，只有系统故障才亮告警红——一眼区分「该紧张 vs 不用紧张」。
+ * inferred（S4 告警四件套②「分类置信度可见」）：分类不是记账时实测写入的 error_kind、而是由
+ * code/message 事后推断（含「系统故障」兜底）时为 true，UI 挂中性「推断」角标——静音误报教训：
+ * 推断可能错，红色只该给确认项完全放心、推断项配角标提醒复核。
  * @param log  失败行
  */
-function failureType(log: Log): { text: string; tone: 'info' | 'warn' | 'error' | 'muted' } {
-  const kind = log.metadata?.error_kind ?? classifyErrorKindFromLog(log.metadata?.error_code, log.metadata?.error_message)
-  if (kind === 'user_input') return { text: '空录音', tone: 'warn' }
-  if (kind === 'capacity')   return { text: '容量繁忙', tone: 'info' }
-  if (kind === 'network')    return { text: '网络中断', tone: 'info' }
+function failureType(log: Log): { text: string; tone: 'info' | 'warn' | 'error' | 'muted'; inferred: boolean } {
+  const stored = log.metadata?.error_kind
+  const kind = stored ?? classifyErrorKindFromLog(log.metadata?.error_code, log.metadata?.error_message)
+  const inferred = stored == null
+  if (kind === 'user_input') return { text: '空录音', tone: 'warn', inferred }
+  if (kind === 'capacity')   return { text: '容量繁忙', tone: 'info', inferred }
+  if (kind === 'network')    return { text: '网络中断', tone: 'info', inferred }
   // 重算仍无 kind：有 code/message = 真失败（即便裸 Error 的 'unknown' 也算「有记录」）→ 系统故障；全无 = 更老数据。
   if (log.metadata?.error_code !== undefined || log.metadata?.error_message !== undefined) {
-    return { text: '系统故障', tone: 'error' }
+    return { text: '系统故障', tone: 'error', inferred: true }
   }
-  return { text: '— 原因未记录', tone: 'muted' }
+  return { text: '— 原因未记录', tone: 'muted', inferred: false }
 }
 
 /**
@@ -144,12 +154,39 @@ function humanReason(log: Log): string | null {
   if (code !== undefined && code !== 'unknown') return '服务端/供应商报错'
   return null
 }
-/** 错误类型徽标：明确分类 chip（一眼分排队 / 空录音 / 真失败 / 未记录） */
+/** 错误类型徽标：明确分类 chip（一眼分排队 / 空录音 / 真失败 / 未记录）；推断的挂中性角标（S4②） */
 function TypeChip({ log }: { log: Log }) {
-  const { text, tone } = failureType(log)
+  const { text, tone, inferred } = failureType(log)
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[0.625rem] font-medium whitespace-nowrap ${TYPE_TONE_CLASS[tone]}`}>
-      {text}
+    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[0.625rem] font-medium ${TYPE_TONE_CLASS[tone]}`}>
+        {text}
+      </span>
+      {inferred && (
+        <span className="inline-flex items-center px-1 py-px rounded text-[0.625rem] bg-black/[0.04] text-v2-text-muted">
+          推断
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** ISO 时刻 → 东八区「M/D HH:mm:ss」（行内展开区的完整时间） */
+function hkFullTime(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + HK_OFFSET_MS)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`
+}
+
+/** 失败行「影响者」格：user_id 前 8 位（等宽）+ 匿名标记；无归属行显「—」 */
+function UserCell({ log }: { log: Log }) {
+  if (!log.userIdShort) return <span className="text-v2-text-muted">—</span>
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="text-[0.625rem] text-v2-text-secondary" style={{ fontFamily: 'monospace' }}>{log.userIdShort}</span>
+      {log.isAnonymous === true && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.5625rem] font-medium bg-warning/15 text-warning-text">匿名</span>
+      )}
     </span>
   )
 }
@@ -170,6 +207,8 @@ export default function RecentCallsTable({
   views?: Mode[]; defaultMode?: Mode
 }) {
   const [mode, setMode] = useState<Mode>(defaultMode ?? views[0])
+  // 失败视图行内展开（S4③，替代 hover title——触屏/键盘可达）：同一时刻只展开一行，够用且不炸表高
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const source  = mode === 'recent' ? recentLogs : mode === 'costly' ? costlyLogs : failedLogs
   // 「最近」是无限增长的时间序，截前 20 条即可；「最贵」「失败」本身已是有界榜单，全量展示
   const visible = mode === 'recent' ? source.slice(0, SHOW) : source
@@ -210,26 +249,35 @@ export default function RecentCallsTable({
               // 最贵/失败视图的记录可能跨天，仅显示时:分会歧义，补月/日
               const when = mode === 'recent' ? hm : `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${hm}`
               if (mode === 'failed') {
-                // 失败视图列序：环节 / 错误码 / 服务 / 延迟 / 费用 / 时间
+                const hasTech = log.metadata?.error_code !== undefined || log.metadata?.error_message !== undefined
+                  || log.metadata?.logId !== undefined
+                const expanded = expandedId === log.id
+                // 失败视图列序：环节 / 错误类型 / 用户 / 服务 / 延迟 / 费用 / 时间（+ 可选的行内展开行）
                 return (
-                  <tr key={log.id} className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
+                  <Fragment key={log.id}>
+                  <tr className="border-b border-black/[0.03] hover:bg-cream-subtle transition-colors">
                     <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap">{phaseName(log)}</td>
-                    {/* 错误类型：分类 chip 领头 → 人话原因（主字，中文一句看懂）→ error_code + 供应商 message
-                        退成更淡更小的技术副字（hover title 看全文），一眼分「排队 vs 真失败」+ 知道到底出了啥 */}
-                    <td className="px-3 py-2" title={log.metadata?.error_message ?? undefined}>
+                    {/* 错误类型：分类 chip（推断挂角标）→ 人话原因 → error_code 技术副字；
+                        全文（error_code / error_message / logId / 东八区时间）走下方行内展开，不再用 hover title */}
+                    <td className="px-3 py-2">
                       <TypeChip log={log} />
                       {humanReason(log) && (
                         <div className="text-[0.625rem] text-v2-text-secondary mt-0.5">{humanReason(log)}</div>
                       )}
                       {log.metadata?.error_code !== undefined && log.metadata.error_code !== 'unknown' && (
-                        <div className="text-[0.5625rem] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
+                        <div className="text-[0.625rem] text-v2-text-muted mt-0.5" style={{ fontFamily: 'monospace' }}>
                           {log.metadata.error_code}
                         </div>
                       )}
-                      {log.metadata?.error_message && (
-                        <div className="text-[0.5625rem] text-v2-text-muted max-w-[200px] truncate">{log.metadata.error_message}</div>
+                      {hasTech && (
+                        <button aria-expanded={expanded}
+                          onClick={() => setExpandedId(expanded ? null : log.id)}
+                          className="inline-flex items-center min-h-[44px] text-[0.625rem] text-v2-text-muted underline decoration-dotted focus-visible:ring-2 focus-visible:ring-brand-primary/40">
+                          {expanded ? '收起技术信息' : '展开技术信息'}
+                        </button>
                       )}
                     </td>
+                    <td className="px-3 py-2 whitespace-nowrap"><UserCell log={log} /></td>
                     <td className="px-3 py-2 whitespace-nowrap"><Badge s={log.service} /></td>
                     <td className="px-3 py-2 text-v2-text-secondary whitespace-nowrap tabular-nums">{toSec(log.latency_ms)}s</td>
                     <td className="px-3 py-2 whitespace-nowrap">
@@ -240,6 +288,21 @@ export default function RecentCallsTable({
                     </td>
                     <td className="px-3 py-2 text-v2-text-muted whitespace-nowrap">{when}</td>
                   </tr>
+                  {/* 行内展开区（S4③）：完整 error_code / error_message（可选中复制）/ logId / 东八区时间 */}
+                  {expanded && (
+                    <tr className="border-b border-black/[0.03]">
+                      <td colSpan={FAILED_COLS.length} className="px-3 pb-3">
+                        <div className="bg-cream-subtle rounded-[12px] px-3 py-2.5 text-[0.625rem] text-v2-text-secondary leading-relaxed select-text"
+                          style={{ fontFamily: 'monospace' }}>
+                          <div>error_code: {log.metadata?.error_code ?? '—'}</div>
+                          <div className="break-all whitespace-pre-wrap">error_message: {log.metadata?.error_message ?? '—'}</div>
+                          <div className="break-all">logId: {log.metadata?.logId ?? '—'}</div>
+                          <div>时间: {hkFullTime(log.created_at)}（东八区）</div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 )
               }
               // 最近/最贵视图列序（原样）：时间 / 服务 / 接口 / 用量 / 费用 / 延迟 / 状态

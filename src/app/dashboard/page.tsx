@@ -43,8 +43,10 @@ type UserTotal    = { userId: string; isAnonymous: boolean; cost: number; calls:
 type RecentLog = {
   id: string; created_at: string; service: string; endpoint: string
   usage_amount: number; usage_unit: string; estimated_cost_cny: number; latency_ms: number; status: string
-  // error_code/error_message/logId：失败记账三键（供应商响应、无 PII），失败明细表据此显示错误码 + hover message
+  // error_code/error_message/logId：失败记账三键（供应商响应、无 PII），失败明细表据此显示错误码与行内展开全文
   metadata?: { phase?: string; cost_source?: string; error_kind?: string; error_code?: string; error_message?: string; logId?: string } | null
+  // 影响者（仅失败明细行有；服务端已截前 8 位，完整 id 不出接口）
+  userIdShort?: string | null; isAnonymous?: boolean | null
 }
 type PhaseLatency = { phase: string; name: string; p50: number; p90: number; max: number; calls: number }
 type TrendPhase   = { phase: string; name: string; days: Array<{ date: string; p50: number | null; p90: number | null; calls: number }> }
@@ -185,12 +187,14 @@ function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
 
 /**
  * 块B「哪个环节在失败」（归「出事了吗」）— 只列 errors>0 的环节，每行 = 环节名 + 失败X次(占该环节调用Y%) + 白烧¥。
- * 如 matching 中 extraction 成功记账后 ranking 失败，从这里能一眼定位是哪个环节在漏钱。全无失败显示占位文案。
+ * 如 matching 中 extraction 成功记账后 ranking 失败，从这里能一眼定位是哪个环节在漏钱。全无失败整块不渲染。
  * @param phases     环节聚合数组（内部按失败次数降序重排）
  * @param failedCost 本期全部失败调用的成本合计（白烧总额）
  */
 function PhaseFailureBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; failedCost: number }) {
   const failing = phases.filter(p => p.errors > 0).sort((a, b) => b.errors - a.errors || b.errorCost - a.errorCost)
+  // 无失败时整块不渲染（方案 §五：删「本期各环节无失败」空占位卡——①区摘要行已交代无失败）
+  if (failing.length === 0) return null
   return (
     <section aria-label="按环节失败率" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2">
@@ -199,22 +203,18 @@ function PhaseFailureBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; f
           <span className="text-[0.6875rem] font-medium text-warning-text">失败白烧 {formatCny(failedCost)}</span>
         )}
       </div>
-      {failing.length === 0 ? (
-        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">本期各环节无失败</div>
-      ) : (
-        <div className="space-y-2">
-          {failing.map(p => (
-            <div key={p.phase} className="flex items-center gap-3">
-              <span className="text-[0.6875rem] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={phaseDisplayName(p)}>{phaseDisplayName(p)}</span>
-              <span className="flex-1 text-[0.6875rem] text-warning-text">
-                失败 <span className="font-medium tabular-nums">{p.errors}</span> 次
-                <span className="text-v2-text-muted">（占该环节调用 {p.errorRate}%）</span>
-              </span>
-              <span className="text-[0.6875rem] font-medium text-warning-text w-24 text-right flex-shrink-0 tabular-nums">白烧 {formatCny(p.errorCost)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="space-y-2">
+        {failing.map(p => (
+          <div key={p.phase} className="flex items-center gap-3">
+            <span className="text-[0.6875rem] text-v2-text-secondary w-28 flex-shrink-0 truncate" title={phaseDisplayName(p)}>{phaseDisplayName(p)}</span>
+            <span className="flex-1 text-[0.6875rem] text-warning-text">
+              失败 <span className="font-medium tabular-nums">{p.errors}</span> 次
+              <span className="text-v2-text-muted">（占该环节调用 {p.errorRate}%）</span>
+            </span>
+            <span className="text-[0.6875rem] font-medium text-warning-text w-24 text-right flex-shrink-0 tabular-nums">白烧 {formatCny(p.errorCost)}</span>
+          </div>
+        ))}
+      </div>
     </section>
   )
 }
@@ -635,33 +635,46 @@ export default function DashboardPage() {
             每日故障柱 + AI 结局分布（埋点口径）+ 失败环节 + 失败明细 + 耗时。 */}
         <CollapsibleSection title="出事了吗" subtitle={incidentSubtitle}
           rangeBadge={rangeBadge} defaultOpen={data.todayFailuresTotal > 0}>
-          {/* 空录音摘要行（自原 Hero 失败卡副行移入，上次误报来源、信息不许丢）：今日口径 */}
-          <div className="text-[0.6875rem] text-v2-text-muted mb-2">
-            今日空录音 {data.emptyRecordingToday} 次 · 不算故障（用户输入问题，钱已花但服务是好的）
+          {/* 顶部摘要行（方案 §五）：本期失败 + 该我们修（区间口径）+ 今日空录音（自原 Hero 失败卡
+              副行移入，上次误报来源、信息不许丢）+ 最慢环节（耗时面板降收起后其摘要提到这里） */}
+          <div className="text-[0.6875rem] text-v2-text-secondary mb-2 leading-relaxed">
+            本期 <span className="font-medium tabular-nums">{rangeFailures}</span> 次计费失败
+            {oursTotal != null && <> · 该我们修 <span className="font-medium tabular-nums">{oursTotal}</span></>}
+            {' · '}今日空录音 <span className="tabular-nums">{data.emptyRecordingToday}</span> 次（不算故障）
+            {data.todayStatus.slowestPhase && (
+              <> · 最慢环节 {data.todayStatus.slowestPhase.name} P90 <span className="tabular-nums">{(data.todayStatus.slowestPhase.p90 / 1000).toFixed(1)}s</span></>
+            )}
           </div>
           <DailyFailureChart data={data.dailyFailures} />
           <div className="mt-4">
             <AiOutcomeBlock state={flow} />
-            {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本（计费口径） */}
+            {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本（计费口径）；无失败整块不渲染 */}
             <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
-            {/* 失败明细表：本区只给失败视图（每日故障图的下钻出口），最近/最贵归「看板自己还准吗」。
-                锚点包裹：结论条「计费失败 N 次」chip 的落点。 */}
-            <div id={ANCHOR_FAILURE_DETAIL} tabIndex={-1}>
-              <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
-                views={['failed']} defaultMode="failed" />
-            </div>
+            {/* 失败明细表：仅本期有失败时渲染（删空表，方案 §五）；锚点包裹 = 结论条失败 chip 与
+                「该我们修」格下钻的共同落点 */}
+            {data.failedLogs.length > 0 && (
+              <div id={ANCHOR_FAILURE_DETAIL} tabIndex={-1}>
+                <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
+                  views={['failed']} defaultMode="failed" />
+              </div>
+            )}
             {/* 假空率小卡（自用户区搬来，方案 §四/§五）：「采到声音却转写空」是采集故障性质，归本区 */}
             <div className="flex mt-4">
               {data.fakeEmpty
                 ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
                 : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
             </div>
-            {/* 性能耗时并入本区内层：慢也是一种"出事了"，但它不该和故障并列占一个顶层区。
-                锚点包裹：结论条「{环节}变慢」chip 的落点。 */}
-            <div id={ANCHOR_LATENCY} tabIndex={-1} className="mt-4">
-              <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
-                cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
-            </div>
+            {/* 各环节耗时降为默认收起（方案 §五）：摘要已提进顶部摘要行；慢也是一种"出事了"，
+                但天天展开一屏分位数没人读。锚点在 details 内层，jumpToAnchor 会连同本折叠一起展开。 */}
+            <details className="mt-4">
+              <summary className="cursor-pointer list-none select-none min-h-[44px] flex items-center text-[0.75rem] font-medium text-v2-text-secondary [&::-webkit-details-marker]:hidden">
+                各环节耗时（点开：分布 / 趋势）
+              </summary>
+              <div id={ANCHOR_LATENCY} tabIndex={-1}>
+                <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
+                  cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
+              </div>
+            </details>
           </div>
         </CollapsibleSection>
 

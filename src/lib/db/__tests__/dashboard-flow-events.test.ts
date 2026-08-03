@@ -13,7 +13,7 @@ jest.mock('server-only', () => ({}))
 
 import {
   aggregateAiCall, aggregateEventCounts, aggregateEnumCoverage, aggregateFlowHealth,
-  flowWindowStart, FLOW_EVENT_NAMES, MISSING_VALUE,
+  latestOursFailure, flowWindowStart, FLOW_EVENT_NAMES, MISSING_VALUE,
   type FlowEventRow,
 } from '@/lib/db/dashboard-flow-events'
 
@@ -175,5 +175,26 @@ describe('flowWindowStart · 东八区日界', () => {
     // 东八区 2026-08-03 07:00（= UTC 08-02 23:00）→ 起点应为东八区 07-28 00:00 = UTC 07-27 16:00
     expect(flowWindowStart(new Date('2026-08-02T23:00:00.000Z'), 7).toISOString())
       .toBe('2026-07-27T16:00:00.000Z')
+  })
+})
+
+describe('latestOursFailure · 「该我们修」格下钻', () => {
+  it('取最近一条 ours 桶失败；用户侧/网络/QA/非 ai_call 行都不算', () => {
+    const rows: FlowEventRow[] = [
+      row('flow.ai_call', { stage: 'transcribe', result: 'busy_503' }, false, '2026-08-02T10:00:00.000Z'),
+      row('flow.ai_call', { stage: 'matching', result: 'server_5xx' }, false, '2026-08-03T10:00:00.000Z'),
+      row('flow.ai_call', { stage: 'coach', result: 'consent_403' }, false, '2026-08-03T12:00:00.000Z'),   // 用户侧
+      row('flow.ai_call', { stage: 'coach', result: 'network' }, false, '2026-08-03T12:00:00.000Z'),       // 网络
+      row('flow.ai_call', { stage: 'coach', result: 'server_5xx' }, true, '2026-08-03T13:00:00.000Z'),     // QA
+      row('match.result', { result: 'server_5xx' }, false, '2026-08-03T14:00:00.000Z'),                    // 非 ai_call
+    ]
+    expect(latestOursFailure(rows)).toEqual({
+      stageName: '题目匹配', result: 'server_5xx', createdAt: '2026-08-03T10:00:00.000Z',
+    })
+  })
+
+  it('stage 未上报显「未知阶段」；窗口内无 ours 失败返回 null', () => {
+    expect(latestOursFailure([row('flow.ai_call', { result: 'parse_fail' })])?.stageName).toBe('未知阶段')
+    expect(latestOursFailure([row('flow.ai_call', { stage: 'coach', result: 'ok' })])).toBeNull()
   })
 })

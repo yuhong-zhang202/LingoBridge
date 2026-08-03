@@ -286,6 +286,16 @@ export interface EnumFieldCoverage {
   values: EnumValueStat[]
 }
 
+/** 「该我们修」桶最近一条失败的明细（S4 告警四件套④：格内下钻，不用翻明细才能知道是什么） */
+export interface LatestOursFailure {
+  /** 阶段中文名（stage 未上报时「未知阶段」） */
+  stageName: string
+  /** result 原始代码（如 busy_503 / server_5xx，技术定位用） */
+  result: string
+  /** 该行时刻（ISO，展示侧折东八区） */
+  createdAt: string
+}
+
 /** 「客户端链路观测」整块的返回结构 */
 export interface FlowHealthResult {
   windowDays: number
@@ -304,6 +314,8 @@ export interface FlowHealthResult {
   aiCall: AiStageStat[]
   eventCounts: EventCountStat[]
   enumCoverage: EnumFieldCoverage[]
+  /** 「该我们修」桶最近一条失败明细（窗口内无该桶失败时 null） */
+  latestOurs: LatestOursFailure | null
 }
 
 // ── 聚合（纯函数，可单测）─────────────────────────────────────────────────────────
@@ -462,6 +474,31 @@ export function aggregateEnumCoverage(rows: readonly FlowEventRow[]): EnumFieldC
 }
 
 /**
+ * 「该我们修」桶最近一条失败的明细（S4 下钻）：扫窗口内非 QA 的 flow.ai_call 行，
+ * result 归属为 ours 的取 created_at 最新一条。纯派生展示字段，不改任何既有聚合口径。
+ * @param rows  窗口内全部 flow_events 行
+ * @returns     最近一条 ours 失败；窗口内没有时 null
+ */
+export function latestOursFailure(rows: readonly FlowEventRow[]): LatestOursFailure | null {
+  let best: { t: number; stage: string; result: string; createdAt: string } | null = null
+  for (const row of rows) {
+    if (row.event !== 'flow.ai_call' || row.is_qa === true) continue
+    const result = pickStr(row.props, 'result')
+    if (!result || AI_RESULT_BUCKET[result] !== 'ours') continue
+    const t = Date.parse(row.created_at)
+    if (!best || t > best.t) {
+      best = { t, stage: pickStr(row.props, 'stage') ?? '', result, createdAt: row.created_at }
+    }
+  }
+  if (!best) return null
+  return {
+    stageName: best.stage === '' ? '未知阶段' : (STAGE_LABEL[best.stage] ?? best.stage),
+    result: best.result,
+    createdAt: best.createdAt,
+  }
+}
+
+/**
  * 把窗口内的原始行聚合成整块「客户端链路观测」结果。
  * @param rows       窗口内全部 flow_events 行（含 QA）
  * @param windowDays 窗口天数（7/14/30）
@@ -486,6 +523,7 @@ export function aggregateFlowHealth(
     aiCall: aggregateAiCall(rows),
     eventCounts: aggregateEventCounts(rows),
     enumCoverage: aggregateEnumCoverage(rows),
+    latestOurs: latestOursFailure(rows),
   }
 }
 
