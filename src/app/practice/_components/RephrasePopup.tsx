@@ -86,9 +86,12 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
               <div className="flex flex-col gap-2">
                 <div className="bg-cream-soft" style={{ padding: '9px 11px', border: '1px solid rgba(168,153,144,.14)', borderRadius: 11 }}>
                   <p className="text-[0.6875rem] text-v2-text-muted mb-1">Do you wanna try:</p>
-                  {/* 行高 1.6 而非 1.5：polish 输入上限已放宽到 800 且 POLISH_SYSTEM 要求「optimized 与原句长度相当」，
-                      13px 字号下 800 字约 16 行，1.5 密排读起来吃力。下方 note 解释区是短句列表，仍保持密排、不同步 */}
-                  <p className="text-[0.8125rem] leading-[1.6] text-v2-text-primary font-medium">{result.optimized}</p>
+                  {/* 用 leading-relaxed 而非原来的 leading-[1.5]：polish 输入上限已放宽到 800，且 POLISH_SYSTEM
+                      要求「optimized 与原句长度相当」，13px 字号下 800 字约 16 行，1.5 密排读起来吃力。
+                      ⚠️ 取 leading-relaxed(≈1.625) 而不是自造 leading-[1.6]：DESIGN.md 第 273 行定的正文行高就是它，
+                      全站已有 95 处在用 —— 自造一个只差 0.025 的值，既违反「禁止自创值」又让这里凭空多一个特例。
+                      下方 note 解释区是短句列表，仍保持密排、不同步。 */}
+                  <p className="text-[0.8125rem] leading-relaxed text-v2-text-primary font-medium">{result.optimized}</p>
                 </div>
                 {result.note && <PolishNote note={result.note} className="px-1" />}
               </div>
