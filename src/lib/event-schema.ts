@@ -154,6 +154,20 @@ export type AiResult = (typeof AI_RESULT)[number]
  *   /api/events 分发表、看板事件清单三处，一页一个名字 = 加个页面要改三处；
  *   单事件 + 枚举则加页面只改一个数组（本数组 + page-route 映射表，且两者有单测互相钉住）。
  *
+ * ⚠️【首页这一格系统性偏低，别当访问量用】全新访客落地首页时【还没有 supabase session】
+ *   （匿名账号是点「同意并开始」那一刻才建的），而 track 对无 session 是静默短路。
+ *   于是首页那条 page.view 发不出去，且模块级 lastRoute 已被置成 'home'，
+ *   【后来建了 session 也不会补发】。⇒ 偏低的量 ≈ 全新访客数，方向已知、大小可用
+ *   consent_records 的新增人数近似（两者都是「第一次来的人」）。
+ *   2026-08-03 实测：手动注入 session 后首页那条才发得出来，印证了这条缺口。
+ *   同类口径陷阱还有 flow.capture_abandoned 与 flow.ai_call 的 aborted，见各自条目。
+ *
+ * 【加载影响·2026-08-03 实测，非推算】无头 Chrome + CDP 实测（dev server）：
+ *   埋点请求在 load 事件【之后】才发出（比 DOMContentLoaded 晚约 300ms），不进首屏关键路径；
+ *   每次导航【恰好 1 条】（dev 的 StrictMode 双跑被 lastRoute 挡住），body 62 字节，
+ *   占一个页面 24~32 个请求中的 1 个。生产更快，但「在 load 之后」这个相对关系由 effect
+ *   执行时机决定、与环境无关。
+ *
  * 值 = src/app 下各 page.tsx 的路由，'-' 与路径分隔 '/' 一律转 '_'（与 QUOTA_SURFACE 同款 snake_case，
  * 免得分组统计时要记两套写法）。顺序 = 大致按用户主链路先后，其次是设置/账号类、最后是静态页。
  * ⚠️ 新增页面时必须同步加值 + 加映射，否则该页全部落进 'other'（看板上会看见 other 突增，可发现）。
