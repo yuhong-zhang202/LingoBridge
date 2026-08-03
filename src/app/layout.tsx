@@ -5,6 +5,7 @@ import SwUpdatePrompt from '@/components/SwUpdatePrompt'
 import UpdateBanner from '@/components/UpdateBanner'
 import StandaloneZoomFix from '@/components/StandaloneZoomFix'
 import { QaBadge } from '@/components/QaBadge'
+import PageViewTracker from '@/components/PageViewTracker'
 import { NavProvider, NavProgress } from '@/components/NavProgress'
 import { SELF_HEAL_CHUNK_SCRIPT } from './self-heal-chunk'
 import { FONT_SCALE_INIT_SCRIPT } from './font-scale-init'
@@ -93,6 +94,9 @@ export default function RootLayout({
         {/* QA 流量标记：挂载时按 ?qa= 同步标记，带标记时右下角显示「QA」角标（真实用户看不到）。
             放根布局 = 任意页面带 ?qa=<token> 进入都生效、?qa=0 任意页面都能关。 */}
         <QaBadge />
+        {/* page.view 埋点：路由变化时报一条「进入了哪个页面」，渲染 null、无 DOM。
+            只上报 route 枚举 code，绝不带 pathname 原文与 query（见组件顶注隐私段）。 */}
+        <PageViewTracker />
       </body>
     </html>
   )
