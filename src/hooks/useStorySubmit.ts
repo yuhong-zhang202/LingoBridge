@@ -141,7 +141,18 @@ export function useStorySubmit({ text, qid, onOutcome }: UseStorySubmitArgs): Us
         }
         // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理。
         // AI 这一次是失败的、用户却确实进了下一页 —— 故 ai_call 记失败码、capture_submitted 记 proceed，两者不矛盾。
-        reportAi(res.status >= 500 ? 'server_5xx' : 'other', res.status)
+        // 429/400/401 单列，与 restructure 页 / recording 页同口径（三条路径都打 /api/restructure，
+        // 口径不一致会造成「只有某一条路会撞日限」的假象）
+        reportAi(
+          res.status === 429
+            ? 'rate_429'
+            : res.status === 400
+              ? 'bad_input_400'
+              : res.status === 401
+                ? 'auth_401'
+                : res.status >= 500 ? 'server_5xx' : 'other',
+          res.status,
+        )
         reportSubmit('proceed')
         navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } catch {

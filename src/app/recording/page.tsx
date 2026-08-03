@@ -187,7 +187,15 @@ function RecordingContent(): JSX.Element {
             ? 'busy_503'
             : errData.code === 'EMPTY_TRANSCRIPT'
               ? 'empty_422'
-              : res.status >= 500 ? 'server_5xx' : 'other',
+              // 429/400/401 单列：压成 other 会让「日限撞了多少次」永远查不出来，
+              // 且同一 stage 的另外两条路径（restructure 页）已细分，不统一就是「只有那条路有 429」的假象
+              : res.status === 429
+                ? 'rate_429'
+                : res.status === 400
+                  ? 'bad_input_400'
+                  : res.status === 401
+                    ? 'auth_401'
+                    : res.status >= 500 ? 'server_5xx' : 'other',
           res.status,
         )
         // ASR_BUSY（503，转写并发排队满/超时）必须和「转写失败」分开说：前者是"人多"、几秒后重试就好，
@@ -255,7 +263,14 @@ function RecordingContent(): JSX.Element {
         // 仍【不报 capture_submitted】：用户被放行了，下面 router.push 前会报 proceed。
         track('flow.ai_call', {
           stage: 'restructure', mode: 'voice',
-          result: checkRes.status >= 500 ? 'server_5xx' : 'other',
+          // 同上：与 restructure 页、useStorySubmit 三条路径口径一致，否则失败率无法横向比
+          result: checkRes.status === 429
+            ? 'rate_429'
+            : checkRes.status === 400
+              ? 'bad_input_400'
+              : checkRes.status === 401
+                ? 'auth_401'
+                : checkRes.status >= 500 ? 'server_5xx' : 'other',
           httpStatus: checkRes.status, latencyMs: since(t1),
         })
       } catch {
