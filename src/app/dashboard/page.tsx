@@ -1,8 +1,14 @@
 'use client'
 /**
  * @module   dashboard/page
- * @desc     Admin 经营看板 — 首屏 Hero 四数卡（今日活跃/练习/故障/成本，今日口径）+ Tier2 折叠分组
- *           （增长/故障明细/耗时/趋势/成本细节/原始日志，所选区间口径）。不含 TabBar/TopBar，仅管理员可见。
+ * @desc     Admin 经营看板 — 首屏 Hero 四数卡（今日活跃/练习/计费失败/成本，今日口径）
+ *           + 四个问句式折叠区（所选区间口径）。不含 TabBar/TopBar，仅管理员可见。
+ *
+ *   【信息架构：默认只显示"不正常的"，正常的折成一行摘要】这是个日活 1-2 人的系统，
+ *   很多格子的值是个位数甚至 0 ——「0 是常态而不是异常」，所以四区只有「出事了吗」默认展开
+ *   （原先反过来：天天不动的增长默认展开、真出事的地方默认收起）。标题一律用问句：
+ *   ① 出事了吗 ② 钱花在哪 ③ 用户走到哪 ④ 看板自己还准吗（识别优于回忆）。
+ *
  * @author   LingoBridge
  * @created  2026-06-04
  */
@@ -19,7 +25,8 @@ import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
 import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
 import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
-import FlowHealthPanel from '@/components/dashboard/FlowHealthPanel'
+import { AiOutcomeBlock, FlowSelfCheckBlock } from '@/components/dashboard/FlowHealthBlocks'
+import { useFlowHealth } from '@/hooks/useFlowHealth'
 import { apiFetch } from '@/lib/api-client'
 import { formatCny } from '@/lib/format-cost'
 
@@ -101,7 +108,7 @@ const RANGE_LABEL: Record<Range, string> = { '7d': '7天', '14d': '14天', '30d'
 // 取 v2-text-muted token 值（#7C6B5E，on surface 5.09:1 达 AA），替换原 #A89990（2.75:1 不达标）。
 const AXIS_TICK_FILL = '#7C6B5E'
 
-// 迷你统计条（含【日均调用】）—— 归入 E 组「技术明细」，从首屏踢出（日均调用曾在首屏误导，pm 点名）。
+// 迷你统计条（含【日均调用】）—— 归入「看板自己还准吗」的技术明细，从首屏踢出（日均调用曾在首屏误导，pm 点名）。
 // 延迟一律以秒展示（÷1000 保留 1 位小数，如 3.8s / 15.4s），与看板其余耗时口径统一、别取整丢分辨率。
 const MINI_STATS = (d: DashboardData) => [
   { label: '日均调用', value: d.avgDailyCalls.toFixed(1) },
@@ -119,8 +126,8 @@ function phaseDisplayName(p: PhaseTotal): string {
 }
 
 /**
- * 块A「钱花在哪个环节」（归成本组）— 横条按最高成本归一，每行 = 环节名 + 成本条 + ¥金额 + 占本期总成本%。
- * 刻意删失败率、删次数：这块只回答"钱花哪了"，失败拆到块B。other 桶照实按成本排、不隐藏（pm 方案 §2.3）。
+ * 块A「钱花在哪个环节」（归「钱花在哪」）— 横条按最高成本归一，每行 = 环节名 + 成本条 + ¥金额 + 占本期总成本%。
+ * 刻意删失败率、删次数：这块只回答"钱花哪了"，失败拆到块B（归「出事了吗」）。other 桶照实按成本排、不隐藏（pm 方案 §2.3）。
  * @param phases  已按成本降序的环节聚合数组
  */
 function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
@@ -164,7 +171,7 @@ function PhaseCostBreakdown({ phases }: { phases: PhaseTotal[] }) {
 }
 
 /**
- * 块B「哪个环节在失败」（归故障组）— 只列 errors>0 的环节，每行 = 环节名 + 失败X次(占该环节调用Y%) + 白烧¥。
+ * 块B「哪个环节在失败」（归「出事了吗」）— 只列 errors>0 的环节，每行 = 环节名 + 失败X次(占该环节调用Y%) + 白烧¥。
  * 如 matching 中 extraction 成功记账后 ranking 失败，从这里能一眼定位是哪个环节在漏钱。全无失败显示占位文案。
  * @param phases     环节聚合数组（内部按失败次数降序重排）
  * @param failedCost 本期全部失败调用的成本合计（白烧总额）
@@ -256,7 +263,7 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
   )
 }
 
-// ── 增长漏斗（A 区）：等宽卡 + 段间箭头（chevron），不画按数值递减宽度的漏斗条 ──
+// ── 增长漏斗（归「用户走到哪」）：等宽卡 + 段间箭头（chevron），不画按数值递减宽度的漏斗条 ──
 //   产品方拍板（勿改）：③核心活跃门槛低于②激活、可能反超，递减条会误导；故四段等宽、每段 x/y 各自自洽。
 
 /** 漏斗每段的等宽卡壳（plain Card + flex 撑满等高，口径小字靠 mt-auto 沉底） */
@@ -336,7 +343,7 @@ const ACTIVATION_REASON = '激活 RPC（get_activation_stats）尚未接入，�
 const WEEKLY_RET_REASON = 'W1 留存 RPC（get_weekly_retention_stats）尚未接入，待部署方跑迁移 0047 后自动显示真实数据。'
 
 /**
- * A 区增长漏斗：① 累计注册 →（›/↓）② 激活 →（›/↓）③ 窗口核心活跃 →（›/↓）④ W1 首周留存。
+ * 增长漏斗：① 累计注册 →（›/↓）② 激活 →（›/↓）③ 窗口核心活跃 →（›/↓）④ W1 首周留存。
  * 桌面一行四段 + chevron，移动纵向堆叠 + 下箭头；四段等宽（不画递减宽度漏斗条，产品方拍板）。
  * a11y：<ol>/<li> 承载先后、区块 aria-label 概述全链、chevron aria-hidden。各段迁移未跑时独立降级、不塌。
  * @param data       看板数据（读 activation / weeklyRetention / retention / windowCoreActive 及各 pending）
@@ -466,6 +473,9 @@ export default function DashboardPage() {
   const [error, setError]               = useState(false)
   // 重试计数：递增即重新触发 useEffect 拉取
   const [reloadKey, setReloadKey]       = useState(0)
+  // 客户端埋点观测（flow_events 口径）：父层拉一次，同时喂「出事了吗」的 AI 结局分布
+  // 与「看板自己还准吗」的埋点自检两块——各自 fetch 会是必然的双份请求（<details> 收起也照样 mount）
+  const flow = useFlowHealth(range)
 
   useEffect(() => {
     const ac = new AbortController()
@@ -488,6 +498,9 @@ export default function DashboardPage() {
     return () => ac.abort()
   }, [range, reloadKey])
 
+  // 区间天数与区块口径 chip：口径跟着区块走（收起态也看得见这块数据是什么时间范围的）
+  const windowDays = Number(range.slice(0, -1))
+  const rangeBadge = `近 ${windowDays} 天`
   const hasRangeData = !!data && data.dailyData.some(d => d.total > 0)
   const hasTodayData = !!data && data.hourlyData.some(h => h.calls > 0)
   // 今日小时分布的 aria 概述用：读屏用户靠这一句掌握"今天调用多不多、集中在几点"
@@ -535,7 +548,7 @@ export default function DashboardPage() {
           dailyBudget:           data.dailyBudget,
         }} />
 
-        {/* ── Tier2 区间选择器 + 口径注脚（只作用于下方展开区；Tier1 四数卡为今日口径）── */}
+        {/* ── 区间选择器 + 口径注脚（只作用于下方四个折叠区；首屏四数卡恒为今日口径）── */}
         <div className="flex items-center justify-between mb-2 gap-3">
           <div className="text-[0.8125rem] font-semibold text-v2-text-primary">明细（可展开）</div>
           <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5 flex-shrink-0" role="group" aria-label="时间范围">
@@ -547,14 +560,86 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+        {/* 口径注脚缩成一句：细分口径已跟着各区块的 rangeBadge 与卡内小字走，不必在顶部再铺一段 */}
         <div className="text-[0.625rem] text-v2-text-muted mb-3">
-          口径说明：上方四数卡为今日口径（按东八区日历边界）；以下展开区的所有图表与统计均为所选区间（{RANGE_LABEL[range]}）口径。
+          上方四数卡＝今日（东八区日历边界）；下方各区＝所选区间（{RANGE_LABEL[range]}）。
         </div>
 
-        {/* A · 增长与参与（默认展开）：增长漏斗（注册→激活→核心活跃→W1 留存）+「参与度趋势」并组 */}
-        <CollapsibleSection title="A · 增长与参与" subtitle="注册 → 激活 → 核心活跃 → 首周留存" defaultOpen>
+        {/* ① 出事了吗（默认展开）：每日故障柱 + AI 结局分布（埋点口径）+ 失败环节 + 失败明细 + 耗时。
+            AI 结局分布并进本区、与故障柱并排 —— 计费口径看不见的五类失败全在那块（产品方拍板）。 */}
+        <CollapsibleSection title="出事了吗" subtitle="计费故障 · AI 结局 · 失败环节 · 耗时"
+          rangeBadge={rangeBadge} defaultOpen>
+          <DailyFailureChart data={data.dailyFailures} />
+          <div className="mt-4">
+            <AiOutcomeBlock state={flow} />
+            {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本（计费口径） */}
+            <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+            {/* 失败明细表：本区只给失败视图（每日故障图的下钻出口），最近/最贵归「看板自己还准吗」 */}
+            <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
+              views={['failed']} defaultMode="failed" />
+            {/* 性能耗时并入本区内层：慢也是一种"出事了"，但它不该和故障并列占一个顶层区 */}
+            <div className="mt-4">
+              <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
+                cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* ② 钱花在哪（默认收起）：费用卡 · 趋势 · 按服务 / 环节 / 用户 · 单价参考 */}
+        <CollapsibleSection title="钱花在哪" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户"
+          rangeBadge={rangeBadge}>
+          {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
+          <CostCards data={data} />
+          <div className="text-[0.625rem] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
+
+          {/* 费用趋势 + 按服务占比 */}
+          <div className="flex items-center justify-end mb-2">
+            {/* 筛选可发现性：点占比联动后给显式「全部」出口，否则用户不知如何清除 dim 状态 */}
+            {selectedService && (
+              <button onClick={() => setSelected(null)}
+                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[0.6875rem] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
+                <span aria-hidden="true">×</span>清除筛选 · 全部
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
+              {/* 时间范围标注：趋势/饼图均为所选区间（近 N 天）口径，与上方费用卡（全部历史/本月/今日）不同源 */}
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">费用趋势 · 近 {windowDays} 天</div>
+              {hasRangeData
+                ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
+                : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
+            </section>
+            <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
+              <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} rangeDays={windowDays} />
+            </section>
+          </div>
+          <div className="text-[0.625rem] text-v2-text-muted mb-4">
+            注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在卡片染色提示，不触发任何告警推送。
+          </div>
+
+          {/* 块A「钱花在哪个环节」：横条 + ¥金额 + 占本期总成本%（失败率拆到「出事了吗」） */}
+          <PhaseCostBreakdown phases={data.phaseTotals} />
+          {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
+          <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
+
+          {/* 单价参考（估算依据）：它解释的是本区每一个 ¥ 数字怎么来的，跟着钱走 */}
+          <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3">
+            <div className="text-[0.6875rem] text-v2-text-muted leading-relaxed">
+              单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
+            </div>
+            <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
+              * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* ③ 用户走到哪（默认收起）：增长漏斗（注册→激活→核心活跃→W1 留存）+ 参与度趋势。
+            日活 1-2 人时这几个数天天不动，不该占默认展开位。 */}
+        <CollapsibleSection title="用户走到哪" subtitle="注册 → 激活 → 核心活跃 → 首周留存"
+          rangeBadge={rangeBadge}>
           {/* 增长漏斗：③ 窗口核心活跃跟随区间选择器（近 N 天） */}
-          <GrowthFunnel data={data} windowDays={Number(range.slice(0, -1))} />
+          <GrowthFunnel data={data} windowDays={windowDays} />
           {/* 今日新增注册 / 匿名活跃 / 假空率：漏斗下方三张并列独立小卡（今日口径，文案/口径沿用原样）。
               窄屏按小卡 min-w 自然换行（同旧「增长」组行为）。 */}
           <div className="flex flex-wrap gap-2.5 mt-3">
@@ -587,65 +672,14 @@ export default function DashboardPage() {
           </div>
         </CollapsibleSection>
 
-        {/* B · 故障与排障：每日失败柱 + 按环节失败率（块B）+ 失败明细表（默认失败视图） */}
-        <CollapsibleSection title="B · 故障与排障" subtitle="每日系统故障 · 按环节失败 · 失败明细">
-          <DailyFailureChart data={data.dailyFailures} />
-          <div className="mt-4">
-            {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本 */}
-            <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
-            {/* 失败明细表：本组只给失败视图（每日故障图的下钻出口），最近/最贵归 E 组 */}
-            <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
-              views={['failed']} defaultMode="failed" />
-          </div>
-        </CollapsibleSection>
+        {/* ④ 看板自己还准吗（默认收起，沉到最底）：埋点健康 + 枚举取值覆盖 + 技术明细。
+            这一区回答的是"我的传感器还活着吗"，与产品健康分开，一周看一次即可。 */}
+        <CollapsibleSection title="看板自己还准吗" subtitle="埋点健康 · 枚举覆盖 · 技术明细"
+          rangeBadge={rangeBadge}>
+          {/* 埋点自检（flow_events 口径）：与「出事了吗」里的 AI 结局分布同源，父层只拉一次 */}
+          <FlowSelfCheckBlock state={flow} />
 
-        {/* C · 性能耗时：各环节耗时（已换人话 / 秒） */}
-        <CollapsibleSection title="C · 性能耗时" subtitle="每个 AI 环节要跑多久">
-          <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
-            cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
-        </CollapsibleSection>
-
-        {/* D · 成本：费用卡 · 趋势 · 按服务 · 按环节（块A）· 按用户 */}
-        <CollapsibleSection title="D · 成本" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户">
-          {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
-          <CostCards data={data} />
-          <div className="text-[0.625rem] text-v2-text-muted mt-1.5 mb-4">$ 副行按 ¥7.2/$ 估算，非实时汇率</div>
-
-          {/* 费用趋势 + 按服务占比 */}
-          <div className="flex items-center justify-end mb-2">
-            {/* 筛选可发现性：点占比联动后给显式「全部」出口，否则用户不知如何清除 dim 状态 */}
-            {selectedService && (
-              <button onClick={() => setSelected(null)}
-                className="inline-flex items-center gap-1 min-h-[44px] pl-2.5 pr-3 -my-2 rounded-full text-[0.6875rem] font-medium text-v2-text-secondary bg-black/[0.03] hover:bg-black/[0.06] transition-colors">
-                <span aria-hidden="true">×</span>清除筛选 · 全部
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-            <section aria-label="费用趋势" className="md:col-span-2 bg-white rounded-[16px] border border-black/[0.05] p-4">
-              {/* 时间范围标注：趋势/饼图均为所选区间（近 N 天）口径，与上方费用卡（全部历史/本月/今日）不同源 */}
-              <div className="text-[0.6875rem] text-v2-text-muted mb-1">费用趋势 · 近 {Number(range.slice(0, -1))} 天</div>
-              {hasRangeData
-                ? <CostTrendChart data={data.dailyData} selectedService={selectedService} dailyBudget={data.dailyBudget} />
-                : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无费用数据</div>}
-            </section>
-            <section aria-label="按服务费用占比" className="md:col-span-1 bg-white rounded-[16px] border border-black/[0.05] p-4">
-              <CostBreakdown totals={data.serviceTotals} selected={selectedService} onSelect={setSelected} rangeDays={Number(range.slice(0, -1))} />
-            </section>
-          </div>
-          <div className="text-[0.625rem] text-v2-text-muted mb-4">
-            注：趋势图的日预算线 ¥{data.dailyBudget} 为内测占位参照值、非真实告警阈值——超线仅在卡片染色提示，不触发任何告警推送。
-          </div>
-
-          {/* 块A「钱花在哪个环节」：横条 + ¥金额 + 占本期总成本%（失败率拆到 B 组） */}
-          <PhaseCostBreakdown phases={data.phaseTotals} />
-          {/* 按用户成本 Top-N（谁烧最多、是不是匿名） */}
-          <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
-        </CollapsibleSection>
-
-        {/* E · 技术明细：迷你条（秒）· 小时分布 · 调用明细（最近 / 最贵）· 单价参考 */}
-        <CollapsibleSection title="E · 技术明细" subtitle="性能指标 · 小时分布 · 调用明细 · 单价">
-          {/* 迷你统计条（含日均调用，从首屏移入此处；延迟已改秒） */}
+          {/* 迷你统计条（含日均调用，从首屏移入；延迟已改秒） */}
           <section aria-label="性能与成本指标" className="bg-white rounded-[12px] border border-black/[0.05] grid grid-cols-2 md:flex md:divide-x divide-black/[0.05] mb-4 overflow-hidden">
             {MINI_STATS(data).map(s => (
               <div key={s.label} className="flex-1 px-4 py-3 text-center border-b md:border-b-0 border-black/[0.05]">
@@ -689,26 +723,9 @@ export default function DashboardPage() {
             )}
           </section>
 
-          {/* 调用明细表格：本组给最近 / 最贵（失败视图归 B 组故障与排障） */}
+          {/* 调用明细表格：本区给最近 / 最贵（失败视图归「出事了吗」） */}
           <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
             views={['recent', 'costly']} defaultMode="recent" />
-
-          {/* 底部单价参考 */}
-          <div className="bg-white rounded-[12px] border border-black/[0.05] px-4 py-3 mt-4">
-            <div className="text-[0.6875rem] text-v2-text-muted leading-relaxed">
-              单价参考（估算依据）&nbsp;|&nbsp;豆包 ASR ≈ ¥0.003/秒&nbsp;|&nbsp;千问 Qwen Flash ≈ ¥0.0008/千token&nbsp;|&nbsp;千问 Plus ≈ ¥0.8/¥2.0 per M token（输入/输出）
-            </div>
-            <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
-              * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
-            </div>
-          </div>
-        </CollapsibleSection>
-
-        {/* F · 客户端链路观测：数据源是 flow_events 埋点表（非 api_usage_logs），补上 B 组结构性看不见的失败——
-            服务端早退分支（403/402/429/400/503）全是裸 return、不记账，网络失败更是无痕。
-            自己按 range 拉独立子路由 /api/dashboard/flow-health，挂了不影响主看板。 */}
-        <CollapsibleSection title="F · 客户端链路观测" subtitle="AI 结局分布 · 埋点健康 · 枚举覆盖（口径独立于成本记账）">
-          <FlowHealthPanel range={range} />
         </CollapsibleSection>
       </>)}
     </main>
