@@ -146,6 +146,29 @@ describe('新事件 · 合法 props 原样放行', () => {
   })
 })
 
+describe('flow.ai_call · 八个 stage 全放行（2026-08-03 由 3 段补到 8 段 = 全部 AI 路由）', () => {
+  // 这五个是本次补的：漏进 sanitize 白名单不会 tsc 报错，只会【那一个字段静默消失】
+  // （事件照常落库、stage 一栏空），本地测不出来 —— 故每个值都要有一条正例把它钉住。
+  test.each([
+    ['transcribe'], ['restructure'], ['polish'],
+    ['matching'], ['analysis'], ['phrases'], ['coach'], ['pronounce'],
+  ])('stage=%s 原样放行', async (stage) => {
+    await POST(makeEventReq('flow.ai_call', { stage, result: 'ok', httpStatus: 200, latencyMs: 10 }))
+    expect(capturedProps()).toEqual({ stage, result: 'ok', httpStatus: 200, latencyMs: 10 })
+  })
+
+  test.each([
+    ['ranking'],        // 服务端 phase 名，不是客户端 stage 口径（客户端一次匹配统一记 matching）
+    ['extraction'],     // 同上
+    ['Matching'],       // 大小写近似
+    ['coach '],         // 带空格
+    ['analysis/phrases'],
+  ])('枚举外/近似的 stage=%s 被丢，result 仍留', async (stage) => {
+    await POST(makeEventReq('flow.ai_call', { stage, result: 'busy_503', httpStatus: 503 }))
+    expect(capturedProps()).toEqual({ result: 'busy_503', httpStatus: 503 })
+  })
+})
+
 describe('新事件 · 枚举负例（不 trim、不转小写，近似值一律丢）', () => {
   test('枚举外的值被丢', async () => {
     await POST(makeEventReq('flow.story_entry', { entry: 'scan', mode: 'story' }))
