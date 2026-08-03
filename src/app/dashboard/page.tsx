@@ -19,6 +19,7 @@ import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
 import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
 import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
+import FlowHealthPanel from '@/components/dashboard/FlowHealthPanel'
 import { apiFetch } from '@/lib/api-client'
 import { formatCny } from '@/lib/format-cost'
 
@@ -701,6 +702,13 @@ export default function DashboardPage() {
               * 优先按模型返回的真实 token 计费；无真实用量时回退按字数估算（记录标 cost_source=estimate）。实际账单以各平台控制台为准。
             </div>
           </div>
+        </CollapsibleSection>
+
+        {/* F · 客户端链路观测：数据源是 flow_events 埋点表（非 api_usage_logs），补上 B 组结构性看不见的失败——
+            服务端早退分支（403/402/429/400/503）全是裸 return、不记账，网络失败更是无痕。
+            自己按 range 拉独立子路由 /api/dashboard/flow-health，挂了不影响主看板。 */}
+        <CollapsibleSection title="F · 客户端链路观测" subtitle="AI 结局分布 · 埋点健康 · 枚举覆盖（口径独立于成本记账）">
+          <FlowHealthPanel range={range} />
         </CollapsibleSection>
       </>)}
     </main>
