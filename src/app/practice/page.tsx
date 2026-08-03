@@ -387,8 +387,11 @@ function PracticeContent(): JSX.Element {
                   : tr.status >= 500 ? 'server_5xx' : 'other',
           tr.status,
         )
-        // 空录音（422 EMPTY_TRANSCRIPT）：唯一保留「再说一遍」的分支——录到了音但没人声，是输入问题。清 blob。
-        if (errData.code === 'EMPTY_TRANSCRIPT') {
+        // 空录音（HTTP 422）：唯一保留「再说一遍」的分支——录到了音但没人声，是输入问题。清 blob。
+        // 与上方埋点行同款按 **HTTP 422** 兜底、不罗列豆包码：什么算「内容为空」由服务端唯一定夺
+        // （api/transcribe 已把 EMPTY_TRANSCRIPT 与豆包静音码 20000003 都归 422），客户端抄码表必分叉——
+        // 此前这里只认 EMPTY_TRANSCRIPT，静音码被误送进失败双选而不是「再说一遍」。
+        if (errData.code === 'EMPTY_TRANSCRIPT' || tr.status === 422) {
           pendingBlobRef.current = null
           setError('没听清，要不要再说一遍？')
           setPhase('idle')

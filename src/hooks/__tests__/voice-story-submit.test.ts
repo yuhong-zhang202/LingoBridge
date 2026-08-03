@@ -124,6 +124,8 @@ const SCENARIOS: Scenario[] = [
   { name: '转写 402', reach: 'transcribe', transcribe: { kind: 'res', status: 402 } },
   { name: '转写 503 ASR_BUSY', reach: 'transcribe', transcribe: { kind: 'res', status: 503, body: { code: 'ASR_BUSY' } } },
   { name: '转写 422 EMPTY_TRANSCRIPT', reach: 'transcribe', transcribe: { kind: 'res', status: 422, body: { code: 'EMPTY_TRANSCRIPT' } } },
+  { name: '转写 422 豆包静音码 20000003（走 status 兜底）', reach: 'transcribe', transcribe: { kind: 'res', status: 422, body: { code: '20000003' } } },
+  { name: '转写 422 无 code（体解析不出 code 也走 status 兜底）', reach: 'transcribe', transcribe: { kind: 'res', status: 422, body: {} } },
   { name: '转写 429', reach: 'transcribe', transcribe: { kind: 'res', status: 429, body: {} } },
   { name: '转写 400', reach: 'transcribe', transcribe: { kind: 'res', status: 400, body: {} } },
   { name: '转写 401', reach: 'transcribe', transcribe: { kind: 'res', status: 401, body: {} } },
@@ -263,6 +265,16 @@ describe('runVoiceStorySubmit · 关键场景的完整动作序列', () => {
       .toEqual([{ stage: 'transcribe', result: 'consent_403', httpStatus: 403, latencyMs: '<num>' }])
     expect(tracks(t, 'flow.capture_submitted')).toEqual([{ mode: 'voice', outcome: 'consent_blocked', durationSec: 12 }])
     expect(t.at(-1)).toEqual(['push', '/'])
+  })
+
+  it('转写 422 但 code 非 EMPTY_TRANSCRIPT（豆包静音码 20000003）：按 status 兜底落 empty_422 桶 + 「没太听清」文案', async () => {
+    // 服务端是「内容为空」的唯一真源（EMPTY_TRANSCRIPT 与静音码都归 422）；客户端只认 code 抄码表
+    // 曾让静音落 other 桶 + 「转写失败」故障文案。此用例钉死：任何 422 都走 empty_422 + 友好引导。
+    const t = await run({ name: '', reach: 'transcribe', transcribe: { kind: 'res', status: 422, body: { code: '20000003' } } })
+    expect(tracks(t, 'flow.ai_call'))
+      .toEqual([{ stage: 'transcribe', result: 'empty_422', httpStatus: 422, latencyMs: '<num>' }])
+    expect(t.filter((r) => r[0] === 'setError').map((r) => r[1]))
+      .toContain('好像没太听清，要不要再说一次？')
   })
 
   it('转写中途 abort：ai_call 记 aborted、capture_submitted 记 aborted，且不报错不跳转', async () => {

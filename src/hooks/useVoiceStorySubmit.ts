@@ -72,13 +72,16 @@ const MIN_RECORD_SECONDS = 5
  * 把 /api/transcribe 的失败响应映射成 ai_call 的结局枚举。
  * 429/400/401 单列：压成 other 会让「日限撞了多少次」永远查不出来，且同一 stage 的另两条路径
  * （restructure 页 / 文字路径）已细分，不统一就是「只有那条路有 429」的假象。
+ * 「内容为空」统一按 **HTTP 422** 兜底判定、不罗列豆包码：什么算「内容无法处理」由服务端唯一定夺
+ * （api/transcribe 已把 EMPTY_TRANSCRIPT 与豆包静音码 20000003 都归 422），客户端再抄一份码表
+ * 就会分叉——豆包静音曾因此处只认 EMPTY_TRANSCRIPT 而落进 other 桶（practice 页埋点早已是 422 兜底写法）。
  * @param  status  HTTP 状态码
  * @param  code    响应体里的业务错误码（ASR_BUSY / EMPTY_TRANSCRIPT）
  * @returns        ai_call 的 result 取值
  */
 function classifyTranscribeFailure(status: number, code: string | undefined): AiResult {
   if (code === 'ASR_BUSY') return 'busy_503'
-  if (code === 'EMPTY_TRANSCRIPT') return 'empty_422'
+  if (code === 'EMPTY_TRANSCRIPT' || status === 422) return 'empty_422'
   if (status === 429) return 'rate_429'
   if (status === 400) return 'bad_input_400'
   if (status === 401) return 'auth_401'
@@ -89,12 +92,15 @@ function classifyTranscribeFailure(status: number, code: string | undefined): Ai
  * 转写失败给用户看的话。
  * ASR_BUSY（503，转写并发排队满/超时）必须和「转写失败」分开说：前者是"人多"、几秒后重试就好，
  * 后者是"坏了"。文案混用会让用户以为产品故障而直接放弃。
- * @param  code  响应体里的业务错误码
- * @returns      用户可见文案
+ * 「没太听清」分支与上方 classifyTranscribeFailure 同款按 HTTP 422 兜底（服务端是「内容为空」的唯一真源，
+ * 不罗列豆包码）：静音等 422 失败都该拿到「再说一次」的引导，而不是「转写失败」的故障文案。
+ * @param  code    响应体里的业务错误码
+ * @param  status  HTTP 状态码
+ * @returns        用户可见文案
  */
-function transcribeErrorMessage(code: string | undefined): string {
+function transcribeErrorMessage(code: string | undefined, status: number): string {
   if (code === 'ASR_BUSY') return '现在使用的人有点多，稍等几秒再说一次就好'
-  if (code === 'EMPTY_TRANSCRIPT') return '好像没太听清，要不要再说一次？'
+  if (code === 'EMPTY_TRANSCRIPT' || status === 422) return '好像没太听清，要不要再说一次？'
   return '转写失败，请重试'
 }
 
@@ -210,7 +216,7 @@ export async function runVoiceStorySubmit(deps: VoiceStorySubmitDeps): Promise<v
     if (!res.ok) {
       const errData = (await res.json()) as { error?: string; code?: string }
       reportTranscribe(classifyTranscribeFailure(res.status, errData.code), res.status)
-      throw new Error(transcribeErrorMessage(errData.code))
+      throw new Error(transcribeErrorMessage(errData.code, res.status))
     }
     const data = (await res.json()) as { text: string }
     reportTranscribe('ok', 200)
