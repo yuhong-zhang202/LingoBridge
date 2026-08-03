@@ -22,6 +22,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.1',
+    date: '2026-08-03',
+    title: '长回答支持与显示修复',
+    notes: [
+      '「换个说法」现在支持更长的回答，讲一大段也能拿到优化建议',
+      '本场回顾的卡片不再被截断，长句子和解释都能完整看到',
+      '练习页的优化建议内容较长时可以上下滚动查看',
+    ],
+  },
+  {
     version: 'v0.10.0',
     date: '2026-08-02',
     title: '字体与体验优化',
