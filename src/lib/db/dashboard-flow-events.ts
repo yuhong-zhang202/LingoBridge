@@ -50,6 +50,9 @@ export const FLOW_EVENT_NAMES = [
   'match.result',
   'match.view_rendered',
   'match.question_opened',
+  'quota.reached',
+  'quota.cta',
+  'auth.registered',
 ] as const
 
 /** 事件名的中文说明（看板只给 admin 看，仍写人话，免得每次都要回去翻代码） */
@@ -65,6 +68,9 @@ const EVENT_LABEL: Record<string, string> = {
   'match.result':           '匹配结果（服务端）',
   'match.view_rendered':    '匹配页渲染',
   'match.question_opened':  '点开题目',
+  'quota.reached':          '额度弹层显示',
+  'quota.cta':              '额度弹层内点击',
+  'auth.registered':        '注册成功',
 }
 
 /** AI 调用的管线阶段（AI_STAGE 副本） */
@@ -153,6 +159,17 @@ const ENUM_FIELDS: readonly EnumFieldSpec[] = [
     label: '麦克风授权界面', expected: ['home', 'recording', 'practice'] },
   { key: 'flow.story_entry.entry', event: 'flow.story_entry', field: 'entry',
     label: '故事采集入口', expected: ['record', 'text', 'write', 'record_from_write'] },
+  { key: 'quota.reached.variant', event: 'quota.reached', field: 'variant',
+    label: '额度弹层变体', expected: ['trial', 'story', 'ielts'] },
+  // matching 页的调用点尚未传 surface（见 QuotaReached 的 Props 注释）→ 那批行会落进 missing，
+  // 正是本块设计要看见的信号：补上之后 missing 应归零。
+  { key: 'quota.reached.surface', event: 'quota.reached', field: 'surface',
+    label: '额度弹层界面', expected: [
+      'home', 'write', 'recording', 'restructure', 'analysis',
+      'practice', 'practice_question', 'question_bank', 'matching',
+    ] },
+  { key: 'quota.cta.cta', event: 'quota.cta', field: 'cta',
+    label: '额度弹层点击出口', expected: ['register', 'practice_ielts', 'new_story', 'profile', 'close'] },
 ]
 
 /**
