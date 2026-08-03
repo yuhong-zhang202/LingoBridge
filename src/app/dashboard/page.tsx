@@ -20,6 +20,8 @@ import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
 import Card           from '@/components/Card'
 import HeroMetrics    from '@/components/dashboard/HeroMetrics'
 import TodayVerdictBar from '@/components/dashboard/TodayVerdictBar'
+import CohortReturnTable, { type CohortReturns } from '@/components/dashboard/CohortReturnTable'
+import PageActivityList, { type PageViewStat } from '@/components/dashboard/PageActivityList'
 import FeedbackTodoList, { type FeedbackTodoPayload } from '@/components/dashboard/FeedbackTodoList'
 import { ANCHOR_FAILURE_DETAIL, ANCHOR_FEEDBACK, ANCHOR_COST, ANCHOR_LATENCY } from '@/lib/dashboard-verdict'
 import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
@@ -94,6 +96,9 @@ type DashboardData = {
   fakeEmpty: { rate: number; n: number; fakeCount: number } | null
   fakeEmptyPending: boolean
   fakeEmptyThreshold: number
+  // ── 用户区扩充（2026-08-04 方案 §四）：近 7 天注册回访 + 窗口页面浏览聚合；null = 读取失败降级 ──
+  cohortReturns: CohortReturns | null
+  pageViewStats: PageViewStat[] | null
   phaseLatency: PhaseLatency[]
   latencyTrend: TrendPhase[]
   latencyCutoff: string
@@ -601,34 +606,21 @@ export default function DashboardPage() {
           <FeedbackTodoList feedback={data.feedback} />
         </div>
 
-        {/* ② 用户走到哪（默认收起）：增长漏斗（注册→激活→核心活跃→W1 留存）+ 参与度趋势。
-            日活 1-2 人时这几个数天天不动，不该占默认展开位。 */}
-        <CollapsibleSection title="用户走到哪" subtitle="注册 → 激活 → 核心活跃 → 首周留存"
+        {/* ② 用户走到哪（默认收起）：增长漏斗 → 注册回访 cohort → 页面活跃 → 离开页占位 → 参与度趋势。
+            与 Hero 重复的「今日新增注册」「今日匿名活跃」两张小卡已删（Hero 三卡承接）；
+            假空率小卡挪去「出事了吗」区（它是采集故障性质，不是用户行为）。 */}
+        <CollapsibleSection title="用户走到哪" subtitle="注册→激活→留存 · 页面活跃"
           rangeBadge={rangeBadge}>
           {/* 增长漏斗：③ 窗口核心活跃跟随区间选择器（近 N 天） */}
           <GrowthFunnel data={data} windowDays={windowDays} />
-          {/* 今日新增注册 / 匿名活跃 / 假空率：漏斗下方三张并列独立小卡（今日口径，文案/口径沿用原样）。
-              窄屏按小卡 min-w 自然换行（同旧「增长」组行为）。 */}
-          <div className="flex flex-wrap gap-2.5 mt-3">
-            {/* 今日新增注册：真注册口径（RPC 可用时）；newRegistrationsPending 为真=RPC 未接入、暂用 profiles 计数（含匿名·虚高），走降级文案 */}
-            <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日新增注册</div>
-              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
-              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
-                {data.newRegistrationsPending
-                  ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
-                  : '只计真注册（非匿名·有邮箱），东八区'}
-              </div>
-            </Card>
-            {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
-            <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日匿名活跃</div>
-              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
-              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
-            </Card>
-            {data.fakeEmpty
-              ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
-              : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
+          {/* 新注册的人还回来吗（固定近 7 天注册分组，只显人数分子/分母） */}
+          <CohortReturnTable cohort={data.cohortReturns} />
+          {/* 哪些页面被用得多（窗口 page.view 聚合；防 UV 误读见组件顶注） */}
+          <PageActivityList stats={data.pageViewStats} windowDays={windowDays} />
+          {/* 离开页分布：暂缓项占位（埋点满 14 天且周活跃 ≥ 5 人再上，方案 §八记录在案） */}
+          <div className="flex mt-3">
+            <PendingPlaceholder title="离开页分布"
+              reason="数据积累中，页面埋点满 14 天后此处自动显示（首页缺口会把部分离开错记到前一页，届时一并标注）。" />
           </div>
           {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
           <div className="mt-4">
@@ -657,6 +649,12 @@ export default function DashboardPage() {
             <div id={ANCHOR_FAILURE_DETAIL} tabIndex={-1}>
               <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
                 views={['failed']} defaultMode="failed" />
+            </div>
+            {/* 假空率小卡（自用户区搬来，方案 §四/§五）：「采到声音却转写空」是采集故障性质，归本区 */}
+            <div className="flex mt-4">
+              {data.fakeEmpty
+                ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
+                : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
             </div>
             {/* 性能耗时并入本区内层：慢也是一种"出事了"，但它不该和故障并列占一个顶层区。
                 锚点包裹：结论条「{环节}变慢」chip 的落点。 */}
