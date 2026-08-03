@@ -120,7 +120,21 @@ export const AI_STAGE = [
 ] as const
 export type AiStage = (typeof AI_STAGE)[number]
 
-/** 一次 AI 调用的结局（HTTP 语义 + 客户端侧失败） */
+/**
+ * 一次 AI 调用的结局（HTTP 语义 + 客户端侧失败）。
+ *
+ * ⚠️ `aborted`【计数系统性偏低，不可当「有多少人等不及走了」的真值】
+ * 它报在 React effect 的 cleanup 里，而**浏览器关标签页 / 地址栏跳走时 React 根本不跑 cleanup**
+ * ——那种场景下整条 ai_call 一行都不存在，不是记错结局，是这次尝试压根没被记录。
+ * 与 flow.capture_abandoned 同源（见该条目上方长注释）：方向已知（只低估）、大小未知、改不掉
+ * （keepalive 实测在导航中大量丢包，bfcache 场景又刻意不报）。
+ *
+ * ✅ 但**成功率不受这条影响**，别被上一句吓到：成功率的分母刻意只含
+ * 「跑到了某个结局的尝试」= ok + 用户侧 + 我方侧 + 网络 + other，**本就不含 aborted**
+ * （见 lib/db/dashboard-flow-events.ts 的 attempts 定义）。漏掉的那次若记上也是 aborted、
+ * 同样不进分母 ⇒ 分子分母都没动，成功率是干净的。
+ * ⇒ 一句话：**成功率可以信；「aborted 有多少」不可以信。**
+ */
 export const AI_RESULT = [
   'ok', 'consent_403', 'quota_402', 'rate_429', 'bad_input_400', 'empty_422', 'auth_401',
   'busy_503', 'server_5xx', 'parse_fail', 'network', 'timeout', 'aborted', 'other',
