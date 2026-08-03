@@ -491,7 +491,7 @@ function MatchingContent() {
         </FlowShellDesktop>
       </div>
       {/* 402 匿名试用额度用尽：引导注册；关闭即回首页（本页无内容可留） */}
-      {quotaShown && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
+      {quotaShown && <QuotaReached variant="trial" surface="matching" asOverlay onClose={() => router.push('/')} />}
       {/* 匿名点存题卡（401）：注册引导小模态；关闭回本页（匹配结果不丢） */}
       {ankiGate && <AnkiRegisterGate onClose={() => setAnkiGate(false)} />}
       {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 本页会话语料，概括按 corpusId 预拉自 corpus.summary */}
