@@ -35,13 +35,14 @@ export default function DailyFailureChart({ data }: { data: DayFailure[] }) {
         aria-label={`每日失败次数柱状图，共 ${data.length} 天，合计 ${total} 次系统故障${total > 0 ? `，峰值 ${peak.date} 共 ${peak.failures} 次` : ''}。详细数据见下方数据表。`}>
         <ResponsiveContainer width="100%" height={100}>
           <BarChart data={data} barSize={10} margin={{ top: 12, right: 0, bottom: 0, left: -16 }}>
-            <XAxis dataKey="date" tick={{ fontSize: 9, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
+            {/* 刻度与柱标统一 10px 起（a11y：9px 低于可读下限，方案 §六打磨包） */}
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: AXIS_TICK_FILL }} tickLine={false} axisLine={false} />
             <Bar dataKey="failures" radius={[2, 2, 0, 0]} isAnimationActive={false}>
               {data.map((d, i) => (
                 <Cell key={i} fill={FAIL_COLOR} fillOpacity={d.failures > 0 ? 0.75 : 0.12} />
               ))}
               {/* 柱上标数字：仅 >0 时显示，0 的日子标一片"0"只会变成噪音 */}
-              <LabelList dataKey="failures" position="top" fontSize={9} fill={FAIL_COLOR}
+              <LabelList dataKey="failures" position="top" fontSize={10} fill={FAIL_COLOR}
                 formatter={(v: unknown) => (Number(v) > 0 ? String(v) : '')} />
             </Bar>
           </BarChart>

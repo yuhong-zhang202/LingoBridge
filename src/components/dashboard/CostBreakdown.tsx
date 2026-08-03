@@ -65,7 +65,7 @@ export default function CostBreakdown({ totals, selected, onSelect, rangeDays }:
           <button key={t.service}
             aria-pressed={selected === t.service}
             onClick={() => onSelect(selected === t.service ? null : t.service)}
-            className={`w-full flex items-center gap-2 text-left min-h-[44px] py-1.5 transition-opacity ${selected && selected !== t.service ? 'opacity-40' : ''}`}
+            className={`w-full flex items-center gap-2 text-left min-h-[44px] py-1.5 transition-opacity focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${selected && selected !== t.service ? 'opacity-40' : ''}`}
           >
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
             <span className="text-[0.6875rem] text-v2-text-secondary flex-1 truncate">{t.name}</span>

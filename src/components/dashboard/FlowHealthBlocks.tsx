@@ -89,7 +89,7 @@ function FlowGate({ state, label, children }: {
         <div role="status" aria-live="polite" className="flex flex-col items-center gap-2 py-6">
           <div className="text-v2-text-secondary text-[0.75rem]">{label}加载失败</div>
           <button onClick={state.reload}
-            className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-full text-[0.6875rem] font-medium bg-v2-text-primary text-white">
+            className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-full text-[0.6875rem] font-medium bg-v2-text-primary text-white focus-visible:ring-2 focus-visible:ring-brand-primary/40">
             重试
           </button>
         </div>
@@ -541,19 +541,21 @@ function EventHealthBlock({ events, windowDays }: { events: EventCountStat[]; wi
 function EnumChip({ v }: { v: EnumValueStat }) {
   const total = v.count + v.qaCount
   const base = 'inline-flex items-baseline gap-1 px-2 py-1 rounded-[8px] text-[0.6875rem] tabular-nums'
+  // 语义信息不放 title（触屏/键盘不可达，a11y 打磨包）：0 与契约外的解释走分布区底部的图例行；
+  // 契约外的值再补一个可见文字后缀（不只靠色）。
   if (total === 0) {
     return (
-      <span className={`${base} border border-neutral-border text-v2-text-muted`} title="窗口内一次都没出现（含自测）">
+      <span className={`${base} border border-neutral-border text-v2-text-muted`}>
         {v.value}<span className="font-medium">0</span>
       </span>
     )
   }
   return (
-    <span className={`${base} bg-black/[0.03] ${v.expected ? 'text-v2-text-secondary' : 'text-warning-text'}`}
-      title={v.expected ? undefined : '契约清单外的值'}>
+    <span className={`${base} bg-black/[0.03] ${v.expected ? 'text-v2-text-secondary' : 'text-warning-text'}`}>
       {v.value}
       <span className="font-medium text-v2-text-primary">{v.count}</span>
       {v.qaCount > 0 && <span className="text-v2-text-muted">+{v.qaCount} 自测</span>}
+      {!v.expected && <span>· 契约外</span>}
     </span>
   )
 }
@@ -592,6 +594,10 @@ function EnumFieldRow({ f }: { f: EnumFieldCoverage }) {
         </summary>
         <div className="flex flex-wrap gap-1.5 mt-1">
           {f.values.map(v => <EnumChip key={v.value} v={v} />)}
+        </div>
+        {/* 图例行：原 EnumChip 的 title 信息改为可见文字（title 对触屏/键盘不可达） */}
+        <div className="text-[0.625rem] text-v2-text-muted mt-1.5 leading-relaxed">
+          「0」= 窗口内一次都没出现（含自测）；「契约外」= 库里出现了契约清单之外的值。
         </div>
       </details>
     </div>

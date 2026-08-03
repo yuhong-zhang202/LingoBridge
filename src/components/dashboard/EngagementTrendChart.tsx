@@ -94,7 +94,7 @@ export default function EngagementTrendChart({ data }: { data: DayData[] }) {
             {/* 口径变更竖虚线：仅当窗口覆盖到生效日那天才渲染（see showChangeLine）；读屏等价物在上方 aria-label */}
             {showChangeLine && (
               <ReferenceLine x={METRIC_CHANGE_KEY} strokeWidth={1} strokeDasharray="3 3" stroke={METRIC_CHANGE_LINE}
-                label={{ value: '口径变更', position: 'top', fontSize: 9, fill: METRIC_CHANGE_LINE }} />
+                label={{ value: '口径变更', position: 'top', fontSize: 10, fill: METRIC_CHANGE_LINE }} />
             )}
             {series.map(s => (
               <Line key={s.key} type="monotone" dataKey={s.key} stroke={s.color}

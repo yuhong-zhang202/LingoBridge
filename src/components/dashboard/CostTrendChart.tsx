@@ -96,14 +96,17 @@ export default function CostTrendChart({ data, selectedService, dailyBudget }: {
               tickFormatter={v => `¥${v}`} width={40} />
             <Tooltip content={<CustomTip />} />
             {SERVICES.map(s => (
+              /* isAnimationActive 关闭：与同页其他图对齐（a11y 打磨包），也免去趋势线首帧抖动 */
               <Area key={s.key} type="monotone" dataKey={s.key} stackId="1"
                 stroke={s.color} strokeWidth={1.5} fill={`url(#grad-${s.key})`}
                 opacity={!selectedService || selectedService === s.key ? 1 : 0.2}
+                isAnimationActive={false}
               />
             ))}
-            {/* 日预算目标线（红色虚线）+ 超线日在总额顶部染红点。非堆叠透明面积仅用于承载红点。 */}
+            {/* 日预算目标线（红色虚线）+ 超线日在总额顶部染红点。非堆叠透明面积仅用于承载红点。
+                label 10px 起（a11y：9px 低于可读下限） */}
             <ReferenceLine y={dailyBudget} stroke="#AB5344" strokeDasharray="4 3" strokeOpacity={0.6}
-              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: 9, fill: '#AB5344' }} />
+              label={{ value: `预算 ¥${dailyBudget}`, position: 'insideTopRight', fontSize: 10, fill: '#AB5344' }} />
             <Area type="monotone" dataKey="total" stroke="none" fill="none" activeDot={false}
               dot={OverBudgetDot(dailyBudget)} isAnimationActive={false} legendType="none" />
           </AreaChart>

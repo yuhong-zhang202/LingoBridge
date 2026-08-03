@@ -223,7 +223,7 @@ export default function RecentCallsTable({
           <div className="flex bg-black/[0.03] rounded-full p-0.5 gap-0.5" role="group" aria-label="调用明细视图">
             {views.map(m => (
               <button key={m} onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${mode === m ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
+                className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${mode === m ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
                 {MODE_LABEL[m]}
               </button>
             ))}

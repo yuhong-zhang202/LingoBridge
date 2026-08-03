@@ -50,13 +50,14 @@ function DistView({ phases, latencyWarn }: { phases: PhaseLatency[]; latencyWarn
       <div className="flex items-end gap-3 text-[0.625rem] text-v2-text-muted">
         <span className="w-24 flex-shrink-0">环节</span>
         <span className="flex-1" />
+        {/* 副标不叠透明度（/70 叠加后必不达 AA）、10px 起（a11y 打磨包） */}
         <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
           <span>一半调用快于</span>
-          <span className="text-[0.5625rem] text-v2-text-muted/70">P50</span>
+          <span className="text-[0.625rem] text-v2-text-muted">P50</span>
         </span>
         <span className="w-16 flex-shrink-0 flex flex-col items-end leading-tight">
           <span>最慢10%慢于</span>
-          <span className="text-[0.5625rem] text-v2-text-muted/70">P90</span>
+          <span className="text-[0.625rem] text-v2-text-muted">P90</span>
         </span>
         <span className="w-12 text-right flex-shrink-0">最慢</span>
         <span className="w-12 text-right flex-shrink-0">次数</span>
@@ -142,7 +143,7 @@ function TrendView({ trend, latencyWarn }: { trend: TrendPhase[]; latencyWarn: n
         <div className="flex flex-wrap gap-1.5 mb-3" role="group" aria-label="选择环节">
           {trend.map(t => (
             <button key={t.phase} onClick={() => setPhase(t.phase)} aria-pressed={t.phase === cur.phase}
-              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${
+              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 t.phase === cur.phase ? 'bg-v2-text-primary text-white' : 'bg-black/[0.03] text-v2-text-muted'}`}>
               {t.name}
             </button>
@@ -223,7 +224,7 @@ export default function PhaseLatencyPanel({
         <div className="flex bg-black/[0.03] rounded-full p-0.5 gap-0.5" role="group" aria-label="耗时视图">
           {(['dist', 'trend'] as const).map(v => (
             <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
-              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors ${
+              className={`inline-flex items-center justify-center min-h-[44px] px-3 rounded-full text-[0.6875rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 view === v ? 'bg-white text-v2-text-primary shadow-sm' : 'text-v2-text-muted'}`}>
               {v === 'dist' ? '分布' : '趋势'}
             </button>
