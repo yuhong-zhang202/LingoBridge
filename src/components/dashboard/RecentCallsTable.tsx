@@ -44,8 +44,9 @@ function Badge({ s }: { s: string }) {
 // 估/实角标：区分回退估算（estimate）与真实计费（actual）。缺 cost_source（如 ASR 按真实时长）视为实。
 function SourceTag({ src }: { src?: string }) {
   const isEstimate = src === 'estimate'
+  // 「估/实」是实义信息（决定这笔钱可不可当真），9px 已到可读性下限，提到 11px 与看板其余实义小字齐平
   return (
-    <span className={`inline-flex items-center px-1 py-px rounded text-[0.5625rem] font-medium ${isEstimate ? 'bg-warning/15 text-warning-text' : 'bg-tag-success-bg text-tag-success-text'}`}>
+    <span className={`inline-flex items-center px-1 py-px rounded text-[0.6875rem] font-medium ${isEstimate ? 'bg-warning/15 text-warning-text' : 'bg-tag-success-bg text-tag-success-text'}`}>
       {isEstimate ? '估' : '实'}
     </span>
   )
