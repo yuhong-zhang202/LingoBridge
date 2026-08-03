@@ -20,6 +20,9 @@ jest.mock('@/lib/supabase', () => ({
     auth: {
       updateUser: () => Promise.resolve({ error: mockAuthErrorHolder.current }),
       signInWithPassword: () => Promise.resolve({ error: mockAuthErrorHolder.current }),
+      // registerWithPassword 在 updateUser 之前会读一次 session（取 auth.registered 埋点的
+      // fromAnonymous，升级后就读不到了）。这里给匿名会话，让被测路径与线上一致。
+      getSession: () => Promise.resolve({ data: { session: { user: { id: 'u1', is_anonymous: true, user_metadata: {} } } } }),
     },
   }),
 }))

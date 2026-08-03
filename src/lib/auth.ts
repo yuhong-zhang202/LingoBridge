@@ -11,7 +11,7 @@ import type { AppError } from '@/types/errors'
 import { getSupabase, ensureSession } from '@/lib/supabase'
 import { clearConsentCache } from '@/lib/consent'
 import { clearFlowId } from '@/lib/flow-id'
-import { clearAuthCache } from '@/lib/client-events'
+import { clearAuthCache, track } from '@/lib/client-events'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_MIN = 6
@@ -109,8 +109,20 @@ export async function registerWithPassword(email: string, password: string): Pro
   const e = validateEmail(email)
   validatePassword(password)
   await ensureSession()
+  // ⚠️ 必须在 updateUser【之前】读：绑邮箱成功后 session 里 is_anonymous 就变成 false，
+  // 事后再读恒为 false ——「有多少注册是从匿名试用转化来的」这一格会永远为空。
+  // try/catch + ?? false：这一句纯为埋点服务，读不到/读出错一律按 false 记，
+  // 【绝不允许因为一个埋点字段让注册失败】（埋点不得影响任何主流程分支，与 track 同纪律）。
+  let fromAnonymous = false
+  try {
+    fromAnonymous = (await getAccount())?.isAnonymous ?? false
+  } catch {
+    /* 静默：埋点字段取不到就按 false 记，注册流程照常往下走 */
+  }
   const { error } = await getSupabase().auth.updateUser({ email: e, password })
   if (!error) {
+    // 注册成功埋点（P2 额度转化的终点格）。fire-and-forget：不 await、不进条件、不影响下方任何分支。
+    track('auth.registered', { fromAnonymous })
     // 绑邮箱成功即强制重签 access token：updateUser 不换发新 token，旧 token 里 is_anonymous 仍为 true、
     // email 仍为 null，会让服务端按额度判身份时误判为匿名（阻断级 bug，见 api-auth loadIdentity）。
     // refreshSession 让后续请求带上 is_anonymous=false / email 有值的新 token，把主误判窗口关到近乎零。
