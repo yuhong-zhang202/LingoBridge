@@ -7,6 +7,7 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { track } from '@/lib/client-events'
+import type { MicSurface as SchemaMicSurface } from '@/lib/event-schema'
 
 /**
  * 一段录音的结果 + 采集信号（供「假空率」区分真空/假空）：
@@ -21,12 +22,17 @@ interface RecordingResult {
 }
 
 /**
- * 麦克风授权失败埋点归属的界面。
- * ⚠️ 必传、且【逐字对齐 /api/events 的 MIC_SURFACE 白名单】：服务端 sanitize 对不认识的值是静默丢弃，
- * 写死一个常量就会把另一个界面的失败全灌进同一格（本 hook 被录音页与练习页共用，练习页每轮对话都调
- * start()，写死 'recording' 会让拒过麦克风的练习用户每轮刷一条，把故事采集的授权失败率灌高）。
+ * 麦克风授权失败埋点归属的界面 —— 取值域【派生自 event-schema 的 MIC_SURFACE 真源】，本文件不再手抄
+ * （手抄的那份与真源脱钩后，服务端 sanitize 对不认识的值是静默丢弃，本地永远测不出来）。
+ * ⚠️ 必传：写死一个常量就会把另一个界面的失败全灌进同一格（本 hook 被录音页与练习页共用，练习页每轮
+ * 对话都调 start()，写死 'recording' 会让拒过麦克风的练习用户每轮刷一条，把故事采集的授权失败率灌高）。
+ *
+ * 【为什么排除 'home' 而不是正向列举】'home' 是首页的**权限探测**（page.tsx 自己 track，不经本 hook），
+ * 本 hook 一旦收到它就是把「探测」混进「真开录失败」那一格。用 Exclude 表达「除了它都行」，
+ * 将来新页面接入本 hook 时只需往真源加值、不必回来改这里；而真源里若把 'recording' 改名，
+ * 调用点会立刻 tsc 报错（不会静默漂移）。
  */
-export type MicSurface = 'recording' | 'practice'
+export type MicSurface = Exclude<SchemaMicSurface, 'home'>
 
 interface UseAudioRecorderOptions {
   /** 本次挂载所属界面，进 flow.mic_permission 的 surface 字段 */
