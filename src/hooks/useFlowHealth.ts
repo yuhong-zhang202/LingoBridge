@@ -30,8 +30,8 @@ export type AiStageStat = {
   results: AiResultStat[]
 }
 
-/** 单个埋点事件名的计数 */
-export type EventCountStat = { event: string; label: string; count: number; qaCount: number; known: boolean }
+/** 单个埋点事件名的计数（everSeen=false ⇒ 全库从未出现过该事件，「待首次触发」而非「坏了」） */
+export type EventCountStat = { event: string; label: string; count: number; qaCount: number; known: boolean; everSeen: boolean }
 
 /** 单个枚举取值的计数 */
 export type EnumValueStat = { value: string; count: number; qaCount: number; expected: boolean }

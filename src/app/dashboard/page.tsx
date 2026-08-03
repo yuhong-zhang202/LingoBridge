@@ -31,7 +31,7 @@ import CostBreakdown  from '@/components/dashboard/CostBreakdown'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
 import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
 import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
-import { AiOutcomeBlock, FlowSelfCheckBlock } from '@/components/dashboard/FlowHealthBlocks'
+import { AiOutcomeBlock, FlowSelfCheckBlock, groupEvents } from '@/components/dashboard/FlowHealthBlocks'
 import { useFlowHealth } from '@/hooks/useFlowHealth'
 import { apiFetch } from '@/lib/api-client'
 import { formatCny } from '@/lib/format-cost'
@@ -515,10 +515,15 @@ export default function DashboardPage() {
   const fh = flow.data
   const oursTotal = fh ? fh.aiCall.reduce((s, st) => s + st.ourSide, 0) : null
   const incidentSubtitle = `本期失败 ${rangeFailures} 次${oursTotal != null ? ` · 该我们修 ${oursTotal}` : ''}`
-  // ④区：埋点事件健康一句话（与 FlowSelfCheckBlock 的 dead 判定同式）；flow 未到时退回静态说明
-  const deadEvents = fh ? fh.eventCounts.filter(e => e.known && e.count === 0 && e.qaCount === 0).length : null
-  const selfCheckSubtitle = fh && deadEvents != null
-    ? (deadEvents === 0 ? `埋点 ${fh.eventCounts.length} 事件全通` : `埋点 ${deadEvents} 个事件疑似归零`)
+  // ④区：埋点事件健康一句话（复用 FlowSelfCheckBlock 的 groupEvents，保证判定同式）。
+  //      只数红档 dead；灰档「待首次触发」不是异常、不进告警数。flow 未到时退回静态说明。
+  const eventGroups = fh ? groupEvents(fh.eventCounts) : null
+  const selfCheckSubtitle = fh && eventGroups
+    ? (eventGroups.dead.length > 0
+        ? `埋点 ${eventGroups.dead.length} 个事件疑似归零`
+        : eventGroups.never.length > 0
+          ? `埋点无异常 · ${eventGroups.never.length} 个事件待首次触发`
+          : `埋点 ${fh.eventCounts.length} 事件全通`)
     : '埋点健康 · 枚举覆盖 · 技术明细'
 
   return (

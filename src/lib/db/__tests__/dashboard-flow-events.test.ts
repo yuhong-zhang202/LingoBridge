@@ -13,7 +13,7 @@ jest.mock('server-only', () => ({}))
 
 import {
   aggregateAiCall, aggregateEventCounts, aggregateEnumCoverage, aggregateFlowHealth,
-  latestOursFailure, flowWindowStart, FLOW_EVENT_NAMES, MISSING_VALUE,
+  applyEverSeen, latestOursFailure, flowWindowStart, FLOW_EVENT_NAMES, MISSING_VALUE,
   type FlowEventRow,
 } from '@/lib/db/dashboard-flow-events'
 
@@ -120,6 +120,35 @@ describe('aggregateEventCounts · 零计数必须留一行', () => {
     const e = stats.find(s => s.event === 'flow.story_entry')
     expect(e?.count).toBe(1)
     expect(e?.qaCount).toBe(1)
+  })
+})
+
+describe('everSeen · 「窗口内归零」两档判定（历史有过=红 / 从未出现=灰）', () => {
+  it('情形①窗口有量：真实或自测出现过的事件 everSeen=true，不需要全库回填', () => {
+    const stats = aggregateEventCounts([
+      row('flow.story_entry'),
+      row('quota.reached', {}, true),   // 仅自测也算「出现过」
+    ])
+    expect(stats.find(s => s.event === 'flow.story_entry')?.everSeen).toBe(true)
+    expect(stats.find(s => s.event === 'quota.reached')?.everSeen).toBe(true)
+    // 窗口内 0 的事件在纯窗口聚合阶段先记 false，等全库存在性查询回填
+    expect(stats.find(s => s.event === 'quota.cta')?.everSeen).toBe(false)
+  })
+
+  it('情形②窗口 0 但全库出现过：回填后 everSeen=true —— 红档「可能坏了」，维持告警', () => {
+    const stats = applyEverSeen(aggregateEventCounts([]), new Set(['page.view']))
+    expect(stats.find(s => s.event === 'page.view')?.everSeen).toBe(true)
+  })
+
+  it('情形③全库从未出现：回填后 everSeen=false —— 灰档「待首次触发」，不该染红', () => {
+    const stats = applyEverSeen(aggregateEventCounts([]), new Set(['page.view']))
+    expect(stats.find(s => s.event === 'quota.cta')?.everSeen).toBe(false)
+  })
+
+  it('窗口内有量的行不被回填改写（全库查询只覆盖窗口 0 的候选，缺席≠全库没有）', () => {
+    // flow.story_entry 窗口内有量但不在 seenInDb 集合里 —— 若被改写成 false 即判定被破坏
+    const stats = applyEverSeen(aggregateEventCounts([row('flow.story_entry')]), new Set())
+    expect(stats.find(s => s.event === 'flow.story_entry')?.everSeen).toBe(true)
   })
 })
 

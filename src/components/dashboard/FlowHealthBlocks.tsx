@@ -428,26 +428,34 @@ export function AiOutcomeBlock({ state }: { state: FlowHealthState }) {
 // ② 看板自检：埋点健康 + 枚举取值覆盖
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** 埋点事件三分组：可能坏了 / 仅自测有数 / 有真实上报 */
-type EventGroups = { dead: EventCountStat[]; qaOnly: EventCountStat[]; live: EventCountStat[]; liveRows: number }
+/** 埋点事件四分组：可能坏了（红）/ 待首次触发（灰）/ 仅自测有数 / 有真实上报 */
+export type EventGroups = {
+  dead: EventCountStat[]; never: EventCountStat[]
+  qaOnly: EventCountStat[]; live: EventCountStat[]; liveRows: number
+}
 
 /**
- * 埋点事件三分组。判断逻辑与原实现一致（两档零上报的可疑度差很多，不能混为一谈），
- * 变的只是展示：原先算出了摘要行、下面又把 14 行原样平铺一遍，摘要被稀释成了标题。
+ * 埋点事件四分组。「窗口内归零」按全库存在性分两档（2026-08-04 拍板）：
+ *   dead   历史出现过、窗口内归零 —— 曾经在发、现在没了，埋点大概率坏了，红色告警；
+ *   never  有史以来从未出现过 —— 多半是该分支还没发生（如 quota.* 上线以来无人撞过额度闸），
+ *          中性灰「待首次触发」，不染红、不计入告警数。
+ * ④区收起态 summary 复用本函数（只数 dead），保证与块内判定同式。
  * @param events  全部事件计数
- * @returns       三组事件 + 「有真实上报」组的总条数
+ * @returns       四组事件 + 「有真实上报」组的总条数
  */
-function groupEvents(events: EventCountStat[]): EventGroups {
+export function groupEvents(events: EventCountStat[]): EventGroups {
   const dead: EventCountStat[] = []
+  const never: EventCountStat[] = []
   const qaOnly: EventCountStat[] = []
   const live: EventCountStat[] = []
   let liveRows = 0
   for (const e of events) {
-    if (e.known && e.count === 0 && e.qaCount === 0) dead.push(e)
+    // everSeen 严格 === false 才入灰档：旧部署 API 无此字段时（undefined）按红档兜底 = 原行为
+    if (e.known && e.count === 0 && e.qaCount === 0) (e.everSeen === false ? never : dead).push(e)
     else if (e.known && e.count === 0 && e.qaCount > 0) qaOnly.push(e)
     else { live.push(e); liveRows += e.count }
   }
-  return { dead, qaOnly, live, liveRows }
+  return { dead, never, qaOnly, live, liveRows }
 }
 
 /** 事件行（中文名 + 事件名 + 计数 + 清单外徽标） */
@@ -489,8 +497,13 @@ function EventFoldGroup({ summary, events, tone }: { summary: string; events: Ev
  * @param windowDays  窗口天数（标题右侧口径小字用）
  */
 function EventHealthBlock({ events, windowDays }: { events: EventCountStat[]; windowDays: number }) {
-  const { dead, qaOnly, live, liveRows } = groupEvents(events)
+  const { dead, never, qaOnly, live, liveRows } = groupEvents(events)
   const unknownCount = live.filter(e => !e.known).length
+  // ✅ 行的括号补充（仅自测 / 待首次触发都不算异常，但要说明去向）
+  const okExtras = [
+    ...(qaOnly.length > 0 ? [`${qaOnly.length} 个只有自测数据`] : []),
+    ...(never.length > 0 ? [`${never.length} 个待首次触发`] : []),
+  ]
   return (
     <Block title="埋点健康" note={`近 ${windowDays} 天各事件计数`}>
       <div className="text-[0.6875rem] text-v2-text-muted mb-3 leading-relaxed">
@@ -501,7 +514,7 @@ function EventHealthBlock({ events, windowDays }: { events: EventCountStat[]; wi
       {dead.length > 0 ? (
         <div className="mb-2">
           <div className="text-[0.6875rem] text-error font-medium mb-1">
-            <span aria-hidden="true">🔴</span> 可能坏了（真实与自测都为 0）：{dead.length} 个
+            <span aria-hidden="true">🔴</span> 可能坏了（历史出现过、窗口内归零）：{dead.length} 个
           </div>
           <ul className="space-y-1 pl-1">
             {dead.map(e => <EventLine key={e.event} e={e} tone="text-error" />)}
@@ -510,9 +523,24 @@ function EventHealthBlock({ events, windowDays }: { events: EventCountStat[]; wi
       ) : (
         <div className="text-[0.6875rem] text-v2-text-secondary mb-2">
           <span aria-hidden="true">✅</span>{' '}
-          {qaOnly.length === 0
+          {okExtras.length === 0
             ? `${events.length} 个事件全部有真实上报，埋点看起来是通的。`
-            : `没有「真实与自测都为 0」的事件，埋点看起来是通的（其中 ${qaOnly.length} 个只有自测数据）。`}
+            : `没有「历史出现过、窗口内归零」的事件，埋点看起来是通的（其中 ${okExtras.join('、')}）。`}
+        </div>
+      )}
+
+      {/* 灰档「待首次触发」：不是告警、只是备忘，红档之后、折叠组之前，用现有中性 token */}
+      {never.length > 0 && (
+        <div className="mb-2">
+          <div className="text-[0.6875rem] text-v2-text-secondary font-medium mb-1">
+            <span aria-hidden="true">⚪</span> 待首次触发（有史以来从未出现过）：{never.length} 个
+          </div>
+          <ul className="space-y-1 pl-1">
+            {never.map(e => <EventLine key={e.event} e={e} tone="text-v2-text-muted" />)}
+          </ul>
+          <div className="text-[0.625rem] text-v2-text-muted mt-1 leading-relaxed">
+            从未被任何流量触发过，多半是该分支还没发生；首次触发后自动纳入归零监控。
+          </div>
         </div>
       )}
 

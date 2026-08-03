@@ -260,6 +260,13 @@ export interface EventCountStat {
   qaCount: number
   /** false = 库里出现了本看板清单外的事件名（清单该同步了） */
   known: boolean
+  /**
+   * false = 全库（不限窗口）从未出现过该事件。「窗口内归零」由此分两档：
+   * 历史出现过 → 红档「可能坏了」（曾经在发、现在没了）；从未出现过 → 灰档「待首次触发」
+   * （多半是该分支还没发生，如 quota.* 埋点上线以来无人撞过额度闸，见 2026-08-04 拍板）。
+   * 窗口聚合阶段只能给出「窗口内出现过 ⇒ true」，窗口 0 的行由 applyEverSeen 按全库查询回填。
+   */
+  everSeen: boolean
 }
 
 /** 单个枚举取值的计数 */
@@ -413,20 +420,34 @@ export function aggregateAiCall(rows: readonly FlowEventRow[]): AiStageStat[] {
  * 埋点是 fire-and-forget、失败不报错（服务端 400 / DB CHECK 拒绝都被静默吞掉），
  * 某个事件突然归零是唯一能发现「埋点坏了」的信号，所以零计数的事件也必须占一行。
  * @param rows  窗口内全部 flow_events 行
- * @returns     清单内事件恒在（含 0），库里出现的清单外事件追加在后并标 known=false
+ * @returns     清单内事件恒在（含 0），库里出现的清单外事件追加在后并标 known=false；
+ *              everSeen 此处只有窗口证据（窗口内出现过 ⇒ true），窗口 0 的行待 applyEverSeen 回填
  */
 export function aggregateEventCounts(rows: readonly FlowEventRow[]): EventCountStat[] {
   const counter: Counter = new Map()
   for (const row of rows) bump(counter, row.event, row.is_qa === true)
   const known: EventCountStat[] = FLOW_EVENT_NAMES.map(event => {
     const [count, qaCount] = counter.get(event) ?? [0, 0]
-    return { event, label: EVENT_LABEL[event] ?? event, count, qaCount, known: true }
+    return { event, label: EVENT_LABEL[event] ?? event, count, qaCount, known: true, everSeen: count + qaCount > 0 }
   })
   const extras: EventCountStat[] = Array.from(counter.entries())
     .filter(([event]) => !(FLOW_EVENT_NAMES as readonly string[]).includes(event))
-    .map(([event, [count, qaCount]]) => ({ event, label: event, count, qaCount, known: false }))
+    // 清单外事件必然是窗口内出现过才被发现的，everSeen 恒 true
+    .map(([event, [count, qaCount]]) => ({ event, label: event, count, qaCount, known: false, everSeen: true }))
     .sort((a, b) => b.count - a.count || a.event.localeCompare(b.event))
   return [...known, ...extras]
+}
+
+/**
+ * 用全库存在性查询结果回填 everSeen（纯函数，便于单测「窗口 0 但历史有 / 全库 0」两档）。
+ * 窗口内有量（真实或自测）的行本就 everSeen=true，【不改写】——全库查询只针对窗口 0 的候选，
+ * 不在 seenInDb 里不代表全库没有。
+ * @param events    窗口聚合后的事件计数
+ * @param seenInDb  全库存在性查询命中的事件名集合（只需覆盖窗口 0 的候选）
+ * @returns         everSeen 回填后的新数组（不改入参）
+ */
+export function applyEverSeen(events: readonly EventCountStat[], seenInDb: ReadonlySet<string>): EventCountStat[] {
+  return events.map(e => (e.count + e.qaCount > 0 ? e : { ...e, everSeen: seenInDb.has(e.event) }))
 }
 
 /**
@@ -545,6 +566,29 @@ export function flowWindowStart(now: Date, windowDays: number): Date {
 }
 
 /**
+ * 全库（不限时间窗）查询一批事件名是否出现过 —— 「窗口内归零」两档判定的依据。
+ * 逐事件 head-count（不取行、只要计数）：候选至多十几个、flow_events 目前几千行，
+ * 代价可忽略；数据量大了再改成一次分组聚合下推 DB。
+ * @param supabase  service_role 客户端
+ * @param events    待查事件名（= 窗口内计 0 的清单内事件）
+ * @returns         其中在全库出现过的事件名集合
+ */
+async function fetchEverSeenEvents(
+  supabase: SupabaseServer,
+  events: readonly string[],
+): Promise<Set<string>> {
+  const checks = await Promise.all(events.map(async event => {
+    const { count, error } = await supabase
+      .from('flow_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event', event)
+    if (error) throw new Error(`flow_events 存在性查询失败：${error.message}`)
+    return [event, (count ?? 0) > 0] as const
+  }))
+  return new Set(checks.filter(([, seen]) => seen).map(([event]) => event))
+}
+
+/**
  * 拉取窗口内 flow_events 全量行并聚合。
  * 直接用 service_role 查表、【刻意不新增 RPC】——少一个 DB 对象就少一个攻击面，
  * 且 0043-0048 那批只写 grant 不写 revoke 已直接导致过一次生产越权读（0052 hotfix）。
@@ -578,5 +622,11 @@ export async function fetchFlowHealth(
     // 不满一页 = 已到表尾
     if (batch.length < PAGE_SIZE) { truncated = false; break }
   }
-  return aggregateFlowHealth(rows, windowDays, start.toISOString(), truncated)
+  const result = aggregateFlowHealth(rows, windowDays, start.toISOString(), truncated)
+  // 窗口内计 0 的事件补一次全库存在性查询：区分「历史出现过、窗口内归零」（疑似坏了）
+  // 与「有史以来从未出现」（待首次触发），见 EventCountStat.everSeen 注释
+  const zeroEvents = result.eventCounts.filter(e => !e.everSeen).map(e => e.event)
+  if (zeroEvents.length === 0) return result
+  const seenInDb = await fetchEverSeenEvents(supabase, zeroEvents)
+  return { ...result, eventCounts: applyEverSeen(result.eventCounts, seenInDb) }
 }
