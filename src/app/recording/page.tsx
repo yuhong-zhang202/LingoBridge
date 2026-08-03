@@ -1,30 +1,26 @@
 /**
  * @module   RecordingPage
- * @desc     录音页外壳 — 集中持有录音逻辑（采集/转写/计时），按 lg 断点分发移动/桌面两套视图。
- *           逻辑单实例保证全页只有一个 useAudioRecorder（单麦克风流），两视图仅接收状态与回调。
+ * @desc     录音页外壳 — 按 lg 断点分发移动/桌面两套视图，本身只做「装配」：把录音器 /
+ *           额度守卫 / 放弃埋点 / 提交流程四个 hook 串起来，两视图仅接收状态与回调。
+ *           逻辑单实例保证全页只有一个 useAudioRecorder（单麦克风流）。
+ *           点「完成」之后的整条提交流程（ASR → 预检 → 整理 → 跳转 + 全部埋点）在
+ *           `hooks/useVoiceStorySubmit` 里，与文字路径的 `hooks/useStorySubmit` 对称 —— 本页不再自持。
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
 import { type JSX, useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST_MSG } from '@/lib/utils'
-import { putHandoff, putHandoffJson } from '@/lib/handoff'
-import { newFlowId } from '@/lib/flow-id'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { apiFetch } from '@/lib/api-client'
-import { track } from '@/lib/client-events'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
 import { useCaptureAbandon } from '@/hooks/useCaptureAbandon'
+import { useVoiceStorySubmit } from '@/hooks/useVoiceStorySubmit'
 import { useNav } from '@/components/NavProgress'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import type { RecordingViewProps } from './types'
-// 提交结局 / AI 调用结局的取值域【一律来自 event-schema 这一份真源】，本页不再手抄：
-// 服务端 sanitize 遇到不认识的值是【静默丢弃】，打错一个字母就是「埋了但库里查不到」，本地永远测不出来。
-import type { CaptureOutcome, AiResult } from '@/lib/event-schema'
 
 function RecordingContent(): JSX.Element {
   const router = useRouter()
@@ -35,11 +31,6 @@ function RecordingContent(): JSX.Element {
   const qid = useSearchParams().get('qid')
   const [seconds, setSeconds] = useState(0)
   const secondsRef = useRef(0)
-  const [transcribing, setTranscribing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [toastMsg, setToastMsg] = useState<string | null>(null)
-  // 预检 402（匿名整理额度用尽）→ 弹试用结束覆盖层，不带用户去 restructure 页再失败一次
-  const [quotaReached, setQuotaReached] = useState(false)
   // surface='recording'：本页的授权失败才是「故事采集」这一格（练习页共用本 hook，传 'practice'）
   const { audioLevel, start, stop } = useAudioRecorder({ surface: 'recording' })
 
@@ -47,8 +38,34 @@ function RecordingContent(): JSX.Element {
   // 【为何拦在「完成」而不是挂载】本页深链/浏览器后退可直达，首页与 /write 的入口守卫覆盖不到；
   // 但录音本身不花钱，真正花钱的是点「完成」后的 ASR，且挂载即拦会为所有正常用户引入一次异步等待、
   // 拖慢自动开录。故拦在离花钱最近的那一步（hook 内部仍在挂载时后台预取，点击零延迟）。
-  // 解构取值：checkBlocked 进 handleFinish 的依赖数组，需稳定引用（hook 内 useCallback 无依赖）
+  // 解构取值：checkBlocked 进提交流程的依赖，需稳定引用（hook 内 useCallback 无依赖）
   const { blockedVariant: storyQuotaVariant, checkBlocked: checkStoryQuota } = useStoryQuotaGuard()
+
+  // 进页面即开始录音
+  useEffect(() => { void start() }, [start])
+
+  // 采集开始 / 中途放弃埋点（口径全在 hook 里，与 /write 共用同一份，绝不在页面里另抄）。
+  // measure 在卸载那一刻才调用，故读 secondsRef 而非 seconds state。
+  // ⚠️ 位置必须留在「进页面即开始录音」之后：本 hook 挂载即报 flow.capture_started，
+  //    effect 执行序跟着 hook 调用序走，挪到前面就改了这条事件与开录的先后。
+  const { markSubmitted } = useCaptureAbandon({
+    mode: 'voice',
+    measure: () => ({ durationSec: Math.round(secondsRef.current) }),
+  })
+
+  // 语音提交流程（时长门槛 → 额度守卫 → ASR → 两层预检 → 整理 → 跳转）整条在 useVoiceStorySubmit 里，
+  // 与文字路径的 useStorySubmit 对称；本页只负责把录音器 / 额度守卫 / 放弃埋点三样依赖递进去，
+  // 再把结果状态摊给两套视图。流程本体（含全部埋点不变式）见该 hook 的 runVoiceStorySubmit 注释。
+  const {
+    transcribing, error, toastMsg, quotaReached, submit: handleFinish, dismissToast, clearError,
+  } = useVoiceStorySubmit({
+    qid,
+    stop,
+    // ref 读法：取【点「完成」那一刻】的秒数，不吃旧渲染闭包里的 seconds
+    getSeconds: () => secondsRef.current,
+    checkQuota: checkStoryQuota,
+    markSubmitted,
+  })
 
   // 计时（转写时暂停）
   useEffect(() => {
@@ -57,228 +74,13 @@ function RecordingContent(): JSX.Element {
     return () => clearInterval(t)
   }, [transcribing])
 
-  // 进页面即开始录音
-  useEffect(() => { void start() }, [start])
-
-  // 采集开始 / 中途放弃埋点（口径全在 hook 里，与 /write 共用同一份，绝不在页面里另抄）。
-  // measure 在卸载那一刻才调用，故读 secondsRef 而非 seconds state。
-  const { markSubmitted } = useCaptureAbandon({
-    mode: 'voice',
-    measure: () => ({ durationSec: Math.round(secondsRef.current) }),
-  })
-
-  // 卸载（用户跳页）时中断未完成的转写/整理请求，防护卸载后 setState
-  const abortRef = useRef<AbortController | null>(null)
-  useEffect(() => () => abortRef.current?.abort(), [])
-
-  const handleFinish = useCallback(async () => {
-    setError(null)
-    // 语音路径的流程起点：开启一次新 flow_id，串起 ASR→整理→建语料（经 X-Flow-Id 头透传，不进 URL）。
-    // 【必须在所有早退分支之前换】否则 too_short / quota_blocked 这两条早退路上发出的事件，会挂在
-    // sessionStorage 里残留的【上一次流程】的 flow_id 上，两次流程被串成一条。早退也换新 id 无副作用。
-    newFlowId()
-
-    // ——— 本次提交的埋点脚手架（全部 fire-and-forget，不参与任何分支判断、不改任何时序）———
-    // 两段 AI 调用各自的起始时刻。声明在 try 外是因为 catch 也要读；null = 请求还没发出过 → 不带 latencyMs。
-    let t0: number | null = null
-    let t1: number | null = null
-    /** 距起始时刻的耗时(ms)；起始为 null（请求尚未发出）返回 undefined，track 会丢掉该字段 */
-    const since = (t: number | null): number | undefined => (t === null ? undefined : performance.now() - t)
-    let submitReported = false
-    /**
-     * 本次提交的结局：每条执行路径【恰好】报一条，重复报会让「提交结局分布」重复计数。
-     * 之所以要挡：no_audio / too_large 是 throw 出去的，会被下面的 catch 再兜一次（那里报 ai_failed）。
-     * 先到者为准 —— 先报的那个离真实原因更近。
-     */
-    const reportSubmit = (outcome: CaptureOutcome): void => {
-      if (submitReported) return
-      submitReported = true
-      if (outcome === 'proceed') markSubmitted()   // 已成功提交 → 卸载时不再算「放弃」
-      track('flow.capture_submitted', { mode: 'voice', outcome, durationSec: Math.round(secondsRef.current) })
-    }
-    let transcribeReported = false
-    /**
-     * 转写这一次调用的结局：同样只报一条，且【只在请求真发出过（t0 已置位）之后】才报。
-     * 两个条件缺一不可：不挡重复，!res.ok 抛出的错会被 catch 再记一遍同一次调用；不挡 t0，
-     * 「没有录到声音 / 录音过长」也落进同一个 catch，可那时压根没发过转写请求，记成 network 就是凭空造故障。
-     */
-    const reportTranscribe = (result: AiResult, httpStatus: number): void => {
-      if (transcribeReported || t0 === null) return
-      transcribeReported = true
-      track('flow.ai_call', { stage: 'transcribe', result, httpStatus, latencyMs: since(t0) })
-    }
-
-    // 第一层：录音过短，提示继续说而非上传（保持录音中）
-    if (secondsRef.current < 5) {
-      reportSubmit('too_short')
-      setError('还想再说点什么吗？目前语料可能有点短哦')
-      return
-    }
-    // 第二层：建新故事额度守卫 —— 超额就别再调 ASR（花了钱也只会在保存时被 402 拦）。停掉录音、弹提示。
-    if (await checkStoryQuota()) {
-      reportSubmit('quota_blocked')
-      await stop()
-      return
-    }
-    setTranscribing(true)
-    const ac = new AbortController()
-    abortRef.current = ac
-    try {
-      const rec = await stop()
-      if (!rec) { reportSubmit('no_audio'); throw new Error('没有录到声音，请重试') }
-      const blob = rec.blob
-      if (blob.size > 10 * 1024 * 1024) { reportSubmit('too_large'); throw new Error('录音过长，请分段录制') } // ENGINEERING §9
-      const form = new FormData()
-      form.append('audio', blob, 'recording.webm')
-      // scene='story'：语料转写（录音→整理语料链路）。仅供服务端打 phase 埋点区分看板归位，不影响转写行为。
-      form.append('scene', 'story')
-      // 采集信号（可选增强）：仅服务端在「空录音失败」时落 metadata.audio 供假空率判定，不影响转写行为。
-      form.append('peakLevel', String(rec.peakLevel))
-      form.append('durationMs', String(rec.durationMs))
-      form.append('blobBytes', String(blob.size))
-      // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
-      t0 = performance.now()
-      const res = await apiFetch('/api/transcribe', { method: 'POST', body: form, signal: ac.signal })
-      // 服务端同意闸拒绝（未捕获同意）：这两个 AI 路由的 403 只可能是缺同意。回首页触发同意弹窗，
-      // 别卡在「转写失败」裸报错死胡同。
-      if (res.status === 403) {
-        reportTranscribe('consent_403', 403)
-        reportSubmit('consent_blocked')
-        if (!ac.signal.aborted) router.push('/')
-        return
-      }
-      // 匿名 ASR 试用额度用尽：402 必须走 trial 覆盖层引导注册，不能落进下面的通用 !res.ok 错误态
-      // （只显示「转写失败，请重试」= 让撞上限的匿名用户以为是故障，反复重试仍失败 → 转化流失）。
-      // 与 storyQuotaVariant 的区别：此处 402 是匿名【ASR 当日】试用用尽（服务端兜底）；
-      // storyQuotaVariant 是点「完成」前的前置守卫（匿名语料总条数 / 注册用户月额度）。来源不同，不可混用。
-      if (res.status === 402) {
-        reportTranscribe('quota_402', 402)
-        reportSubmit('quota_blocked')
-        if (!ac.signal.aborted) { setQuotaReached(true); setTranscribing(false) }
-        return
-      }
-      if (!res.ok) {
-        const errData = (await res.json()) as { error?: string; code?: string }
-        reportTranscribe(
-          errData.code === 'ASR_BUSY'
-            ? 'busy_503'
-            : errData.code === 'EMPTY_TRANSCRIPT'
-              ? 'empty_422'
-              // 429/400/401 单列：压成 other 会让「日限撞了多少次」永远查不出来，
-              // 且同一 stage 的另外两条路径（restructure 页）已细分，不统一就是「只有那条路有 429」的假象
-              : res.status === 429
-                ? 'rate_429'
-                : res.status === 400
-                  ? 'bad_input_400'
-                  : res.status === 401
-                    ? 'auth_401'
-                    : res.status >= 500 ? 'server_5xx' : 'other',
-          res.status,
-        )
-        // ASR_BUSY（503，转写并发排队满/超时）必须和「转写失败」分开说：前者是"人多"、几秒后重试就好，
-        // 后者是"坏了"。文案混用会让用户以为产品故障而直接放弃。
-        throw new Error(
-          errData.code === 'ASR_BUSY'
-            ? '现在使用的人有点多，稍等几秒再说一次就好'
-            : errData.code === 'EMPTY_TRANSCRIPT'
-              ? '好像没太听清，要不要再说一次？'
-              : '转写失败，请重试'
-        )
-      }
-      const data = (await res.json()) as { text: string }
-      reportTranscribe('ok', 200)
-      if (ac.signal.aborted) { reportSubmit('aborted'); return }
-      // 第一层：即时预检（不调 API）
-      if (isGarbageInput(data.text)) {
-        reportSubmit('garbage')
-        setToastMsg(GARBAGE_TOAST_MSG)
-        setTranscribing(false)
-        return
-      }
-      // 源头门槛（薄素材防线）：真实但有效字数不足 → 拦下、原文保留续写，引导补充维度（区别于上面的「不像经历」）
-      if (isTooShortForCorpus(data.text)) {
-        reportSubmit('text_too_short')
-        setToastMsg(TOO_SHORT_TOAST_MSG)
-        setTranscribing(false)
-        return
-      }
-      // 第二层：让 restructure 判断 usable；usable 时把整理结果一并带走，restructure 页免二次整理调用
-      try {
-        t1 = performance.now()
-        const checkRes = await apiFetch('/api/restructure', {
-          method: 'POST',
-          json: { rawText: data.text },
-          signal: ac.signal,
-        })
-        // 匿名整理额度用尽：不跳转，弹试用结束提示
-        if (checkRes.status === 402) {
-          track('flow.ai_call', { stage: 'restructure', mode: 'voice', result: 'quota_402', httpStatus: 402, latencyMs: since(t1) })
-          reportSubmit('quota_blocked')
-          if (!ac.signal.aborted) { setQuotaReached(true); setTranscribing(false) }
-          return
-        }
-        if (checkRes.ok) {
-          const checkData = (await checkRes.json()) as { cleanedText: string; usable: boolean; summary?: string }
-          track('flow.ai_call', { stage: 'restructure', mode: 'voice', result: 'ok', httpStatus: 200, latencyMs: since(t1) })
-          if (!checkData.usable) {
-            reportSubmit('garbage')
-            setToastMsg(GARBAGE_TOAST_MSG)
-            setTranscribing(false)
-            return
-          }
-          // 中断也是一种提交结局：不报的话，「整理阶段被中断」的人在提交结局分布里凭空消失，
-          // 而那正是耗时最长、最容易被用户中途退掉的一段（转写阶段的中断在下面 catch 里报了 aborted，
-          // 同一个「中断」两段口径不一致，横向比不了）。reportSubmit 自带去重，不会重复。
-          if (ac.signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航
-          reportSubmit('proceed')
-          router.push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: checkData.cleanedText, summary: checkData.summary ?? '' })}${qid ? `&qid=${qid}` : ''}`)
-          return
-        }
-        // 其他非 402 错误：落到 try 外的放行分支，restructure 页兜底自行整理。
-        // 【口径对齐】useStorySubmit 的同一分支记了 ai_call，这里原先漏了 —— 同一个 /api/restructure
-        // 接口在「语音路径失败」时无痕、在「文字路径失败」时有痕，两条路径的失败率没法横向比。
-        // 仍【不报 capture_submitted】：用户被放行了，下面 router.push 前会报 proceed。
-        track('flow.ai_call', {
-          stage: 'restructure', mode: 'voice',
-          // 同上：与 restructure 页、useStorySubmit 三条路径口径一致，否则失败率无法横向比
-          result: checkRes.status === 429
-            ? 'rate_429'
-            : checkRes.status === 400
-              ? 'bad_input_400'
-              : checkRes.status === 401
-                ? 'auth_401'
-                : checkRes.status >= 500 ? 'server_5xx' : 'other',
-          httpStatus: checkRes.status, latencyMs: since(t1),
-        })
-      } catch {
-        /* API 错误（含中断）放行，restructure 页面兜底 */
-        // 只记这次 AI 调用的结局，【不报 capture_submitted】——用户确实被放行了，
-        // 下面的 router.push 之前会报 proceed；这里再报一条就是同一次提交记两遍。
-        track('flow.ai_call', { stage: 'restructure', mode: 'voice', result: 'network', httpStatus: 0, latencyMs: since(t1) })
-      }
-      if (ac.signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航（同上：中断也要报）
-      reportSubmit('proceed')
-      router.push(`/restructure?h=${putHandoff(data.text)}${qid ? `&qid=${qid}` : ''}`)
-    } catch (e) {
-      if (ac.signal.aborted) {
-        reportTranscribe('aborted', 0)
-        reportSubmit('aborted')
-        return          // 中断不算错误，忽略
-      }
-      reportTranscribe('network', 0)
-      reportSubmit('ai_failed')
-      setError(e instanceof Error ? e.message : '转写失败，请重试')
-      setTranscribing(false)
-    }
-  }, [stop, router, qid, checkStoryQuota, markSubmitted])
-
   const handleRerecord = useCallback(async () => {
     await stop()
     secondsRef.current = 0
     setSeconds(0)
-    setError(null)
+    clearError()
     void start()
-  }, [stop, start])
+  }, [stop, start, clearError])
 
   const viewProps: RecordingViewProps = {
     transcribing,
@@ -286,12 +88,12 @@ function RecordingContent(): JSX.Element {
     seconds,
     audioLevel,
     toastMsg,
-    onFinish: () => void handleFinish(),
+    onFinish: () => handleFinish(),
     onRerecord: () => void handleRerecord(),
     onBack: () => router.back(),
     onSwitchToText: () => navigate(qid ? `/write?qid=${qid}` : '/write'),
     onExit: () => navigate('/'),
-    onDismissToast: () => setToastMsg(null),
+    onDismissToast: () => dismissToast(),
   }
 
   return (
