@@ -73,13 +73,20 @@ const EVENT_LABEL: Record<string, string> = {
   'auth.registered':        '注册成功',
 }
 
-/** AI 调用的管线阶段（AI_STAGE 副本） */
-const AI_STAGES = ['transcribe', 'restructure', 'polish'] as const
+/** AI 调用的管线阶段（AI_STAGE 副本；2026-08-03 由 3 段补齐到 8 段 = 全部 AI 路由） */
+const AI_STAGES = [
+  'transcribe', 'restructure', 'polish', 'matching', 'analysis', 'phrases', 'coach', 'pronounce',
+] as const
 /** 阶段中文名 */
 const STAGE_LABEL: Record<string, string> = {
   transcribe:  '语音转写',
   restructure: '语料整理',
   polish:      '单句润色',
+  matching:    '题目匹配',
+  analysis:    '题目分析',
+  phrases:     '换档词组',
+  coach:       '教练对话',
+  pronounce:   '发音纠错',
 }
 
 /** 一次 AI 调用结局的归属分类（决定「该找谁」） */

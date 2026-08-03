@@ -100,8 +100,24 @@ export type QuotaSurface = (typeof QUOTA_SURFACE)[number]
 export const QUOTA_CTA = ['register', 'practice_ielts', 'new_story', 'profile', 'close'] as const
 export type QuotaCta = (typeof QUOTA_CTA)[number]
 
-/** AI 调用属于哪一段管线 */
-export const AI_STAGE = ['transcribe', 'restructure', 'polish'] as const
+/**
+ * AI 调用属于哪一段管线。
+ *
+ * 【口径 = 所有会失败的 AI 调用，不是「开口链路叙事」】首版只列了 transcribe/restructure/polish 三段，
+ * 是按「用户开口讲故事」这条叙事线划的范围 —— 于是 8 个 AI 路由里漏了 5 个。而这 5 个路由【全部有
+ * 服务端不记账的早退分支】（matching 6 条、analysis 8 条、phrases 3 条、practice 4 条、pronounce 3 条：
+ * 400 入参 / 402 额度 / 403 未同意 / 429 日限 / 503 并发满，外加结构性无痕的网络失败），
+ * 早退 = logApiUsage 不记 = 现有成本看板完全看不见。2026-08-03 补齐后八段全覆盖。
+ *
+ * 值与 api_usage_logs.metadata.phase 的既有口径对齐（别自造名，否则两份数据没法对照）：
+ *   transcribe=ASR / restructure=语料整理 / polish=单句润色 / analysis=题目分析 /
+ *   phrases=换档词组 / coach=教练对话 / pronounce=发音纠错。
+ *   matching 例外：服务端把成功拆成 extraction+ranking 两条 phase 记账，而客户端视角一次匹配就是
+ *   一次调用（且失败时服务端记的正是 phase='matching'），故客户端统一记 'matching'。
+ */
+export const AI_STAGE = [
+  'transcribe', 'restructure', 'polish', 'matching', 'analysis', 'phrases', 'coach', 'pronounce',
+] as const
 export type AiStage = (typeof AI_STAGE)[number]
 
 /** 一次 AI 调用的结局（HTTP 语义 + 客户端侧失败） */
