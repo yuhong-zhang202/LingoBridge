@@ -116,19 +116,29 @@ export default function HomePage() {
   // 额度核对 + 麦克风探测期间按钮转圈（GradientButton loading）；跳转瞬间接力顶部进度条。
   const [startRecording, startingRec] = useAsyncAction(handleStartRecording)
 
-  /** 「文本输入」入口：打开面板前同样核额度；关闭面板不核（无消耗动作） */
-  async function handleSetShowTextInput(v: boolean): Promise<void> {
-    // 只有「打开面板」才算一次入口动作，关面板不报。
-    // story_entry 在守卫【之前】（被拦下的人也点了），capture_started 在守卫【之后】（真进到输入态才算开始采集），
-    // 整个「被额度拦掉多少人」就靠这两者的差值，颠倒任一个差值恒为 0。
-    // ⚠️【这个差值必须按 distinct user_id 算，不能用裸计数】：story_entry 每次开面板都报，而
-    // capture_started 有 ref 守卫、同一次停留只报一次（否则开→关→开会把 D2 的分母灌大）。
-    // 两者去重口径不同，裸计数相减会凭空造出「被额度拦掉的人」——开关两次面板就多算一个。
-    // 同理 capture_started(mode='text') 还有 /write 挂载这第二个来源，也只能按人聚合看。
-    if (v) track('flow.story_entry', { entry: 'text', mode: ieltsMode ? 'ielts' : 'story' })
-    if (v && await storyQuota.checkBlocked()) return
-    if (v) trackTextCaptureStarted()
-    setShowTextInput(v)
+  /**
+   * 打开文字输入面板 —— 两个入口共用这一条路径（此前各写各的，「麦克风失败→改用文字」那条绕过了
+   * 文本按钮那条，漏了埋点、成了漏斗盲区；分两处维护则下次改口径必漏一处）。
+   * @param source  'text'＝首页「文本输入」按钮；'mic-fallback'＝麦克风失败后在 sheet 里点「改用文字」
+   *
+   * ⚠️ 两条路径【不对称，别抹平】：mic-fallback 那条在点「开始录音」时已报过
+   * story_entry(entry='record')、也已在 handleStartRecording 里过完额度守卫，故此处不重复报、不重复核。
+   *
+   * ⚠️ 埋点顺序是硬约束：story_entry 在额度守卫【之前】（被拦下的人也是点了入口的人；埋在守卫之后，
+   * 额度拦截就会伪装成「用户根本没点」），capture_started 在守卫【之后】（真进到输入态才算开始采集）。
+   * 整个「被额度拦掉多少人」就靠这两者的差值，颠倒任一个差值恒为 0。
+   * ⚠️【这个差值必须按 distinct user_id 算，不能用裸计数】：story_entry 每次开面板都报，而
+   * capture_started 有 ref 守卫、同一次停留只报一次（否则开→关→开会把 D2 的分母灌大）。
+   * 两者去重口径不同，裸计数相减会凭空造出「被额度拦掉的人」——开关两次面板就多算一个。
+   * 同理 capture_started(mode='text') 还有 /write 挂载这第二个来源，也只能按人聚合看。
+   */
+  async function openTextPanel(source: 'text' | 'mic-fallback'): Promise<void> {
+    if (source === 'text') {
+      track('flow.story_entry', { entry: 'text', mode: ieltsMode ? 'ielts' : 'story' })
+      if (await storyQuota.checkBlocked()) return
+    }
+    trackTextCaptureStarted()
+    setShowTextInput(true)
   }
 
   // 桌面「或用文字输入」：与移动端文本面板同源的守卫。此前该入口是裸 <Link>，
@@ -155,7 +165,8 @@ export default function HomePage() {
     typed,
     reuseTab,
     writeHref,
-    onSetShowTextInput: (v) => void handleSetShowTextInput(v),
+    // 开面板走统一入口（埋点 + 额度守卫都在里面）；关面板无消耗动作、不报不核
+    onSetShowTextInput: (v) => { if (v) void openTextPanel('text'); else setShowTextInput(false) },
     onSelectMyStory: () => setIeltsMode(false),
     onSelectIelts: () => { if (!ieltsMode) { setIeltsMode(true); void next() } },
     onNext: () => void next(),
@@ -193,14 +204,12 @@ export default function HomePage() {
         reason={micSheet ?? 'denied'}
         onUseText={() => {
           setMicSheet(null)
-          // 这条路径绕过 handleSetShowTextInput（直接开面板），不补埋就成漏斗盲区：
-          // 「麦克风失败 → 改用文字」的人有 story_entry(record) 却没有 capture_started，
-          // 会被算成「点了入口但没进采集」，与真正被额度拦掉的人混在同一格里。
-          // 只报 capture_started：story_entry 在点「开始录音」时已报过（entry='record'），
-          // 额度守卫也已在 handleStartRecording 里过完，此处不重复。
-          // 走同一个 ref 守卫：这条路径与文本按钮开的是同一个面板，同一次停留只算开始一次采集。
-          trackTextCaptureStarted()
-          setShowTextInput(true)
+          // 与文本按钮开的是同一个面板，故走同一个 openTextPanel（口径只有一份，改一处两条路径同步）。
+          // source='mic-fallback' 使它只报 capture_started：story_entry 在点「开始录音」时已报过
+          // （entry='record'）、额度守卫也已在 handleStartRecording 里过完，此处都不重复。
+          // 但 capture_started 必须补：不补就成漏斗盲区——「麦克风失败→改用文字」的人有 story_entry
+          // 却没有 capture_started，会被算成「点了入口但没进采集」，与真正被额度拦掉的人混在同一格里。
+          void openTextPanel('mic-fallback')
         }}
         onDismiss={() => setMicSheet(null)}
       />
