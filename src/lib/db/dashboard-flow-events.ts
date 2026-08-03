@@ -39,6 +39,9 @@ type SupabaseServer = ReturnType<typeof getSupabaseServer>
  * 顺序即 UI 展示顺序：按用户走的链路先后排（入口 → 采集 → AI → 匹配 → 结果消费 → 服务端自发）。
  */
 export const FLOW_EVENT_NAMES = [
+  // page.view 排在最前：它是所有链路的上游（进页面才谈得上后面的动作），也是全站唯一
+  // 「每次导航都必然发一条」的事件 —— 它突然归零 = 埋点整体坏了，放第一行最容易一眼看见。
+  'page.view',
   'flow.story_entry',
   'flow.mic_permission',
   'flow.capture_started',
@@ -57,6 +60,7 @@ export const FLOW_EVENT_NAMES = [
 
 /** 事件名的中文说明（看板只给 admin 看，仍写人话，免得每次都要回去翻代码） */
 const EVENT_LABEL: Record<string, string> = {
+  'page.view':              '页面浏览',
   'flow.story_entry':       '进入故事采集',
   'flow.mic_permission':    '麦克风授权',
   'flow.capture_started':   '开始采集',
@@ -153,6 +157,15 @@ interface EnumFieldSpec {
 }
 
 const ENUM_FIELDS: readonly EnumFieldSpec[] = [
+  // PAGE_ROUTE 的副本。这一栏的看点是 'other'：它涨 = 有页面没登记进枚举（新页面上线忘了同步），
+  // 那批浏览会全部糊成一格。⚠️ 期望值里【只放枚举 code】，绝不放路径原文（隐私红线，见 event-schema）。
+  { key: 'page.view.route', event: 'page.view', field: 'route',
+    label: '页面浏览路由', expected: [
+      'home', 'write', 'recording', 'restructure', 'matching', 'practice_question', 'analysis',
+      'practice', 'question_bank', 'library', 'review', 'anki_review',
+      'profile', 'settings', 'login', 'reset_password',
+      'about', 'privacy', 'privacy_beta', 'feedback', 'dashboard', 'other',
+    ] },
   { key: 'flow.ai_call.result', event: 'flow.ai_call', field: 'result',
     label: 'AI 调用结局', expected: AI_RESULTS },
   { key: 'flow.ai_call.stage', event: 'flow.ai_call', field: 'stage',
