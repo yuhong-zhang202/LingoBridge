@@ -17,6 +17,7 @@ import { type JSX, useState, useRef, useEffect, useCallback, Suspense } from 're
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { usePolish } from '@/hooks/usePolish'
 import { useNav } from '@/components/NavProgress'
 import { setSessionPolishes, hasSeenPracticeIntro, markPracticeIntroSeen } from '@/lib/storage'
 import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
@@ -28,7 +29,7 @@ import { track } from '@/lib/client-events'
 // 优化（polish）调用结局的取值域【来自 event-schema 这一份真源】，本页不再手抄：
 // 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
 import type { AiResult } from '@/lib/event-schema'
-import type { PracticeScaffold, PracticeMessage, PolishResult, SessionPolish } from '@/lib/types'
+import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import QuotaReached from '@/components/QuotaReached'
 import PracticeMobile from './PracticeMobile'
@@ -104,10 +105,6 @@ function PracticeContent(): JSX.Element {
   const [phase, setPhase]                 = useState<PracticePhase>('init')
   const [elapsed, setElapsed]             = useState(0)
   const [error, setError]                 = useState<string | null>(null)
-  const [showPolish, setShowPolish]       = useState(false)
-  const [polishLoading, setPolishLoading] = useState(false)
-  const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
-  const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
   const [capture, setCapture]             = useState<{ heard: string; context: string; msgIndex: number; savedIds: string[] } | null>(null)
   const [retryKey, setRetryKey]           = useState(0)
   // 服务端复练额度超限（/api/practice 或 /api/transcribe 返回 402）→ 弹 QuotaReached 覆盖层。
@@ -152,8 +149,15 @@ function PracticeContent(): JSX.Element {
   scaffoldRef.current = scaffold
   // 打破 scheduleRetry ↔ runTranscribeAttempt 的相互引用：scheduleRetry 经此 ref 调最新的重试函数
   const runTranscribeAttemptRef = useRef<() => void>(() => {})
-  // 上次优化请求的入参，供失败态「再试一次」原样重发（详见 handlePolish 首行注释）
-  const lastPolishArgsRef = useRef<[string, string | undefined] | null>(null)
+
+  // ——— 优化（换个说法）整块：三态 + 历史 + 调用分流 + 「再试一次」都在 usePolish 里，本页只接线 ———
+  // 402/403 的去向由本页给（弹哪种额度层 / 跳哪儿），hook 不自己做跳转；两个回调用 useCallback 稳住引用。
+  const onPolishTrialQuota = useCallback(() => setQuotaVariant('trial'), [])
+  const onPolishConsentDenied = useCallback(() => { router.push('/') }, [router])
+  const {
+    showPolish, polishLoading, polishResult, polishHistory,
+    runPolish, retryPolish, reopenPolish, closePolish,
+  } = usePolish({ level, scaffold, popupRef, onTrialQuota: onPolishTrialQuota, onConsentDenied: onPolishConsentDenied })
 
   /** 清掉待触发的重试计时器（卸载 / 结束 / 取消录音 / 提交文字时都要清，防泄漏与错发） */
   const clearRetryTimer = useCallback(() => {
@@ -437,101 +441,6 @@ function PracticeContent(): JSX.Element {
     void runTranscribeAttempt()
   }, [clearRetryTimer, runTranscribeAttempt])
 
-  const handlePolish = useCallback(async (sentence: string, aiQuestion?: string) => {
-    // 失败态「再试一次」要逐字重发同一次请求：sentence 已是 applyPronunciationFixes 处理过的串，
-    // 存这个（而非原始气泡文本）才能复现同一次调用。用 ref 不用 state —— 只在重试时读一次，进 state 会触发无谓重渲。
-    lastPolishArgsRef.current = [sentence, aiQuestion]
-    setShowPolish(true)
-    setPolishResult(null)
-    setPolishLoading(true)
-    // ——— 本次优化调用的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
-    // 失败态「再试一次」会再走一遍本函数、自然再报一条 —— 用户视角确实是两次尝试，不去重。
-    const t0 = performance.now()
-    let aiReported = false
-    /** 这一次调用只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就把同一次调用记两遍 */
-    const reportAi = (result: AiResult, httpStatus: number): void => {
-      if (aiReported) return
-      aiReported = true
-      track('flow.ai_call', { stage: 'polish', result, httpStatus, latencyMs: performance.now() - t0 })
-    }
-    try {
-      const res = await apiFetch('/api/practice/polish', {
-        method: 'POST',
-        json: { sentence, aiQuestion, level },
-      })
-      // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在优化失败态。
-      if (res.status === 403) { reportAi('consent_403', 403); router.push('/'); return }
-      // 额度类拦截，区分对待、不再一律「优化失败」误导用户：
-      //   402＝匿名试用次数用尽（polish 402 仅对匿名返回）→ 关弹窗、弹既有额度覆盖层引导注册；
-      //   429＝注册用户当日达上限 → 在优化气泡内诚实说明真实原因，可明天再来。
-      if (res.status === 402) { reportAi('quota_402', 402); setShowPolish(false); setQuotaVariant('trial'); return }
-      if (res.status === 429) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        reportAi('rate_429', 429)
-        // 不设 retryable：当日额度已用尽，重试必然再撞 429，给「再试一次」等于骗用户。
-        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '今日优化次数已达上限，请明天再试', failed: true })
-        return
-      }
-      // ——— 确定性失败（400/401）与瞬时失败（5xx/网络）分家 ———
-      // 这两类【不能 throw 进 catch】：catch 一律给 retryable:true，而同一份输入重发必然再撞同一个 400，
-      // 用户点「再试一次」只会永远转圈（生产实测：练习页传给 polish 的是整条气泡、无截断，
-      // 转写文本 p90=620 字符、14.7% 超 500 → 长回答点「换个说法」必吃 400）。与 429 同档处理。
-      if (res.status === 400) {
-        // 400 要透出服务端的真实原因（如「句子过长，请精简后再试」），显示「网络不太稳」是误导：
-        // 用户会以为是信号问题、反复重试，而真正该做的是把这句说短一点。
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        reportAi('bad_input_400', 400)
-        setPolishResult({ needsWork: false, optimized: '', note: body?.error ?? '这句暂时没法优化，换句短一点的试试', failed: true })
-        return
-      }
-      if (res.status === 401) {
-        // 401 = 会话失效（重试同样会 401）。只给中性文案，绝不回显服务端原始错误（可能含鉴权细节）。
-        reportAi('auth_401', 401)
-        setPolishResult({ needsWork: false, optimized: '', note: '登录状态已失效，请重新登录后再试', failed: true })
-        return
-      }
-      if (!res.ok) {
-        // 5xx / 其余未知状态：属瞬时故障，保留「再试一次」（与 catch 的网络分支同档）
-        reportAi(res.status >= 500 ? 'server_5xx' : 'other', res.status)
-        setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
-        return
-      }
-      const data = (await res.json()) as PolishResult
-      reportAi('ok', 200)
-      setPolishResult(data)
-      if (data.needsWork && data.optimized) {
-        setPolishHistory(h => [...h, {
-          original: sentence,
-          optimized: data.optimized,
-          note: data.note,
-          part: scaffold?.part ?? 1,
-          questionEn: scaffold?.displayEn ?? '',
-        }])
-      }
-    } catch {
-      // 到此只剩【真·网络 reject】：非 2xx 一律在上面按状态码分流后 return，不再 throw 进这里
-      // （否则确定性的 400/401 会被误标成 network、并拿到不该给的「再试一次」）。
-      // 诊断官+latency 取证：生产超时 0 次，故不加重试、不动 maxAttempts，只把兜底文案改诚实、不吓人。
-      reportAi('network', 0)
-      setPolishResult({ needsWork: false, optimized: '', note: '网络不太稳，请再试一次', failed: true, retryable: true })
-    } finally {
-      setPolishLoading(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 优化按当前 level 取值即可；level 变更由独立分支处理，列入依赖会无谓重建回调
-  }, [scaffold, router])
-  // A6 防重入：优化共用一个弹窗，单 ref 守卫 —— 进行中再点优化不会重复发 AI 调用 / 重复写历史
-  const [runPolish] = useAsyncAction(handlePolish)
-
-  /** 优化失败态「再试一次」：用上次同一组参数原地重发（弹窗不关，自动切回「优化中…」）。 */
-  const onRetryPolish = useCallback(() => {
-    const args = lastPolishArgsRef.current
-    if (!args) return
-    // 按钮会随 loading 分支被卸载、焦点掉回 body；先把焦点收到弹窗根容器（tabIndex=-1），读屏用户不掉线
-    popupRef.current?.focus()
-    // 必须走 runPolish（useAsyncAction 包装）而非裸 handlePolish —— 防重入靠它的单 ref 守卫
-    void runPolish(...args)
-  }, [runPolish])
-
   // 收藏发音正音：把"听成的词 + 真正想说的词 + 出处句"异步落库；成功后失效缓存供素材库读到最新
   const handleSavePronunciation = useCallback((intended: string) => {
     if (!capture) return
@@ -593,12 +502,12 @@ function PracticeContent(): JSX.Element {
     const handler = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node) &&
           orbRef.current && !orbRef.current.contains(e.target as Node)) {
-        setShowPolish(false)
+        closePolish()
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showPolish])
+  }, [showPolish, closePolish])
 
   const recordCap = scaffold?.part === 2 ? 150 : 90
   const nearLimit = phase === 'recording' && recordCap - elapsed <= 20
@@ -659,9 +568,9 @@ function PracticeContent(): JSX.Element {
     replyFailAttempt,
     onWordTap,
     onPolish,
-    onRetryPolish,
-    onReopenPolish: () => { if (polishResult) setShowPolish(true) },
-    onClosePolish: () => setShowPolish(false),
+    onRetryPolish: retryPolish,
+    onReopenPolish: reopenPolish,
+    onClosePolish: closePolish,
     onSavePronunciation: handleSavePronunciation,
     onCloseCapture: () => setCapture(null),
     onEnd: () => void endSession(),
