@@ -9,6 +9,8 @@
  *           P0/P1 补埋点（2026-08-02）追加三块：
  *             · 6 个新事件（flow.story_entry / mic_permission / capture_started / capture_submitted /
  *               capture_abandoned / ai_call）的枚举与整数收敛口径 + 原文注入负例；
+ *           P2 额度转化（2026-08-03）再追加三个事件：quota.reached / quota.cta / auth.registered
+ *           （枚举 + 严格布尔的收敛口径 + 原文注入负例）。
  *             · 事件名分发闸：未注册事件名必须 400 且零落库（0053 起 DB CHECK 已放宽为前缀正则，
  *               这里是唯一的真闸）；
  *             · QA 流量标记：严格 === 比对、token 未配时 fail-closed、内部账户为服务端权威来源。
@@ -128,6 +130,9 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['flow.capture_submitted', { mode: 'voice', outcome: 'proceed', durationSec: 42, charCount: 180 }],
     ['flow.capture_abandoned', { mode: 'text', exit: 'pagehide', durationSec: 0, charCount: 0 }],
     ['flow.ai_call',           { stage: 'transcribe', result: 'quota_402', httpStatus: 402, latencyMs: 1234, mode: 'voice' }],
+    ['quota.reached',          { variant: 'trial', surface: 'question_bank' }],
+    ['quota.cta',              { variant: 'ielts', cta: 'practice_ielts' }],
+    ['auth.registered',        { fromAnonymous: true }],
   ]
   test.each(CASES)('%s 正例', async (event, props) => {
     await POST(makeEventReq(event, props))
@@ -160,6 +165,33 @@ describe('新事件 · 枚举负例（不 trim、不转小写，近似值一律�
   test('非字符串的枚举值被丢', async () => {
     await POST(makeEventReq('flow.mic_permission', { result: 1, surface: null }))
     expect(capturedProps()).toEqual({})
+  })
+
+  test('quota.reached 的 surface 拼错（近似值 Home / questionBank）被丢，variant 仍留', async () => {
+    await POST(makeEventReq('quota.reached', { variant: 'story', surface: 'Home' }))
+    expect(capturedProps()).toEqual({ variant: 'story' })
+    jest.clearAllMocks()
+    await POST(makeEventReq('quota.reached', { variant: 'story', surface: 'questionBank' }))
+    expect(capturedProps()).toEqual({ variant: 'story' })
+  })
+
+  test('quota.cta 的 cta 带空格 / 枚举外一律丢', async () => {
+    await POST(makeEventReq('quota.cta', { variant: 'trial', cta: 'register ' }))
+    expect(capturedProps()).toEqual({ variant: 'trial' })
+    jest.clearAllMocks()
+    await POST(makeEventReq('quota.cta', { variant: 'trial', cta: 'buy_more' }))
+    expect(capturedProps()).toEqual({ variant: 'trial' })
+  })
+
+  test('auth.registered 的 fromAnonymous 只收严格布尔（"true" / 1 / null 一律丢）', async () => {
+    await POST(makeEventReq('auth.registered', { fromAnonymous: 'true' }))
+    expect(capturedProps()).toEqual({})
+    jest.clearAllMocks()
+    await POST(makeEventReq('auth.registered', { fromAnonymous: 1 }))
+    expect(capturedProps()).toEqual({})
+    jest.clearAllMocks()
+    await POST(makeEventReq('auth.registered', { fromAnonymous: false }))
+    expect(capturedProps()).toEqual({ fromAnonymous: false })
   })
 
   test('props 整体非对象 → 空 props，不抛错', async () => {
@@ -258,6 +290,9 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'flow.capture_abandoned': true,
   'flow.ai_call': true,
   'flow.consent_granted': true,
+  'quota.reached': true,
+  'quota.cta': true,
+  'auth.registered': true,
 }
 
 /** 客户端可上报事件名全集（同款 Record 手法，漏登记即 tsc 报错） */
@@ -270,6 +305,9 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'flow.ai_call': true,
   'match.view_rendered': true,
   'match.question_opened': true,
+  'quota.reached': true,
+  'quota.cta': true,
+  'auth.registered': true,
 }
 
 describe('事件名形态护栏 —— 必须过 0053 的 DB CHECK 正则', () => {

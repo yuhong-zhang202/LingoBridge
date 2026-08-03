@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（match.* 与 flow.* 共 8 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* 共 11 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -22,7 +22,7 @@ import { logEvent, type FlowEventName } from '@/lib/events'
 import { isQaRequest } from '@/lib/qa-traffic'
 import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
-  CAPTURE_EXIT, AI_STAGE, AI_RESULT,
+  CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
   VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC,
 } from '@/lib/event-schema'
 
@@ -116,6 +116,18 @@ function pickEnum<T extends string>(o: Record<string, unknown>, key: string, all
 function pickInt(o: Record<string, unknown>, key: string, min: number, max: number): number | undefined {
   const v = o[key]
   return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : undefined
+}
+
+/**
+ * 取布尔字段：必须【严格】是 boolean。字符串 'true' / 数字 1 / null 一律丢弃 ——
+ * 与 pickEnum 同款不容错立场：容错会让「没上报」和「上报了个假值」在库里长得一样。
+ * @param  o    props 对象
+ * @param  key  字段名
+ * @returns     布尔值，否则 undefined
+ */
+function pickBool(o: Record<string, unknown>, key: string): boolean | undefined {
+  const v = o[key]
+  return typeof v === 'boolean' ? v : undefined
 }
 
 // ── P0/P1 六个新客户端事件的 sanitize（一事件一函数，字段逐个显式列出）───────────────────
@@ -235,6 +247,51 @@ function sanitizeAiCall(raw: unknown): SafeProps {
   return out
 }
 
+// ── P2 额度转化三个事件的 sanitize（同款：一事件一函数、字段逐个显式列出）─────────────────
+
+/**
+ * quota.reached：额度弹层显示了（组件挂载即报）。
+ * @param  raw  客户端上报的 props
+ * @returns     variant(枚举) + surface(枚举)
+ */
+function sanitizeQuotaReached(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const variant = pickEnum(o, 'variant', QUOTA_VARIANT)
+  if (variant !== undefined) out.variant = variant
+  const surface = pickEnum(o, 'surface', QUOTA_SURFACE)
+  if (surface !== undefined) out.surface = surface
+  return out
+}
+
+/**
+ * quota.cta：额度弹层内点了某个按钮（含点遮罩/Esc 关闭）。
+ * @param  raw  客户端上报的 props
+ * @returns     variant(枚举) + cta(枚举)
+ */
+function sanitizeQuotaCta(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const variant = pickEnum(o, 'variant', QUOTA_VARIANT)
+  if (variant !== undefined) out.variant = variant
+  const cta = pickEnum(o, 'cta', QUOTA_CTA)
+  if (cta !== undefined) out.cta = cta
+  return out
+}
+
+/**
+ * auth.registered：注册成功（fromAnonymous = 是否由匿名账号升级而来）。
+ * @param  raw  客户端上报的 props
+ * @returns     fromAnonymous(布尔)
+ */
+function sanitizeAuthRegistered(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const fromAnonymous = pickBool(o, 'fromAnonymous')
+  if (fromAnonymous !== undefined) out.fromAnonymous = fromAnonymous
+  return out
+}
+
 /**
  * 客户端可上报事件的分发表 —— 事件名唯一的真闸（0053 起 DB CHECK 已放宽为前缀正则，不再兜底）。
  * key = 客户端传来的事件名字符串；value = 已收窄的 FlowEventName + 该事件专属 sanitize。
@@ -253,6 +310,9 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['flow.capture_submitted', { event: 'flow.capture_submitted', sanitize: sanitizeCaptureSubmitted }],
   ['flow.capture_abandoned', { event: 'flow.capture_abandoned', sanitize: sanitizeCaptureAbandoned }],
   ['flow.ai_call',           { event: 'flow.ai_call',           sanitize: sanitizeAiCall }],
+  ['quota.reached',          { event: 'quota.reached',          sanitize: sanitizeQuotaReached }],
+  ['quota.cta',              { event: 'quota.cta',              sanitize: sanitizeQuotaCta }],
+  ['auth.registered',        { event: 'auth.registered',        sanitize: sanitizeAuthRegistered }],
 ])
 
 export async function POST(req: Request): Promise<NextResponse> {

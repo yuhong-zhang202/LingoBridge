@@ -73,6 +73,33 @@ export type CaptureOutcome = (typeof CAPTURE_OUTCOME)[number]
 export const CAPTURE_EXIT = ['nav', 'pagehide'] as const
 export type CaptureExit = (typeof CAPTURE_EXIT)[number]
 
+/**
+ * 额度弹层的变体（= QuotaReached 组件的 variant，与服务端 402 的 reason 1:1 对应）。
+ * trial=匿名试用总量用尽（面向注册转化）；story=注册用户故事月额度；ielts=注册用户复练月额度。
+ */
+export const QUOTA_VARIANT = ['trial', 'story', 'ielts'] as const
+export type QuotaVariant = (typeof QUOTA_VARIANT)[number]
+
+/**
+ * 额度弹层从哪个界面弹出来 —— 一个调用点一格。
+ * 值即 QuotaReached 的各调用点：首页 / 写作页 / 录音页 / 整理页 / 分析页 / 练习页 /
+ * 题目详情页 / 题库列表 / 匹配页。写死一个常量会把所有界面灌进同一格
+ * （flow.mic_permission 的 surface 就吃过这个亏），故各调用点必须各传各的常量。
+ */
+export const QUOTA_SURFACE = [
+  'home', 'write', 'recording', 'restructure', 'analysis',
+  'practice', 'practice_question', 'question_bank', 'matching',
+] as const
+export type QuotaSurface = (typeof QUOTA_SURFACE)[number]
+
+/**
+ * 额度弹层里用户点了什么。
+ * register=去注册/登录（trial 变体的转化出口）；practice_ielts=去练雅思题；new_story=去讲个故事；
+ * profile=去看额度明细；close=关掉弹层（点遮罩 / Esc）——「被吓走」的那一格。
+ */
+export const QUOTA_CTA = ['register', 'practice_ielts', 'new_story', 'profile', 'close'] as const
+export type QuotaCta = (typeof QUOTA_CTA)[number]
+
 /** AI 调用属于哪一段管线 */
 export const AI_STAGE = ['transcribe', 'restructure', 'polish'] as const
 export type AiStage = (typeof AI_STAGE)[number]
@@ -166,6 +193,23 @@ export type ClientEventPropsMap = {
   }
   'match.view_rendered': ViewRenderedProps
   'match.question_opened': QuestionOpenedProps
+  /** 额度弹层【显示】了（组件挂载即报，一次显示只报一次）—— 转化漏斗「被拦住的人数」那一格 */
+  'quota.reached': {
+    variant: QuotaVariant
+    /**
+     * 弹层出现在哪个界面。【必填 key】写成 `| undefined` 而非可选：调用方必须显式表态。
+     * ⚠️ QuotaReached 的 surface prop 目前是可选的（matching/page.tsx 那个调用点尚未传，
+     * 见该组件 Props 注释）—— 未传时本字段为 undefined，会在看板「额度弹层界面」一栏计入「(未上报)」。
+     */
+    surface: QuotaSurface | undefined
+  }
+  /** 额度弹层内点了某个按钮（含关闭）—— 与 quota.reached 相除即各出口的转化占比 */
+  'quota.cta': { variant: QuotaVariant; cta: QuotaCta }
+  /**
+   * 注册成功。fromAnonymous 必须在 updateUser【之前】读 —— 升级之后 session 里 is_anonymous
+   * 已变 false，事后读到的恒为 false，这一格就永远是空的。
+   */
+  'auth.registered': { fromAnonymous: boolean }
 }
 
 /** 客户端可上报的事件名（= 上面 map 的 key；服务端 /api/events 的 EVENT_SPECS 必须逐一对应，未注册即 400） */
