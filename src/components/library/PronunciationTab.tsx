@@ -20,6 +20,10 @@ import { makeSearchFilter, searchEmptyTitle, type SearchCounts } from '@/lib/sea
 import { removeSavedPronunciation, updateSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
+// AI 调用结局的取值域【来自 event-schema 这一份真源】，本文件不手抄：服务端 sanitize 对不认识的值
+// 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { AiResult } from '@/lib/event-schema'
 import { GRADIENT_BORDER_STYLE_FULL_OPAQUE } from '@/lib/constants'
 import type { SavedPronunciation, PronunciationTip } from '@/lib/types'
 
@@ -68,6 +72,17 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
     let cancelled = false
     const ac = new AbortController()
     setLoading(true)
+    // ——— 本次发音提示生成的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 本卡片的失败【全部静默】（catch 只落个「稍后再试」占位），且 402/429/400 走的是服务端裸 return
+    // ——不埋这一条，用户反复打开发音卡却永远拿不到提示这件事，在任何数据里都不存在。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 这一次调用只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就记两遍 */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'pronounce', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     void (async () => {
       try {
         const res = await apiFetch('/api/pronounce', {
@@ -76,9 +91,22 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
           signal: ac.signal,
         })
         // 服务端同意闸拒绝（403，未捕获同意）：回首页触发同意弹窗，不静默停在「稍后再试」。
-        if (res.status === 403) { if (!cancelled) router.push('/'); return }
-        if (!res.ok) throw new Error('请求失败')
+        if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) router.push('/'); return }
+        // 在 throw 之前报：进了 catch 就只剩「网络失败」一种说法，而这里的 400（intended/heard 为空、
+        // 内容过长）/402/429/500 会被记成凭空的网络故障。
+        if (!res.ok) {
+          reportAi(
+            res.status === 400 ? 'bad_input_400'
+              : res.status === 402 ? 'quota_402'
+                : res.status === 429 ? 'rate_429'
+                  : res.status === 401 ? 'auth_401'
+                    : res.status >= 500 ? 'server_5xx' : 'other',
+            res.status,
+          )
+          throw new Error('请求失败')
+        }
         const tip = (await res.json()) as PronunciationTip
+        reportAi('ok', 200)
         if (cancelled) return
         setData(tip)   // 本地即时展示；落库缓存音标失败也不影响本次展示
         void updateSavedPronunciation(item.id, {
@@ -90,11 +118,14 @@ function PronunciationCard({ item }: { item: SavedPronunciation }): JSX.Element 
           .catch((e) => console.error('[PronunciationTab] 缓存音标失败', e))
       } catch {
         /* 失败静默（含中断），下次打开再试 */
+        if (ac.signal.aborted) return   // 中断（卸载/切 Tab）不算失败，由 cleanup 统一报 aborted
+        reportAi('network', 0)          // 到此只剩真·网络 reject（非 2xx 已分流报过、被自去重挡住）
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true; ac.abort() }
+    // 没等到提示就离开（切 Tab / 关页面）→ aborted（不计失败）；已报结局的被自去重挡住
+    return () => { cancelled = true; reportAi('aborted', 0); ac.abort() }
   }, [data, item, router])
 
   return (
