@@ -53,6 +53,15 @@ export const maxDuration = 60
 
 /** 豆包并发超限错误码（transcription 层把上游 X-Api-Status-Code 原样放进 AppError.code） */
 const DOUBAO_CONCURRENCY_LIMIT_CODE = '45000292'
+/**
+ * 豆包「静音音频 / 无有效人声」错误码（X-Api-Message: "no valid speech in audio"）。
+ * 用户录了纯静音（生产实证：9 秒峰值 0.0097 的录音触发此码），服务本身是好的——
+ * 语义上与 EMPTY_TRANSCRIPT 同类（请求格式没问题、内容无法处理），响应码判定须走同一条 422 路。
+ * ⚠️ 与 types/errors.ts 的 classifyErrorKind（DOUBAO_SILENCE_CODE，归 user_input）互为引用：
+ *    那边管成本看板归因、这边管响应码 → 客户端埋点桶。两处必须同进退，否则两个看板会再度互相矛盾
+ *    （历史教训：此码曾只在归因层算 user_input、响应码却回 500，被客户端记成 server_5xx 误入「该我们修」）。
+ */
+const DOUBAO_SILENCE_CODE = '20000003'
 
 // ——— 场景 → phase 埋点值 ———
 // 客户端 FormData 带 scene 区分两条转写链路：'story'=录音→整理语料（recording 页）、
@@ -245,9 +254,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 45000292 = 豆包并发超限，与队列满/超时是同一件事（人多），归到同一个 ASR_BUSY 分支，
       // 别让它变成「转写失败」把锅甩给产品。不自动重试的取舍见交付说明。
       if (e.code === DOUBAO_CONCURRENCY_LIMIT_CODE) return busyRes('upstream_limit')
-      // EMPTY_TRANSCRIPT（录到了音但没有可用人声）是用户输入问题、不是服务端故障，用 422 而非 500：
-      // 语义上「请求格式没问题、内容无法处理」正是 422。前端按 !res.ok + code 判分支，状态码换了仍命中。
-      const status = e.code === 'EMPTY_TRANSCRIPT' ? 422 : 500
+      // EMPTY_TRANSCRIPT（录到了音但没有可用人声）与豆包静音码 20000003（纯静音、豆包直接判无人声）
+      // 都是用户输入问题、不是服务端故障，用 422 而非 500：语义上「请求格式没问题、内容无法处理」正是 422。
+      // 两码必须同路——classifyErrorKind（types/errors.ts）早已把两者都归 user_input，响应码若只认前者，
+      // 静音会落 500 被客户端记成 server_5xx，与成本看板的归因互相矛盾（2026-08 生产实证后修正）。
+      // 前端按 !res.ok + code 判分支，状态码换了仍命中。其余豆包码没有生产证据支持归 422，保持 500。
+      const status = e.code === 'EMPTY_TRANSCRIPT' || e.code === DOUBAO_SILENCE_CODE ? 422 : 500
       return NextResponse.json({ error: '转写失败，请稍后再试', code: e.code }, { status })
     }
     return NextResponse.json({ error: '转写失败，请稍后再试' }, { status: 500 })

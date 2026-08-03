@@ -13,6 +13,8 @@
  *             'practice'→transcribe_practice（练习转写），缺省/非法回退 'transcribe'（兼容旧客户端）。
  *           ⑦ 失败记账补 error_code/error_message 三键（供应商响应、无 PII）；并发超限 45000292 打
  *             error_kind='capacity'（人多稍等、非系统故障，看板据此再从错误率摘出）。
+ *           ⑧ 响应码与归因同进退：豆包静音码 20000003 与 EMPTY_TRANSCRIPT 同路回 422（用户输入问题），
+ *             其余豆包码保持 500——防止「归因层算 user_input、响应码却回 500 被记成 server_5xx」的看板分叉。
  * @author   LingoBridge
  * @created  2026-07-20
  */
@@ -138,6 +140,27 @@ describe('转写计次时机 · ASR 已调用后失败 → 照常计次，不退
     // 核心不变式：豆包已被调用 → 计次必须保留，否则可构造必失败请求无限刷 ASR
     expect(mockTranscribe).toHaveBeenCalled()
     expect(mockBump).toHaveBeenCalledWith('u1', 'transcribe')
+  })
+
+  test('豆包静音码 20000003（纯静音、无有效人声）：与 EMPTY_TRANSCRIPT 同路返回 422，计次照样落', async () => {
+    mockTranscribe.mockRejectedValue({ code: '20000003', message: '[Normal silence audio] no valid speech in audio' })
+
+    const res = await POST(audioReq())
+
+    // 与 classifyErrorKind 的 user_input 归因同进退：归因层早已把 20000003 算用户输入，
+    // 响应码若回 500 会被客户端记成 server_5xx，两个看板互相矛盾（2026-08 生产实证）。
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: '20000003' }))
+    expect(mockBump).toHaveBeenCalledWith('u1', 'transcribe')
+  })
+
+  test('其他豆包错误码（无生产证据支持归 422）：保持 500', async () => {
+    // 55000031 = 服务器繁忙类内部错误的示意码：不在 {EMPTY_TRANSCRIPT, 20000003} 白名单内 → 一律 500
+    mockTranscribe.mockRejectedValue({ code: '55000031', message: 'server processing error' })
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(500)
   })
 
   test('豆包普通报错：同样计次不退', async () => {
