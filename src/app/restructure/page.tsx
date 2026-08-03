@@ -12,6 +12,10 @@ import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned, getCorpusById } from '@/lib/db/corpus'
 import { upsertMatch } from '@/lib/db/matches'
 import { apiFetch, readQuotaReason } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
+// 整理调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：
+// 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { AiResult } from '@/lib/event-schema'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
@@ -103,7 +107,26 @@ function RestructureContent() {
     setIsEditing(false)
     setError(null)
     setUsable(null)
+    // ——— 本次整理调用的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 【补的是横向可比性】同一个 /api/restructure 有三条客户端调用路径（录音页预检、写作页 useStorySubmit、
+    // 本页），另两条早已埋点，本页原先无痕 —— 失败率横向比时本页恒为 0，看着像「整理页最可靠」，实为没记。
+    // 「重新整理 / 重试」按钮会再走一遍本函数、自然再报一条：那确实是用户视角的又一次尝试，故不跨次去重。
+    let t0: number | null = null
+    let reported = false
+    /**
+     * 整理这一次调用的结局：只报一条，且【只在请求真发出过（t0 已置位）之后】才报。
+     * 两个条件缺一不可：不挡重复，!res.ok 抛出的错会被下面的 catch 再记一遍同一次调用；
+     * 不挡 t0，请求发出前就抛的错（如构造阶段异常）会被记成 network，等于凭空造一次没发生的调用。
+     * mode 不带：本页语料既可能来自语音（录音页 handoff）也可能来自文字（写作页 handoff）或返回态水合，
+     * 到了这里来源信息已丢失，硬填一个会污染 restructure 阶段按 mode 的分组。
+     */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (reported || t0 === null) return
+      reported = true
+      track('flow.ai_call', { stage: 'restructure', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     try {
+      t0 = performance.now()
       const res = await apiFetch('/api/restructure', {
         method: 'POST',
         json: { rawText: rawStory },
@@ -111,22 +134,41 @@ function RestructureContent() {
       })
       // 匿名整理次数超上限（402）：弹试用结束提示，不当作「整理失败」。
       // /api/restructure 402 匿名 only、不带 reason → readQuotaReason 返回 null → 走 trial（引导注册）。
+      // 【服务端不记账】402/403/429/400 都在 logApiUsage 之前裸 return，成本看板看不见 —— 只有这条埋点能看见。
       if (res.status === 402) {
+        reportAi('quota_402', 402)
         const reason = await readQuotaReason(res)
         if (!signal?.aborted) setStoryQuota(reason === 'story' ? 'story' : 'trial')
         return
       }
       // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不卡在「整理失败」。
-      if (res.status === 403) { if (!signal?.aborted) router.push('/'); return }
-      if (!res.ok) throw new Error('整理失败')
+      if (res.status === 403) { reportAi('consent_403', 403); if (!signal?.aborted) router.push('/'); return }
+      // 在 throw 之前报：进了 catch 就只剩「网络失败」一种说法，400/429/500 会被记成凭空的网络故障
+      if (!res.ok) {
+        reportAi(
+          res.status === 429
+            ? 'rate_429'
+            : res.status === 400
+              ? 'bad_input_400'
+              : res.status === 401
+                ? 'auth_401'
+                : res.status >= 500 ? 'server_5xx' : 'other',
+          res.status,
+        )
+        throw new Error('整理失败')
+      }
       const data = (await res.json()) as { cleanedText: string; usable: boolean; summary?: string }
+      reportAi('ok', 200)   // 调用本身成功了；下一行的「已中断」只影响是否落 state，不改这次调用的结局
       if (signal?.aborted) return
       setAiText(data.cleanedText)
       setAiBaseline(data.cleanedText)
       setUsable(data.usable ?? true)
       setSummary(typeof data.summary === 'string' ? data.summary : null)
     } catch (e) {
-      if (signal?.aborted) return          // 中断不算错误，忽略
+      // 中断不算错误，忽略；ai_call 记 aborted（不计失败）。已报结局的（如 ok 后才中断）被自去重挡住。
+      if (signal?.aborted) { reportAi('aborted', 0); return }
+      // 到此只剩真·网络 reject（与响应体解析失败）：非 2xx 已在上面按状态码分流报过、被自去重挡住
+      reportAi('network', 0)
       setError(e instanceof Error ? e.message : '整理失败，请重试')
     } finally {
       if (!signal?.aborted) setIsLoading(false)
