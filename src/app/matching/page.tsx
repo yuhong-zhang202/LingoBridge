@@ -13,6 +13,7 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
 import { SCORE_HIGH, SCORE_MID, LOW_MATCH_SHOW_MAX, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { useAccount } from '@/hooks/useAccount'
@@ -235,24 +236,20 @@ function MatchingContent() {
     const midCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH).length
     const unscoredCount = result.questions.filter((q) => q.relevanceScore == null).length
     const visibleCount = highCount + midCount
-    void apiFetch('/api/events', {
-      method: 'POST',
-      json: {
-        event: 'match.view_rendered',
-        storyId: corpusId,
-        props: {
-          candidateCount: result.questions.length,
-          highCount,
-          midCount,
-          visibleCount,
-          unscoredCount,
-          noMatch: result.noMatch,
-          globalNoneVisible: !result.noMatch && visibleCount === 0,
-          // rankingDegraded：区分两类空态频率——机制①重排整体降级（无分可展示、走重试）vs B 类低相关展示。
-          rankingDegraded: !!result.rankingDegraded,
-        },
-      },
-    }).catch(() => {})
+    // 走 track()（lib/client-events 的【唯一】封装）而非裸调 apiFetch：事件名与 props 由 event-schema
+    // 契约收窄，key 写错/漏字段在 tsc 就报错。裸调绕过这层护栏，正是 rankingDegraded 一直在发、
+    // 而服务端白名单里没有它 → 被 sanitize 静默丢弃（生产本事件 138 行、带该字段 0 行）却长期没人发现的那条路。
+    track('match.view_rendered', {
+      candidateCount: result.questions.length,
+      highCount,
+      midCount,
+      visibleCount,
+      unscoredCount,
+      noMatch: result.noMatch,
+      globalNoneVisible: !result.noMatch && visibleCount === 0,
+      // rankingDegraded：区分两类空态频率——机制①重排整体降级（无分可展示、走重试）vs B 类低相关展示。
+      rankingDegraded: !!result.rankingDegraded,
+    }, { storyId: corpusId })
   }, [result, streamDone, corpusId])
 
   // 预取前 3 道分析（结果渲染后延迟启动、串行、静默降级）：后台预生成 top-3 的个性化分析，写进 (题,语料)
@@ -451,25 +448,26 @@ function MatchingContent() {
       requestAnalysis(id, corpusId, false, level)
       // 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）：rank = 该题在 result.questions
       //（已按分数降序 = 用户所见顺序）的 index+1；candidateCount = 列表总数。
-      // 顺序：先 apiFetch 再 navigate —— fetch 同步发出请求后，SPA 客户端跳转不卸载页面/不 kill 在途请求，
-      // 故不会因跳转丢上报。失败静默、绝不阻塞跳转（同 131 行 view_rendered 上报范式）。
+      // 顺序：先 track 再 navigate —— 请求一旦发出，SPA 客户端跳转不卸载页面/不 kill 在途请求，
+      // 故不会因跳转丢上报（也正因不卸载，此处【不需要】opts.keepalive）。失败静默、绝不阻塞跳转
+      //（同上面 view_rendered 的上报范式）。
       const rank = (result?.questions.findIndex((q) => q.id === id) ?? -1) + 1
       // dwell 终点 = 点击时刻。活跃时长 = 已落袋 + 当前可见时段（点击必在前台，document.hidden 恒 false，
       // 防御性保留判断）。Math.round 取整过服务端 sanitize 的整数校验。
       const d = dwellRef.current
       const dwellMs = d ? Math.round(d.accumulatedMs + (document.hidden ? 0 : performance.now() - d.activeStart)) : undefined
       if (result && rank >= 1) {
-        void apiFetch('/api/events', {
-          method: 'POST',
-          json: {
-            event: 'match.question_opened',
-            storyId: corpusId,
-            // 乙.1：补 questionId（= 点开的题 UUID）+ algoVersion（当前排序算法版本常量），去掉「靠 rank
-            // join 快照 result.questions[rank-1]、遇算法升级错位」的脆耦合。服务端 sanitize 按 UUID/短枚举放行。
-            // flowId 无需在此显式带：apiFetch 已自动注入 X-Flow-Id 头，route 侧读该头写入（乙.3 复用现成机制）。
-            props: { rank, candidateCount: result.questions.length, questionId: id, algoVersion: RANKING_ALGO_VERSION, ...(dwellMs != null ? { dwellMs } : {}) },
-          },
-        }).catch(() => {})
+        // 同 view_rendered：走 track() 而非裸调 apiFetch，字段受 event-schema 的 QuestionOpenedProps 约束。
+        // 乙.1：补 questionId（= 点开的题 UUID）+ algoVersion（当前排序算法版本常量），去掉「靠 rank
+        // join 快照 result.questions[rank-1]、遇算法升级错位」的脆耦合。服务端 sanitize 按 UUID/短枚举放行。
+        // flowId 无需在此显式带：track 常规路径最终仍走 apiFetch，X-Flow-Id 头自动注入，route 侧读该头写入（乙.3）。
+        track('match.question_opened', {
+          rank,
+          candidateCount: result.questions.length,
+          questionId: id,
+          algoVersion: RANKING_ALGO_VERSION,
+          ...(dwellMs != null ? { dwellMs } : {}),
+        }, { storyId: corpusId })
       }
       // rank 随 query 透传给 analysis→practice，最终写入 practice_sessions（乙.2）；仅故事流有 rank，rank<1 不拼。
       navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching${rank >= 1 ? `&rank=${rank}` : ''}`)
