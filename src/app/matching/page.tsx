@@ -28,6 +28,7 @@ import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
 import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
+import { deriveMatchPhase } from './phase'
 import type { FunnelResult, FunnelQuestion, FunnelStreamMeta, PartTab, MatchingViewProps } from './types'
 
 /** 逐条到达的富化题（SSE question 帧）：与 FunnelQuestion 同形，唯 ankiSaved 由前端在 done 帧前默认 false。 */
@@ -89,10 +90,14 @@ function MatchingContent() {
   const levelRef = useRef(level)
   levelRef.current = level
   const [result, setResult] = useState<FunnelResult | null>(null)
-  const [loading, setLoading] = useState(true)
+  // ⚠️ 这里【刻意没有 loading state】：它在第一个 question 帧就会变 false，而低相关场景 totalVisible 恒为 0，
+  // 两者相乘正是「匹配到 0 道 + 空白左栏」持续 50 秒的成因。等待与否一律由 phase（门控 streamDone）判定。
   // streamDone：SSE 收到 done 帧（结果定稿）。空态判定、view_rendered/dwell/预取埋点全部以它为锚点——
   // 流式增量中途（题目还在逐条到达）绝不触发空态、绝不当作「渲染完成」，避免误报与空态闪烁。
   const [streamDone, setStreamDone] = useState(false)
+  // 候选总数：来自 SSE meta 帧（萃取完成即到，早于全部重排）。等待期计数行的分母，
+  // 此前被丢弃。?stream=0 降级路没有 meta 帧 → 保持 null，视图据此整行不渲染，不显示假分母。
+  const [candidateCount, setCandidateCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   // 402（匿名试用额度用尽）→ 弹 QuotaReached trial 引导注册；429（注册用户当日上限）→ 行内提示，绝不引导注册
   const [quotaShown, setQuotaShown] = useState(false)
@@ -130,7 +135,7 @@ function MatchingContent() {
   useEffect(() => { setExpanded(false) }, [activeTab])
 
   useEffect(() => {
-    if (!corpusId) { setLoading(false); setError('缺少语料 id'); return }
+    if (!corpusId) { setError('缺少语料 id'); return }
     let cancelled = false
     const ac = new AbortController()
 
@@ -159,11 +164,12 @@ function MatchingContent() {
       // 放在 cancelled 之后：结果到了但页面已卸载，用户没看到，那次算 aborted（由 cleanup 报）。
       reportAi('ok', 200)
       setResult(data)
-      setSelectedId(data.questions[0]?.id ?? null)
+      // F5：只在用户还没选过题时才落默认选中。此前是无条件重置 —— 流式期间可长达 50 秒，
+      // 用户在这段时间里选中的题会在 done 帧一到就被硬换回第一题。
+      setSelectedId((prev) => prev ?? data.questions[0]?.id ?? null)
       // 已存态初值来自服务端 ankiSaved（匿名一律 false）——书签直接呈现「已存/未存」，不必再单独查一次。
       setSavedIds(new Set(data.questions.filter((q) => q.ankiSaved).map((q) => q.id)))
       setStreamDone(true)
-      setLoading(false)
       // 非阻断写库：把萃取观察点关联到真实语料（客户端调用，保证 RLS user session 一致）
       if (corpusId && data.primary) {
         saveExtraction(corpusId, data.primary.pointCode, data.secondary?.pointCode ?? null)
@@ -176,16 +182,17 @@ function MatchingContent() {
     // 三个终态各先报一条 ai_call 再处理：这三类【服务端裸 return、logApiUsage 一条不记】，
     // 不在这里报就等于「用户被同意闸/额度闸/日限闸拦下」这三件事在数据里完全不存在。
     const handleTerminalStatus = (res: Response): boolean => {
-      // 三个终态都必须置 loading=false：否则视图把「当日上限」横幅门控在 !loading 后，429 会永久转圈、提示不出（回归修复）。
-      if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) { setLoading(false); router.push('/') } return true }   // 同意闸：回首页触发同意弹窗
-      if (res.status === 402) { reportAi('quota_402', 402); if (!cancelled) { setLoading(false); setQuotaShown(true) } return true } // 匿名额度用尽：注册引导
-      if (res.status === 429) { reportAi('rate_429', 429); if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return true } // 注册当日上限：明天恢复
+      // 三个终态各自置一个【互斥的终态标志】：429 走 dailyLimitHit（phase=limit），402/403 有各自的浮层/跳转。
+      // 绝不能只靠「不再等待」来收尾——那会让页面停在 waiting 永久转圈（此前靠 loading=false 收尾，现由 phase 承担）。
+      if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) { router.push('/') } return true }   // 同意闸：回首页触发同意弹窗
+      if (res.status === 402) { reportAi('quota_402', 402); if (!cancelled) { setQuotaShown(true) } return true } // 匿名额度用尽：注册引导
+      if (res.status === 429) { reportAi('rate_429', 429); if (!cancelled) { setDailyLimitHit(true) } return true } // 注册当日上限：明天恢复
       return false
     }
 
     ;(async () => {
-      setLoading(true); setError(null); setDailyLimitHit(false); setStreamDone(false)
-      setResult(null); setSelectedId(null)
+      setError(null); setDailyLimitHit(false); setStreamDone(false)
+      setResult(null); setSelectedId(null); setCandidateCount(null)
       const questions: StreamQuestion[] = []   // 逐条到达累积（方案 A：到达即追加，折叠分档实时重算）
       let meta: FunnelStreamMeta | null = null
       try {
@@ -196,7 +203,7 @@ function MatchingContent() {
         // 这里【刻意不报】：本次尝试还没完，下面 catch 会降级重发 ?stream=0，结局由那条路径给。
         if (!res.ok) throw new Error('匹配失败')   // 开流前的非配额错误 → 交 catch 降级重发 ?stream=0
         await readMatchingSSE(res, {
-          onMeta: (m) => { meta = m },
+          onMeta: (m) => { meta = m; if (!cancelled) setCandidateCount(m.candidateCount) },
           onQuestion: (q) => {
             if (cancelled) return
             questions.push(q)
@@ -209,7 +216,6 @@ function MatchingContent() {
               matchedViaSecondary: meta?.matchedViaSecondary ?? false,
               noMatch: false,
             })
-            setLoading(false)
             setSelectedId((prev) => prev ?? q.id)
           },
           onDone: (data) => applyFinal(data),
@@ -237,7 +243,7 @@ function MatchingContent() {
           if (ac.signal.aborted || cancelled) return
           // 真·网络 reject（请求没到 / 连接断）。上面按状态码分流的分支已报过，reportAi 自去重挡住。
           reportAi('network', 0)
-          if (!cancelled) { setError(e2 instanceof Error ? e2.message : '匹配失败'); setLoading(false) }
+          if (!cancelled) { setError(e2 instanceof Error ? e2.message : '匹配失败') }
         }
       }
     })()
@@ -257,10 +263,16 @@ function MatchingContent() {
     return () => { cancelled = true }
   }, [corpusId])
 
-  // 动态 Part 标签：只显示有结果的 Part
+  // 动态 Part 标签：只显示【有可见题】的 Part。
+  // F1：此前由全量候选派生、不筛分数，于是会长出「点进去必空」的 Tab ——
+  // 某个 Part 的候选全部 < SCORE_MID 时，Tab 照样列出来，点进去左栏一张卡都没有。
   const availableTabs = useMemo<PartTab[]>(() => {
     if (!result) return ['全部']
-    const parts = new Set(result.questions.map((q) => q.part))
+    const parts = new Set(
+      result.questions
+        .filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID)
+        .map((q) => q.part),
+    )
     const tabs: PartTab[] = ['全部']
     if (parts.has(1)) tabs.push('Part 1')
     if (parts.has(2)) tabs.push('Part 2')
@@ -326,7 +338,7 @@ function MatchingContent() {
   }, [result, streamDone, corpusId])
 
   // dwell 计时启动：起点 = 匹配结果【实际渲染到屏幕】的时刻（rAF 在下一次绘制前触发，排除等 AI 的十几秒——
-  // 本 effect 仅在 result 非空时跑，等 AI 的 loading 期不计；若渲染时正切后台，rAF 被浏览器推迟到回前台才触发，
+  // 本 effect 仅在 result 非空时跑，等 AI 的等待期不计；若渲染时正切后台，rAF 被浏览器推迟到回前台才触发，
   // 天然从「用户真正看到」起算）。结果变(重新匹配)则重置计时。活跃时长口径见 dwellRef 注释。
   useEffect(() => {
     // 起点锚定 done（结果定稿真正渲染完），不锚流式中途：中途 result 每来一题就变、会把 dwell 反复清零。
@@ -400,14 +412,33 @@ function MatchingContent() {
   // noneVisible：当前 Tab 两档皆空（可能只是该 Part 无题，全部 Tab 仍有题）——轻量提示即可。
   // 流式中途（!streamDone）恒 false：题还在逐条到达，此刻两档为空只是「还没到」，不是「没有」，绝不提示空态。
   const noneVisible  = streamDone && highGroup.length === 0 && midGroup.length === 0
-  // globalNoneVisible：跨所有 Part 都没有可见题（totalVisible 已是跨 Tab 的 ≥SCORE_MID 计数）。
-  // 与 noneVisible 区分：只有全局无可见题才升级为 NoMatchView 引导，避免 Tab 局部空误伤。
-  // 同样门控 streamDone：只在结果定稿后才判「全局无可见题」，流式增量中途绝不闪 NoMatchView。
-  const globalNoneVisible = !!result && streamDone && !result.noMatch && totalVisible === 0
-  // rankingDegraded：机制①重排整体降级（候选存在、重排一分没产出，全部题无 relevanceScore）。
-  // 与 globalNoneVisible 区分并【优先】判定——降级态无分可展示、只能重试；globalNoneVisible 里有低分的那支
-  // 才走 B 类展示。仅 done 后判：流式骨架不带 rankingDegraded（undefined→false），不会中途闪降级态。
-  const rankingDegraded = !!result && streamDone && !!result.rankingDegraded
+
+  // 页面形态的唯一真源。此前 globalNoneVisible / rankingDegraded / isNoMatch / isLowMatch 这套判定
+  // 在外壳与两个视图里各写一遍，本次收成一处纯函数（含单测），视图只认 phase。
+  const phase = useMemo(
+    () => deriveMatchPhase({
+      dailyLimitHit,
+      error,
+      hasResult: !!result,
+      streamDone,
+      noMatch: !!result?.noMatch,
+      rankingDegraded: !!result?.rankingDegraded,
+      totalVisible,
+      lowShownCount: lowShown.length,
+    }),
+    [dailyLimitHit, error, result, streamDone, totalVisible, lowShown.length],
+  )
+
+  // 进入 lowMatch 时的两处归位：
+  // F7 —— Part 筛选归位。流式中途 Tab 可点，而 lowShown 不经 Part 筛选，done 一到 Tab 整排消失，
+  //        用户做过的筛选会无声蒸发（页面看起来像是自己忘了他点过什么）。
+  // 不自动选中 —— lowMatch 下这几道低分题是「确实翻遍题库了」的佐证而非备选，
+  //        默认选中第一道等于替用户挑了一道用不上的题；让右栏落在出口面板上。
+  useEffect(() => {
+    if (phase !== 'lowMatch') return
+    setActiveTab('全部')
+    setSelectedId(null)
+  }, [phase])
 
   // 002 修复：highGroup=0 且 midGroup>0 时，此前三个空态判断会全部落空——
   // 高匹配块不渲染（组为空）、中匹配块不渲染（expanded 初值 false）、
@@ -453,11 +484,14 @@ function MatchingContent() {
     }
   }
 
-  const viewProps: MatchingViewProps & { globalNoneVisible: boolean; rankingDegraded: boolean; lowShown: FunnelQuestion[] } = {
+  const viewProps: MatchingViewProps = {
+    phase,
     result,
-    loading,
-    error,
+    streamDone,
+    missingCorpus: !corpusId,
     dailyLimitHit,
+    candidateCount,
+    arrivedCount: result?.questions.length ?? 0,
     totalVisible,
     availableTabs,
     activeTab,
@@ -467,8 +501,6 @@ function MatchingContent() {
     foldedCount,
     hasMore: showToggle,
     noneVisible,
-    globalNoneVisible,
-    rankingDegraded,
     lowShown,
     selectedId,
     expanded: expandedEffective,

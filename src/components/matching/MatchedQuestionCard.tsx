@@ -29,6 +29,12 @@ interface Props {
   isPrimaryMatch: boolean
   /** 当前题卡属于高匹配组时传 true，高匹配组一律不显示"需切换角度"标签 */
   isHighMatch: boolean
+  /** 是否允许显示「需切换角度」标签。低相关态传 false：那个语境下一道题都不能直接用，
+   *  只给一部分卡挂标签等于暗示没挂的那几道可以直接用。 */
+  showSwitchTag?: boolean
+  /** 分析入口的视觉层级。'chip'（默认）= 渐变胶囊；'text' = 低强度文本入口，
+   *  用于低相关态——那几道题是「确实翻遍题库了」的佐证而非备选，入口不该和主 CTA 抢注意力。 */
+  practiceVariant?: 'chip' | 'text'
   /** 存对子三态（存中/已存/未存）。 */
   saveState: AnkiSaveState
   /** 触发存对子（右滑越阈 / 点书签）。已存/存中态由本组件短路，不重复调用。 */
@@ -41,10 +47,15 @@ interface Props {
  * @param selected   是否选中
  * @param onToggle   点击卡片切换选中
  * @param onPractice 点击练习按钮
+ * @param showSwitchTag   是否允许显示「需切换角度」标签（低相关态传 false）
+ * @param practiceVariant 分析入口层级：'chip' 渐变胶囊（默认）/ 'text' 低强度文本入口
  * @param saveState  存对子三态
  * @param onSave     触发存对子
  */
-export default function MatchedQuestionCard({ question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch, saveState, onSave }: Props) {
+export default function MatchedQuestionCard({
+  question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch,
+  showSwitchTag = true, practiceVariant = 'chip', saveState, onSave,
+}: Props) {
   // Part 2 主显示卡片标题，其余显示题目文本
   const enText = question.part === 2 ? (question.cue_card_title ?? question.question_text) : question.question_text
   const zhText = question.part === 2 ? (question.cue_card_title_zh ?? '') : (question.question_text_zh ?? '')
@@ -141,8 +152,10 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
             <PartTag label={`Part ${question.part}`} />
             <Tag variant="green" label={question.dimension} />
             {question.is_new && <Tag variant="green" label="新题" />}
-            {!isPrimaryMatch && !isHighMatch && (
-              <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-brand-primary-dark bg-brand-primary/10 border border-brand-primary/30">
+            {showSwitchTag && !isPrimaryMatch && !isHighMatch && (
+              // 文字色由 brand-primary-dark 改 v2-text-secondary：前者压 brand-primary/10 底约 3.86:1，
+              // 10px 字远不达 WCAG AA
+              <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-v2-text-secondary bg-brand-primary/10 border border-brand-primary/30">
                 需切换角度
               </span>
             )}
@@ -152,14 +165,24 @@ export default function MatchedQuestionCard({ question, selected, onToggle, onPr
           {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5">{zhText}</p>}
 
           <div className="flex items-center justify-end mt-3">
-            <Chip
-              variant="gradient"
-              onClick={(e) => { e.stopPropagation(); onPractice() }}
-              className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
-            >
-              题目分析
-              <ArrowRight size={12} />
-            </Chip>
+            {practiceVariant === 'text' ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onPractice() }}
+                className="min-h-[44px] inline-flex items-center gap-1 px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
+              >
+                题目分析
+                <ArrowRight size={12} />
+              </button>
+            ) : (
+              <Chip
+                variant="gradient"
+                onClick={(e) => { e.stopPropagation(); onPractice() }}
+                className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
+              >
+                题目分析
+                <ArrowRight size={12} />
+              </Chip>
+            )}
           </div>
         </div>
 

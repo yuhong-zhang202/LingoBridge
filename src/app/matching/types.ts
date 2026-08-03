@@ -6,6 +6,7 @@
  * @created  2026-07-09
  */
 import type { MatchedPoint, DimensionLabel } from '@/lib/types'
+import type { MatchPhase } from './phase'
 
 /** 扩展 MatchedQuestion 加上漏斗信息 + 排名分（结构与原 page.tsx 内联定义一致） */
 export interface FunnelQuestion {
@@ -55,12 +56,27 @@ export interface FunnelStreamMeta {
 export type PartTab = '全部' | 'Part 1' | 'Part 2'
 
 export interface MatchingViewProps {
+  /**
+   * 页面形态的唯一真源（见 app/matching/phase.ts）。两端各只有一种骨架，槽位内容全部按它填。
+   * 【两视图不得再自行推导形态】——本次 bug 正是同一判定写两遍、且门控条件写错造成的。
+   */
+  phase: MatchPhase
   result: FunnelResult | null
-  loading: boolean
-  error: string | null
+  /** SSE 收到 done 帧（结果定稿）。视图侧只用于 aria-busy 之类的辅助判断，形态判定一律走 phase */
+  streamDone: boolean
+  /** 缺少 corpusId：此时重试永远无效，error 态的文案与出口都要换成「回到首页」（F10） */
+  missingCorpus: boolean
   /** 当日匹配次数用尽（服务端 429）。必须独立于 error：错误态 CTA 是「重试」，
    *  而重试只会再撞一次 429 → 死循环，故两视图须在 error 分支之前判它并渲染无重试 CTA 的提示。 */
   dailyLimitHit: boolean
+  /** 本次候选总数（SSE meta 帧）。?stream=0 降级路没有 meta 帧 → null，等待期计数行整行不渲染 */
+  candidateCount: number | null
+  /** 已到达题数（= result.questions.length），等待期计数行的分子 */
+  arrivedCount: number
+  /** 低相关兜底切片（全部 < SCORE_MID，按分降序）。lowMatch 态把它们作为「确实翻遍题库了」的佐证列出 */
+  lowShown: FunnelQuestion[]
+  /** 强制显示 75 秒超时兜底行；仅本地 mock 演示用（生产恒 undefined，由计时器自行判定） */
+  slowHint?: boolean
   /** 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响） */
   totalVisible: number
   /** 动态 Part 标签：只含有结果的 Part */

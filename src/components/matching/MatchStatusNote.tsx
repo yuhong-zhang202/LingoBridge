@@ -20,12 +20,15 @@
 import { type JSX } from 'react'
 import Card from '@/components/Card'
 import MatchingProgress from '@/components/matching/MatchingProgress'
+import { cn } from '@/lib/utils'
 import type { MatchPhase } from '@/app/matching/phase'
 import type { MatchedPoint } from '@/lib/types'
 
 interface Props {
   phase: MatchPhase
-  /** 卡本体的 class：内边距 + 最小高度 + 外边距，由两端各自传（两端的等高基线不同） */
+  /** 外层（承载 role=status）的 class：外边距等布局 */
+  className?: string
+  /** 卡本体的 class：内边距 + 最小高度，由两端各自传（两端的等高基线不同） */
   cardClassName: string
   /** 识别出的主观察点（noMatch 文案要点名方向）；null 时该句省略 */
   primary: MatchedPoint | null
@@ -51,12 +54,57 @@ const LINE1 = 'text-[0.8125rem] text-v2-text-primary leading-snug'
 const LINE2 = 'text-[0.75rem] text-v2-text-secondary leading-relaxed'
 
 /**
+ * 骨架头部的状态化标题（两端共用文案，只有字号不同）。
+ * @param phase        当前页面形态
+ * @param totalVisible 可见题数（只有 streaming / result 两态会用到）
+ * @returns            该状态下的页面主标题
+ */
+export function matchTitle(phase: MatchPhase, totalVisible: number): string {
+  switch (phase) {
+    case 'waiting':   return '正在为你匹配题目'
+    case 'streaming': return `已找到 ${totalVisible} 道，还在继续找`
+    case 'result':    return `匹配到 ${totalVisible} 道当季真题`
+    // 「没有能用这段语料回答的题」：这几道低分题不是备选，是「确实翻遍题库了」的佐证
+    case 'lowMatch':  return '没有能用这段语料回答的题'
+    case 'noMatch':   return '题库里还没有这类题'
+    case 'degraded':  return '题目找到了，排序没算出来'
+    case 'error':     return '题目没匹配出来'
+    case 'limit':     return '今天的匹配次数用完了'
+  }
+}
+
+/**
+ * 骨架头部的识别维度副行（两端共用）。**恒占一行**：meta 帧在萃取完成时就到（早于全部重排），
+ * 等待期中后段这行会自己从「识别中」填上真值，是一次正向的「有进展」信号；
+ * error / limit 态没有可信的维度可说，渲染同高度的空占位而不是塞假信息。
+ * @param className 字号/颜色/间距（两端不同）
+ * @returns 识别维度行
+ */
+export function MatchDimensionLine({ phase, primary, secondary, className }: {
+  phase: MatchPhase
+  primary: MatchedPoint | null
+  secondary: MatchedPoint | null
+  className: string
+}): JSX.Element {
+  if (phase === 'error' || phase === 'limit') {
+    return <p className={className} aria-hidden="true">&nbsp;</p>
+  }
+  if (!primary) return <p className={className}>识别维度：识别中</p>
+  return (
+    <p className={className}>
+      识别维度：{primary.dimension} · {primary.pointName}
+      {secondary && ` ／ ${secondary.dimension} · ${secondary.pointName}`}
+    </p>
+  )
+}
+
+/**
  * 匹配页状态说明卡。
  * @param phase 当前页面形态，决定卡内文案；waiting/streaming 时卡内是进度条而非文案
  * @returns 恒在同一位置的说明卡（role=status，状态变化由读屏 polite 播报）
  */
 export default function MatchStatusNote({
-  phase, cardClassName, primary, secondary, matchedViaSecondary,
+  phase, className, cardClassName, primary, secondary, matchedViaSecondary,
   arrivedCount, candidateCount, slowHint, missingCorpus, onRetry,
 }: Props): JSX.Element {
   const pending = phase === 'waiting' || phase === 'streaming'
@@ -65,7 +113,7 @@ export default function MatchStatusNote({
 
   return (
     // role/aria-live 挂在外层而非 <Card>：Card 是全站共用组件，不为本页给它开 a11y 属性口子。
-    <div role="status" aria-live="polite" className="shrink-0">
+    <div role="status" aria-live="polite" className={cn('shrink-0', className)}>
       <Card className={cardClassName}>
         {pending ? (
           // ⚠️ 唯一一处 MatchingProgress：waiting 与 streaming 共用它，切换 phase 时不重挂载、进度条不倒退

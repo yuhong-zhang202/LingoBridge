@@ -60,9 +60,11 @@ export default function EmptyState({
         ctaVariant === 'text' ? (
           // 次要动作：纯文本按钮。样式沿用站内既有文本按钮规格（见 MatchingMobile 的「查看更多」toggle），
           // min-h-[44px] 保证触控命中区达 WCAG 2.5.5，原生 <button> 保留键盘可聚焦。
+          // 文字色由 brand-primary-dark 改 v2-text-secondary：前者（#B5663A）压页面底 #FBFAF7 约 4.08:1，
+          // 13px 常规字需 4.5:1；后者（#6B5B52）约 6.47:1。
           <button
             onClick={onCta}
-            className="mt-2 min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-brand-primary-dark active:opacity-60"
+            className="mt-2 min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
           >
             {ctaLabel}
           </button>

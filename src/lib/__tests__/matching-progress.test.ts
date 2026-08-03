@@ -2,7 +2,7 @@
  * @module   matching-progress.test
  * @desc     匹配等待进度的纯函数单测 —— 守住两条产品约束：
  *           1) 进度条【永远不到 100%】（走满了还在转 = 明着告诉用户这个数字是编的）；
- *           2) 分阶段文案的切换时点与产品方定稿一致（0–5s / 5–10s / 10s+）。
+ *           2) 分阶段文案的切换时点与产品方定稿一致（0–5s / 5–10s / 10–30s / 30s+）。
  *           这两条靠手工验要干等好几分钟，必须由测试钉死。
  * @author   LingoBridge
  * @created  2026-07-20
@@ -32,12 +32,17 @@ describe('progressPct · 进度永不到顶', () => {
 })
 
 describe('stageText · 分阶段文案（措辞为产品方定稿，改动需产品方确认）', () => {
-  test('按 0–5s / 5–10s / 10s+ 三档切换', () => {
+  test('按 0–5s / 5–10s / 10–30s / 30s+ 四档切换', () => {
     expect(stageText(0)).toBe('正在读你的故事…')
     expect(stageText(4_999)).toBe('正在读你的故事…')
     expect(stageText(5_000)).toBe('已找到你的表达特质，正在筛选题目…')
     expect(stageText(9_999)).toBe('已找到你的表达特质，正在筛选题目…')
     expect(stageText(10_000)).toBe('正在逐题评估贴合度…')
-    expect(stageText(120_000)).toBe('正在逐题评估贴合度…')
+    expect(stageText(29_999)).toBe('正在逐题评估贴合度…')
+  })
+
+  test('30 秒后换第四档：实测慢的那次匹配跑了约 50 秒,此前会盯着第三档同一句话看 40 秒', () => {
+    expect(stageText(30_000)).toBe('还在逐题评估，这次候选题有点多…')
+    expect(stageText(120_000)).toBe('还在逐题评估，这次候选题有点多…')
   })
 })
