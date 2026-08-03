@@ -1,9 +1,14 @@
 /**
  * @module   dashboard/HeroMetrics
  * @desc     看板首屏 Hero 四数卡 —— 创始人「一眼非常清晰」的今日经营北极星。
- *           ① 今日活跃（注册，主卡跨 2 列）② 练习场次 ③ 故障两态 ④ 成本。
+ *           ① 今日活跃（注册，主卡跨 2 列）② 练习场次 ③ 计费失败两态 ④ 成本。
  *           全为【今日日历口径】，不随下方 Tier2 区间选择器变。
  *           顶部彩条 / 圆角 / emoji-aria-hidden 照搬 CostCards 语言；匿名绝不与注册相加。
+ *
+ *   ⚠️ ③ 的口径是 api_usage_logs（服务端记账），只看得见【真实产生费用的调用】里的系统故障。
+ *   用户被 403 未同意 / 402 额度 / 429 日限 / 503 并发满 挡在门外、以及网络失败，全部【不记账】，
+ *   这张卡一次都数不到 —— 所以它叫「今日计费失败」而不是「今日故障」：绿灯只代表"计费调用没坏"，
+ *   不代表"用户跑通了"。后者去看「出事了吗」区块里的 AI 调用结局分布（flow_events 口径）。
  * @author   LingoBridge
  * @created  2026-07-25
  */
@@ -29,6 +34,9 @@ const BAR_ACCENT  = '#7BA699'   // brand-accent
 const BAR_COST    = '#9A7DB8'   // 今日成本（与 CostCards 今日卡同色）
 const BAR_OK      = '#5BA08A'   // success
 const BAR_ERROR   = '#AB5344'   // error
+
+// ③ 卡的口径边界（视觉小字与 aria-label 同一份，避免读屏听到的与看到的不一致）
+const OUT_OF_SCOPE_NOTE = '用户侧早退与网络失败不在此口径，见下方 AI 调用结局分布'
 
 /** 卡片顶部 3px 彩条（照搬 CostCards：内联色值 + opacity 0.6） */
 function TopBar({ color }: { color: string }) {
@@ -95,37 +103,35 @@ export default function HeroMetrics({ data }: { data: HeroData }) {
         </div>
       </div>
 
-      {/* ③ 今日故障（两态）：状态不只靠色，必带文字 + aria-label */}
+      {/* ③ 今日计费失败（两态）：状态不只靠色，必带文字 + aria-label。
+          口径边界写进 aria-label：读屏用户此前听到的是"今日无故障"，那是这张卡给不出的保证。 */}
       <div
         aria-label={hasFailure
-          ? `今日故障：共 ${data.todayFailuresTotal} 次，卡在${topPhase}；另有空录音 ${data.emptyRecordingToday} 次（不算故障）`
-          : `今日故障：无故障；另有空录音 ${data.emptyRecordingToday} 次（不算故障）`}
+          ? `今日计费失败：共 ${data.todayFailuresTotal} 次，卡在${topPhase}；另有空录音 ${data.emptyRecordingToday} 次（不算故障）。${OUT_OF_SCOPE_NOTE}`
+          : `今日计费失败：无；另有空录音 ${data.emptyRecordingToday} 次（不算故障）。${OUT_OF_SCOPE_NOTE}`}
         className={`md:col-span-1 rounded-[16px] border overflow-hidden ${hasFailure ? 'bg-error/[0.06] border-error/20' : 'bg-white border-black/[0.05]'}`}
       >
         <TopBar color={hasFailure ? BAR_ERROR : BAR_OK} />
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[0.875rem]" aria-hidden="true">{hasFailure ? '🚨' : '✅'}</span>
-            <span className="text-[0.6875rem] text-v2-text-muted">今日故障</span>
+            <span className="text-[0.6875rem] text-v2-text-muted">今日计费失败</span>
           </div>
           {hasFailure ? (
-            <>
-              <div className="flex items-baseline gap-1.5">
-                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-error self-center" />
-                <span className="text-[1.75rem] font-bold text-error leading-none tabular-nums">{data.todayFailuresTotal}</span>
-                <span className="text-[0.75rem] text-error font-medium">卡在{topPhase}</span>
-              </div>
-              <div className="text-[0.6875rem] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
-            </>
+            <div className="flex items-baseline gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-error self-center" />
+              <span className="text-[1.75rem] font-bold text-error leading-none tabular-nums">{data.todayFailuresTotal}</span>
+              <span className="text-[0.75rem] text-error font-medium">卡在{topPhase}</span>
+            </div>
           ) : (
-            <>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full flex-shrink-0 bg-success" />
-                <span className="text-[1.125rem] font-bold text-v2-text-primary">今日无故障</span>
-              </div>
-              <div className="text-[0.6875rem] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
-            </>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-success" />
+              <span className="text-[1.125rem] font-bold text-v2-text-primary">今日无计费失败</span>
+            </div>
           )}
+          <div className="text-[0.6875rem] text-v2-text-muted mt-2">空录音 {data.emptyRecordingToday} 次 · 不算故障</div>
+          {/* 口径边界常驻：这张卡看不见的五类失败（403/402/429/503/网络）恰恰是用户最常撞上的 */}
+          <div className="text-[0.625rem] text-v2-text-muted mt-1 leading-relaxed">{OUT_OF_SCOPE_NOTE}</div>
         </div>
       </div>
 
