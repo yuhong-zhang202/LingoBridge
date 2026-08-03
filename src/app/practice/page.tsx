@@ -53,6 +53,20 @@ const ASR_RETRY_TOTAL_CAP_MS = 35_000
 /** 各次重试退避基数（秒），按已重试次数取；超出取末位 */
 const ASR_RETRY_BASE_S = [5, 7, 10] as const
 
+/**
+ * /api/practice 的非 2xx 响应 → ai_call 结局码（教练对话两条调用路径共用）。
+ * 402/403 由各调用点在读体前单独分流（要弹额度层 / 回首页触发同意），不走这里。
+ * @param status  HTTP 状态码
+ * @returns       契约内的结局枚举值
+ */
+function coachResultFromStatus(status: number): AiResult {
+  if (status === 400) return 'bad_input_400'   // 对话过长（超轮次上限）/ 缺 questionId
+  if (status === 401) return 'auth_401'
+  if (status === 429) return 'rate_429'
+  if (status >= 500) return 'server_5xx'
+  return 'other'
+}
+
 /** 视口断点：SSR/首屏默认移动端（避免 hydration 抖动），挂载后按 ≥1024px 切桌面，随窗口变化更新。 */
 function useIsDesktop(): boolean {
   const [isDesktop, setIsDesktop] = useState(false)
@@ -172,6 +186,17 @@ function PracticeContent(): JSX.Element {
     if (!questionId) { setPhase('error'); setError('缺少题目'); return }
     let cancelled = false
     const ac = new AbortController()
+    // ——— 开场白这次调用的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 教练对话【每轮都记一条】（本处 = 开场白那轮，requestReply = 之后每轮），一场练习 8~15 条。
+    // 条数刻意不省：只埋失败不埋成功就算不出成功率，而这正是唯一能看见 402/400 那两道服务端裸 return 的渠道。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 开场白这一次调用只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就记两遍 */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'coach', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     ;(async () => {
       try {
         const res = await apiFetch('/api/practice', {
@@ -180,26 +205,32 @@ function PracticeContent(): JSX.Element {
           signal: ac.signal,
         })
         // 服务端复练额度拦截（402）：弹 QuotaReached 覆盖层而非普通错误态。reason 决定变体（ielts/trial）。
+        // 【本月复练额度用完】就走这条，服务端不记账 —— 不埋这一条我们就永远不知道有人被它挡在门外。
         if (res.status === 402) {
+          reportAi('quota_402', 402)
           const reason = await readQuotaReason(res)
           if (!cancelled) setQuotaVariant(reason === 'ielts' ? 'ielts' : 'trial')
           return
         }
         // 服务端同意闸拒绝（403，未捕获同意）：深链直达本页时兜底，回首页触发同意弹窗，不停在初始化失败态。
-        if (res.status === 403) { if (!cancelled) router.push('/'); return }
-        if (!res.ok) throw new Error('对话初始化失败')
+        if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) router.push('/'); return }
+        // 在 throw 之前报：进了 catch 就只剩「网络失败」一种说法，400/429/500 会被记成凭空的网络故障
+        if (!res.ok) { reportAi(coachResultFromStatus(res.status), res.status); throw new Error('对话初始化失败') }
         const data = (await res.json()) as { scaffold: PracticeScaffold; reply: string }
+        reportAi('ok', 200)
         if (!cancelled) {
           setScaffold(data.scaffold)
           setMessages([{ role: 'assistant', content: data.reply }])
           setPhase('idle')
         }
       } catch (e) {
-        if (ac.signal.aborted) return          // 中断不算错误，忽略
+        if (ac.signal.aborted) return          // 中断不算错误，忽略；aborted 由 cleanup 统一报
+        reportAi('network', 0)                 // 到此只剩真·网络 reject（非 2xx 已分流报过、被自去重挡住）
         if (!cancelled) { setPhase('error'); setError(e instanceof Error ? e.message : '对话初始化失败') }
       }
     })()
-    return () => { cancelled = true; ac.abort() }
+    // 没等到开场白就离开 → aborted（不计失败）；已报结局的被自去重挡住
+    return () => { cancelled = true; reportAi('aborted', 0); ac.abort() }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 初次加载用默认 level 初始化对话；切换水平走独立分支，列入依赖会重复初始化
   }, [questionId, storyId, retryKey, isReview])
 
@@ -211,25 +242,41 @@ function PracticeContent(): JSX.Element {
    *  403/402 照旧先行 return 不进失败态；其余错误 → replyFailed（用当前 messages 可再重发，不追加用户气泡）。
    *  首发（sendReply）与「再试一次」（onRetryReply）共用此下游；catch 不再 setError（避免脏字符串残留）。 */
   const requestReply = useCallback(async (msgs: PracticeMessage[]) => {
+    // ——— 这一轮教练回复的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 首发（sendReply）与失败态「再试一次」（onRetryReply）共用本函数，各自都是用户视角的一次尝试，
+    // 故【不跨次去重】：重试一次就再报一条（去重只在本次调用内，防同一次被 catch 记两遍）。
+    // 本请求不带 signal（对话轮次一旦发出就该等回来，跳页也不撤），故无 aborted 分支。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 这一轮回复只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就记两遍 */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'coach', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     try {
       const res = await apiFetch('/api/practice', {
         method: 'POST',
         json: { scaffold: scaffoldRef.current, messages: msgs },
       })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在对话失败态。
-      if (res.status === 403) { router.push('/'); return }
+      if (res.status === 403) { reportAi('consent_403', 403); router.push('/'); return }
       // 额度用尽（402，聊到第 N 轮才撞上限）：走配额提示而非「对话失败」。发言已上屏，关闭覆盖层后不丢。
       if (res.status === 402) {
+        reportAi('quota_402', 402)
         const reason = await readQuotaReason(res)
         setQuotaVariant(reason === 'ielts' ? 'ielts' : 'trial'); setPhase('idle'); return
       }
-      if (!res.ok) throw new Error('对话失败')
+      // 在 throw 之前报：进了 catch 就只剩「网络失败」一种说法，400（对话过长）/429/500 会被记成凭空的网络故障
+      if (!res.ok) { reportAi(coachResultFromStatus(res.status), res.status); throw new Error('对话失败') }
       const data = (await res.json()) as { reply: string }
+      reportAi('ok', 200)
       setMessages([...msgs, { role: 'assistant', content: data.reply }])
       setReplyFailAttempt(0)
       setPhase('idle')
     } catch {
       // 网络/服务错误：不 setError（脏字符串会残留在 idle 提示区），改进 replyFailed 给「再试一次」
+      reportAi('network', 0)   // 到此只剩真·网络 reject（非 2xx 已分流报过、被自去重挡住）
       setReplyFailAttempt(n => n + 1)
       setPhase('replyFailed')
     }
