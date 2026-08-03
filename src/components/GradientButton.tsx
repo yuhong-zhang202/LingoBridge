@@ -21,6 +21,9 @@ interface GradientButtonProps {
   href?: string
   /** 无障碍名称覆盖：按钮文字过短、语境靠上下文时补全（如「再试一次」→「重新生成优化建议」）。不传则用可见文字 */
   'aria-label'?: string
+  /** 原生 button type，默认 'button'。HTML 默认值是 'submit'，本组件是全站共用 CTA，一旦被放进 <form> 会误触发提交；
+   *  真需要提交表单的调用方显式传 'submit' 覆盖即可。link 形态（传了 href）不适用 */
+  type?: 'button' | 'submit' | 'reset'
 }
 
 /**
@@ -32,8 +35,9 @@ interface GradientButtonProps {
  * @param className 尺寸/形状/宽度/字号/布局等（如 w-full px-6 py-3 rounded-full text-[0.875rem] font-medium）
  * @param href      传入则渲染为 <Link>（如「回首页」需 Cmd+click 新开），皮肤/文字色/active 回弹与 button 形态一致
  * @param ariaLabel 无障碍名称覆盖（可选），两形态都透传
+ * @param type      原生 button type（button 形态），默认 'button' 以免在 <form> 内误提交
  */
-export default function GradientButton({ children, onClick, disabled, loading = false, className, href, 'aria-label': ariaLabel }: GradientButtonProps) {
+export default function GradientButton({ children, onClick, disabled, loading = false, className, href, 'aria-label': ariaLabel, type = 'button' }: GradientButtonProps) {
   // button 与 link 两形态共用：皮肤 className + 内容（loading 时套 spinner）
   const classes = cn(
     'text-v2-text-secondary transition-transform duration-150 active:scale-[0.97] disabled:opacity-50',
@@ -58,6 +62,7 @@ export default function GradientButton({ children, onClick, disabled, loading = 
 
   return (
     <button
+      type={type}
       onClick={loading ? undefined : onClick}
       disabled={disabled || loading}
       aria-label={ariaLabel}
