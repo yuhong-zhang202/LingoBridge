@@ -15,7 +15,7 @@ import type { MicSurface as SchemaMicSurface } from '@/lib/event-schema'
  *   · durationMs 录音起（recorder.start）止（onstop）的墙钟时长。
  * 两个信号在服务端仅在「空录音失败」时落 metadata.audio、看板据此判采集问题，绝不影响转写本身。
  */
-interface RecordingResult {
+export interface RecordingResult {
   blob: Blob
   peakLevel: number
   durationMs: number
