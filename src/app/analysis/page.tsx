@@ -23,9 +23,27 @@ import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, AnalysisFoc
 import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
 import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
+import { track } from '@/lib/client-events'
+// AI 调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
+// 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { AiResult } from '@/lib/event-schema'
 import { requestAnalysis, type AnalysisSnapshot } from '@/lib/analysis-inflight'
 import { useAccount } from '@/hooks/useAccount'
 import { targetBandToLevel } from '@/lib/constants'
+
+/**
+ * 非 2xx 响应 → ai_call 结局码。本页两个环节（analysis / phrases）的早退状态码集合一致，故共用。
+ * 402/403/429 由各调用点在读体前单独分流（语义各不相同、还要驱动 UI），不走这里。
+ * @param status  HTTP 状态码
+ * @returns       契约内的结局枚举值
+ */
+function aiResultFromStatus(status: number): AiResult {
+  if (status === 400) return 'bad_input_400'      // 缺 questionId / 入参不合格
+  if (status === 401) return 'auth_401'
+  if (status === 503) return 'busy_503'           // 预取并发闸满（真实请求不走闸，出现即说明闸的口径错了）
+  if (status >= 500) return 'server_5xx'
+  return 'other'                                  // 404 题目不存在等
+}
 
 /**
  * 从「进行中」的流式 snapshot（meta + 已到段）拼一个 partial AnalysisResponse 驱动逐段渲染：
@@ -127,6 +145,21 @@ function AnalysisContent() {
     let finished = false
     const freshAc = new AbortController()
 
+    // ——— 本次分析的 AI 调用埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 【锚点是分析页这一次取数，不是底层 HTTP 请求数】：一次取数最多打两次 HTTP（流式 + 降级 ?stream=0），
+    // 而底层流式请求还可能是匹配页「点击即发/预取」发出、本页 subscribe 复用的同一条（见 analysis-inflight）。
+    // 若改埋在 analysis-inflight 里，共享复用会两头不讨好：多个调用方各埋一次 = 一次调用记两条；
+    // 复用命中不埋 = 用户这次尝试完全无痕。故只在本页埋，一次 effect 恰好一条。
+    // ⚠️ latencyMs 因此是【分析页视角的等待】：请求若已被匹配页提前发出，真实端到端比这个数长（低估，不高估）。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 这次分析的结局，只报一条（流式失败→降级→降级成功，用户视角是一次成功，不是一败一成） */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'analysis', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
+
     // 采纳（或新发）该题的在飞【流式】请求：匹配页「点击即发」已在点击当帧发起（见 analysis-inflight），
     // 分析页晚挂载 200ms 也能 subscribe 回放到已到的 meta+段——这是流式改造的命根。
     // 重试（retryKey>0）时上一条已 settle 移除，requestAnalysis 自然新发一条。
@@ -142,14 +175,18 @@ function AnalysisContent() {
       try {
         const res = await apiFetch('/api/analysis?stream=0', { method: 'POST', json: { questionId, storyId, level: levelRef.current }, signal: freshAc.signal })
         // 与现状一致：403 回首页触发同意 / 402 弹注册引导 / 429 明天恢复
-        if (res.status === 403) { if (!cancelled) { setLoading(false); router.push('/') } return }
-        if (res.status === 402) { if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
-        if (res.status === 429) { if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
-        if (!res.ok) throw new Error('生成分析失败')
+        // 三者【服务端裸 return、logApiUsage 一条不记】，不在此报就等于这三道闸拦人的事在数据里不存在。
+        if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) { setLoading(false); router.push('/') } return }
+        if (res.status === 402) { reportAi('quota_402', 402); if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
+        if (res.status === 429) { reportAi('rate_429', 429); if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
+        // 降级也失败 = 本次尝试的最终结局，在 throw 之前报（throw 进 catch 会被记成 network = 凭空造故障）
+        if (!res.ok) { reportAi(aiResultFromStatus(res.status), res.status); throw new Error('生成分析失败') }
         const json = (await res.json()) as AnalysisResponse
-        if (!cancelled) { setData(json); setLoading(false) }
+        if (!cancelled) { reportAi('ok', 200); setData(json); setLoading(false) }
       } catch (e) {
-        if (freshAc.signal.aborted) return   // 中断（卸载）不算错误，忽略
+        if (freshAc.signal.aborted) return   // 中断（卸载）不算错误，忽略；aborted 由 cleanup 统一报
+        // 真·网络 reject（请求没到 / 连接断）；上面按状态码分流过的已报，reportAi 自去重挡住
+        reportAi('network', 0)
         if (!cancelled) { setError(e instanceof Error ? e.message : '生成分析失败'); setLoading(false) }
       }
     }
@@ -158,8 +195,9 @@ function AnalysisContent() {
     // 骨架保留到首个内容段到达（AI 生成 gap 期间不闪空卡）；空态/错误只在 done/error 后判，流式中途绝不误判。
     const onSnap = (snap: AnalysisSnapshot): void => {
       if (cancelled || finished) return
-      if (snap.final) { finished = true; setData(snap.final); setLoading(false); return }
-      if (snap.error) { void degrade(); return }   // 流断/无 done/error 帧 → 降级
+      if (snap.final) { finished = true; reportAi('ok', 200); setData(snap.final); setLoading(false); return }
+      // 流断/无 done/error 帧 → 降级。此处【刻意不报】：本次尝试还没完，结局由降级那条路径给。
+      if (snap.error) { void degrade(); return }
       if (snap.meta && snap.sections.length > 0) {
         setData(buildPartialAnalysis(snap.meta, snap.sections))
         setLoading(false)
@@ -171,9 +209,10 @@ function AnalysisContent() {
     // 非流(非 SSE)且 !ok（如 500）→ 降级。ok SSE 的数据流由 subscribe 驱动，这里不再处理。
     entry.promise.then((res) => {
       if (cancelled || finished) return
-      if (res.status === 403) { finished = true; if (!cancelled) { setLoading(false); router.push('/') } return }
-      if (res.status === 402) { finished = true; if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
-      if (res.status === 429) { finished = true; if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
+      if (res.status === 403) { finished = true; reportAi('consent_403', 403); if (!cancelled) { setLoading(false); router.push('/') } return }
+      if (res.status === 402) { finished = true; reportAi('quota_402', 402); if (!cancelled) { setLoading(false); setQuotaShown('page') } return }
+      if (res.status === 429) { finished = true; reportAi('rate_429', 429); if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return }  // 置 loading=false 否则 429 横幅永不显示、卡转圈
+      // 非流失败（500/503 等）同样不在此报：降级重发才是本次尝试的终局。
       if (!res.ok) { void degrade(); return }
     }).catch(() => {
       // 初始 fetch 本身失败（网络/被 abort）：abort 由 cleanup 触发、cancelled 拦掉；其余降级兜底。
@@ -181,7 +220,8 @@ function AnalysisContent() {
     })
 
     // 卸载：先退订（阻断 abort 触发的 error 回放）再 abort 在飞流（仅停客户端读流，服务端跑完写缓存）+ 兜底请求。
-    return () => { cancelled = true; unsub(); entry.abort(); freshAc.abort() }
+    // 没走到任何终态就卸载 = 用户没等分析出来就走了 → aborted（不计失败）；已报结局的被自去重挡住。
+    return () => { cancelled = true; reportAi('aborted', 0); unsub(); entry.abort(); freshAc.abort() }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- storyId 随首帧固定不变，初次加载即取用；列入依赖只会无谓重跑分析
   }, [questionId, retryKey])
 
@@ -190,6 +230,16 @@ function AnalysisContent() {
     setLevel(newLevel)
     setOpenPhrase(null)
     setPhrasesLoading(true)
+    // ——— 本次换档的 AI 调用埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 用户每点一次档位 = 一次尝试 = 一条 ai_call（失败后再点一次自然再报一条，不去重跨次）。
+    const t0 = performance.now()
+    let aiReported = false
+    /** 这一次换档的结局只报一条：!res.ok 抛出的错会被下面的 catch 再兜一次，不挡就记两遍 */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'phrases', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     ;(async () => {
       try {
         // 同 /api/analysis：POST 而非 GET（扣额度 + 真调 AI，不能被预取无意触发）
@@ -200,16 +250,21 @@ function AnalysisContent() {
         // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
         // 同样要回退档位：跳转是异步的，回退前这一帧（以及用户按浏览器返回退回本页时）
         // 档位不能停在换失败的新值上，否则与页面里没换成的词组内容对不上。
-        if (res.status === 403) { setLevel(prevLevel); router.push('/'); return }
+        if (res.status === 403) { reportAi('consent_403', 403); setLevel(prevLevel); router.push('/'); return }
         // 402/429 必须在此判、不能等 catch —— catch 里拿不到 res.status。
         // 档位回退保留（状态不该与内容脱节），但必须配提示：否则用户点 7.0 → 档位自己跳回 6.0
         // → 内容一字未变 → 零反馈 → 以为按钮坏了反复点，每点一次烧一次 AI。
-        if (res.status === 402) { setLevel(prevLevel); setQuotaShown('phrases'); return }
-        if (res.status === 429) { setLevel(prevLevel); setToast('操作太频繁，今天先歇歇吧。明天会自动恢复。'); return }
-        if (!res.ok) throw new Error('换词失败')
+        if (res.status === 402) { reportAi('quota_402', 402); setLevel(prevLevel); setQuotaShown('phrases'); return }
+        if (res.status === 429) { reportAi('rate_429', 429); setLevel(prevLevel); setToast('操作太频繁，今天先歇歇吧。明天会自动恢复。'); return }
+        // 在 throw 之前报：进了 catch 就只剩「网络失败」一种说法，400/500 会被记成凭空的网络故障
+        if (!res.ok) { reportAi(aiResultFromStatus(res.status), res.status); throw new Error('换词失败') }
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
+        reportAi('ok', 200)
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)
       } catch {
+        // 到此只剩真·网络 reject（非 2xx 已在上面分流报过、被自去重挡住）。本请求不带 signal、
+        // 无中断路径，故不需要 aborted 分支。
+        reportAi('network', 0)
         setLevel(prevLevel)
         setToast(`没换成 ${newLevel}，还是 ${prevLevel} 的版本。再点一次试试？`)
       } finally {
