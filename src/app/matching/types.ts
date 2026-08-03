@@ -79,6 +79,9 @@ export interface MatchingViewProps {
   slowHint?: boolean
   /** 标题计数：≥ SCORE_MID 的总量，跨所有 Part（不受 Tab 过滤影响） */
   totalVisible: number
+  /** 本次匹配【跨所有 Part】有没有高匹配（≥ SCORE_HIGH）。结果级属性，不随 Tab 变：
+   *  result 态据此切「情况二·没有完美匹配的题目」的标题与说明卡（产品方 2026-08-03 定稿） */
+  hasHigh: boolean
   /** 动态 Part 标签：只含有结果的 Part */
   availableTabs: PartTab[]
   activeTab: PartTab

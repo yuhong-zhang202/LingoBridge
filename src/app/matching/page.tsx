@@ -417,6 +417,13 @@ function MatchingContent() {
     return result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length
   }, [result])
 
+  // 本次匹配跨所有 Part 有没有高匹配。按全局判而不按当前 Tab 判：这是结果级属性（「这次匹配质量如何」），
+  // 切 Part 时标题不该在「匹配到 N 道」和「没有完美匹配的题目」之间跳。
+  const hasHigh = useMemo(() => {
+    if (!result) return false
+    return result.questions.some((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH)
+  }, [result])
+
   // 当前 Tab 过滤后的题目
   const filtered = useMemo(() => {
     if (!result) return []
@@ -473,13 +480,14 @@ function MatchingContent() {
   // 进入 lowMatch 时的两处归位：
   // F7 —— Part 筛选归位。流式中途 Tab 可点，而 lowShown 不经 Part 筛选，done 一到 Tab 整排消失，
   //        用户做过的筛选会无声蒸发（页面看起来像是自己忘了他点过什么）。
-  // 不自动选中 —— lowMatch 下这几道低分题是「确实翻遍题库了」的佐证而非备选，
-  //        默认选中第一道等于替用户挑了一道用不上的题；让右栏落在出口面板上。
+  // 自动选中第一道（产品方 2026-08-03 真机验收拍板）：右栏默认展开 DetailPane 讲清「差在哪」，
+  //        而不是空着或立一张出口卡。选中的是切片里分数最高的那道（lowShown[0]）。
   useEffect(() => {
     if (phase !== 'lowMatch') return
     setActiveTab('全部')
-    setSelectedId(null)
-  }, [phase])
+    setSelectedId(lowShown[0]?.id ?? null)
+    // lowShown 在 done 定稿后即不再变化，依赖它只为拿到当次切片，不会反复重选
+  }, [phase, lowShown])
 
   // 002 修复：highGroup=0 且 midGroup>0 时，此前三个空态判断会全部落空——
   // 高匹配块不渲染（组为空）、中匹配块不渲染（expanded 初值 false）、
@@ -536,6 +544,7 @@ function MatchingContent() {
     // 生产恒 false（preview 只在开发环境非空），超时兜底行照常由 MatchingProgress 内部计时判定
     slowHint: previewSlowHint,
     totalVisible,
+    hasHigh,
     availableTabs,
     activeTab,
     filtered,

@@ -13,6 +13,8 @@
  *     一旦因分支切换而重挂载，进度条会从 85% 掉回 0。
  *
  *   桌面独有：↑↓ 切题 / Enter·→ 分析 / Esc 退出、行 hover 高亮、右栏 CTA 浮起。
+ *   noMatch / degraded / error / limit 四个终态经产品方真机验收拍板删掉了左列表说明块（与上方文案重复），
+ *   这四态下左右两栏收成居中单面板（骨架容器保留，标题与说明卡不位移）。
  * @author   LingoBridge
  * @created  2026-07-09
  */
@@ -119,15 +121,12 @@ function QuestionRow({ q, isHigh, selected, showSwitchTag = true, onSelect }: {
 
 /**
  * 右栏选中题详情。
- * @param lowTone     低相关态：分析入口降为文本按钮（这道题本来就用不上，不该和主 CTA 抢注意力），
- *                    并给一个退回出口面板的方式
- * @param onBackToExit 退回出口面板（仅 lowTone 有）
+ * @param lowTone 低相关态：分析入口降为文本按钮——这道题本来就用不上，不该做成显眼 CTA 怂恿去练
  */
-function DetailPane({ q, lowTone, onPractice, onBackToExit, saveState, onSave }: {
+function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
   q: FunnelQuestion
   lowTone: boolean
   onPractice: (id: string) => void
-  onBackToExit: () => void
   saveState: AnkiSaveState
   onSave: () => void
 }): JSX.Element {
@@ -169,22 +168,14 @@ function DetailPane({ q, lowTone, onPractice, onBackToExit, saveState, onSave }:
           </div>
         )}
       </div>
-      <div className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center ${lowTone ? 'justify-between' : 'justify-end'}`}>
+      <div className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center justify-end">
         {lowTone ? (
-          <>
-            <button
-              onClick={onBackToExit}
-              className="min-h-[44px] inline-flex items-center px-1 text-[0.8125rem] text-v2-text-muted active:opacity-60"
-            >
-              ← 返回
-            </button>
-            <button
-              onClick={() => onPractice(q.id)}
-              className="min-h-[44px] inline-flex items-center px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
-            >
-              题目分析 →
-            </button>
-          </>
+          <button
+            onClick={() => onPractice(q.id)}
+            className="min-h-[44px] inline-flex items-center px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
+          >
+            题目分析 →
+          </button>
         ) : (
           <GradientButton
             onClick={() => onPractice(q.id)}
@@ -199,15 +190,13 @@ function DetailPane({ q, lowTone, onPractice, onBackToExit, saveState, onSave }:
 }
 
 /**
- * 右栏出口面板：Orb + 可选说明 + 一个动作。degraded / error / limit / lowMatch / noMatch 共用，
- * 免得每个状态各造一张不一样的空态页（那正是旧代码整页跳变的来源）。
- * @param variant pill = 主要动作（渐变胶囊）；text = 退路（低强度文本按钮，如 429 不该显眼地怂恿再点）
+ * 终态动作面板：Orb + 可选说明 + 一个渐变 CTA。noMatch / degraded / error 共用
+ * （limit 无卡片：产品方拍板 429 页做到最简，只留标题 + 说明卡 + 底部文字出口）。
  */
-function ExitPane({ title, note, label, variant = 'pill', onAction }: {
+function ExitPane({ title, note, label, onAction }: {
   title?: string
   note?: string
   label: string
-  variant?: 'pill' | 'text'
   onAction: () => void
 }): JSX.Element {
   return (
@@ -215,41 +204,24 @@ function ExitPane({ title, note, label, variant = 'pill', onAction }: {
       <Orb size={100} pulse={false} />
       {title && <p className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{title}</p>}
       {note && <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[280px] leading-relaxed">{note}</p>}
-      {variant === 'pill' ? (
-        <GradientButton onClick={onAction} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
-          {label}
-        </GradientButton>
-      ) : (
-        <button
-          onClick={onAction}
-          className="mt-2 min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
-        >
-          {label}
-        </button>
-      )}
+      <GradientButton onClick={onAction} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
+        {label}
+      </GradientButton>
     </Card>
-  )
-}
-
-/** 列表区的「这个状态没有题可列」说明块（noMatch / degraded / error / limit 共用） */
-function ListNote({ text }: { text: string }): JSX.Element {
-  return (
-    <div className="flex flex-col items-center text-center pt-10">
-      <Orb size={100} pulse={false} />
-      <p className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{text}</p>
-    </div>
   )
 }
 
 export default function MatchingDesktop({
   phase, result, missingCorpus, candidateCount, arrivedCount, slowHint,
-  totalVisible, availableTabs, activeTab, filtered,
+  totalVisible, hasHigh, availableTabs, activeTab, filtered,
   highGroup, midGroup, noneVisible, lowShown, selectedId, savedIds, savingId,
-  onSelectTab, onSelect, onToggleSelect, onPractice, onSavePair, onRetry, onExit,
+  onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
 }: MatchingViewProps): JSX.Element {
   const pending = phase === 'waiting' || phase === 'streaming'
   const isLow = phase === 'lowMatch'
   const hasList = phase === 'streaming' || phase === 'result' || isLow
+  // 四个终态：产品方真机验收拍板删掉左列表说明块（与上方标题/说明卡重复），两栏收成居中单面板
+  const isTerminal = phase === 'noMatch' || phase === 'degraded' || phase === 'error' || phase === 'limit'
   // 有序可导航列表：低相关态走 lowShown（它不经 Part 筛选），其余走高→中（与左栏展示顺序一致）。
   // 漏了这步低相关态的 ↑↓ 就会全无反应、右栏永远空着。
   const listItems = isLow ? lowShown : [...highGroup, ...midGroup]
@@ -307,7 +279,7 @@ export default function MatchingDesktop({
 
         {/* ① 头部（恒在：标题随状态换措辞，副行恒占一行） */}
         <div className="shrink-0 mb-5">
-          <h2 className="text-[1.375rem] font-bold text-v2-text-primary">{matchTitle(phase, totalVisible)}</h2>
+          <h2 className="text-[1.375rem] font-bold text-v2-text-primary">{matchTitle(phase, totalVisible, hasHigh)}</h2>
           <MatchDimensionLine
             phase={phase}
             primary={result?.primary ?? null}
@@ -321,8 +293,8 @@ export default function MatchingDesktop({
           phase={phase}
           className="mb-5"
           cardClassName="px-4 py-3 min-h-[76px]"
-          primary={result?.primary ?? null}
           secondary={result?.secondary ?? null}
+          hasHigh={hasHigh}
           matchedViaSecondary={!!result?.matchedViaSecondary}
           arrivedCount={arrivedCount}
           candidateCount={candidateCount}
@@ -331,140 +303,146 @@ export default function MatchingDesktop({
           onRetry={onRetry}
         />
 
-        {/* ③ 两栏（恒在：左列表 + 右面板，各自内部滚动） */}
+        {/* ③ 两栏（恒在容器）：等待/流式/结果/低相关填左右两栏；四个终态删掉列表说明块后收居中单面板
+            （产品方拍板：与上方文案重复的 orb 说明块删除；limit 连动作卡都不留，出口在底部提示行） */}
         <div className="flex-1 min-h-0 flex gap-6">
-
-          {/* 左·题目列表 */}
-          <div className="w-[360px] shrink-0 flex flex-col min-h-0">
-            {/* Part 筛选槽：恒占 26px 高，避免 chips 出现/消失时下面整列上下跳 */}
-            <div className="h-[26px] shrink-0 mb-4 flex gap-2 flex-wrap overflow-hidden">
-              {phase === 'waiting' && (
-                <span className="flex gap-2" aria-hidden="true">
-                  <Skeleton className="w-12 h-[26px] rounded-full" />
-                  <Skeleton className="w-16 h-[26px] rounded-full" />
-                </span>
-              )}
-              {/* 低相关态不渲染 chips：lowShown 不经 Part 筛选，渲染出来就是个点了没反应的死控件 */}
-              {(phase === 'streaming' || phase === 'result') && availableTabs.map((p) => (
-                <Chip key={p} onClick={() => onSelectTab(p)} variant="ghost" active={activeTab === p}>
-                  {p}
-                </Chip>
-              ))}
+          {isTerminal ? (
+            <div className="flex-1 min-h-0 flex flex-col justify-center items-center">
+              <div className="w-full max-w-[560px]">
+                {phase === 'noMatch' && (
+                  <ExitPane
+                    title="换个角度，重新讲一遍"
+                    note="同一件事，换个重点讲，往往就能对上题库里的题。"
+                    label="回到首页"
+                    onAction={onExit}
+                  />
+                )}
+                {phase === 'degraded' && <ExitPane label="重新匹配" onAction={onRetry} />}
+                {phase === 'error' && (
+                  // F10：缺 corpusId 时重试永远无效（页面根本不知道该匹配哪段语料），出口换成回首页
+                  missingCorpus
+                    ? <ExitPane label="回到首页" onAction={onExit} />
+                    : <ExitPane label="重试" onAction={onRetry} />
+                )}
+                {/* limit：这里刻意什么都不放（页面做到最简），退路是底部提示行的「回到首页」文字链接 */}
+              </div>
             </div>
-
-            {/* 列表区：骨架卡 / 真卡分组 / 说明块，三选一填进同一个滚动容器 */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
-              {phase === 'waiting' && (
-                <div className="flex flex-col gap-2.5" aria-hidden="true">
-                  {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-[86px] rounded-[14px]" />)}
+          ) : (
+            <>
+              {/* 左·题目列表 */}
+              <div className="w-[360px] shrink-0 flex flex-col min-h-0">
+                {/* Part 筛选槽：恒占 30px（Chip md 实际渲染高约 28px，26px 会裁掉下沿），
+                    避免 chips 出现/消失时下面整列上下跳 */}
+                <div className="h-[30px] shrink-0 mb-4 flex items-center gap-2 flex-wrap overflow-hidden">
+                  {phase === 'waiting' && (
+                    <span className="flex gap-2" aria-hidden="true">
+                      <Skeleton className="w-12 h-[28px] rounded-full" />
+                      <Skeleton className="w-16 h-[28px] rounded-full" />
+                    </span>
+                  )}
+                  {/* 低相关态不渲染 chips：lowShown 不经 Part 筛选，渲染出来就是个点了没反应的死控件 */}
+                  {(phase === 'streaming' || phase === 'result') && availableTabs.map((p) => (
+                    <Chip key={p} onClick={() => onSelectTab(p)} variant="ghost" active={activeTab === p}>
+                      {p}
+                    </Chip>
+                  ))}
                 </div>
-              )}
 
-              {(phase === 'streaming' || phase === 'result') && (
-                <>
-                  {highGroup.length > 0 && (
+                {/* 列表区：骨架卡 / 真卡分组，二选一填进同一个滚动容器 */}
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
+                  {phase === 'waiting' && (
+                    <div className="flex flex-col gap-2.5" aria-hidden="true">
+                      {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-[86px] rounded-[14px]" />)}
+                    </div>
+                  )}
+
+                  {(phase === 'streaming' || phase === 'result') && (
+                    <>
+                      {highGroup.length > 0 && (
+                        <div>
+                          <GroupHeader text={`高匹配 · ${highGroup.length} 道`} variant="high" />
+                          <div className="flex flex-col gap-2.5">
+                            {highGroup.map((q) => (
+                              <QuestionRow key={q.id} q={q} isHigh selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {midGroup.length > 0 && (
+                        <div>
+                          <GroupHeader text={`中匹配 · ${midGroup.length} 道`} variant="mid" />
+                          <div className="flex flex-col gap-2.5">
+                            {midGroup.map((q) => (
+                              <QuestionRow key={q.id} q={q} isHigh={false} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {noneVisible && (
+                        <div className="text-center text-[0.8125rem] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
+                      )}
+                    </>
+                  )}
+
+                  {isLow && (
+                    // 单组，不拆「最相关 / 其他」：拆开会让第一张看起来是被推荐的，与「都用不上」的定调打架
                     <div>
-                      <GroupHeader text={`高匹配 · ${highGroup.length} 道`} variant="high" />
+                      <GroupHeader text={`最接近的 ${lowShown.length} 道，都用不上`} variant="low" />
                       <div className="flex flex-col gap-2.5">
-                        {highGroup.map((q) => (
-                          <QuestionRow key={q.id} q={q} isHigh selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
+                        {lowShown.map((q) => (
+                          // showSwitchTag=false：全都不贴合的语境下只给一部分卡挂「需切换角度」，
+                          // 等于暗示没挂的那几道可以直接用
+                          <QuestionRow
+                            key={q.id} q={q} isHigh={false} showSwitchTag={false}
+                            selected={selectedId === q.id} onSelect={() => onSelect(q.id)}
+                          />
                         ))}
                       </div>
                     </div>
                   )}
-                  {midGroup.length > 0 && (
-                    <div>
-                      <GroupHeader text={`中匹配 · ${midGroup.length} 道`} variant="mid" />
-                      <div className="flex flex-col gap-2.5">
-                        {midGroup.map((q) => (
-                          <QuestionRow key={q.id} q={q} isHigh={false} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {noneVisible && (
-                    <div className="text-center text-[0.8125rem] text-v2-text-muted py-10">该 Part 暂无匹配题目</div>
-                  )}
-                </>
-              )}
-
-              {isLow && (
-                // 单组，不拆「最相关 / 其他」：拆开会让第一张看起来是被推荐的，与「都用不上」的定调打架
-                <div>
-                  <GroupHeader text={`最接近的 ${lowShown.length} 道，都用不上`} variant="low" />
-                  <div className="flex flex-col gap-2.5">
-                    {lowShown.map((q) => (
-                      // showSwitchTag=false：全都不贴合的语境下只给一部分卡挂「需切换角度」，
-                      // 等于暗示没挂的那几道可以直接用
-                      <QuestionRow
-                        key={q.id} q={q} isHigh={false} showSwitchTag={false}
-                        selected={selectedId === q.id} onSelect={() => onSelect(q.id)}
-                      />
-                    ))}
-                  </div>
                 </div>
-              )}
+              </div>
 
-              {phase === 'noMatch'  && <ListNote text="这一季没有可以列出来的题" />}
-              {phase === 'degraded' && <ListNote text="排序没出来，暂时没法按贴合度排列" />}
-              {phase === 'error'    && <ListNote text="没有拿到题目" />}
-              {phase === 'limit'    && <ListNote text="今天不再发起新的匹配" />}
-            </div>
-          </div>
+              {/* 右·面板槽（等待说明 / 题目详情） */}
+              <div className="flex-1 min-h-0 flex flex-col justify-center">
+                {phase === 'waiting' && (
+                  <Card className="flex flex-col items-center justify-center px-8 py-16 text-center">
+                    <p className="text-[0.875rem] text-v2-text-primary">题目还在陆续到达，到了会显示在左边</p>
+                    <p className="text-[0.8125rem] text-v2-text-muted mt-2">选中任意一道，这里会展开它和你的语料的关系</p>
+                  </Card>
+                )}
 
-          {/* 右·面板槽（等待说明 / 题目详情 / 出口面板） */}
-          <div className="flex-1 min-h-0 flex flex-col justify-center">
-            {phase === 'waiting' && (
-              <Card className="flex flex-col items-center justify-center px-8 py-16 text-center">
-                <p className="text-[0.875rem] text-v2-text-primary">题目还在陆续到达，到了会显示在左边</p>
-                <p className="text-[0.8125rem] text-v2-text-muted mt-2">选中任意一道，这里会展开它和你的语料的关系</p>
-              </Card>
-            )}
-
-            {(phase === 'streaming' || phase === 'result' || isLow) && (
-              selected ? (
-                <DetailPane
-                  q={selected}
-                  lowTone={isLow}
-                  onPractice={onPractice}
-                  // 退回出口面板：复用 onToggleSelect（再点同一张即取消选中），不新增一条清空选中的通路
-                  onBackToExit={() => onToggleSelect(selected.id)}
-                  saveState={savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle'}
-                  onSave={() => onSavePair(selected.id)}
-                />
-              ) : isLow ? (
-                // 低相关态默认落在出口面板上：这个状态下唯一的主要动作就是回首页重讲。
-                // 用户主动点某道题时右栏才切成详情——那是用户自己触发的槽位内容切换，不是页面自己变形。
-                <ExitPane label="回到首页" onAction={onExit} />
-              ) : (
-                <Card className="flex items-center justify-center px-8 py-16 text-center">
-                  <p className="text-[0.8125rem] text-v2-text-muted">从左侧选择一道题查看详情</p>
-                </Card>
-              )
-            )}
-
-            {phase === 'noMatch' && (
-              <ExitPane
-                title="换个角度，重新讲一遍"
-                note="同一件事，换个重点讲，往往就能对上题库里的题。"
-                label="回到首页"
-                onAction={onExit}
-              />
-            )}
-            {phase === 'degraded' && <ExitPane label="重新匹配" onAction={onRetry} />}
-            {phase === 'error' && (
-              // F10：缺 corpusId 时重试永远无效（页面根本不知道该匹配哪段语料），出口换成回首页
-              missingCorpus
-                ? <ExitPane label="回到首页" onAction={onExit} />
-                : <ExitPane label="重试" onAction={onRetry} />
-            )}
-            {/* 429 不给重试（只会再撞一次），退路做成低强度文本按钮 */}
-            {phase === 'limit' && <ExitPane label="回到首页" variant="text" onAction={onExit} />}
-          </div>
+                {(phase === 'streaming' || phase === 'result' || isLow) && (
+                  selected ? (
+                    <DetailPane
+                      q={selected}
+                      lowTone={isLow}
+                      onPractice={onPractice}
+                      saveState={savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle'}
+                      onSave={() => onSavePair(selected.id)}
+                    />
+                  ) : (
+                    <Card className="flex items-center justify-center px-8 py-16 text-center">
+                      <p className="text-[0.8125rem] text-v2-text-muted">从左侧选择一道题查看详情</p>
+                    </Card>
+                  )
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* ④ 键盘提示（恒在） */}
-        <p className="shrink-0 mt-4 text-center text-[0.75rem] text-v2-text-muted">↑↓ 切题 · Enter 分析 · Esc 退出</p>
+        {/* ④ 键盘提示（恒在）。lowMatch / limit 的「回到首页」按产品方拍板做成同层级纯文字链接放在这一行：
+            这两个状态的出口是退路不是主推，不给渐变按钮 */}
+        <p className="shrink-0 mt-4 text-center text-[0.75rem] text-v2-text-muted">
+          ↑↓ 切题 · Enter 分析 · Esc 退出
+          {(isLow || phase === 'limit') && (
+            <>
+              {' · '}
+              <button onClick={onExit} className="underline underline-offset-2 active:opacity-60">回到首页</button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   )

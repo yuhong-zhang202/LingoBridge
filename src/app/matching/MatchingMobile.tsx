@@ -11,6 +11,8 @@
  *   新骨架里 phase 天然互斥，同一时刻只有一套内容。
  *
  *   ⚠️ 本文件【不做形态判定】，只读 props.phase（真源在 app/matching/phase.ts，带单测）。
+ *   noMatch / degraded / error / limit 四个终态经产品方真机验收拍板删掉了列表区的 orb 说明块
+ *   （与上方标题/说明卡重复），这四态列表区留白，动作collapse到底部动作槽。
  * @author   LingoBridge
  * @created  2026-05-15
  */
@@ -20,7 +22,6 @@ import TopBar from '@/components/TopBar'
 import { StepBar } from '@/components/StepBar'
 import TabBar from '@/components/TabBar'
 import Chip from '@/components/Chip'
-import Orb from '@/components/Orb'
 import Skeleton from '@/components/Skeleton'
 import GradientButton from '@/components/GradientButton'
 import MatchedQuestionCard from '@/components/matching/MatchedQuestionCard'
@@ -38,16 +39,6 @@ function GroupHeader({ text, variant }: { text: string; variant: 'high' | 'mid' 
     <div className="flex items-center gap-2 mb-3">
       <span className={`text-[0.6875rem] ${textClass}`}>{text}</span>
       <div className="flex-1 h-px bg-black/[0.05]" />
-    </div>
-  )
-}
-
-/** 列表区的「这个状态没有题可列」说明块（noMatch / degraded / error / limit 共用；CTA 在底部动作槽） */
-function ListNote({ text }: { text: string }): JSX.Element {
-  return (
-    <div className="flex flex-col items-center text-center pt-6">
-      <Orb size={100} pulse={false} />
-      <p className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{text}</p>
     </div>
   )
 }
@@ -71,7 +62,7 @@ function SkeletonCard(): JSX.Element {
 
 export default function MatchingMobile({
   phase, result, missingCorpus, candidateCount, arrivedCount, slowHint,
-  totalVisible, availableTabs, activeTab,
+  totalVisible, hasHigh, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, lowShown,
   selectedId, expanded, savedIds, savingId,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onSavePair, onRetry, onBack, onExit,
@@ -96,7 +87,7 @@ export default function MatchingMobile({
       >
         {/* ① 头部（恒在） */}
         <div className="mb-4 pt-2">
-          <h2 className="text-[1.25rem] font-bold text-v2-text-primary">{matchTitle(phase, totalVisible)}</h2>
+          <h2 className="text-[1.25rem] font-bold text-v2-text-primary">{matchTitle(phase, totalVisible, hasHigh)}</h2>
           <MatchDimensionLine
             phase={phase}
             primary={result?.primary ?? null}
@@ -110,8 +101,8 @@ export default function MatchingMobile({
           phase={phase}
           className="mb-4"
           cardClassName="px-4 py-3 min-h-[84px]"
-          primary={result?.primary ?? null}
           secondary={result?.secondary ?? null}
+          hasHigh={hasHigh}
           matchedViaSecondary={!!result?.matchedViaSecondary}
           arrivedCount={arrivedCount}
           candidateCount={candidateCount}
@@ -120,13 +111,14 @@ export default function MatchingMobile({
           onRetry={onRetry}
         />
 
-        {/* ③ Part 筛选槽：恒占 26px 高，避免 chips 出现/消失时下面整列上下跳 */}
-        <div className="h-[26px] mb-5 flex gap-2 flex-wrap overflow-hidden">
+        {/* ③ Part 筛选槽：恒占 30px 高（Chip md 实际渲染高约 28px，26px 会裁掉「全部 / Part 1」的下沿），
+            避免 chips 出现/消失时下面整列上下跳 */}
+        <div className="h-[30px] mb-5 flex items-center gap-2 flex-wrap overflow-hidden">
           {phase === 'waiting' && (
             <span className="flex gap-2" aria-hidden="true">
-              <Skeleton className="w-12 h-[26px] rounded-full" />
-              <Skeleton className="w-16 h-[26px] rounded-full" />
-              <Skeleton className="w-16 h-[26px] rounded-full" />
+              <Skeleton className="w-12 h-[28px] rounded-full" />
+              <Skeleton className="w-16 h-[28px] rounded-full" />
+              <Skeleton className="w-16 h-[28px] rounded-full" />
             </span>
           )}
           {/* 低相关态不渲染 chips：lowShown 不经 Part 筛选，渲染出来就是个点了没反应的死控件 */}
@@ -223,10 +215,8 @@ export default function MatchingMobile({
             </div>
           )}
 
-          {phase === 'noMatch'  && <ListNote text="这一季没有可以列出来的题" />}
-          {phase === 'degraded' && <ListNote text="排序没出来，暂时没法按贴合度排列" />}
-          {phase === 'error'    && <ListNote text="没有拿到题目" />}
-          {phase === 'limit'    && <ListNote text="今天不再发起新的匹配" />}
+          {/* noMatch / degraded / error / limit：列表区刻意留白。原先这里各放一块 orb 说明
+              （「这一季没有可以列出来的题」等），产品方真机验收判定与上方标题/说明卡重复，已删。 */}
         </div>
 
         {/* ⑤ 底部动作槽：恒占 44px 高，内容随状态换（等待期为空占位，避免按钮忽隐忽现） */}
@@ -241,11 +231,15 @@ export default function MatchingMobile({
               {expanded ? '收起 ↑' : `查看更多 ${foldedCount} 道 →`}
             </button>
           )}
-          {/* 说明卡里已经不再写「换个角度重讲」，这个按钮是这个状态下唯一告诉用户还能怎么办的东西 */}
+          {/* lowMatch 的出口按产品方拍板做成纯文字链接：这几道题是佐证不是备选，
+              出口是退路不是主推，不给渐变按钮 */}
           {isLow && (
-            <GradientButton onClick={onExit} className="min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
+            <button
+              onClick={onExit}
+              className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-secondary underline underline-offset-2 active:opacity-60"
+            >
               回到首页
-            </GradientButton>
+            </button>
           )}
           {phase === 'noMatch' && (
             <GradientButton onClick={onExit} className="min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
@@ -273,7 +267,7 @@ export default function MatchingMobile({
           {phase === 'limit' && (
             <button
               onClick={onExit}
-              className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
+              className="min-h-[44px] inline-flex items-center justify-center px-3 text-[0.8125rem] font-medium text-v2-text-secondary underline underline-offset-2 active:opacity-60"
             >
               回到首页
             </button>

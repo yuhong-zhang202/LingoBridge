@@ -30,10 +30,10 @@ interface Props {
   className?: string
   /** 卡本体的 class：内边距 + 最小高度，由两端各自传（两端的等高基线不同） */
   cardClassName: string
-  /** 识别出的主观察点（noMatch 文案要点名方向）；null 时该句省略 */
-  primary: MatchedPoint | null
   /** 识别出的副观察点（result 态副维度降级说明要用） */
   secondary: MatchedPoint | null
+  /** 本次匹配【跨所有 Part】有没有高匹配（结果级属性，不随 Tab 变）。result 态据此切「情况二」文案 */
+  hasHigh: boolean
   /** 本次匹配是靠副观察点召回的（result 态换成副维度说明，措辞与改造前一字不改） */
   matchedViaSecondary: boolean
   /** 已到达题数（waiting/streaming 的计数行） */
@@ -55,18 +55,23 @@ const LINE2 = 'text-[0.75rem] text-v2-text-secondary leading-relaxed'
 
 /**
  * 骨架头部的状态化标题（两端共用文案，只有字号不同）。
+ * 结果形态按产品方 2026-08-03 定稿分三种情况：有高匹配（现状标题）、只有中匹配（「暂无完美匹配」，
+ * 中匹配自动展开）、高中都没有（lowMatch，与 noMatch 共用「暂无可用匹配」）。
  * @param phase        当前页面形态
  * @param totalVisible 可见题数（只有 streaming / result 两态会用到）
+ * @param hasHigh      本次匹配【跨所有 Part】有没有高匹配。按全局判而不按当前 Tab 判：
+ *                     这是结果级属性，切 Part 时标题不该跟着跳
  * @returns            该状态下的页面主标题
  */
-export function matchTitle(phase: MatchPhase, totalVisible: number): string {
+export function matchTitle(phase: MatchPhase, totalVisible: number, hasHigh: boolean): string {
   switch (phase) {
     case 'waiting':   return '正在为你匹配题目'
     case 'streaming': return `已找到 ${totalVisible} 道，还在继续找`
-    case 'result':    return `匹配到 ${totalVisible} 道当季真题`
-    // 「没有能用这段语料回答的题」：这几道低分题不是备选，是「确实翻遍题库了」的佐证
-    case 'lowMatch':  return '没有能用这段语料回答的题'
-    case 'noMatch':   return '题库里还没有这类题'
+    // 情况二：没有高匹配、只有中匹配——不再宣称「匹配到 N 道」，如实说没有完美的
+    case 'result':    return hasHigh ? `匹配到 ${totalVisible} 道当季真题` : '暂无完美匹配'
+    // 情况三/四共用：低分题只是「确实翻遍题库了」的佐证，一道没召回时更是如此
+    case 'lowMatch':  return '暂无可用匹配'
+    case 'noMatch':   return '暂无可用匹配'
     case 'degraded':  return '题目找到了，排序没算出来'
     case 'error':     return '题目没匹配出来'
     case 'limit':     return '今天的匹配次数用完了'
@@ -104,7 +109,7 @@ export function MatchDimensionLine({ phase, primary, secondary, className }: {
  * @returns 恒在同一位置的说明卡（role=status，状态变化由读屏 polite 播报）
  */
 export default function MatchStatusNote({
-  phase, className, cardClassName, primary, secondary, matchedViaSecondary,
+  phase, className, cardClassName, secondary, hasHigh, matchedViaSecondary,
   arrivedCount, candidateCount, slowHint, missingCorpus, onRetry,
 }: Props): JSX.Element {
   const pending = phase === 'waiting' || phase === 'streaming'
@@ -126,8 +131,8 @@ export default function MatchStatusNote({
         ) : (
           <Body
             phase={phase}
-            primary={primary}
             secondary={secondary}
+            hasHigh={hasHigh}
             matchedViaSecondary={matchedViaSecondary}
             missingCorpus={missingCorpus}
             offline={offline}
@@ -142,10 +147,10 @@ export default function MatchStatusNote({
  * 各定稿状态的说明文案（waiting/streaming 不走这里，它们卡里是进度条）。
  * @returns 一到两行说明
  */
-function Body({ phase, primary, secondary, matchedViaSecondary, missingCorpus, offline }: {
+function Body({ phase, secondary, hasHigh, matchedViaSecondary, missingCorpus, offline }: {
   phase: MatchPhase
-  primary: MatchedPoint | null
   secondary: MatchedPoint | null
+  hasHigh: boolean
   matchedViaSecondary: boolean
   missingCorpus: boolean
   offline: boolean
@@ -168,6 +173,10 @@ function Body({ phase, primary, secondary, matchedViaSecondary, missingCorpus, o
           </>
         )
       }
+      // 情况二：没有高匹配、只有中匹配。标题已说「暂无完美匹配」，这里给出路（换角度即可用）
+      if (!hasHigh) {
+        return <p className={LINE1}>换个角度，可以匹配到下面这些题目。</p>
+      }
       return (
         <>
           <p className={`${LINE1} mb-1`}>下面这些题，都可以用你刚才那段语料来回答</p>
@@ -177,19 +186,12 @@ function Body({ phase, primary, secondary, matchedViaSecondary, missingCorpus, o
 
     case 'lowMatch':
       // 【只有一行】。这几道低分题是「我们确实翻遍题库了」的佐证，不是备选题 ——
-      // 多写一句「可以先挑一道试试」就等于把用不上的题当备选推给用户。出路交给下方的主 CTA。
+      // 多写一句「可以先挑一道试试」就等于把用不上的题当备选推给用户。出路是底部的「回到首页」文字链接。
       return <p className={LINE1}>下面几道是最接近的，列出来给你确认一下。</p>
 
     case 'noMatch':
-      return (
-        <>
-          <p className={`${LINE1} mb-1`}>这一季的题目里，没有能承接这个故事的题</p>
-          <p className={LINE2}>
-            {primary ? `没有题目落在${primary.dimension} · ${primary.pointName}这个方向上。` : ''}
-            换个角度重讲一遍，或者讲件别的事，通常就能对上。
-          </p>
-        </>
-      )
+      // 与 lowMatch 共用同一套定调（标题已相同），只是这次连「最接近的几道」都没有可列
+      return <p className={LINE1}>题库里没有能列出来的相近题目。</p>
 
     case 'degraded':
       return (
