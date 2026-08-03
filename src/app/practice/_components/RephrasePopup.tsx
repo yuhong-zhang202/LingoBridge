@@ -102,10 +102,12 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
                     （否则「刚才失败了」与「正在重试」会同屏并存、自相矛盾）。 */}
                 {canRetry && (
                   <div className="mt-2">
+                    {/* py-3 而非紧凑档 py-2.5：13px × 行高1.5 = 19.5 + py-2.5(20) + 描边 1.5×2 ≈ 39.5px，低于 44px
+                        触控目标推荐值；改 py-3 得约 43.5px。弹窗自身有 maxHeight + 内层滚动区，加高 4px 由滚动吸收 */}
                     <GradientButton
                       onClick={onRetry}
                       aria-label="重新生成优化建议"
-                      className="px-5 py-2.5 rounded-full text-[0.8125rem] font-medium whitespace-nowrap"
+                      className="px-5 py-3 rounded-full text-[0.8125rem] font-medium whitespace-nowrap"
                     >
                       再试一次
                     </GradientButton>
