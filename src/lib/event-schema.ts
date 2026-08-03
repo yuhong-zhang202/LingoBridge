@@ -128,7 +128,8 @@ export type ClientEventPropsMap = {
   'flow.capture_started': { mode: CaptureMode }
   'flow.capture_submitted': {
     mode: CaptureMode
-    outcome: CaptureOutcome | undefined
+    /** 本次提交的结局。【必填】漏传等于这次提交在结局分布里凭空消失，是本次收敛要挡的头号哑故障。 */
+    outcome: CaptureOutcome
     /** 语音路径的录音时长(秒) */
     durationSec?: number
     /** 文字路径的字数（只记长度，绝不带正文——隐私铁律） */
@@ -152,10 +153,10 @@ export type ClientEventPropsMap = {
   'flow.ai_call': {
     stage: AiStage
     /**
-     * 本次调用结局。⚠️ 目前是可选：唯一没带它的调用点是 qa-flag-client-events.test.ts 里那条只验
-     * normalize 取整的用例。业务代码【每条路径都必须带】—— 少了它这次调用在结局分布里凭空消失。
+     * 本次调用结局。【必填】少了它，这次调用就在 AI 结局分布里凭空消失 —— 而那份分布正是
+     * 「服务端记不到的失败」（403/402/429/503/网络）的唯一可见渠道，漏一条就少看见一次真实故障。
      */
-    result?: AiResult
+    result: AiResult
     /** 语音/文字路径（transcribe 阶段隐含 voice，故不强制） */
     mode?: CaptureMode
     /** HTTP 状态码；网络失败/超时等无状态码的场景传 0 */

@@ -169,16 +169,19 @@ describe('C) track → apiFetch 真实请求形态', () => {
 describe('D) track —— 取整、丢空、错误不外溢', () => {
   test('数字统一 Math.round（服务端只收整数，浮点会被静默丢弃）', async () => {
     setup('', 'tok-123')
-    track('flow.ai_call', { stage: 'transcribe', latencyMs: 1234.6, httpStatus: 200 })
+    track('flow.ai_call', { stage: 'transcribe', result: 'ok', latencyMs: 1234.6, httpStatus: 200 })
     await flush()
-    expect(JSON.parse(fetchInit().body).props).toEqual({ stage: 'transcribe', latencyMs: 1235, httpStatus: 200 })
+    expect(JSON.parse(fetchInit().body).props).toEqual({ stage: 'transcribe', result: 'ok', latencyMs: 1235, httpStatus: 200 })
   })
 
   test('undefined 字段丢弃、非有限数丢弃', async () => {
     setup('', 'tok-123')
-    track('flow.capture_submitted', { mode: 'voice', outcome: undefined, durationSec: Number.NaN, charCount: Infinity })
+    // 用【可选】字段演示 undefined 被丢：durationSec/charCount 才是真实调用里可能缺省的那种。
+    // 刻意不再拿 outcome 演示 —— 它是必填契约字段，漏传就等于这次提交在结局分布里消失，
+    // 让它可传 undefined 等于把本次收敛要挡的那类哑故障重新放行（见 event-schema 同名条目）。
+    track('flow.capture_submitted', { mode: 'voice', outcome: 'proceed', durationSec: Number.NaN, charCount: Infinity })
     await flush()
-    expect(JSON.parse(fetchInit().body).props).toEqual({ mode: 'voice' })
+    expect(JSON.parse(fetchInit().body).props).toEqual({ mode: 'voice', outcome: 'proceed' })
   })
 
   test('fetch 抛错不外溢（埋点失败对调用方完全无感）', async () => {
