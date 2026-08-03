@@ -23,9 +23,6 @@ import { track } from '@/lib/client-events'
 // 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
 import type { CaptureOutcome, AiResult } from '@/lib/event-schema'
 
-// CaptureOutcome 继续从本模块转出：/write 的 onOutcome 回调一直从这里 import，不改调用方引用路径。
-export type { CaptureOutcome }
-
 interface UseStorySubmitArgs {
   /** 待提交的故事文本 */
   text: string
