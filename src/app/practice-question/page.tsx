@@ -282,7 +282,7 @@ function PracticeQuestionContent(): JSX.Element {
       {/* 建新故事额度已满：只在点「添加语料」时弹，关闭即回本页正常态（仍可练已有语料）。
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuota.blockedVariant && (
-        <QuotaReached variant={storyQuota.blockedVariant} asOverlay onClose={storyQuota.dismiss} />
+        <QuotaReached variant={storyQuota.blockedVariant} surface="practice_question" asOverlay onClose={storyQuota.dismiss} />
       )}
 
       {/* 麦克风权限弹层：没权限时引导去设置或改用文字 */}

@@ -312,11 +312,11 @@ function RecordingContent(): JSX.Element {
         </FlowShellDesktop>
       </div>
       {/* 匿名整理额度用尽：试用结束覆盖层，关闭即回首页 */}
-      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={() => router.push('/')} />}
+      {quotaReached && <QuotaReached variant="trial" surface="recording" asOverlay onClose={() => router.push('/')} />}
       {/* 建新故事额度已满：点「完成」时才弹，关闭即回首页（录音已停，无法继续本条）。
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuotaVariant && (
-        <QuotaReached variant={storyQuotaVariant} asOverlay onClose={() => router.push('/')} />
+        <QuotaReached variant={storyQuotaVariant} surface="recording" asOverlay onClose={() => router.push('/')} />
       )}
     </>
   )

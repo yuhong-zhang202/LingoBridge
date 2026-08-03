@@ -173,10 +173,10 @@ function WriteContent(): JSX.Element {
       {/* 建新故事额度已满：只在点「提交」/「切换到语音」时弹，关闭即回写作页正常态（已写内容不丢）。
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuota.blockedVariant && (
-        <QuotaReached variant={storyQuota.blockedVariant} asOverlay onClose={storyQuota.dismiss} />
+        <QuotaReached variant={storyQuota.blockedVariant} surface="write" asOverlay onClose={storyQuota.dismiss} />
       )}
       {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
-      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={dismissQuota} />}
+      {quotaReached && <QuotaReached variant="trial" surface="write" asOverlay onClose={dismissQuota} />}
     </>
   )
 }

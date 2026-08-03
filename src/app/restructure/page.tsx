@@ -318,7 +318,7 @@ function RestructureContent() {
         onCancel={() => setConfirm(null)}
       />
       {/* 额度超限覆盖层：变体由服务端 402 reason 决定（trial 引导注册 / story 月额度）；关闭即回首页 */}
-      {storyQuota && <QuotaReached variant={storyQuota} asOverlay onClose={() => router.push('/')} />}
+      {storyQuota && <QuotaReached variant={storyQuota} surface="restructure" asOverlay onClose={() => router.push('/')} />}
       {/* 匿名点存题卡（401）：注册引导小模态；关闭回本页（语料与整理结果不丢） */}
       {ankiGate && <AnkiRegisterGate onClose={() => setAnkiGate(false)} />}
       {/* 该题已绑别的语料（409）：换语料对比弹窗。新语料 = 刚 ensure 的这条，客户端有其一句话概括 */}

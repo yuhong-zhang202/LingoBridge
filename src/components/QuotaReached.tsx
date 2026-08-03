@@ -7,6 +7,10 @@
  *           视觉规格沿用 EmptyState（Orb size=120 + 标题/副文 v2 token + 渐变描边胶囊 CTA），额度行照 profile QuotaCard。
  *           asOverlay 模式为真模态：role="dialog" + aria-modal + 焦点移入/陷阱 + Esc 关闭，
  *           保证键盘与读屏用户不会被遮罩困住（此前遮罩仅鼠标可达）。
+ *
+ *   埋点（P2 额度转化）：挂载报 quota.reached（一次显示只报一次，ref 守卫），层内每个出口报 quota.cta
+ *   （含点遮罩/Esc 的 close）—— 两者相除即「额度弹层把多少人吓走了 / 多少人因此去注册」。
+ *   一律 fire-and-forget，且 CTA 必须【先报再执行动作】：跳转/关闭会立刻卸载本组件。
  * @author   LingoBridge
  * @created  2026-06-18
  */
@@ -21,6 +25,8 @@ import { nextMonthFirstLabel } from '@/lib/date'
 import { ANON_CORPUS_LIMIT } from '@/lib/constants'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
+import { track } from '@/lib/client-events'
+import type { QuotaCta, QuotaSurface } from '@/lib/event-schema'
 
 interface QuotaLineProps {
   label: string
@@ -65,6 +71,13 @@ function QuotaLine({ label, used, limit, fillClass, loading, highlight }: QuotaL
 interface Props {
   /** story：故事月额度用完；ielts：雅思复练月额度用完；trial：匿名试用结束（引导注册，非月额度）。 */
   variant: 'story' | 'ielts' | 'trial'
+  /**
+   * 本弹层出现在哪个界面 —— 只用于埋点分面（quota.reached / 转化率按界面拆开看），不影响任何渲染。
+   * ⚠️ 语义上【每个调用点都该传】；类型上刻意留可选，是因为 matching/page.tsx 那个调用点
+   * 在本次改动窗口里被另一条改动线占用、不能碰。未传 = 该事件的 surface 字段缺失，
+   * 会在看板「额度弹层界面」一栏计入「(未上报)」—— 可见、不静默。补 matching 时删掉本段说明。
+   */
+  surface?: QuotaSurface
   /** 浮层模式（盖在当前页之上时使用）。inline 时不传，直接铺在父容器里。 */
   asOverlay?: boolean
   /** asOverlay 时点遮罩/关闭逻辑（如取消触发的复练操作） */
@@ -72,13 +85,15 @@ interface Props {
   className?: string
 }
 
-export default function QuotaReached({ variant, asOverlay, onClose, className }: Props) {
+export default function QuotaReached({ variant, surface, asOverlay, onClose, className }: Props) {
   const { navigate } = useNav() // 额度弹层内的 CTA 跳页走 navigate → 点击即亮顶部进度条
   // 两个维度的真实当月用量（null=尚未取回）；quotaFailed=取数失败 → 退回不带数字的中性文案（不谎报）。
   const [storyUsed, setStoryUsed]   = useState<number | null>(null)
   const [reviewUsed, setReviewUsed] = useState<number | null>(null)
   const [quotaFailed, setQuotaFailed] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+  /** 「本次显示已报过 quota.reached」守卫：effect 因重渲染重跑时不许重复计数（照首页 textCaptureStartedRef 范式） */
+  const reachedReportedRef = useRef(false)
 
   // 触发侧一定已满（服务端就是因它超额才 402）；对侧由实拉用量判定。用量未回/失败时按 variant 兜底。
   const storyDone  = storyUsed  !== null ? storyUsed  >= STORY_MONTHLY_LIMIT : variant === 'story'
@@ -90,6 +105,30 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
     const root = panelRef.current
     if (!root) return []
     return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
+  }
+
+  // 挂载即报「额度弹层显示了」= 转化漏斗里「被拦住的人数」那一格（分母）。
+  // ref 守卫：一次显示只报一次，重渲染导致 effect 重跑不再计数（否则分母虚高、转化率被低估）。
+  // fire-and-forget：不 await、不进任何条件、不影响渲染。
+  useEffect(() => {
+    if (reachedReportedRef.current) return
+    reachedReportedRef.current = true
+    track('quota.reached', { variant, surface })
+  }, [variant, surface])
+
+  /**
+   * 报一次弹层内的点击出口。【必须在实际动作之前调用】——跳转/关闭会立刻卸载本组件。
+   * @param cta 点了哪个出口
+   * @sideEffect 上报 quota.cta（fire-and-forget，失败静默）
+   */
+  const reportCta = (cta: QuotaCta): void => {
+    track('quota.cta', { variant, cta })
+  }
+
+  /** 关闭弹层：先报 close（「被吓走」那一格），再执行调用方的关闭动作。 */
+  const handleClose = (): void => {
+    reportCta('close')
+    onClose?.()
   }
 
   // 浮层打开时把焦点移入首个 CTA：键盘/读屏用户否则仍停在被遮罩的背景页上。
@@ -117,7 +156,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   }, [variant])
 
   // 「练雅思题」跳题库题目列表，让用户自选题目；复练拦截/计数由列表里"练习"按钮负责
-  const handlePracticeIelts = () => navigate('/question-bank')
+  const handlePracticeIelts = () => { reportCta('practice_ielts'); navigate('/question-bank') }
 
   // trial：匿名试用结束态，面向注册转化，文案讲清「试用总量 ↔ 注册后每月额度」两套口径，绝不显示月额度谎报。
   const trialBody = (
@@ -131,7 +170,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
       </p>
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <GradientButton
-          onClick={() => navigate('/login')}
+          onClick={() => { reportCta('register'); navigate('/login') }}
           className="px-6 py-3 rounded-full text-[0.875rem] font-medium"
         >
           注册 / 登录
@@ -152,7 +191,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
         </GradientButton>
       )}
       {!storyDone && (
-        <GradientButton onClick={() => navigate('/')} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
+        <GradientButton onClick={() => { reportCta('new_story'); navigate('/') }} className="px-6 py-3 rounded-full text-[0.875rem] font-medium">
           讲个故事
         </GradientButton>
       )}
@@ -163,7 +202,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   const quotaFooter = (
     <>
       <button
-        onClick={() => navigate('/profile')}
+        onClick={() => { reportCta('profile'); navigate('/profile') }}
         className="text-[0.8125rem] text-v2-text-secondary underline underline-offset-2 mt-6 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1"
       >
         额度明细可在「我的 › 本月额度」查看
@@ -213,7 +252,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
 
   // Esc 关闭 + Tab 焦点陷阱：模态期间焦点不得逃逸到被遮罩的背景页。
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); return }
+    if (e.key === 'Escape') { e.stopPropagation(); handleClose(); return }
     if (e.key !== 'Tab') return
     const items = focusables()
     if (items.length === 0) return
@@ -230,7 +269,7 @@ export default function QuotaReached({ variant, asOverlay, onClose, className }:
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      onClick={onClose}
+      onClick={handleClose}
       onKeyDown={handleKeyDown}
     >
       <div

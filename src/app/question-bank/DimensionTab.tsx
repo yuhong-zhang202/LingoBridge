@@ -202,7 +202,7 @@ export default function DimensionTab({ scoreById, progressById, corpusCount, dim
       })()}
 
       {reviewQuotaShown && (
-        <QuotaReached variant="ielts" asOverlay onClose={dismissReviewQuota} />
+        <QuotaReached variant="ielts" surface="question_bank" asOverlay onClose={dismissReviewQuota} />
       )}
     </div>
   )

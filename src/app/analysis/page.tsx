@@ -283,6 +283,7 @@ function AnalysisContent() {
       {quotaShown && (
         <QuotaReached
           variant="trial"
+          surface="analysis"
           asOverlay
           onClose={quotaShown === 'phrases' ? () => setQuotaShown(null) : () => router.push('/')}
         />

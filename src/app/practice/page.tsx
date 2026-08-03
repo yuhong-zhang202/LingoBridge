@@ -585,7 +585,7 @@ function PracticeContent(): JSX.Element {
   // 额度超限覆盖层：初始化时（练习无法开始）与对话中途（撞轮次/ASR 上限）共用，关闭即返回上一页。
   // 变体由服务端 402 reason 决定（trial 引导注册 / ielts 月额度），匿名绝不会误显示月额度谎报。
   const quotaOverlay = quotaVariant
-    ? <QuotaReached variant={quotaVariant} asOverlay onClose={() => router.back()} />
+    ? <QuotaReached variant={quotaVariant} surface="practice" asOverlay onClose={() => router.back()} />
     : null
 
   // 单挂载：桌面 = FlowShellDesktop（练习步激活）包 PracticeDesktop；否则移动端。绝不两套同挂。

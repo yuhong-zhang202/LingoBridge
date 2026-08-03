@@ -205,11 +205,11 @@ export default function HomePage() {
         onDismiss={() => setMicSheet(null)}
       />
       {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
-      {quotaReached && <QuotaReached variant="trial" asOverlay onClose={dismissQuota} />}
+      {quotaReached && <QuotaReached variant="trial" surface="home" asOverlay onClose={dismissQuota} />}
       {/* 建新故事额度已满：只在点「开始录音」/「文本输入」/ 桌面「或用文字输入」时弹，关闭即回首页正常态。
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuota.blockedVariant && (
-        <QuotaReached variant={storyQuota.blockedVariant} asOverlay onClose={storyQuota.dismiss} />
+        <QuotaReached variant={storyQuota.blockedVariant} surface="home" asOverlay onClose={storyQuota.dismiss} />
       )}
     </>
   )
