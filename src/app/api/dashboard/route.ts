@@ -17,6 +17,9 @@ import {
   fetchRetention, fetchRegistration, fetchDailyRegistrations, fetchActiveRegistered,
   fetchCoreActive, fetchWindowCoreActive, fetchActivation, fetchWeeklyRetention,
 } from '@/lib/db/dashboard-metrics'
+// 「有新反馈吗」待办清单读取（未处理全量 + 已处理近 20）：同样抽出成帮手守 <1000 行红线；
+// 三态自降级（迁移 0055 未跑 → 近 7 天只读；读表异常 → loadFailed），绝不让主看板 500。
+import { fetchDashboardFeedback } from '@/lib/db/dashboard-feedback'
 
 const SERVICE_META: Record<string, { name: string; color: string }> = {
   doubao_asr:    { name: '豆包 ASR',      color: '#D4875A' },
@@ -351,6 +354,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     const activationPromise    = fetchActivation(supabase, rangeDays)
     // W1 首周留存（0047）：null = 迁移未跑/出错，前端漏斗④主区降级、D1/D7 对照行仍由旧 retention 承担。
     const weeklyRetentionPromise = fetchWeeklyRetention(supabase, rangeDays)
+    // 用户反馈待办清单（不随区间选择器变）：与主查询并发、自带三态降级（见 dashboard-feedback 顶注）。
+    const feedbackPromise = fetchDashboardFeedback(supabase)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -821,8 +826,13 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 激活漏斗 / W1 首周留存（0047，与主查询并发、自带降级）：null = 迁移 0047 未跑/出错，前端漏斗对应段走降级态。
     const activation      = await activationPromise
     const weeklyRetention = await weeklyRetentionPromise
+    // 反馈待办（并发结果，自带降级、恒有值）：未处理全量 + 已处理近 20 + handledSupported / loadFailed 标记。
+    const feedback = await feedbackPromise
 
     return NextResponse.json({
+      // 用户反馈待办清单（「有新反馈吗」区块）：handledSupported=false 表示迁移 0055 未跑、前端退化只读；
+      // 条目 user_id 已被服务端截前 8 位、context.email 只进本管理员接口（PII 红线，勿再转发/落日志）。
+      feedback,
       allTimeCost,
       allTimeCalls,
       monthCost,

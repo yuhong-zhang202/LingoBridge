@@ -17,6 +17,7 @@ import type { ReactNode } from 'react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
 import Card           from '@/components/Card'
 import HeroMetrics    from '@/components/dashboard/HeroMetrics'
+import FeedbackTodoList, { type FeedbackTodoPayload } from '@/components/dashboard/FeedbackTodoList'
 import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
 import EngagementTrendChart from '@/components/dashboard/EngagementTrendChart'
 import CostCards     from '@/components/dashboard/CostCards'
@@ -98,6 +99,9 @@ type DashboardData = {
   recentLogs: RecentLog[]
   costlyLogs: RecentLog[]
   failedLogs: RecentLog[]
+  // 用户反馈待办清单（「有新反馈吗」区块，不随区间选择器变）：服务端三态自降级、恒有值；
+  // 旧部署的 API 可能没有该字段，故标可选，组件对 undefined 走「加载失败」态兜底。
+  feedback?: FeedbackTodoPayload
 }
 
 const RANGES = ['7d', '14d', '30d'] as const
@@ -547,6 +551,9 @@ export default function DashboardPage() {
           avgDailyCost7:         data.todayStatus.avgDailyCost7,
           dailyBudget:           data.dailyBudget,
         }} />
+
+        {/* ── 「有新反馈吗」待办清单（Hero 之下、「出事了吗」之上；今日/全量口径，不随区间选择器变）── */}
+        <FeedbackTodoList feedback={data.feedback} />
 
         {/* ── 区间选择器 + 口径注脚（只作用于下方四个折叠区；首屏四数卡恒为今日口径）── */}
         <div className="flex items-center justify-between mb-2 gap-3">
