@@ -10,13 +10,14 @@
  * @created  2026-07-09
  */
 'use client'
-import { type JSX, useState, useEffect, useRef, Suspense } from 'react'
+import { type JSX, useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getQuestionById } from '@/lib/db/questions'
 import { computeRichness } from '@/lib/story-richness'
 import { track } from '@/lib/client-events'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
+import { useCaptureAbandon } from '@/hooks/useCaptureAbandon'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import Toast from '@/components/Toast'
@@ -33,56 +34,30 @@ function WriteContent(): JSX.Element {
   const qid = useSearchParams().get('qid')
   const [textStory, setTextStory] = useState('')
   const [questionContext, setQuestionContext] = useState<WriteQuestionContext | null>(null)
-  // 埋点用状态（不参与渲染/分支，故用 ref）：
-  //   submittedRef  是否已【离开采集态】—— 口径对齐录音页（recording/page.tsx 只在 proceed 时置真）：
-  //                 被 garbage / text_too_short 打回时人还在本页、还在写，此时关页走人就是真放弃，
-  //                 必须能报出 capture_abandoned。此前「点过提交就永久置真」会把这批人全屏蔽掉，
-  //                 而「被打回后放弃」恰恰是最该看见的一格（text 路径放弃率会系统性偏低）。
-  //   abandonedRef  放弃事件全生命周期只报一次 —— pagehide 与卸载可能先后触发
-  //   textRef       卸载时要读当时的字数，而放弃 effect 是空依赖（只挂一次），故用 ref 同步
-  const submittedRef = useRef(false)
-  const abandonedRef = useRef(false)
-  const textRef = useRef('')
-  useEffect(() => { textRef.current = textStory }, [textStory])
+  // 采集开始 / 中途放弃埋点（口径全在 hook 里，与 /recording 共用同一份，绝不在页面里另抄）。
+  // 本页【不报 capture_submitted】—— 已由 useStorySubmit 覆盖，这里再报就是双计。
+  // measure 在卸载那一刻才调用（hook 内部用 ref 取最新引用），故这里直接读 textStory、无须自建 ref。
+  // charCount 只记【长度】，绝不带正文（隐私铁律）。
+  const { markSubmitted } = useCaptureAbandon({
+    mode: 'text',
+    measure: () => ({ charCount: textStory.trim().length }),
+  })
 
-  // onOutcome：submit() 内部才知道本次结局，靠它把 submittedRef 与真实结局对齐（打回则复位）。
-  // proceed / quota_blocked / consent_blocked 三种都会把用户带离本页或就地终结本次采集 → 置真；
-  // garbage / text_too_short 是「打回重写」→ 复位为假。纯通知，不参与 useStorySubmit 的任何分支。
+  // onOutcome：submit() 内部才知道本次结局，靠它把「是否已离开采集态」与真实结局对齐（打回则复位）。
+  // 口径对齐录音页（recording/page.tsx 只在 proceed 时置真）：proceed / quota_blocked / consent_blocked
+  // 三种都会把用户带离本页或就地终结本次采集 → 置真；garbage / text_too_short 是「打回重写」，
+  // 人还在本页、还在写，此时关页走人就是真放弃 → 复位为假，否则这批人被全屏蔽掉，
+  // 而「被打回后放弃」恰恰是最该看见的一格（text 路径放弃率会系统性偏低）。
+  // 纯通知，不参与 useStorySubmit 的任何分支。
   const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({
     text: textStory,
     qid,
-    onOutcome: (outcome) => { submittedRef.current = outcome !== 'garbage' && outcome !== 'text_too_short' },
+    onOutcome: (outcome) => { markSubmitted(outcome !== 'garbage' && outcome !== 'text_too_short') },
   })
 
   // 建新故事额度守卫（匿名试用总条数 / 注册用户月额度，共享 hook）：挂载只预取不渲染，
   // 写作页始终正常显示，提示只在用户点「提交」/「切换到语音」时才弹。
   const storyQuota = useStoryQuotaGuard()
-
-  // 采集开始 / 中途放弃埋点。放弃的两条出口都要盯：站内跳走（组件卸载）与关标签页/切后台（pagehide）；
-  // 后者页面随时会被冻结，必须走 keepalive 的 fetch（sendBeacon 设不了 Authorization 头，见 client-events 顶注）。
-  // 本页【不报 capture_submitted】—— 已由 useStorySubmit 覆盖，这里再报就是双计。
-  useEffect(() => {
-    track('flow.capture_started', { mode: 'text' })
-    const reportAbandon = (exit: 'nav' | 'pagehide'): void => {
-      if (submittedRef.current || abandonedRef.current) return
-      abandonedRef.current = true
-      track(
-        'flow.capture_abandoned',
-        { mode: 'text', exit, charCount: textRef.current.trim().length },
-        exit === 'pagehide' ? { keepalive: true } : undefined,
-      )
-    }
-    // persisted=true ＝ 页面进 bfcache（iOS 切后台/后退最常见），用户很可能马上回来接着写。
-    // 此时报 abandoned 会双错：把「回来了的人」算成放弃，且 abandonedRef 被用掉后他【真放弃时反而不报】。
-    // 故只在 persisted=false（真正卸载）时报。代价是 iOS 上一部分真放弃收不到，abandoned 偏低——
-    // 宁可偏低：偏低能用「有 capture_started 但此后 24h 无任何事件」推断口径补，偏高则无从分辨。
-    const onPageHide = (e: PageTransitionEvent): void => { if (!e.persisted) reportAbandon('pagehide') }
-    window.addEventListener('pagehide', onPageHide)
-    return () => {
-      window.removeEventListener('pagehide', onPageHide)
-      reportAbandon('nav')
-    }
-  }, [])
 
   /** 「提交」入口：先核额度，未超额才走共享提交流程 */
   async function handleSubmit(): Promise<void> {
@@ -91,10 +66,10 @@ function WriteContent(): JSX.Element {
       // 那边的 quota_blocked 无人上报 → /write 的额度拦截会在漏斗里凭空消失（看着像用户自己没提交）。
       // 录音页守卫在 handleFinish 内部、由同一函数上报，不存在这个问题；只有本页要单独补。
       track('flow.capture_submitted', { mode: 'text', outcome: 'quota_blocked', charCount: textStory.trim().length })
-      submittedRef.current = true   // 已判定结局，离开页面不再叠报「放弃」
+      markSubmitted()   // 已判定结局，离开页面不再叠报「放弃」
       return
     }
-    // 这里【不】置 submittedRef —— 结局未定（可能被 garbage / text_too_short 打回、人还在页面上）。
+    // 这里【不】调 markSubmitted —— 结局未定（可能被 garbage / text_too_short 打回、人还在页面上）。
     // 置真/复位一律交给上面的 onOutcome，与 useStorySubmit 上报的结局同一时刻、同一个值。
     submit()
   }

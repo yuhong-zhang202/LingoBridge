@@ -15,6 +15,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { apiFetch } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
+import { useCaptureAbandon } from '@/hooks/useCaptureAbandon'
 import { useNav } from '@/components/NavProgress'
 import RecordingMobile from './RecordingMobile'
 import RecordingDesktop from './RecordingDesktop'
@@ -59,36 +60,12 @@ function RecordingContent(): JSX.Element {
   // 进页面即开始录音
   useEffect(() => { void start() }, [start])
 
-  // 埋点用状态（不参与任何渲染/分支判断，故用 ref）：
-  //   submittedRef  本次是否已提交成功（capture_submitted='proceed'）—— 提交成功的人不算「放弃」
-  //   abandonedRef  放弃事件全生命周期只报一次 —— pagehide 与卸载可能先后触发，不挡会报两条
-  const submittedRef = useRef(false)
-  const abandonedRef = useRef(false)
-
-  // 采集开始 / 中途放弃埋点。放弃的两条出口都要盯：站内跳走（组件卸载）与关标签页/切后台（pagehide）；
-  // 后者页面随时会被冻结，必须走 keepalive 的 fetch（sendBeacon 设不了 Authorization 头 → 全 401，见 client-events 顶注）。
-  useEffect(() => {
-    track('flow.capture_started', { mode: 'voice' })
-    const reportAbandon = (exit: 'nav' | 'pagehide'): void => {
-      if (submittedRef.current || abandonedRef.current) return
-      abandonedRef.current = true
-      track(
-        'flow.capture_abandoned',
-        { mode: 'voice', exit, durationSec: Math.round(secondsRef.current) },
-        exit === 'pagehide' ? { keepalive: true } : undefined,
-      )
-    }
-    // persisted=true ＝ 页面进 bfcache（iOS 切后台/后退最常见），用户很可能马上回来接着录。
-    // 此时报 abandoned 会双错：把「回来了的人」算成放弃，且 abandonedRef 被用掉后他【真放弃时反而不报】。
-    // 故只在 persisted=false（真正卸载）时报。代价是 iOS 上一部分真放弃收不到，abandoned 偏低——
-    // 宁可偏低：偏低能用「有 capture_started 但此后 24h 无任何事件」推断口径补，偏高则无从分辨。
-    const onPageHide = (e: PageTransitionEvent): void => { if (!e.persisted) reportAbandon('pagehide') }
-    window.addEventListener('pagehide', onPageHide)
-    return () => {
-      window.removeEventListener('pagehide', onPageHide)
-      reportAbandon('nav')
-    }
-  }, [])
+  // 采集开始 / 中途放弃埋点（口径全在 hook 里，与 /write 共用同一份，绝不在页面里另抄）。
+  // measure 在卸载那一刻才调用，故读 secondsRef 而非 seconds state。
+  const { markSubmitted } = useCaptureAbandon({
+    mode: 'voice',
+    measure: () => ({ durationSec: Math.round(secondsRef.current) }),
+  })
 
   // 卸载（用户跳页）时中断未完成的转写/整理请求，防护卸载后 setState
   const abortRef = useRef<AbortController | null>(null)
@@ -116,7 +93,7 @@ function RecordingContent(): JSX.Element {
     const reportSubmit = (outcome: CaptureOutcome): void => {
       if (submitReported) return
       submitReported = true
-      if (outcome === 'proceed') submittedRef.current = true   // 已成功提交 → 卸载时不再算「放弃」
+      if (outcome === 'proceed') markSubmitted()   // 已成功提交 → 卸载时不再算「放弃」
       track('flow.capture_submitted', { mode: 'voice', outcome, durationSec: Math.round(secondsRef.current) })
     }
     let transcribeReported = false
@@ -293,7 +270,7 @@ function RecordingContent(): JSX.Element {
       setError(e instanceof Error ? e.message : '转写失败，请重试')
       setTranscribing(false)
     }
-  }, [stop, router, qid, checkStoryQuota])
+  }, [stop, router, qid, checkStoryQuota, markSubmitted])
 
   const handleRerecord = useCallback(async () => {
     await stop()
