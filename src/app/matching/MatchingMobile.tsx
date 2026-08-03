@@ -111,14 +111,15 @@ export default function MatchingMobile({
           onRetry={onRetry}
         />
 
-        {/* ③ Part 筛选槽：恒占 30px 高（Chip md 实际渲染高约 28px，26px 会裁掉「全部 / Part 1」的下沿），
-            避免 chips 出现/消失时下面整列上下跳 */}
-        <div className="h-[30px] mb-5 flex items-center gap-2 flex-wrap overflow-hidden">
+        {/* ③ Part 筛选槽：恒占 2rem 高。【必须用 rem 不能用 px】：Chip 字号是 rem，会随设置页字体档
+            （--fs-scale 最大 1.15）联动放大——实测标准档 chip 恰好 30px，特大档约 32.7px，
+            px 定高 + overflow-hidden 正是「全部」下沿被裁的成因。rem 槽随档同缩放，任何档位都不裁 */}
+        <div className="h-[2rem] mb-5 flex items-center gap-2">
           {phase === 'waiting' && (
             <span className="flex gap-2" aria-hidden="true">
-              <Skeleton className="w-12 h-[28px] rounded-full" />
-              <Skeleton className="w-16 h-[28px] rounded-full" />
-              <Skeleton className="w-16 h-[28px] rounded-full" />
+              <Skeleton className="w-12 h-[1.875rem] rounded-full" />
+              <Skeleton className="w-16 h-[1.875rem] rounded-full" />
+              <Skeleton className="w-16 h-[1.875rem] rounded-full" />
             </span>
           )}
           {/* 低相关态不渲染 chips：lowShown 不经 Part 筛选，渲染出来就是个点了没反应的死控件 */}

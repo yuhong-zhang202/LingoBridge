@@ -119,7 +119,9 @@ export default function MatchStatusNote({
   return (
     // role/aria-live 挂在外层而非 <Card>：Card 是全站共用组件，不为本页给它开 a11y 属性口子。
     <div role="status" aria-live="polite" className={cn('shrink-0', className)}>
-      <Card className={cardClassName}>
+      {/* 短文案终态在卡内【垂直居中】（产品方真机验收：min-h 撑出的下方留白让文字看着顶在上沿）；
+          waiting/streaming 的进度条内容多、自然撑满，保持块布局不受影响 */}
+      <Card className={cn(cardClassName, !pending && 'flex flex-col justify-center')}>
         {pending ? (
           // ⚠️ 唯一一处 MatchingProgress：waiting 与 streaming 共用它，切换 phase 时不重挂载、进度条不倒退
           <MatchingProgress

@@ -192,19 +192,27 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
 /**
  * 终态动作面板：Orb + 可选说明 + 一个渐变 CTA。noMatch / degraded / error 共用
  * （limit 无卡片：产品方拍板 429 页做到最简，只留标题 + 说明卡 + 底部文字出口）。
+ * @param roomy degraded / error 这两张没有说明文字的卡传 true：orb 与内边距放大、按钮加大，
+ *              否则在 1440 宽屏上只有一颗 100px orb + 小按钮，卡内空得压不住（产品方真机验收）
  */
-function ExitPane({ title, note, label, onAction }: {
+function ExitPane({ title, note, label, roomy = false, onAction }: {
   title?: string
   note?: string
   label: string
+  roomy?: boolean
   onAction: () => void
 }): JSX.Element {
   return (
-    <Card className="flex flex-col items-center justify-center text-center px-8 py-10">
-      <Orb size={100} pulse={false} />
+    <Card className={`flex flex-col items-center justify-center text-center px-8 ${roomy ? 'py-16' : 'py-10'}`}>
+      <Orb size={roomy ? 130 : 100} pulse={false} />
       {title && <p className="text-[0.9375rem] font-medium text-v2-text-primary mt-5">{title}</p>}
-      {note && <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[280px] leading-relaxed">{note}</p>}
-      <GradientButton onClick={onAction} className="mt-5 min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 rounded-full text-[0.875rem] font-medium">
+      {note && <p className="text-[0.8125rem] text-v2-text-secondary mt-2 max-w-[300px] leading-relaxed">{note}</p>}
+      <GradientButton
+        onClick={onAction}
+        className={`min-h-[44px] inline-flex items-center justify-center rounded-full font-medium ${
+          roomy ? 'mt-7 px-8 py-3 text-[0.9375rem]' : 'mt-5 px-6 py-2.5 text-[0.875rem]'
+        }`}
+      >
         {label}
       </GradientButton>
     </Card>
@@ -310,19 +318,21 @@ export default function MatchingDesktop({
             <div className="flex-1 min-h-0 flex flex-col justify-center items-center">
               <div className="w-full max-w-[560px]">
                 {phase === 'noMatch' && (
+                  // 文案不再建议「换个角度」：换角度能沾边的话就该有中匹配或低匹配，
+                  // 一道都没召回说明这个故事本身和题库对不上，建议换角度是误导（产品方论证定稿）
                   <ExitPane
-                    title="换个角度，重新讲一遍"
-                    note="同一件事，换个重点讲，往往就能对上题库里的题。"
+                    title="换个故事试试"
+                    note="这个故事和当季题库对不上。可以试试分享其他经历，或者在首页切到雅思题模式，直接挑题来讲。"
                     label="回到首页"
                     onAction={onExit}
                   />
                 )}
-                {phase === 'degraded' && <ExitPane label="重新匹配" onAction={onRetry} />}
+                {phase === 'degraded' && <ExitPane roomy label="重新匹配" onAction={onRetry} />}
                 {phase === 'error' && (
                   // F10：缺 corpusId 时重试永远无效（页面根本不知道该匹配哪段语料），出口换成回首页
                   missingCorpus
-                    ? <ExitPane label="回到首页" onAction={onExit} />
-                    : <ExitPane label="重试" onAction={onRetry} />
+                    ? <ExitPane roomy label="回到首页" onAction={onExit} />
+                    : <ExitPane roomy label="重试" onAction={onRetry} />
                 )}
                 {/* limit：这里刻意什么都不放（页面做到最简），退路是底部提示行的「回到首页」文字链接 */}
               </div>
@@ -331,13 +341,15 @@ export default function MatchingDesktop({
             <>
               {/* 左·题目列表 */}
               <div className="w-[360px] shrink-0 flex flex-col min-h-0">
-                {/* Part 筛选槽：恒占 30px（Chip md 实际渲染高约 28px，26px 会裁掉下沿），
-                    避免 chips 出现/消失时下面整列上下跳 */}
-                <div className="h-[30px] shrink-0 mb-4 flex items-center gap-2 flex-wrap overflow-hidden">
+                {/* Part 筛选槽：恒占 2rem 高。【必须用 rem 不能用 px】：Chip 字号是 rem，会随设置页字体档
+                    （--fs-scale 最大 1.15）联动放大——实测标准档 chip 恰好 30px，特大档约 32.7px，
+                    px 定高 + overflow-hidden 正是「全部」下沿被裁的成因。rem 槽随档同缩放，任何档位都不裁；
+                    三枚 chips 总宽远不到换行线，无需 wrap 与 overflow 裁剪 */}
+                <div className="h-[2rem] shrink-0 mb-4 flex items-center gap-2">
                   {phase === 'waiting' && (
                     <span className="flex gap-2" aria-hidden="true">
-                      <Skeleton className="w-12 h-[28px] rounded-full" />
-                      <Skeleton className="w-16 h-[28px] rounded-full" />
+                      <Skeleton className="w-12 h-[1.875rem] rounded-full" />
+                      <Skeleton className="w-16 h-[1.875rem] rounded-full" />
                     </span>
                   )}
                   {/* 低相关态不渲染 chips：lowShown 不经 Part 筛选，渲染出来就是个点了没反应的死控件 */}
