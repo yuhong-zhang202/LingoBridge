@@ -316,8 +316,25 @@ function PracticeContent(): JSX.Element {
 
   /** 发一次 /api/transcribe，按响应码分流（见方案分流表）。blob 从 pendingBlobRef 现构 FormData。 */
   const runTranscribeAttempt = useCallback(async () => {
+    // ——— 本次转写调用的埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 【每次尝试各记一条】503 排队重试与失败态「重试转写」都会重走本函数、自然再报一条：
+    // 那确实是又一次真实的服务端调用（也是唯一能看见「排队重试到底重了几次、最后成没成」的渠道），
+    // 故不跨次去重；去重只在本次调用内（防同一次被 catch 再记一遍）。
+    // 本请求不带 signal（转写一旦发出就等回来，跳页也不撤），故无 aborted 分支。
+    let t0: number | null = null
+    let reported = false
+    /**
+     * 转写这一次调用的结局：只报一条，且【只在请求真发出过（t0 已置位）之后】才报。
+     * 两个条件缺一不可：不挡重复，读体/解析抛出的错会被下面的 catch 再记一遍同一次调用；
+     * 不挡 t0，「无 blob」这类请求还没发就早退的路会被记成 network，等于凭空造一次没发生的调用。
+     */
+    const reportTranscribe = (result: AiResult, httpStatus: number): void => {
+      if (reported || t0 === null) return
+      reported = true
+      track('flow.ai_call', { stage: 'transcribe', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
     const blob = pendingBlobRef.current
-    if (!blob) { setPhase('idle'); return }   // 兜底：无 blob 不该走到这
+    if (!blob) { setPhase('idle'); return }   // 兜底：无 blob 不该走到这（请求未发出 → 不记 ai_call）
     try {
       // 每次现构 FormData：body 被消费过不可复用（重试/文字取消后重发都要新构一份）
       const form = new FormData()
@@ -333,20 +350,37 @@ function PracticeContent(): JSX.Element {
         form.append('blobBytes', String(blob.size))
       }
       // multipart：传 body（非 json），apiFetch 不设 Content-Type，交浏览器自动带 boundary
+      t0 = performance.now()
       const tr = await apiFetch('/api/transcribe', { method: 'POST', body: form })
       // 服务端同意闸拒绝（403）：回首页触发同意弹窗。
-      if (tr.status === 403) { router.push('/'); return }
+      // 【服务端不记账】403/402/429/503 都在 logApiUsage 之前裸 return，成本看板完全看不见 —— 只有这条埋点能看见。
+      if (tr.status === 403) { reportTranscribe('consent_403', 403); router.push('/'); return }
       // 额度用尽（402，匿名撞 ASR 试用上限）：走配额提示。清 blob（这段不再重试）。
       // ASR 402 是匿名 only（注册走 429）→ 恒 trial（引导注册）。
-      if (tr.status === 402) { pendingBlobRef.current = null; setQuotaVariant('trial'); setPhase('idle'); return }
+      if (tr.status === 402) { reportTranscribe('quota_402', 402); pendingBlobRef.current = null; setQuotaVariant('trial'); setPhase('idle'); return }
       // ASR_BUSY（503，并发闸「人多」）：不是坏了，几秒后自动重试就能成 → 按 Retry-After 头排队重试。
       if (tr.status === 503) {
+        reportTranscribe('busy_503', 503)
         const retryAfter = Number(tr.headers.get('Retry-After')) || 0
         scheduleRetry(retryAfter)
         return
       }
       if (!tr.ok) {
         const errData = (await tr.json().catch(() => ({}))) as { code?: string }
+        // 结局按 code 优先（EMPTY_TRANSCRIPT 服务端发 422，与 recording 页同款判法：状态码换了仍命中），
+        // 其余按状态码归档；httpStatus 一律传真实状态码。埋在下面各 return 之前。
+        reportTranscribe(
+          errData.code === 'EMPTY_TRANSCRIPT'
+            ? 'empty_422'
+            : tr.status === 429
+              ? 'rate_429'
+              : tr.status === 400
+                ? 'bad_input_400'
+                : tr.status === 401
+                  ? 'auth_401'
+                  : tr.status >= 500 ? 'server_5xx' : 'other',
+          tr.status,
+        )
         // 空录音（422 EMPTY_TRANSCRIPT）：唯一保留「再说一遍」的分支——录到了音但没人声，是输入问题。清 blob。
         if (errData.code === 'EMPTY_TRANSCRIPT') {
           pendingBlobRef.current = null
@@ -359,10 +393,14 @@ function PracticeContent(): JSX.Element {
         return
       }
       const { text } = (await tr.json()) as { text: string }
+      reportTranscribe('ok', 200)
       pendingBlobRef.current = null
       void sendReply(text)
     } catch {
       // 网络中断等：留 blob，进失败双选
+      // 到此只剩真·网络 reject（与响应体解析失败）：非 2xx 已在上面按状态码分流报过、被自去重挡住；
+      // 请求压根没发出（无 blob）的路走不到这，t0 为 null 时 helper 自会闭嘴。
+      reportTranscribe('network', 0)
       setPhase('transcribeFailed')
     }
   }, [router, scheduleRetry, sendReply])
