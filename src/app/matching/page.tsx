@@ -14,6 +14,9 @@ import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
+// AI 调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
+// 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
+import type { AiResult } from '@/lib/event-schema'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
 import { SCORE_HIGH, SCORE_MID, LOW_MATCH_SHOW_MAX, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { useAccount } from '@/hooks/useAccount'
@@ -131,10 +134,30 @@ function MatchingContent() {
     let cancelled = false
     const ac = new AbortController()
 
+    // ——— 本次匹配的 AI 调用埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
+    // 【一次 effect = 用户视角的一次匹配尝试 = 恰好一条 ai_call】，而不是「一条 HTTP 请求一条」：
+    // 流式失败后降级重发 ?stream=0 对用户完全无感（只是没逐条冒），两条 HTTP 合起来才是他等的那一次。
+    // 故 reportAi 自去重、且【只在终态分支调用】（降级中途不报），结局取用户最终拿到的那个。
+    // t0 记在首个请求发出前、涵盖降级重发 —— 用户等的总时长就是它。
+    let t0: number | null = null
+    let aiReported = false
+    /**
+     * 这次匹配的结局，只报一条。两个条件缺一不可：不挡重复，!res.ok 抛出的错会被 catch 再记一遍同一次调用；
+     * 不挡 t0，请求还没发出就被卸载（cleanup 报 aborted）会凭空造出一次没发生过的调用。
+     */
+    const reportAi = (result: AiResult, httpStatus: number): void => {
+      if (aiReported || t0 === null) return
+      aiReported = true
+      track('flow.ai_call', { stage: 'matching', result, httpStatus, latencyMs: performance.now() - t0 })
+    }
+
     // done 帧 / 缓冲降级的整份结果：结果定稿，写 result + 选中首题 + 已存态 + 关联萃取 + 置流式完成标志。
     // 与旧的一次性成功分支逐字等价（只是从 res.json() 挪成 done 帧数据 / ?stream=0 数据）。
     const applyFinal = (data: FunnelResult): void => {
       if (cancelled) return
+      // 流式 done 与 ?stream=0 降级成功共用此函数 → 成功只在这一处报，两条路径口径天然一致。
+      // 放在 cancelled 之后：结果到了但页面已卸载，用户没看到，那次算 aborted（由 cleanup 报）。
+      reportAi('ok', 200)
       setResult(data)
       setSelectedId(data.questions[0]?.id ?? null)
       // 已存态初值来自服务端 ankiSaved（匿名一律 false）——书签直接呈现「已存/未存」，不必再单独查一次。
@@ -150,11 +173,13 @@ function MatchingContent() {
 
     // 三个转化/限流状态与现状一字不变（无论流式还是 ?stream=0 回来都在读体前先判 status）。
     // 命中即处理并返回 true（调用方据此终止，不再降级/不报错）。
+    // 三个终态各先报一条 ai_call 再处理：这三类【服务端裸 return、logApiUsage 一条不记】，
+    // 不在这里报就等于「用户被同意闸/额度闸/日限闸拦下」这三件事在数据里完全不存在。
     const handleTerminalStatus = (res: Response): boolean => {
       // 三个终态都必须置 loading=false：否则视图把「当日上限」横幅门控在 !loading 后，429 会永久转圈、提示不出（回归修复）。
-      if (res.status === 403) { if (!cancelled) { setLoading(false); router.push('/') } return true }   // 同意闸：回首页触发同意弹窗
-      if (res.status === 402) { if (!cancelled) { setLoading(false); setQuotaShown(true) } return true } // 匿名额度用尽：注册引导
-      if (res.status === 429) { if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return true } // 注册当日上限：明天恢复
+      if (res.status === 403) { reportAi('consent_403', 403); if (!cancelled) { setLoading(false); router.push('/') } return true }   // 同意闸：回首页触发同意弹窗
+      if (res.status === 402) { reportAi('quota_402', 402); if (!cancelled) { setLoading(false); setQuotaShown(true) } return true } // 匿名额度用尽：注册引导
+      if (res.status === 429) { reportAi('rate_429', 429); if (!cancelled) { setLoading(false); setDailyLimitHit(true) } return true } // 注册当日上限：明天恢复
       return false
     }
 
@@ -165,8 +190,10 @@ function MatchingContent() {
       let meta: FunnelStreamMeta | null = null
       try {
         // ── 默认流式 SSE：meta 先到搭骨架，question 逐条追加（数字悄悄往上跳），done 定稿 ──
+        t0 = performance.now()
         const res = await apiFetch('/api/matching', { method: 'POST', json: { corpusId }, signal: ac.signal })
         if (handleTerminalStatus(res)) return
+        // 这里【刻意不报】：本次尝试还没完，下面 catch 会降级重发 ?stream=0，结局由那条路径给。
         if (!res.ok) throw new Error('匹配失败')   // 开流前的非配额错误 → 交 catch 降级重发 ?stream=0
         await readMatchingSSE(res, {
           onMeta: (m) => { meta = m },
@@ -193,15 +220,30 @@ function MatchingContent() {
         try {
           const res = await apiFetch('/api/matching?stream=0', { method: 'POST', json: { corpusId }, signal: ac.signal })
           if (handleTerminalStatus(res)) return
-          if (!res.ok) throw new Error('匹配失败')
+          if (!res.ok) {
+            // 降级也失败 = 本次尝试的最终结局，在 throw 之前报（throw 进下面 catch 会被记成 network，
+            // 那是凭空造故障：请求明明到了服务端并拿到了状态码）。400=corpusId 空/语料无正文。
+            reportAi(
+              res.status === 400 ? 'bad_input_400'
+                : res.status === 401 ? 'auth_401'
+                  : res.status >= 500 ? 'server_5xx' : 'other',
+              res.status,
+            )
+            throw new Error('匹配失败')
+          }
           applyFinal((await res.json()) as FunnelResult)
         } catch (e2) {
+          // 中断由 cleanup 统一报 aborted（不计失败），此处不报。
           if (ac.signal.aborted || cancelled) return
+          // 真·网络 reject（请求没到 / 连接断）。上面按状态码分流的分支已报过，reportAi 自去重挡住。
+          reportAi('network', 0)
           if (!cancelled) { setError(e2 instanceof Error ? e2.message : '匹配失败'); setLoading(false) }
         }
       }
     })()
-    return () => { cancelled = true; ac.abort() }
+    // 卸载/重试：请求发出过但没走到任何终态 = 用户没等结果就走了 → aborted（不计失败）。
+    // 已报过结局的（成功/各类失败）被 reportAi 自去重挡住，不会多记一条。
+    return () => { cancelled = true; reportAi('aborted', 0); ac.abort() }
   }, [corpusId, retryKey, router])
 
   // 拉本页会话语料的概括，填 409 换语料弹窗的「新语料」。失败静默降级为 null（弹窗回退中性占位），
