@@ -323,6 +323,11 @@ export function AiOutcomeBlock({ state }: { state: FlowHealthState }) {
         const bridge = computeBridge(d.aiCall)
         return (
           <Block title="AI 调用结局分布" note="用户视角的尝试与结局 · 来自客户端埋点">
+            {/* 口径边界（自原 Hero「计费失败」卡移入，信息不许丢）：计费口径（上方失败柱/明细）
+                看不见用户被 403/402/429/503 挡在门外与网络失败——那五类只在本块（埋点口径）可见 */}
+            <div className="text-[0.625rem] text-v2-text-muted mb-3 leading-relaxed">
+              用户侧早退（未同意 / 额度 / 日限 / 并发满）与网络失败不产生计费，上方失败柱与明细表看不见它们，只在本块可见。
+            </div>
             {d.truncated && <TruncatedAlert />}
             <AttributionGrid stages={d.aiCall} />
 

@@ -1,11 +1,15 @@
 'use client'
 /**
  * @module   dashboard/CollapsibleSection
- * @desc     看板 Tier2 折叠分组外壳 —— 用原生 <details>/<summary>，无需 JS 状态即可展开收起，
- *           读屏与键盘天然可达。summary 命中区 ≥44px，右侧 chevron 展开时旋转 180°。
+ * @desc     看板 Tier2 折叠分组外壳 —— 用原生 <details>/<summary>，读屏与键盘天然可达。
+ *           summary 命中区 ≥44px，右侧 chevron 展开时旋转 180°。
+ *           open 走「非受控 + 惰性 useState 只算一次的初始值」（模式与理由同 FeedbackTodoList 顶注）：
+ *           defaultOpen 可为数据驱动值（如「今日有失败才展开」）；初始值终身不变 → React diff 恒等、
+ *           不会回写 DOM，用户手动开合与锚点跳转的展开都天然保留，无需受控 open。
  * @author   LingoBridge
  * @created  2026-07-25
  */
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 /**
@@ -22,8 +26,10 @@ export default function CollapsibleSection({
 }: {
   title: string; subtitle?: string; rangeBadge?: string; defaultOpen?: boolean; children: ReactNode
 }) {
+  // 初始 open 只算一次（本组件在看板数据到达后才挂载，defaultOpen 首帧即为真值）
+  const [open] = useState(defaultOpen)
   return (
-    <details open={defaultOpen} className="group bg-white rounded-[16px] border border-black/[0.05] mb-3 overflow-hidden">
+    <details open={open} className="group bg-white rounded-[16px] border border-black/[0.05] mb-3 overflow-hidden">
       <summary className="flex items-center gap-2 min-h-[44px] px-4 cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
         <span className="text-[0.8125rem] font-semibold text-v2-text-primary">{title}</span>
         {subtitle && <span className="text-[0.6875rem] text-v2-text-muted">{subtitle}</span>}

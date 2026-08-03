@@ -1,13 +1,15 @@
 'use client'
 /**
  * @module   dashboard/page
- * @desc     Admin 经营看板 — 首屏 Hero 四数卡（今日活跃/练习/计费失败/成本，今日口径）
- *           + 四个问句式折叠区（所选区间口径）。不含 TabBar/TopBar，仅管理员可见。
+ * @desc     Admin 经营看板（2026-08-04 重设计稿）— 顶部「今日结论条」（今天有没有事要处理）
+ *           + Hero 三卡（今日新增注册/核心活跃/练习场次，今日口径）+ 五个问句式折叠区（所选区间口径）。
+ *           不含 TabBar/TopBar，仅管理员可见。
  *
- *   【信息架构：默认只显示"不正常的"，正常的折成一行摘要】这是个日活 1-2 人的系统，
- *   很多格子的值是个位数甚至 0 ——「0 是常态而不是异常」，所以四区只有「出事了吗」默认展开
- *   （原先反过来：天天不动的增长默认展开、真出事的地方默认收起）。标题一律用问句：
- *   ① 出事了吗 ② 钱花在哪 ③ 用户走到哪 ④ 看板自己还准吗（识别优于回忆）。
+ *   【信息架构】折叠区顺序按产品方拍板优先级钉死：有新反馈吗 → 用户走到哪 → 出事了吗 →
+ *   钱花在哪 → 看板自己还准吗。刻意不做「有事时物理位置提前」的动态排序（单人日读用户会形成
+ *   位置记忆，跳变破坏可预期性）；有事的引导由结论条锚点承担。各区收起态 summary 带常驻结论数字。
+ *   「出事了吗」的 defaultOpen 数据驱动（今日有计费失败才默认展开），open 走惰性 useState
+ *   只算一次模式（见 CollapsibleSection 顶注）。
  *
  * @author   LingoBridge
  * @created  2026-06-04
@@ -17,7 +19,9 @@ import type { ReactNode } from 'react'
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts'
 import Card           from '@/components/Card'
 import HeroMetrics    from '@/components/dashboard/HeroMetrics'
+import TodayVerdictBar from '@/components/dashboard/TodayVerdictBar'
 import FeedbackTodoList, { type FeedbackTodoPayload } from '@/components/dashboard/FeedbackTodoList'
+import { ANCHOR_FAILURE_DETAIL, ANCHOR_FEEDBACK, ANCHOR_COST, ANCHOR_LATENCY } from '@/lib/dashboard-verdict'
 import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
 import EngagementTrendChart from '@/components/dashboard/EngagementTrendChart'
 import CostCards     from '@/components/dashboard/CostCards'
@@ -512,6 +516,19 @@ export default function DashboardPage() {
   const todayPeakHour   = data?.hourlyData.reduce((m, h) => (h.calls > m.calls ? h : m), { hour: '', calls: 0 })
     ?? { hour: '', calls: 0 }
 
+  // ── 各区收起态 summary 的常驻结论数字（方案 §一骨架）──
+  // ①区：本期系统故障次数（区间口径）+ flow_events「该我们修」桶（同为区间口径，两者同源可并列；
+  //      它刻意不进「今日」口径的结论条，理由见 dashboard-verdict 顶注）。flow 未到/失败时省略该段。
+  const rangeFailures = data?.dailyFailures.reduce((s, d) => s + d.failures, 0) ?? 0
+  const fh = flow.data
+  const oursTotal = fh ? fh.aiCall.reduce((s, st) => s + st.ourSide, 0) : null
+  const incidentSubtitle = `本期失败 ${rangeFailures} 次${oursTotal != null ? ` · 该我们修 ${oursTotal}` : ''}`
+  // ④区：埋点事件健康一句话（与 FlowSelfCheckBlock 的 dead 判定同式）；flow 未到时退回静态说明
+  const deadEvents = fh ? fh.eventCounts.filter(e => e.known && e.count === 0 && e.qaCount === 0).length : null
+  const selfCheckSubtitle = fh && deadEvents != null
+    ? (deadEvents === 0 ? `埋点 ${fh.eventCounts.length} 事件全通` : `埋点 ${deadEvents} 个事件疑似归零`)
+    : '埋点健康 · 枚举覆盖 · 技术明细'
+
   return (
     <main className="max-w-[1400px] mx-auto px-4 md:px-10 pt-8 pb-12">
       {/* 顶部标题 */}
@@ -537,25 +554,31 @@ export default function DashboardPage() {
       )}
 
       {data && !loading && !denied && !error && (<>
-        {/* ── 首屏 Hero 四数卡（今日口径，不随下方区间变）── */}
-        <HeroMetrics data={{
-          registeredActiveToday: data.registeredActiveToday,
-          anonSessionsToday:     data.anonSessionsToday,
-          practiceNew:           data.practiceNew,
-          practiceReview:        data.practiceReview,
-          practiceTotal:         data.practiceTotal,
-          todayFailuresByPhase:  data.todayFailuresByPhase,
-          todayFailuresTotal:    data.todayFailuresTotal,
-          emptyRecordingToday:   data.emptyRecordingToday,
-          todayCost:             data.todayCost,
-          avgDailyCost7:         data.todayStatus.avgDailyCost7,
-          dailyBudget:           data.dailyBudget,
+        {/* ── 今日结论条（今天有没有事要处理；四判定源与锚点见 dashboard-verdict 顶注）── */}
+        <TodayVerdictBar input={{
+          todayFailuresTotal: data.todayFailuresTotal,
+          topFailurePhase:    data.todayFailuresByPhase[0]?.phase ?? null,
+          // 反馈数据加载失败时按 0 处理：不虚报「有反馈要处理」（反馈区自己会显「加载失败」）
+          unhandledFeedback:  data.feedback && !data.feedback.loadFailed ? data.feedback.unhandledCount : 0,
+          todayCost:          data.todayCost,
+          avgDailyCost7:      data.todayStatus.avgDailyCost7,
+          dailyBudget:        data.dailyBudget,
+          slowestPhase:       data.todayStatus.slowestPhase,
+          latencyWarnMs:      data.latencyWarnMs,
         }} />
 
-        {/* ── 「有新反馈吗」待办清单（Hero 之下、「出事了吗」之上；今日/全量口径，不随区间选择器变）── */}
-        <FeedbackTodoList feedback={data.feedback} />
+        {/* ── 首屏 Hero 三数卡（注册 / 活跃 / 练习，今日口径，不随下方区间变）── */}
+        <HeroMetrics data={{
+          newRegistrationsToday:   data.newRegistrationsToday,
+          newRegistrationsPending: data.newRegistrationsPending,
+          registeredActiveToday:   data.registeredActiveToday,
+          anonSessionsToday:       data.anonSessionsToday,
+          practiceNew:             data.practiceNew,
+          practiceReview:          data.practiceReview,
+          practiceTotal:           data.practiceTotal,
+        }} />
 
-        {/* ── 区间选择器 + 口径注脚（只作用于下方四个折叠区；首屏四数卡恒为今日口径）── */}
+        {/* ── 区间选择器 + 口径注脚（只作用于下方各折叠区；首屏三数卡恒为今日口径）── */}
         <div className="flex items-center justify-between mb-2 gap-3">
           <div className="text-[0.8125rem] font-semibold text-v2-text-primary">明细（可展开）</div>
           <div className="flex bg-white rounded-full border border-black/[0.05] p-0.5 gap-0.5 flex-shrink-0" role="group" aria-label="时间范围">
@@ -569,31 +592,85 @@ export default function DashboardPage() {
         </div>
         {/* 口径注脚缩成一句：细分口径已跟着各区块的 rangeBadge 与卡内小字走，不必在顶部再铺一段 */}
         <div className="text-[0.625rem] text-v2-text-muted mb-3">
-          上方四数卡＝今日（东八区日历边界）；下方各区＝所选区间（{RANGE_LABEL[range]}）。
+          上方三数卡＝今日（东八区日历边界）；下方各区＝所选区间（{RANGE_LABEL[range]}）。
         </div>
 
-        {/* ① 出事了吗（默认展开）：每日故障柱 + AI 结局分布（埋点口径）+ 失败环节 + 失败明细 + 耗时。
-            AI 结局分布并进本区、与故障柱并排 —— 计费口径看不见的五类失败全在那块（产品方拍板）。 */}
-        <CollapsibleSection title="出事了吗" subtitle="计费故障 · AI 结局 · 失败环节 · 耗时"
-          rangeBadge={rangeBadge} defaultOpen>
+        {/* ① 有新反馈吗（第一区，产品方拍板优先级最高；全量口径、不随区间选择器变）。
+            锚点包裹（tabIndex=-1 接受移焦）：结论条「反馈 N 条未处理」chip 跳到这里并展开。 */}
+        <div id={ANCHOR_FEEDBACK} tabIndex={-1}>
+          <FeedbackTodoList feedback={data.feedback} />
+        </div>
+
+        {/* ② 用户走到哪（默认收起）：增长漏斗（注册→激活→核心活跃→W1 留存）+ 参与度趋势。
+            日活 1-2 人时这几个数天天不动，不该占默认展开位。 */}
+        <CollapsibleSection title="用户走到哪" subtitle="注册 → 激活 → 核心活跃 → 首周留存"
+          rangeBadge={rangeBadge}>
+          {/* 增长漏斗：③ 窗口核心活跃跟随区间选择器（近 N 天） */}
+          <GrowthFunnel data={data} windowDays={windowDays} />
+          {/* 今日新增注册 / 匿名活跃 / 假空率：漏斗下方三张并列独立小卡（今日口径，文案/口径沿用原样）。
+              窄屏按小卡 min-w 自然换行（同旧「增长」组行为）。 */}
+          <div className="flex flex-wrap gap-2.5 mt-3">
+            {/* 今日新增注册：真注册口径（RPC 可用时）；newRegistrationsPending 为真=RPC 未接入、暂用 profiles 计数（含匿名·虚高），走降级文案 */}
+            <Card className="flex-1 min-w-[140px] px-4 py-4">
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日新增注册</div>
+              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
+              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
+                {data.newRegistrationsPending
+                  ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
+                  : '只计真注册（非匿名·有邮箱），东八区'}
+              </div>
+            </Card>
+            {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
+            <Card className="flex-1 min-w-[140px] px-4 py-4">
+              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日匿名活跃</div>
+              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
+              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
+            </Card>
+            {data.fakeEmpty
+              ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
+              : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
+          </div>
+          {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
+          <div className="mt-4">
+            <div className="text-[0.75rem] font-medium text-v2-text-secondary mb-2">参与度趋势 · 核心活跃人数 + 练习场次 + 新增注册</div>
+            {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
+              ? <EngagementTrendChart data={data.engagementTrend} />
+              : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
+          </div>
+        </CollapsibleSection>
+
+        {/* ③ 出事了吗（defaultOpen 数据驱动：今日有计费失败才默认展开，结论条会点名）：
+            每日故障柱 + AI 结局分布（埋点口径）+ 失败环节 + 失败明细 + 耗时。 */}
+        <CollapsibleSection title="出事了吗" subtitle={incidentSubtitle}
+          rangeBadge={rangeBadge} defaultOpen={data.todayFailuresTotal > 0}>
+          {/* 空录音摘要行（自原 Hero 失败卡副行移入，上次误报来源、信息不许丢）：今日口径 */}
+          <div className="text-[0.6875rem] text-v2-text-muted mb-2">
+            今日空录音 {data.emptyRecordingToday} 次 · 不算故障（用户输入问题，钱已花但服务是好的）
+          </div>
           <DailyFailureChart data={data.dailyFailures} />
           <div className="mt-4">
             <AiOutcomeBlock state={flow} />
             {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本（计费口径） */}
             <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
-            {/* 失败明细表：本区只给失败视图（每日故障图的下钻出口），最近/最贵归「看板自己还准吗」 */}
-            <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
-              views={['failed']} defaultMode="failed" />
-            {/* 性能耗时并入本区内层：慢也是一种"出事了"，但它不该和故障并列占一个顶层区 */}
-            <div className="mt-4">
+            {/* 失败明细表：本区只给失败视图（每日故障图的下钻出口），最近/最贵归「看板自己还准吗」。
+                锚点包裹：结论条「计费失败 N 次」chip 的落点。 */}
+            <div id={ANCHOR_FAILURE_DETAIL} tabIndex={-1}>
+              <RecentCallsTable recentLogs={data.recentLogs} costlyLogs={data.costlyLogs} failedLogs={data.failedLogs}
+                views={['failed']} defaultMode="failed" />
+            </div>
+            {/* 性能耗时并入本区内层：慢也是一种"出事了"，但它不该和故障并列占一个顶层区。
+                锚点包裹：结论条「{环节}变慢」chip 的落点。 */}
+            <div id={ANCHOR_LATENCY} tabIndex={-1} className="mt-4">
               <PhaseLatencyPanel phases={data.phaseLatency} trend={data.latencyTrend}
                 cutoffLabel={data.latencyCutoff} latencyWarnMs={data.latencyWarnMs} />
             </div>
           </div>
         </CollapsibleSection>
 
-        {/* ② 钱花在哪（默认收起）：费用卡 · 趋势 · 按服务 / 环节 / 用户 · 单价参考 */}
-        <CollapsibleSection title="钱花在哪" subtitle="费用卡 · 趋势 · 按服务 / 环节 / 用户"
+        {/* ④ 钱花在哪（默认收起）：费用卡 · 趋势 · 按服务 / 环节 / 用户 · 单价参考。
+            锚点包裹：结论条成本黄灯 chip 的落点；summary 常驻「今日 ¥x · 本月 ¥y」（撤 Hero 成本卡的去向）。 */}
+        <div id={ANCHOR_COST} tabIndex={-1}>
+        <CollapsibleSection title="钱花在哪" subtitle={`今日 ${formatCny(data.todayCost)} · 本月 ${formatCny(data.monthCost)}`}
           rangeBadge={rangeBadge}>
           {/* 本月 + 累计（+ 今日）费用卡：日历口径 */}
           <CostCards data={data} />
@@ -640,48 +717,11 @@ export default function DashboardPage() {
             </div>
           </div>
         </CollapsibleSection>
+        </div>
 
-        {/* ③ 用户走到哪（默认收起）：增长漏斗（注册→激活→核心活跃→W1 留存）+ 参与度趋势。
-            日活 1-2 人时这几个数天天不动，不该占默认展开位。 */}
-        <CollapsibleSection title="用户走到哪" subtitle="注册 → 激活 → 核心活跃 → 首周留存"
-          rangeBadge={rangeBadge}>
-          {/* 增长漏斗：③ 窗口核心活跃跟随区间选择器（近 N 天） */}
-          <GrowthFunnel data={data} windowDays={windowDays} />
-          {/* 今日新增注册 / 匿名活跃 / 假空率：漏斗下方三张并列独立小卡（今日口径，文案/口径沿用原样）。
-              窄屏按小卡 min-w 自然换行（同旧「增长」组行为）。 */}
-          <div className="flex flex-wrap gap-2.5 mt-3">
-            {/* 今日新增注册：真注册口径（RPC 可用时）；newRegistrationsPending 为真=RPC 未接入、暂用 profiles 计数（含匿名·虚高），走降级文案 */}
-            <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日新增注册</div>
-              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.newRegistrationsToday}</div>
-              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">
-                {data.newRegistrationsPending
-                  ? '含匿名·待迁移生效（RPC 未接入，暂用 profiles 计数）'
-                  : '只计真注册（非匿名·有邮箱），东八区'}
-              </div>
-            </Card>
-            {/* 匿名口径改诚实：匿名 user_id 按设备持久去重、非唯一真人（同一人换设备/清缓存会重复），绝不与注册相加 */}
-            <Card className="flex-1 min-w-[140px] px-4 py-4">
-              <div className="text-[0.6875rem] text-v2-text-muted mb-1">今日匿名活跃</div>
-              <div className="text-[1.5rem] font-bold text-v2-text-primary leading-none tabular-nums">{data.anonSessionsToday}</div>
-              <div className="text-[0.625rem] text-v2-text-muted mt-1.5">去重身份 · 按设备持久 · 非唯一真人</div>
-            </Card>
-            {data.fakeEmpty
-              ? <FakeEmptyStat fakeEmpty={data.fakeEmpty} threshold={data.fakeEmptyThreshold} />
-              : <PendingPlaceholder title="假空率" reason="区间内暂无带采集信号的空录音（埋点口径生效前无数据），有空录音发生后自动显示真实占比。" />}
-          </div>
-          {/* 参与度趋势（活跃 + 场次 + 新增注册 三线；新增注册线在迁移未跑/降级时不渲染）并入本组 */}
-          <div className="mt-4">
-            <div className="text-[0.75rem] font-medium text-v2-text-secondary mb-2">参与度趋势 · 核心活跃人数 + 练习场次 + 新增注册</div>
-            {data.engagementTrend.some(d => d.activeUsers > 0 || d.practiceSessions > 0)
-              ? <EngagementTrendChart data={data.engagementTrend} />
-              : <div className="text-v2-text-muted text-[0.75rem] h-[180px] flex items-center justify-center">本期暂无参与度数据</div>}
-          </div>
-        </CollapsibleSection>
-
-        {/* ④ 看板自己还准吗（默认收起，沉到最底）：埋点健康 + 枚举取值覆盖 + 技术明细。
+        {/* ⑤ 看板自己还准吗（默认收起，沉到最底）：埋点健康 + 枚举取值覆盖 + 技术明细。
             这一区回答的是"我的传感器还活着吗"，与产品健康分开，一周看一次即可。 */}
-        <CollapsibleSection title="看板自己还准吗" subtitle="埋点健康 · 枚举覆盖 · 技术明细"
+        <CollapsibleSection title="看板自己还准吗" subtitle={selfCheckSubtitle}
           rangeBadge={rangeBadge}>
           {/* 埋点自检（flow_events 口径）：与「出事了吗」里的 AI 结局分布同源，父层只拉一次 */}
           <FlowSelfCheckBlock state={flow} />
