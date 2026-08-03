@@ -367,10 +367,12 @@ function PracticeContent(): JSX.Element {
       }
       if (!tr.ok) {
         const errData = (await tr.json().catch(() => ({}))) as { code?: string }
-        // 结局按 code 优先（EMPTY_TRANSCRIPT 服务端发 422，与 recording 页同款判法：状态码换了仍命中），
+        // 结局按 code 优先（与 recording 页同款判法：服务端换了状态码仍命中），并【按 422 兜底】——
+        // 上一行读体带 .catch(()=>({}))，体读不出来时 code 为 undefined，只认 code 会把空录音记成 other。
+        // 注意此处只影响埋点归档：下面的 UI 分支仍只认 code（体读失败时进失败双选，是既有行为，不动）。
         // 其余按状态码归档；httpStatus 一律传真实状态码。埋在下面各 return 之前。
         reportTranscribe(
-          errData.code === 'EMPTY_TRANSCRIPT'
+          errData.code === 'EMPTY_TRANSCRIPT' || tr.status === 422
             ? 'empty_422'
             : tr.status === 429
               ? 'rate_429'
