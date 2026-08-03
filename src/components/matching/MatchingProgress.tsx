@@ -33,7 +33,7 @@ interface Props {
   arrivedCount?: number
   /** 本次候选总数（SSE meta 帧）。?stream=0 降级路没有 meta 帧，此时为 null，计数行整行不渲染，不显示假分母 */
   candidateCount?: number | null
-  /** 强制显示超时兜底行。不传时由内部计时（> 75 秒）自行判定；mock 演示用它免去真等 75 秒 */
+  /** 强制显示超时兜底行（只认 true）。默认由内部计时（> 75 秒）判定；mock 演示用它免去真等 75 秒 */
   slowHint?: boolean
   /** 超时兜底的「重新匹配」出口。注意重试会真的再跑一次模型（多一次 AI 费用 + 多计一次当日配额），
    *  故做成低强度文本按钮放在说明卡里，不做显眼 CTA */
@@ -69,7 +69,9 @@ export default function MatchingProgress({
   // 计数行与进度条【并行】，绝不拿计数驱动进度条：候选数在 meta 帧后才知道，
   // 用它反推百分比会让进度条在半路倒退。
   const showCount = arrivedCount != null && arrivedCount >= 1 && candidateCount != null && candidateCount > 0
-  const showSlow = slowHint ?? elapsedMs > SLOW_HINT_MS
+  // slowHint 是【强制开启】而非覆盖：传 false 时仍由计时器自行判定，
+  // 否则「生产恒传 false」会把这条唯一的逃生口永久关掉。
+  const showSlow = slowHint === true || elapsedMs > SLOW_HINT_MS
 
   return (
     <div className={className}>

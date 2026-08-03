@@ -26,6 +26,7 @@ import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
 import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+import { getMockUiState } from '@/lib/matching-mock'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import { deriveMatchPhase } from './phase'
@@ -83,6 +84,12 @@ function MatchingContent() {
   const { navigate } = useNav()
   const params = useSearchParams()
   const corpusId = params.get('corpusId') ?? ''
+  // 【仅开发环境】UI 状态点播：?uiState=waiting|streaming|result|… 把页面钉在某个形态上供本地验收。
+  // 🔴 判断写成 `process.env.NODE_ENV === 'development'`：Next.js 构建时内联成字面量，
+  //   生产 bundle 里这一整条通路连同 matching-mock 的假数据会被 DCE 清掉。
+  //   绝不能改成读 window / localStorage / cookie —— 那等于给线上开一个「伪造匹配结果」的后门。
+  // preview 非空时：不发请求、不计配额、不花 AI 费用（取数/预取/埋点三处都有守卫）。
+  const preview = process.env.NODE_ENV === 'development' ? params.get('uiState') : null
   // 目标分 → 词组水平档：预取暖缓存 + 点击即发都按此 level，否则用户目标分≠6 时预取的 6.0 缓存不命中、白暖一场。
   // 用 ref 让「结果渲染后延迟 1.5s」的预取 effect 读到最新 level，而不必把 level 列进 effect 依赖（避免 account 迟到时重跑预取）。
   const { account } = useAccount()
@@ -135,6 +142,7 @@ function MatchingContent() {
   useEffect(() => { setExpanded(false) }, [activeTab])
 
   useEffect(() => {
+    if (preview) return   // 演示模式：一律不发请求，见 preview 定义处
     if (!corpusId) { setError('缺少语料 id'); return }
     let cancelled = false
     const ac = new AbortController()
@@ -250,18 +258,49 @@ function MatchingContent() {
     // 卸载/重试：请求发出过但没走到任何终态 = 用户没等结果就走了 → aborted（不计失败）。
     // 已报过结局的（成功/各类失败）被 reportAi 自去重挡住，不会多记一条。
     return () => { cancelled = true; reportAi('aborted', 0); ac.abort() }
-  }, [corpusId, retryKey, router])
+  }, [corpusId, retryKey, router, preview])
+
+  // 【仅开发环境】演示模式：把 mock 场景灌进与真实取数【完全相同】的那组 state，
+  // 页面之后走的还是同一套 phase 派生与渲染路径 —— 演示的是真页面，不是另一条渲染分支。
+  // 逐条到达用 interval 复刻 SSE 的 question 帧节奏（含「首题到达时自动选中」这一真实行为）。
+  const previewSlowHint = preview ? (getMockUiState(preview)?.slowHint ?? false) : false
+  useEffect(() => {
+    if (!preview) return
+    const mock = getMockUiState(preview)
+    if (!mock) return
+    setError(mock.error)
+    setDailyLimitHit(mock.dailyLimitHit)
+    setCandidateCount(mock.candidateCount)
+    setStreamDone(mock.settled)
+    const snapshot = mock.result
+    if (!snapshot) { setResult(null); setSelectedId(null); return }
+    const all = snapshot.questions
+    let n = Math.min(mock.initialCount, all.length)
+    const apply = (): void => {
+      const arrived = all.slice(0, n)
+      setResult({ ...snapshot, questions: arrived, count: arrived.length })
+      if (arrived.length > 0) setSelectedId((prev) => prev ?? arrived[0].id)
+    }
+    apply()
+    if (mock.arrivalIntervalMs <= 0 || n >= all.length) return
+    const id = window.setInterval(() => {
+      if (n >= all.length) return
+      n += 1
+      apply()
+    }, mock.arrivalIntervalMs)
+    return () => window.clearInterval(id)
+  }, [preview])
 
   // 拉本页会话语料的概括，填 409 换语料弹窗的「新语料」。失败静默降级为 null（弹窗回退中性占位），
   // 绝不阻塞匹配主流程。语料实体已在整理步落库（含 summary），此处只读一次。
   useEffect(() => {
-    if (!corpusId) return
+    if (preview || !corpusId) return
     let cancelled = false
     getCorpusById(corpusId)
       .then((c) => { if (!cancelled) setNewCorpusSummary(c?.summary ?? null) })
       .catch((e: unknown) => console.warn('[MatchingPage] 拉语料概括失败，换语料弹窗走占位', e))
     return () => { cancelled = true }
-  }, [corpusId])
+  }, [corpusId, preview])
 
   // 动态 Part 标签：只显示【有可见题】的 Part。
   // F1：此前由全量候选派生、不筛分数，于是会长出「点进去必空」的 Tab ——
@@ -285,7 +324,8 @@ function MatchingContent() {
   // 锚点 = streamDone（结果定稿）：流式增量中途 result 每来一题就变一次，绝不在中途上报——
   // 否则一次匹配会打出十几条半成品 view_rendered。done 后 result 即最终态，只报一次。
   useEffect(() => {
-    if (!result || !streamDone) return
+    // 演示模式不上报：假数据打进 view_rendered 会污染「用户在故事级真看到了什么」这条真源
+    if (preview || !result || !streamDone) return
     const highCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_HIGH).length
     const midCount = result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID && q.relevanceScore < SCORE_HIGH).length
     const unscoredCount = result.questions.filter((q) => q.relevanceScore == null).length
@@ -304,7 +344,7 @@ function MatchingContent() {
       // rankingDegraded：区分两类空态频率——机制①重排整体降级（无分可展示、走重试）vs B 类低相关展示。
       rankingDegraded: !!result.rankingDegraded,
     }, { storyId: corpusId })
-  }, [result, streamDone, corpusId])
+  }, [result, streamDone, corpusId, preview])
 
   // 预取前 3 道分析（结果渲染后延迟启动、串行、静默降级）：后台预生成 top-3 的个性化分析，写进 (题,语料)
   // 缓存，用户点进去走缓存命中。取【数组前 3 道】（result.questions 已按分降序=用户所见序），【不】筛 ≥85——
@@ -317,7 +357,8 @@ function MatchingContent() {
   //   ⑤ 静默降级：任一道 429/503/超时/任何错 → 放弃剩余（不重试、不提示、不打断），用户走点击即发兜底。
   useEffect(() => {
     // 以 done 为锚点：流式中途 result.questions 尚在增长且非最终序，此时取 top-3 会预取到错的题；done 后才是最终序。
-    if (!result || !streamDone || result.noMatch || result.questions.length === 0) return
+    // 演示模式一律不预取：那会对不存在的 mock 题真发三次 analysis 请求（真花 AI 费用）。
+    if (preview || !result || !streamDone || result.noMatch || result.questions.length === 0) return
     const top3 = result.questions.slice(0, 3).map((q) => q.id)
     let cancelled = false
     const timer = setTimeout(() => {
@@ -335,7 +376,7 @@ function MatchingContent() {
     }, 1500)
     // cleanup：结果变(重新匹配)/离开匹配页 → 停循环 + 清空在飞（except 刚点击的题，保其「点击即发」不被连带 abort）
     return () => { cancelled = true; clearTimeout(timer); abortAll(lastClickedKeyRef.current ?? undefined) }
-  }, [result, streamDone, corpusId])
+  }, [result, streamDone, corpusId, preview])
 
   // dwell 计时启动：起点 = 匹配结果【实际渲染到屏幕】的时刻（rAF 在下一次绘制前触发，排除等 AI 的十几秒——
   // 本 effect 仅在 result 非空时跑，等 AI 的等待期不计；若渲染时正切后台，rAF 被浏览器推迟到回前台才触发，
@@ -492,6 +533,8 @@ function MatchingContent() {
     dailyLimitHit,
     candidateCount,
     arrivedCount: result?.questions.length ?? 0,
+    // 生产恒 false（preview 只在开发环境非空），超时兜底行照常由 MatchingProgress 内部计时判定
+    slowHint: previewSlowHint,
     totalVisible,
     availableTabs,
     activeTab,
@@ -512,6 +555,9 @@ function MatchingContent() {
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
     onPractice: (id) => {
+      // 演示模式点了不跳：mock 题 id 在库里不存在，跳过去只会拿到一个错误页，
+      // 还会白发一次 analysis 请求并往选题行为真源里打一条假记录。
+      if (preview) return
       // 点击即发：点的当帧就发起该题的【流式】analysis 请求（或复用正在预取的缓冲请求），与路由跳转并行——
       // 省掉「跳转→挂载→才发」的 2-3s 空转，分析页挂载后 requestAnalysis 按键去重复用同一在飞请求并 subscribe
       // 回放已到的段，不重发（见 analysis-inflight 统一流式模型）。同时 abortAll 中止其余预取（except 本题：
