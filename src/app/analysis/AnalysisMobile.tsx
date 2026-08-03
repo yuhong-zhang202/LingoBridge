@@ -50,8 +50,8 @@ function GradCard({ children }: { children: ReactNode }) {
 }
 
 export default function AnalysisMobile({
-  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
-  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onBack,
+  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, phrasesError, openPhrase, savedSet,
+  onRetry, onRetryPhrases, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onBack,
 }: AnalysisViewProps) {
   return (
     <div
@@ -211,6 +211,20 @@ export default function AnalysisMobile({
                 <p aria-live="polite" className="text-[0.75rem] text-v2-text-muted text-center py-4">正在按雅思 {level} 出词组…</p>
               ) : (
               <div aria-live="polite" className="flex flex-col gap-3.5">
+                {/* 换档失败（20s 超时/网络断）：行内失败态 + 重试，复用本容器既有 aria-live 播报；
+                    下方仍是原档位词组（换档失败不清空已有内容） */}
+                {phrasesError !== null && (
+                  <div className="flex items-center gap-2">
+                    <p className="flex-1 text-[0.75rem] text-error leading-[1.5]">网络原因没能拿到词组，点一下重试</p>
+                    <button
+                      type="button"
+                      onClick={onRetryPhrases}
+                      className="btn-ghost h-[44px] px-4 shrink-0 active:scale-[0.97] transition-transform duration-150"
+                    >
+                      重试
+                    </button>
+                  </div>
+                )}
                 {(data.analysis.phrases ?? []).map((g, gi) => {
                   const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                   const openItem = og === gi ? g.items[oi] : null

@@ -20,6 +20,11 @@ export interface AnalysisViewProps {
   levelMenuOpen: boolean
   /** 换词请求进行中 */
   phrasesLoading: boolean
+  /** 换档传输层失败（20s 客户端超时 / 网络断）：值为没换成的目标档位，null=无失败。
+   *  词组板块据此渲染行内失败文案 + 重试按钮（生产实证：只有一闪而过的 toast 时用户空手且无重试入口）。 */
+  phrasesError: string | null
+  /** 重试换档：按 phrasesError 记录的档位重新发起同一请求（载荷与失败那次完全一致） */
+  onRetryPhrases: () => void
   /** 当前展开的词组 key（`groupIndex-itemIndex`）；null=全收起 */
   openPhrase: string | null
   /** 已收藏词组文本集合（localStorage 单一真源在外壳） */

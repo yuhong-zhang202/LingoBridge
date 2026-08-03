@@ -28,6 +28,7 @@ import { track } from '@/lib/client-events'
 // 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
 import type { AiResult } from '@/lib/event-schema'
 import { requestAnalysis, type AnalysisSnapshot } from '@/lib/analysis-inflight'
+import { fetchPhrasesWithTimeout, PhrasesRequestError } from './phrases-request'
 import { useAccount } from '@/hooks/useAccount'
 import { targetBandToLevel } from '@/lib/constants'
 
@@ -130,6 +131,9 @@ function AnalysisContent() {
   levelRef.current = level
   const [levelMenuOpen, setLevelMenuOpen] = useState(false)
   const [phrasesLoading, setPhrasesLoading] = useState(false)
+  // 换档传输层失败（20s 超时 / 网络断）：记「没换成的目标档位」而非布尔——重试要按它重发同一请求。
+  // 生产实证（2026-08-02 用户反馈）：失败只有一闪而过的 toast，用户空手且无重试入口，故改行内失败态。
+  const [phrasesError, setPhrasesError] = useState<string | null>(null)
   // 已收藏词组高亮：以云端 useSavedWords 为唯一真源，直接派生集合（不镜像成本地 state，
   // 否则「用 effect 同步 state」会因 savedWords 每 render 新引用而无限重渲染 / Maximum update depth）。
   const { words: savedWords } = useSavedWords()
@@ -165,7 +169,8 @@ function AnalysisContent() {
     // 重试（retryKey>0）时上一条已 settle 移除，requestAnalysis 自然新发一条。
     const entry = requestAnalysis(questionId, storyId, false, levelRef.current)
     fetchedLevelRef.current = levelRef.current   // 记下本次取数实际用的档，供 account 校正判是否需自愈重取
-    setLoading(true); setError(null); setDailyLimitHit(false)
+    // phrasesError 一并清：整页重取会整份替换 data，残留的换档失败行会错挂在新内容上
+    setLoading(true); setError(null); setDailyLimitHit(false); setPhrasesError(null)
 
     // 降级：流断 / 无 done / error 帧 / 初始非流失败 → 重发 ?stream=0 缓冲整批、整份渲染（用户无感）。
     // POST 而非 GET：该接口扣额度 + 真调 AI，用 GET 会被浏览器预取 / 爬虫无意触发、白烧钱。
@@ -229,6 +234,7 @@ function AnalysisContent() {
     const prevLevel = level
     setLevel(newLevel)
     setOpenPhrase(null)
+    setPhrasesError(null)
     setPhrasesLoading(true)
     // ——— 本次换档的 AI 调用埋点（fire-and-forget，不参与任何分支判断、不改任何时序）———
     // 用户每点一次档位 = 一次尝试 = 一条 ai_call（失败后再点一次自然再报一条，不去重跨次）。
@@ -242,11 +248,16 @@ function AnalysisContent() {
     }
     ;(async () => {
       try {
-        // 同 /api/analysis：POST 而非 GET（扣额度 + 真调 AI，不能被预取无意触发）
-        const res = await apiFetch('/api/analysis/phrases', {
-          method: 'POST',
-          json: { questionId, storyId, level: newLevel },
-        })
+        // 同 /api/analysis：POST 而非 GET（扣额度 + 真调 AI，不能被预取无意触发）。
+        // 20s 客户端超时（阈值依据见 phrases-request 顶注：p95=13.7s / 最慢 16.2s，2026-08-04 实测；
+        // 12s 会误杀一成以上正常生成）：响应在网上丢了时不让用户干等浏览器默认的 20.5s+。
+        const res = await fetchPhrasesWithTimeout((signal) =>
+          apiFetch('/api/analysis/phrases', {
+            method: 'POST',
+            json: { questionId, storyId, level: newLevel },
+            signal,
+          }),
+        )
         // 服务端同意闸拒绝（403）：回首页触发同意弹窗，不停在换词失败态。
         // 同样要回退档位：跳转是异步的，回退前这一帧（以及用户按浏览器返回退回本页时）
         // 档位不能停在换失败的新值上，否则与页面里没换成的词组内容对不上。
@@ -261,12 +272,20 @@ function AnalysisContent() {
         const json = (await res.json()) as { phrases: AnalysisPhraseGroup[] }
         reportAi('ok', 200)
         setData(prev => prev ? { ...prev, analysis: { ...prev.analysis, phrases: json.phrases } } : prev)
-      } catch {
-        // 到此只剩真·网络 reject（非 2xx 已在上面分流报过、被自去重挡住）。本请求不带 signal、
-        // 无中断路径，故不需要 aborted 分支。
-        reportAi('network', 0)
+      } catch (e) {
+        // 到此两类：①传输层失败（fetchPhrasesWithTimeout 抛 PhrasesRequestError，以及读响应体中途断线，
+        // 均未按状态码报过结局）→ 行内失败态 + 重试；②非 2xx 抛出的「换词失败」（已报过、自去重挡住）→ 沿用 toast。
+        const transportFail = !aiReported
+        // 埋点分桶必须分清：timeout 桶指向「该不该调阈值」、network 桶指向「该查链路」，混了就没法归因
+        const timedOut = e instanceof PhrasesRequestError && e.kind === 'timeout'
+        reportAi(timedOut ? 'timeout' : 'network', 0)
         setLevel(prevLevel)
-        setToast(`没换成 ${newLevel}，还是 ${prevLevel} 的版本。再点一次试试？`)
+        if (transportFail) {
+          // 记「没换成的目标档」驱动词组板块行内失败文案 + 重试（toast 一闪而过、无重试入口，生产已实证不够）
+          setPhrasesError(newLevel)
+        } else {
+          setToast(`没换成 ${newLevel}，还是 ${prevLevel} 的版本。再点一次试试？`)
+        }
       } finally {
         setPhrasesLoading(false)
       }
@@ -306,9 +325,12 @@ function AnalysisContent() {
     level,
     levelMenuOpen,
     phrasesLoading,
+    phrasesError,
     openPhrase,
     savedSet,
     onRetry: () => void retry(),
+    // 重试换档 = 按失败那次的目标档重发同一请求；phrasesLoading 挡住请求在飞时的连点
+    onRetryPhrases: () => { if (phrasesError !== null && !phrasesLoading) changeLevel(phrasesError) },
     onToggleLevelMenu: () => setLevelMenuOpen(v => !v),
     onSelectLevel: (lv) => { setLevelMenuOpen(false); if (lv !== level) changeLevel(lv) },
     onTogglePhrase: (key) => setOpenPhrase(key),

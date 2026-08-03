@@ -69,8 +69,8 @@ function GradCard({ children, className }: { children: ReactNode; className?: st
 }
 
 export default function AnalysisDesktop({
-  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, openPhrase, savedSet,
-  onRetry, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onExit,
+  data, loading, error, dailyLimitHit, level, levelMenuOpen, phrasesLoading, phrasesError, openPhrase, savedSet,
+  onRetry, onRetryPhrases, onToggleLevelMenu, onSelectLevel, onTogglePhrase, onToggleSave, onStartPractice, onReviewCards, onExit,
 }: AnalysisViewProps) {
 
   // 键盘：Enter / → 进入练习、Esc 退出（仅桌面断点、有结果时才挂；焦点在输入类元素时不拦截）
@@ -291,6 +291,20 @@ export default function AnalysisDesktop({
             // 卡片已定高：词组多 / 详情卡展开一律不撑高外层，全部在本容器内滚动
             // （min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
             <div aria-live="polite" className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 pr-1">
+              {/* 换档失败（20s 超时/网络断）：行内失败态 + 重试，复用本容器既有 aria-live 播报；
+                  下方仍是原档位词组（换档失败不清空已有内容） */}
+              {phrasesError !== null && (
+                <div className="flex items-center gap-2">
+                  <p className="flex-1 text-[0.75rem] text-error leading-[1.5]">网络原因没能拿到词组，点一下重试</p>
+                  <button
+                    type="button"
+                    onClick={onRetryPhrases}
+                    className="btn-ghost h-[44px] px-4 shrink-0 transition-[border-color,transform] duration-150 hover:border-black/25 active:scale-[0.97]"
+                  >
+                    重试
+                  </button>
+                </div>
+              )}
               {(data.analysis.phrases ?? []).map((g, gi) => {
                 const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                 const openItem = og === gi ? g.items[oi] : null
