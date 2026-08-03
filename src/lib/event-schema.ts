@@ -141,6 +141,33 @@ export const AI_RESULT = [
 ] as const
 export type AiResult = (typeof AI_RESULT)[number]
 
+/**
+ * 页面浏览的路由枚举 —— page.view 的【唯一】props。
+ *
+ * 🔴【隐私红线】只上报本枚举里的 code，**绝不上报 pathname 原文、绝不上报任何 query**。
+ *   本项目的 query 里有 `?qid=` / `?corpusId=`，还有 `?h=`（handoff key）——最后那个**可反查到用户原文**。
+ *   所以 page.view 的 props 里【不设任何自由文本字段】，白名单外的路径一律映射成 'other'，
+ *   永远不许写「兜底把 pathname 塞进去」——那等于把上面这些串直接写进埋点库。
+ *   pathname → 本枚举的映射见 `lib/page-route.ts`（全仓库唯一允许接触 pathname 的地方）。
+ *
+ * 【为什么是「单事件 + route 枚举」而不是一页一个事件名】事件名要同时满足 DB 的 CHECK 正则、
+ *   /api/events 分发表、看板事件清单三处，一页一个名字 = 加个页面要改三处；
+ *   单事件 + 枚举则加页面只改一个数组（本数组 + page-route 映射表，且两者有单测互相钉住）。
+ *
+ * 值 = src/app 下各 page.tsx 的路由，'-' 与路径分隔 '/' 一律转 '_'（与 QUOTA_SURFACE 同款 snake_case，
+ * 免得分组统计时要记两套写法）。顺序 = 大致按用户主链路先后，其次是设置/账号类、最后是静态页。
+ * ⚠️ 新增页面时必须同步加值 + 加映射，否则该页全部落进 'other'（看板上会看见 other 突增，可发现）。
+ */
+export const PAGE_ROUTE = [
+  'home', 'write', 'recording', 'restructure', 'matching', 'practice_question', 'analysis',
+  'practice', 'question_bank', 'library', 'review', 'anki_review',
+  'profile', 'settings', 'login', 'reset_password',
+  'about', 'privacy', 'privacy_beta', 'feedback', 'dashboard',
+  /** 白名单外的路径（含未来新加、忘了登记的页面）—— 兜底桶，绝不含任何原文 */
+  'other',
+] as const
+export type PageRoute = (typeof PAGE_ROUTE)[number]
+
 // ── 字段名白名单（match.* 两个事件的 props 全是计数/布尔/内部 id，取值域不是枚举而是数值区间）──────
 
 /** match.view_rendered 的数字字段白名单（全为计数，无原文） */
@@ -240,6 +267,21 @@ export type ClientEventPropsMap = {
    * 已变 false，事后读到的恒为 false，这一格就永远是空的。
    */
   'auth.registered': { fromAnonymous: boolean }
+  /**
+   * 页面浏览 —— 漏斗的分母那一格（「有多少人到过这一页」）。
+   *
+   * ⚠️【全站唯一一个「每次导航都必然发一条」的事件】改它之前先想清楚代价：多加一个字段 =
+   *   全站每次页面切换都多算一次、多传一次。故 props 刻意只有 route 一个枚举字段，
+   *   不带时长、不带来源页、不带任何自由文本（来源页要的是 referrer 语义，那既是隐私面又要多存一份状态）。
+   *
+   * 🔴 route 的取值域见 PAGE_ROUTE 上方的隐私红线：绝不上报 pathname 原文与 query。
+   *
+   * 【口径】同一路由连续触发只报一条（客户端 PageViewTracker 按 route 去重，挡 StrictMode 双挂载、
+   *   父组件重渲染、query 变而 pathname 未变三种重复）；⇒ 本事件计的是「进入该页的次数」，
+   *   不是「渲染次数」。另外无 session 时 track 静默不发（全新访客首页尚无 session），
+   *   所以【首页的 page.view 系统性偏低】，别拿它当首页 UV。
+   */
+  'page.view': { route: PageRoute }
 }
 
 /** 客户端可上报的事件名（= 上面 map 的 key；服务端 /api/events 的 EVENT_SPECS 必须逐一对应，未注册即 400） */

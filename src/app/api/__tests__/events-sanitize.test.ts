@@ -11,6 +11,9 @@
  *               capture_abandoned / ai_call）的枚举与整数收敛口径 + 原文注入负例；
  *           P2 额度转化（2026-08-03）再追加三个事件：quota.reached / quota.cta / auth.registered
  *           （枚举 + 严格布尔的收敛口径 + 原文注入负例）。
+ *           P3 页面浏览（2026-08-03）追加 page.view：props 只允许 route 一个枚举字段 ——
+ *           URL / query 形态的键（path/url/query/referrer…）一律不进库，这是该事件的最高红线
+ *           （本项目 query 里的 `?h=` handoff key 可反查用户故事原文）。
  *             · 事件名分发闸：未注册事件名必须 400 且零落库（0053 起 DB CHECK 已放宽为前缀正则，
  *               这里是唯一的真闸）；
  *             · QA 流量标记：严格 === 比对、token 未配时 fail-closed、内部账户为服务端权威来源。
@@ -38,6 +41,7 @@ import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
+import { PAGE_ROUTE } from '@/lib/event-schema'
 
 const mockLogEvent = logEvent as jest.MockedFunction<typeof logEvent>
 
@@ -133,6 +137,7 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['quota.reached',          { variant: 'trial', surface: 'question_bank' }],
     ['quota.cta',              { variant: 'ielts', cta: 'practice_ielts' }],
     ['auth.registered',        { fromAnonymous: true }],
+    ['page.view',              { route: 'practice_question' }],
   ]
   test.each(CASES)('%s 正例', async (event, props) => {
     await POST(makeEventReq(event, props))
@@ -217,6 +222,22 @@ describe('新事件 · 枚举负例（不 trim、不转小写，近似值一律�
     expect(capturedProps()).toEqual({ fromAnonymous: false })
   })
 
+  test('page.view 的 route 枚举外 / 近似值一律丢（空 props，绝不落一个野值）', async () => {
+    for (const route of ['Home', 'question-bank', 'practice_question ', '/write', 'home2', 42, null]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('page.view', { route }))
+      expect(capturedProps()).toEqual({})
+    }
+  })
+
+  test('page.view 全部枚举值逐个放行（漏一个 = 那一页的浏览在库里 route 一栏恒空）', async () => {
+    for (const route of PAGE_ROUTE) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('page.view', { route }))
+      expect(capturedProps()).toEqual({ route })
+    }
+  })
+
   test('props 整体非对象 → 空 props，不抛错', async () => {
     const req = new Request('http://localhost/api/events', {
       method: 'POST',
@@ -260,6 +281,43 @@ describe('新事件 · 整数负例（负/小数/字符串数字/Infinity/NaN/�
   test('边界值（0 / 3600 / 599 / 600000）放行', async () => {
     await POST(makeEventReq('flow.ai_call', { httpStatus: 599, latencyMs: 600000 }))
     expect(capturedProps()).toEqual({ httpStatus: 599, latencyMs: 600000 })
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 🔴 P3 page.view 的隐私红线：URL 原文一个字节都不许进库
+// 本项目 query 里有 ?qid= / ?corpusId= / ?h=（handoff key，可反查用户故事原文），
+// 所以这个事件的 props 只允许有 route 一个枚举字段 —— 任何路径/URL 形态的键都必须被丢掉。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('page.view · URL 原文注入负例', () => {
+  const URL_BAIT = {
+    path: '/matching',
+    pathname: '/analysis',
+    url: 'https://lingobridge.app/matching?h=SECRET_HANDOFF_KEY_9f3a',
+    query: '?h=SECRET_HANDOFF_KEY_9f3a&qid=123',
+    search: 'corpusId=abcd-efgh',
+    referrer: 'https://lingobridge.app/write?text=%E6%88%91%E7%9A%84%E7%A7%81%E5%AF%86',
+    href: '/practice-question?qid=1',
+    title: '我的故事标题',
+  }
+
+  test('塞满 URL / query 字段 → 写库 props 只剩 route，一个字节原文都不进', async () => {
+    await POST(makeEventReq('page.view', { route: 'matching', ...URL_BAIT }))
+    expect(capturedProps()).toEqual({ route: 'matching' })
+  })
+
+  test('连 route 都不给、只塞 URL 字段 → 写库 props 为空对象', async () => {
+    await POST(makeEventReq('page.view', URL_BAIT))
+    expect(capturedProps()).toEqual({})
+  })
+
+  test('写库 props 序列化后不含任何敏感片段（整体断言，防将来加字段时漏检）', async () => {
+    await POST(makeEventReq('page.view', { route: 'write', ...URL_BAIT, ...RAW_TEXT_BAIT }))
+    const dumped = JSON.stringify(capturedProps())
+    for (const secret of ['SECRET_HANDOFF_KEY_9f3a', 'h=', 'qid=', 'corpusId=', 'http', '?', '/', '我的']) {
+      expect(dumped).not.toContain(secret)
+    }
+    expect(dumped).toBe('{"route":"write"}')
   })
 })
 
@@ -316,6 +374,7 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'quota.reached': true,
   'quota.cta': true,
   'auth.registered': true,
+  'page.view': true,
 }
 
 /** 客户端可上报事件名全集（同款 Record 手法，漏登记即 tsc 报错） */
@@ -331,6 +390,7 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'quota.reached': true,
   'quota.cta': true,
   'auth.registered': true,
+  'page.view': true,
 }
 
 describe('事件名形态护栏 —— 必须过 0053 的 DB CHECK 正则', () => {

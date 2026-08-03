@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* 共 11 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 12 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -23,7 +23,7 @@ import { isQaRequest } from '@/lib/qa-traffic'
 import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
-  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC,
+  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE,
 } from '@/lib/event-schema'
 
 /**
@@ -292,6 +292,27 @@ function sanitizeAuthRegistered(raw: unknown): SafeProps {
   return out
 }
 
+// ── P3 页面浏览的 sanitize ──────────────────────────────────────────────────────────
+
+/**
+ * page.view：页面浏览。
+ *
+ * 🔴【隐私红线】本函数【只取 route 一个枚举字段】，别的一律不看。
+ *   客户端若塞进 path / url / pathname / query / referrer 之类，全部在这里被丢掉——
+ *   因为服务端从不遍历客户端的 key，只按白名单逐个取。
+ *   ⚠️ 永远不许给本事件加任何字符串字段：URL 上有 `?h=`（handoff key，可反查用户原文），
+ *   一旦开了自由文本口子，客户端一行改动就能把它送进库。
+ * @param  raw  客户端上报的 props
+ * @returns     route(枚举)，仅此一个字段
+ */
+function sanitizePageView(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const route = pickEnum(o, 'route', PAGE_ROUTE)
+  if (route !== undefined) out.route = route
+  return out
+}
+
 /**
  * 客户端可上报事件的分发表 —— 事件名唯一的真闸（0053 起 DB CHECK 已放宽为前缀正则，不再兜底）。
  * key = 客户端传来的事件名字符串；value = 已收窄的 FlowEventName + 该事件专属 sanitize。
@@ -313,6 +334,7 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['quota.reached',          { event: 'quota.reached',          sanitize: sanitizeQuotaReached }],
   ['quota.cta',              { event: 'quota.cta',              sanitize: sanitizeQuotaCta }],
   ['auth.registered',        { event: 'auth.registered',        sanitize: sanitizeAuthRegistered }],
+  ['page.view',              { event: 'page.view',              sanitize: sanitizePageView }],
 ])
 
 export async function POST(req: Request): Promise<NextResponse> {
