@@ -21,22 +21,22 @@ interface ManageHeaderProps {
   /** 标题下方副标题（可选） */
   subtitle?: string
   /** 标题行右侧插槽（如 Tab 切换器 / 搜索） */
-  right?: ReactNode
+  titleRight?: ReactNode
   /** 面包屑行右侧（与 TopNav 头像共右边界的工具位） */
-  topRight?: ReactNode
+  breadcrumbRight?: ReactNode
 }
 
 /**
  * 管理页统一页头
- * @param title     标题（兼作面包屑当前节点）
- * @param subtitle  副标题（可选）
- * @param right     标题行右侧内容（可选）
- * @param topRight  面包屑行右侧内容（可选）
+ * @param title            标题（兼作面包屑当前节点）
+ * @param subtitle         副标题（可选）
+ * @param titleRight       标题行右侧内容（可选）
+ * @param breadcrumbRight  面包屑行右侧内容（可选）
  */
-export default function ManageHeader({ title, subtitle, right, topRight }: ManageHeaderProps): ReactNode {
+export default function ManageHeader({ title, subtitle, titleRight, breadcrumbRight }: ManageHeaderProps): ReactNode {
   return (
     <div className="pt-6 pb-4">
-      {/* 面包屑与 topRight 分列两侧：面包屑保持自包含一整块（将来若升级成 <nav aria-label="面包屑">，
+      {/* 面包屑与 breadcrumbRight 分列两侧：面包屑保持自包含一整块（将来若升级成 <nav aria-label="面包屑">，
           右侧工具位不能被裹进导航语义里），所以外包一层 flex 行而不是给面包屑本身加 justify-between */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-[7px] text-[0.8125rem] text-v2-text-muted">
@@ -44,11 +44,11 @@ export default function ManageHeader({ title, subtitle, right, topRight }: Manag
           <ChevronRight size={14} />
           <span className="text-v2-text-secondary font-medium">{title}</span>
         </div>
-        {topRight}
+        {breadcrumbRight}
       </div>
       <div className="flex items-center justify-between gap-4 mt-2.5">
         <h1 className="text-[1.625rem] font-bold tracking-[-0.01em] text-v2-text-primary">{title}</h1>
-        {right}
+        {titleRight}
       </div>
       {subtitle && <p className="text-[0.8125rem] text-v2-text-muted mt-1.5">{subtitle}</p>}
     </div>

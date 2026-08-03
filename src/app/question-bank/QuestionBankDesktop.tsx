@@ -57,9 +57,9 @@ function QuestionBankDesktopContent({ qb }: { qb: ReturnType<typeof useQuestionB
       <main className={`${MANAGE_CONTAINER} pb-12`}>
         <ManageHeader
           title="当季题库"
-          topRight={<FeedbackButton />}
-          right={
-            // 切换器只在有语料时出现；空/加载/错误态整个插槽不渲染（反馈入口在 topRight，不受此条件影响）
+          breadcrumbRight={<FeedbackButton />}
+          titleRight={
+            // 切换器只在有语料时出现；空/加载/错误态整个插槽不渲染（反馈入口在 breadcrumbRight，不受此条件影响）
             !isEmpty ? (
               <div className="flex gap-[3px] p-[3px] bg-bg-muted rounded-[10px]">
                 {TABS.map(tab => (

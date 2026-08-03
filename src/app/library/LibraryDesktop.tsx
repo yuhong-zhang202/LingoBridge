@@ -129,7 +129,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         <ManageHeader
           title="我的素材库"
           subtitle={`已攒下 ${totalCount} 条，慢慢成你自己的表达库`}
-          topRight={<FeedbackButton />}
+          breadcrumbRight={<FeedbackButton />}
         />
 
         {/* 登录软引导：仅匿名且已攒下东西时出现。totalCount === 0 不放——
