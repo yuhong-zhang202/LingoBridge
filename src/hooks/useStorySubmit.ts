@@ -6,8 +6,10 @@
  *           唯一差异 qid 由入参决定（首页传 ieltsMode&&question?question.id:null，/write 传 ?qid）。
  *           预检 402（匿名整理额度用尽）不跳转，改置 quotaReached，供调用方弹试用结束提示。
  *
- *   注：文字提交尾段与 recording/handleFinish 同构，但 recording 多一套转写前置管线（最短时长 /
- *   blob 取用与大小校验 / /api/transcribe / AbortController 中断），差异大，故本 hook 不并入 recording。
+ *   注：语音路径的对称实现是 `hooks/useVoiceStorySubmit`。两者【对 /api/restructure 的分支判定
+ *   已收敛到 `lib/restructure-gate` 这一份真源】，不再各写一份（分叉过一次、付过学费，见该文件顶注）；
+ *   剩下的差异是语音独有的转写前置管线（最短时长 / blob 取用与大小校验 / /api/transcribe /
+ *   AbortController 中断）与埋点上的 mode（text / voice），差异大，故两个 hook 不合并成一个。
  *
  * @author   LingoBridge
  * @created  2026-07-09
@@ -18,6 +20,7 @@ import { isGarbageInput, isTooShortForCorpus, GARBAGE_TOAST_MSG, TOO_SHORT_TOAST
 import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
+import { evaluateRestructureResponse } from '@/lib/restructure-gate'
 import { track } from '@/lib/client-events'
 // 提交结局 / AI 调用结局的取值域【一律来自 event-schema 这一份真源】，本 hook 不再手抄：
 // 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
@@ -109,49 +112,36 @@ export function useStorySubmit({ text, qid, onOutcome }: UseStorySubmitArgs): Us
           method: 'POST',
           json: { rawText: text },
         })
-        // 匿名整理额度用尽：不跳转，弹试用结束提示（避免带到 restructure 页再失败一次）
-        if (res.status === 402) {
-          reportAi('quota_402', 402)
-          reportSubmit('quota_blocked')
-          setQuotaReached(true)
-          return
-        }
-        // 服务端同意闸拒绝（未捕获同意）：回首页触发同意弹窗，别把用户带到 restructure 页再 403 一次。
-        if (res.status === 403) {
-          reportAi('consent_403', 403)
-          reportSubmit('consent_blocked')
-          navigate('/')
-          return
-        }
-        if (res.ok) {
-          const data = (await res.json()) as { cleanedText: string; usable: boolean; summary?: string }
-          reportAi('ok', 200)
-          if (!data.usable) {
+        // 分支判定收敛在 lib/restructure-gate（语音路径共用同一份，见该文件顶注）。
+        // ai_call 在【每一条分支】上都排在 capture_submitted 之前，故可统一提到判定之后发一次。
+        const gate = await evaluateRestructureResponse(res)
+        reportAi(gate.ai, gate.httpStatus)
+        switch (gate.action) {
+          // 匿名整理额度用尽：不跳转，弹试用结束提示（避免带到 restructure 页再失败一次）
+          case 'quota':
+            reportSubmit('quota_blocked')
+            setQuotaReached(true)
+            return
+          // 服务端同意闸拒绝（未捕获同意）：回首页触发同意弹窗，别把用户带到 restructure 页再 403 一次。
+          case 'consent':
+            reportSubmit('consent_blocked')
+            navigate('/')
+            return
+          case 'garbage':
             reportSubmit('garbage')
             setToastMsg(GARBAGE_TOAST_MSG)
             return
-          }
-          // usable：把整理结果（含一句话概括 summary）一并带走，restructure 页免二次整理调用、保存时写进 corpus.summary
-          reportSubmit('proceed')
-          navigate(`/restructure?h=${putHandoffJson({ rawText: text, cleanedText: data.cleanedText, summary: data.summary ?? '' })}${qidParam}`)
-          return
+          // 放行跳转。payload 非 null = 整理成功，把结果（含一句话概括 summary）一并带走，
+          // restructure 页免二次整理调用、保存时写进 corpus.summary；
+          // payload 为 null = 整理失败但仍放行，由 restructure 页兜底自行整理 —— AI 这一次是失败的、
+          // 用户却确实进了下一页，故 ai_call 记失败码、capture_submitted 记 proceed，两者不矛盾。
+          case 'proceed':
+            reportSubmit('proceed')
+            navigate(gate.payload
+              ? `/restructure?h=${putHandoffJson({ rawText: text, cleanedText: gate.payload.cleanedText, summary: gate.payload.summary ?? '' })}${qidParam}`
+              : `/restructure?h=${putHandoff(text)}${qidParam}`)
+            return
         }
-        // 其他非 402 错误：放行跳转，由 restructure 页兜底自行整理。
-        // AI 这一次是失败的、用户却确实进了下一页 —— 故 ai_call 记失败码、capture_submitted 记 proceed，两者不矛盾。
-        // 429/400/401 单列，与 restructure 页 / recording 页同口径（三条路径都打 /api/restructure，
-        // 口径不一致会造成「只有某一条路会撞日限」的假象）
-        reportAi(
-          res.status === 429
-            ? 'rate_429'
-            : res.status === 400
-              ? 'bad_input_400'
-              : res.status === 401
-                ? 'auth_401'
-                : res.status >= 500 ? 'server_5xx' : 'other',
-          res.status,
-        )
-        reportSubmit('proceed')
-        navigate(`/restructure?h=${putHandoff(text)}${qidParam}`)
       } catch {
         // 网络失败：放行，restructure 页兜底（同上：调用失败但用户被放行，结局仍是 proceed）
         reportAi('network', 0)
