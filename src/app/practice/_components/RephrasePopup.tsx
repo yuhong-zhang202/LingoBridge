@@ -76,9 +76,25 @@ export default function RephrasePopup({ loading, result, onClose, popupRef, vari
           tabIndex=0 让纯键盘用户能聚焦滚动（WCAG 2.1.1 / axe scrollable-region-focusable）；
           pb-1 让最后一行不贴底、露半行当「还能滚」的提示。 */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-1" tabIndex={0}>
-        {/* role="status"（天然 aria-live=polite）包住三态内容区，不含标题行与关闭 ×：
-            点「再试一次」后内容整块被替换，读屏用户靠这条播报才知道状态变了 */}
-        <div role="status">
+        {/* 【播报策略：只念一句状态，不念正文】产品方 2026-08-04 拍板（方案 B）。
+            原先 role="status" 包住整个内容区，结果一到就把优化句 + 语法解释整块念出来 ——
+            polish 输入上限已放宽到 800 字，读屏会一口气念几百字英文且中途停不下来，
+            用户只想知道「生成好了」，却被迫听完。改为：本 sr-only 行只播报状态，
+            正文区不带 aria-live，由用户按自己的节奏逐段读（读屏用户本就习惯手势逐行浏览）。
+            ⚠️ 这个 <p> 必须【常驻不卸载】、只让内部文本变：live 区域一旦被整体重建，
+               新文本成了「新区域的初始内容」，多数读屏不播报（词组板块踩过这个坑，见 AnalysisMobile 顶注）。 */}
+        <p role="status" className="sr-only">
+          {loading
+            ? '正在生成优化建议'
+            : result
+              ? result.needsWork && result.optimized
+                ? '优化建议已生成，在下方'
+                : result.failed
+                  ? (canRetry ? '生成失败，下方可以再试一次' : '生成失败')
+                  : '这句回答无需优化'
+              : ''}
+        </p>
+        <div>
           {loading ? (
             <p className="text-[0.8125rem] text-v2-text-muted px-1 py-2">优化中…</p>
           ) : result ? (
