@@ -100,12 +100,37 @@ it('标记已处理：handled=true 写 handled_at=now（ISO 串）→ 200', asyn
   expect(body.handled).toBe(true)
 })
 
-it('撤销：handled=false 写 handled_at=null → 200', async () => {
+// 撤销必须把 reply 与 notified_at 一并清空：否则会留下「未处理但带着旧回复」的半状态，
+// 下次再勾就把过期的回复推送给用户（闭环弹窗读的正是 reply + notified_at is null 这个组合）。
+it('撤销：handled=false 同时清空 handled_at/reply/notified_at → 200', async () => {
   const res = await POST(makeReq({ id: FB_ID, handled: false }))
   expect(res.status).toBe(200)
-  expect(updatePayload).toEqual({ handled_at: null })
+  expect(updatePayload).toEqual({ handled_at: null, reply: null, notified_at: null })
   const body = (await res.json()) as { ok: boolean; handled: boolean }
   expect(body.handled).toBe(false)
+})
+
+it('标记已处理时带 reply：写进 reply 列（成为闭环弹窗正文）', async () => {
+  const res = await POST(makeReq({ id: FB_ID, handled: true, reply: '  已经把上传体积降到三分之一  ' }))
+  expect(res.status).toBe(200)
+  expect(updatePayload?.reply).toBe('已经把上传体积降到三分之一')   // 首尾空白被裁掉
+})
+
+it('reply 为纯空白：当作没写，不写 reply 列（避免推一条空弹窗给用户）', async () => {
+  const res = await POST(makeReq({ id: FB_ID, handled: true, reply: '   ' }))
+  expect(res.status).toBe(200)
+  expect(updatePayload).not.toHaveProperty('reply')
+})
+
+it('reply 超长：截到 500 字而不是报错（管理员正在收尾，不该被打断）', async () => {
+  const res = await POST(makeReq({ id: FB_ID, handled: true, reply: 'x'.repeat(600) }))
+  expect(res.status).toBe(200)
+  expect((updatePayload?.reply as string).length).toBe(500)
+})
+
+it('reply 类型不对（数字）→ 400，不静默吞掉', async () => {
+  const res = await POST(makeReq({ id: FB_ID, handled: true, reply: 123 }))
+  expect(res.status).toBe(400)
 })
 
 it('迁移 0055 未跑（42703·handled_at）→ 409 + code=HANDLED_NOT_MIGRATED，不是 500', async () => {

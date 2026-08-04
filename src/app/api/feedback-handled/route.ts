@@ -35,14 +35,26 @@ export async function POST(req: Request): Promise<NextResponse> {
     } catch {
       // body 不是合法 JSON：落到下方统一的 400 分支
     }
-    const { id, handled } = (body ?? {}) as { id?: unknown; handled?: unknown }
+    const { id, handled, reply } = (body ?? {}) as { id?: unknown; handled?: unknown; reply?: unknown }
     if (typeof id !== 'string' || !UUID_RE.test(id) || typeof handled !== 'boolean') {
       return NextResponse.json({ error: '参数不合法：需要 { id: uuid, handled: boolean }' }, { status: 400 })
     }
+    // reply 可选：勾「已处理」时顺手写一句「我们做了什么」，它会成为闭环弹窗里给用户看的正文。
+    // 收敛在服务端做（客户端限长只是体验）：长度上限 500，超长截断而不是报错（管理员正在收尾一条反馈，
+    // 不该因为多打了字被打断）；空白串一律当没写。撤销「已处理」时连同 reply 与 notified_at 一起清空，
+    // 否则会留下「未处理但带着旧回复」的半状态，下次再勾就把过期的回复推给用户。
+    if (reply !== undefined && reply !== null && typeof reply !== 'string') {
+      return NextResponse.json({ error: '参数不合法：reply 需为字符串' }, { status: 400 })
+    }
+    const replyText = typeof reply === 'string' ? reply.trim().slice(0, 500) : ''
+
+    const patch = handled
+      ? { handled_at: new Date().toISOString(), ...(replyText ? { reply: replyText } : {}) }
+      : { handled_at: null, reply: null, notified_at: null }
 
     const { data, error } = await getSupabaseServer()
       .from('feedback')
-      .update({ handled_at: handled ? new Date().toISOString() : null })
+      .update(patch)
       .eq('id', id)
       .select('id')
     if (error) {

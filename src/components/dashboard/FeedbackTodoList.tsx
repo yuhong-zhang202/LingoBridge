@@ -110,9 +110,14 @@ function FeedbackCard({ item, checked, readOnly, onToggle }: {
   item: FeedbackTodoItem
   checked: boolean
   readOnly: boolean
-  onToggle?: (item: FeedbackTodoItem, toHandled: boolean) => void
+  onToggle?: (item: FeedbackTodoItem, toHandled: boolean, reply?: string) => void
 }) {
   const checkboxId = `fb-todo-${item.id}`
+  const replyId = `fb-reply-${item.id}`
+  // 勾「已处理」时顺手写的一句回复：勾选那一刻随请求发出，成为闭环弹窗里给用户看的正文。
+  // 只在「未处理 + 可写 + 主动反馈」时出现：crash 是用户在报错页写的，不一定期待回音（产品方拍板只对主动反馈发通知）。
+  const [reply, setReply] = useState('')
+  const canReply = !readOnly && !checked && item.kind !== 'crash'
   return (
     <Card className="px-4 py-3">
       <label htmlFor={checkboxId} className={`flex items-start gap-3 min-h-[44px] ${readOnly ? '' : 'cursor-pointer'}`}>
@@ -121,7 +126,7 @@ function FeedbackCard({ item, checked, readOnly, onToggle }: {
             id={checkboxId}
             type="checkbox"
             checked={checked}
-            onChange={() => onToggle?.(item, !checked)}
+            onChange={() => onToggle?.(item, !checked, reply)}
             className="w-[18px] h-[18px] mt-[2px] flex-shrink-0 accent-brand-accent"
           />
         )}
@@ -148,6 +153,24 @@ function FeedbackCard({ item, checked, readOnly, onToggle }: {
               {item.errorMessage}
             </div>
           </details>
+        )}
+        {/* 回复输入：选填。写了它，勾选时这句会连同「已处理」一起存下，该用户下次进首页就会看到
+            一个带着他自己原话的弹窗。不写也能勾（只是不通知他）。 */}
+        {canReply && (
+          <div className="mt-2">
+            <label htmlFor={replyId} className="text-[0.625rem] text-v2-text-muted">
+              回复（选填，勾选后会弹窗告诉这位用户）
+            </label>
+            <textarea
+              id={replyId}
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder="例如：你说的转写慢，我们把上传体积降到了三分之一，现在应该快很多了"
+              className="mt-1 w-full text-[0.75rem] leading-relaxed text-v2-text-primary bg-white border border-black/[0.08] rounded-[12px] px-2.5 py-2 resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+            />
+          </div>
         )}
       </div>
     </Card>
@@ -182,7 +205,7 @@ export default function FeedbackTodoList({ feedback }: { feedback: FeedbackTodoP
    * 勾选/撤销：先乐观移动列表，POST 失败（含 409 待迁移）回滚 + Toast。
    * @sideEffect POST /api/feedback-handled
    */
-  const toggle = async (item: FeedbackTodoItem, toHandled: boolean): Promise<void> => {
+  const toggle = async (item: FeedbackTodoItem, toHandled: boolean, reply?: string): Promise<void> => {
     const prevUnhandled = unhandled
     const prevHandled = handled
     if (toHandled) {
@@ -195,7 +218,11 @@ export default function FeedbackTodoList({ feedback }: { feedback: FeedbackTodoP
         .sort((a, b) => b.created_at.localeCompare(a.created_at)))
     }
     try {
-      const res = await apiFetch('/api/feedback-handled', { method: 'POST', json: { id: item.id, handled: toHandled } })
+      // reply 只在「标为已处理」时随请求带出（撤销时服务端会连同回复与通知标记一起清空，不必也不该带）
+      const res = await apiFetch('/api/feedback-handled', {
+        method: 'POST',
+        json: { id: item.id, handled: toHandled, ...(toHandled && reply?.trim() ? { reply: reply.trim() } : {}) },
+      })
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { code?: string } | null
         setUnhandled(prevUnhandled)
@@ -203,7 +230,9 @@ export default function FeedbackTodoList({ feedback }: { feedback: FeedbackTodoP
         setToast(body?.code === 'HANDLED_NOT_MIGRATED' ? '已处理标记待迁移 0055，暂时标不了' : '没标上，再试一次')
         return
       }
-      setAnnounce(toHandled ? '已标记为已处理' : '已撤销处理标记')
+      setAnnounce(toHandled
+        ? (reply?.trim() ? '已标记为已处理，回复将在该用户下次进首页时弹出' : '已标记为已处理')
+        : '已撤销处理标记')
     } catch {
       setUnhandled(prevUnhandled)
       setHandled(prevHandled)
@@ -262,7 +291,7 @@ export default function FeedbackTodoList({ feedback }: { feedback: FeedbackTodoP
               {unhandled.map(item => (
                 <li key={item.id}>
                   <FeedbackCard item={item} checked={false} readOnly={!supported}
-                    onToggle={supported ? (i, to) => { void toggle(i, to) } : undefined} />
+                    onToggle={supported ? (i, to, r) => { void toggle(i, to, r) } : undefined} />
                 </li>
               ))}
             </ul>
@@ -278,7 +307,7 @@ export default function FeedbackTodoList({ feedback }: { feedback: FeedbackTodoP
                 {handled.map(item => (
                   <li key={item.id}>
                     <FeedbackCard item={item} checked readOnly={false}
-                      onToggle={(i, to) => { void toggle(i, to) }} />
+                      onToggle={(i, to, r) => { void toggle(i, to, r) }} />
                   </li>
                 ))}
               </ul>

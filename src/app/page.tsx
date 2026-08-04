@@ -20,6 +20,7 @@ import MicPermissionSheet from '@/components/MicPermissionSheet'
 import QuotaReached from '@/components/QuotaReached'
 import ChangelogAnnouncement from '@/components/ChangelogAnnouncement'
 import TargetBandNudge from '@/components/TargetBandNudge'
+import FeedbackReplyPopup from '@/components/FeedbackReplyPopup'
 import { useSwitchQuestion } from '@/hooks/useSwitchQuestion'
 import { useStorySubmit } from '@/hooks/useStorySubmit'
 import { useStoryQuotaGuard } from '@/hooks/useStoryQuotaGuard'
@@ -195,6 +196,11 @@ export default function HomePage() {
           门控含「已看过当前版本公告」→ 与 ChangelogAnnouncement 串行不叠屏；匿名不弹（门控含 !isAnonymous）。
           z 低于同意硬闸（组件内已包 relative z-40 压住 ProfileModal 的 z-50）。 */}
       <TargetBandNudge />
+
+      {/* 反馈闭环：提过反馈的人，在他那条被处理并写了回复之后，进首页告诉他一次（弹窗带上他自己的原话）。
+          串行链的最后一环（门控含「公告已看过 + 目标分提醒已看过」）；已读记在服务端 feedback.notified_at，
+          所以换设备不会重弹、清缓存也不会重弹。仅注册用户、仅主动反馈（服务端已过滤）。 */}
+      <FeedbackReplyPopup />
 
       {/* 共享：提示 / 首次同意 / 麦克风权限弹层 */}
       <Toast message={toastMsg} onDismiss={dismissToast} />
