@@ -22,6 +22,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.3',
+    date: '2026-08-04',
+    title: '录音与词组提速',
+    notes: [
+      '录音上传更快，网络不好时等待明显缩短',
+      '题目分析页切换目标分，看过的档位再切回来立刻出词组',
+      '词组没加载出来时会直接告诉你，并可一键重试，不再一直转圈',
+      '录到的声音太轻或没说话时，提示更明确，可以直接重录',
+    ],
+  },
+  {
     version: 'v0.10.2',
     date: '2026-08-03',
     title: '题目匹配页焕新',
