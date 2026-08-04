@@ -5,21 +5,30 @@
  *           为什么是 POST 而不是 GET：本接口有副作用——扣每日额度 + 真实调用付费 AI。
  *           GET 在 HTTP 语义上被视为安全/可缓存，浏览器预取、爬虫、链接预览、代理预热都会
  *           自行发起 GET，那些无意的请求会直接烧掉 AI 调用费。与 /api/analysis 同口径。
+ *
+ *           缓存（2026-08-04 补）：与 /api/analysis 共用 corpus_question_analyses 同一张表、同一套
+ *           三重命中口径（键(corpus_id,question_id) + season + content_hash，level 折进 hash）。
+ *           动机是客户端换档重试：服务端已生成但响应在网上丢了的那次已把结果写进缓存，重试即读档秒回、
+ *           不再重花一次 AI 费（生产实证 2026-08-02 用户反馈）。
  * @author   LingoBridge
  * @created  2026-06-07
  */
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
+import { getPersonalAnalysis, upsertPersonalAnalysis } from '@/lib/db/question-analyses'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
+import type { AnalysisPhraseGroup, QuestionAnalysis } from '@/lib/types'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { ANON_PHRASES_LIMIT, REG_PHRASES_DAILY_LIMIT } from '@/lib/constants'
+// 缓存口径与 /api/analysis 共用一份（同表同哈希，差一字节就互相永不命中且静默）。详见 analysis-cache 顶注。
+import { sanitizeLevel, contentHashOf, hashMatchesStoryAnyLevel } from '@/lib/analysis-cache'
 
 /** 请求体形状：字段来源同旧版 query string，仅传输位置从 URL 改为 body。 */
 interface PhrasesRequestBody {
@@ -35,6 +44,46 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v : ''
 }
 
+/**
+ * 缓存回填：本路由只产 phrases，凑不出整份 analysis，故【绝不整行覆盖】——覆盖会把 /api/analysis 的缓存
+ * 写成半份（无 structureLabel/focusPoints），下次分析页命中就渲染出一个没有「答题侧重点」的页面。
+ * 改为【合并写】：沿用已存行的骨架（structureLabel/focusPoints）+ 本次新档词组。
+ * 两道硬门缺一不可，任一不满足就直接不写（宁可不缓存，不可写脏）：
+ *   1) 已存行 season 与题目当前 season 一致 —— 换季后的旧骨架不再沿用（对齐 0049 三重失效）；
+ *   2) 已存行的 content_hash 确由【当前语料正文】生成（档位不限，见 hashMatchesStoryAnyLevel）——
+ *      骨架与 level 无关但与故事强相关，用户改过故事后骨架已过期，配上新词组写回会让 /api/analysis
+ *      命中一份「旧故事的侧重点」，正是 0049 迁移头点名的正确性红线。
+ * 写失败吞掉、只 logErr，绝不因回填失败把已成功的请求变 500（与 /api/analysis 的 writeAnalysisCache 同口径）。
+ * @param  corpusId   语料 id（storyId，真实 corpus）
+ * @param  questionId 题 id
+ * @param  season     题目当前季度
+ * @param  storyHash  本次（当前正文 + 本次档位）的 content_hash
+ * @param  existing   已存缓存行（null=无行，直接不写）
+ * @param  story      当前喂给 AI 的语料正文
+ * @param  phrases    本次新生成的词组
+ * @sideEffect        满足两道门时 upsert 一行 corpus_question_analyses
+ */
+async function mergeWritePhrasesCache(a: {
+  corpusId: string; questionId: string; season: string; storyHash: string
+  existing: { analysis: QuestionAnalysis; season: string; contentHash: string } | null
+  story: string; phrases: AnalysisPhraseGroup[]
+}): Promise<void> {
+  const row = a.existing
+  if (!row) return
+  if (row.season !== a.season) return
+  if (!hashMatchesStoryAnyLevel(row.contentHash, a.story)) return
+  const merged: QuestionAnalysis = {
+    structureLabel: row.analysis.structureLabel,
+    focusPoints: row.analysis.focusPoints,
+    phrases: a.phrases,
+  }
+  try {
+    await upsertPersonalAnalysis(a.corpusId, a.questionId, a.season, a.storyHash, merged)
+  } catch (e) {
+    logErr('[phrases API] 个性化缓存写失败，忽略', e)
+  }
+}
+
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
   try {
@@ -48,7 +97,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     const questionId = str(body.questionId)
     const storyId    = str(body.storyId)
     const storyUrl   = str(body.story) || undefined
-    const level      = str(body.level) || '6.0'
+    // 收敛到档位枚举（与 /api/analysis 同口径）：level 既直插 prompt 又折进缓存 hash，放任自由字符串
+    // 既能顶满单次 token 成本，又会把缓存键打成一人一花色、与分析页写的行永不互通。
+    const level      = sanitizeLevel(body.level)
     if (!questionId) {
       return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     }
@@ -77,6 +128,35 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!q) {
       return NextResponse.json({ error: '题目不存在' }, { status: 404 })
     }
+
+    // ── 个性化词组缓存（与 /api/analysis 同表 corpus_question_analyses、同三重命中口径）──
+    // 可缓存判定逐条照搬分析路由：story 非空 + storyId 真实 corpus + part1/2。通用（无语料）路径不缓存。
+    const canCachePersonal = !!story && !!storyId && (q.part === 1 || q.part === 2)
+    const storyHash = canCachePersonal && story ? contentHashOf(story, level) : ''
+
+    // 读命中：键(corpus_id,question_id) + season 一致 + content_hash 一致（level 已折进 hash → 换档必不命中，
+    // 绝不串档返回别的档位词组）。读彻底降级：任何查询错一律静默当未命中、走真实 AI，绝不 500。
+    let existing: { analysis: QuestionAnalysis; season: string; contentHash: string } | null = null
+    let cachedPhrases: AnalysisPhraseGroup[] | null = null
+    if (canCachePersonal) {
+      try {
+        existing = await getPersonalAnalysis(storyId, q.id)
+        if (existing && existing.season === q.season && existing.contentHash === storyHash) {
+          // 空词组不算命中：宁可重算一次，也不把一份空板块当结果返回（缓存里理论上不该有，防御性判）
+          const p = existing.analysis?.phrases
+          if (Array.isArray(p) && p.length > 0) cachedPhrases = p
+        }
+      } catch (e) {
+        logErr('[phrases API] 个性化缓存读失败，降级为未命中', e)
+        existing = null
+      }
+    }
+    if (cachedPhrases) {
+      // 命中：不调 AI → 不写 api_usage_logs（写了会往成本看板里灌一条没花钱的账，与 /api/analysis 命中分支同口径）。
+      // bumpDailyUsageServer 已在前面无条件扣过次：与 /api/analysis 命中也照扣一致，且它是防刷闸不是计费闸。
+      return NextResponse.json({ phrases: cachedPhrases })
+    }
+
     const enForAI = q.question_text
     // corpusId 取 storyId（有则带、无则 null）：留证可回溯到具体语料。
     // 优先记模型真实 usage；模型没吐 usage 才回退到按题目长度的估算。
@@ -87,6 +167,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     )
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 500), completionTokens: 300 }
     await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'phrases', level, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    // 回填（合并写，两道硬门见 mergeWritePhrasesCache）：这一步正是「响应丢了、重试秒回」成立的前提——
+    // 响应即使在网上丢了，结果也已落库，用户重试读档即得。
+    if (canCachePersonal && story) {
+      await mergeWritePhrasesCache({ corpusId: storyId, questionId: q.id, season: q.season, storyHash, existing, story, phrases })
+    }
     return NextResponse.json({ phrases })
   } catch (e) {
     const authRes = authErrorResponse(e)

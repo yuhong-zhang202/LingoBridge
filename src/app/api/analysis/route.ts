@@ -10,7 +10,6 @@
  * @created  2026-06-03
  */
 import { NextResponse } from 'next/server'
-import { createHash } from 'crypto'
 import { logErr } from '@/lib/log'
 import { getQuestionById } from '@/lib/db/questions'
 import { getPersonalAnalysis, upsertPersonalAnalysis } from '@/lib/db/question-analyses'
@@ -25,6 +24,9 @@ import { requireConsent } from '@/lib/consent-server'
 import { createConcurrencyGate } from '@/lib/concurrency-gate'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL, ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT } from '@/lib/constants'
+// 缓存口径（level 收敛 + content_hash 构造）与 /api/analysis/phrases 共用一份：两路读写同一张
+// corpus_question_analyses，哈希差一个字节就互相永不命中，且失效是静默的。详见 analysis-cache 顶注。
+import { sanitizeLevel, contentHashOf } from '@/lib/analysis-cache'
 import type { AnalysisResponse, DimensionLabel, QuestionAnalysis } from '@/lib/types'
 
 // 预取专用并发闸（全服务器模块级单例）：只护上游 DashScope，【不护本机 CPU】——LLM 调用是 I/O、不吃
@@ -60,32 +62,6 @@ interface AnalysisRequestBody {
 /** 取 body 里的字符串字段；非字符串/缺省一律回退空串（与旧版 searchParams.get() ?? '' 同语义）。 */
 function str(v: unknown): string {
   return typeof v === 'string' ? v : ''
-}
-
-/** 个性化缓存的内容哈希：对喂给 AI 的语料正文(story)取 sha256 hex。正文改了→哈希变→命中失效重算。 */
-function sha256(text: string): string {
-  return createHash('sha256').update(text).digest('hex')
-}
-
-/**
- * 缓存 content_hash：把 level 折进语料正文一起哈希——目标分不同则词组不同（analysis 的 phrases 按 level 出），
- * 换目标分重开必须【未命中重算】、绝不返回旧档词组。读命中判定与写回填必须【同口径】调用此函数（否则 level 静默失效）。
- * @param story  喂给 AI 的语料正文
- * @param level  目标雅思水平（缺省已在调用处兜底 '6.0'）
- * @returns      折进 level 的内容哈希
- */
-function contentHashOf(story: string, level: string): string {
-  return sha256(`${story}\nlevel=${level}`)
-}
-
-/** 合法目标水平档位（与前端 LEVELS 一致）。服务端收敛：非枚举值（含超长/注入串）一律回落 '6.0'。 */
-const VALID_LEVELS: ReadonlySet<string> = new Set(['5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0'])
-/**
- * 把 body.level 收敛到已知档位枚举 —— level 会直插 LLM prompt 且折进缓存 hash，不收敛则可被绕过客户端
- * 传超长串顶满单次 token 成本（在自身日额度内烧平台 AI 费）。非字符串/非枚举一律 '6.0'（与缺省同）。
- */
-function sanitizeLevel(raw: unknown): string {
-  return typeof raw === 'string' && VALID_LEVELS.has(raw) ? raw : '6.0'
 }
 
 /**

@@ -284,16 +284,21 @@ export default function AnalysisDesktop({
                 )}
               </div>
             </div>
-            {/* aria-live：换档后词组整体被替换，读屏用户否则感知不到内容已变（先例 PracticeDesktop 消息列表） */}
-            {phrasesLoading ? (
-              <p aria-live="polite" className="flex-1 flex items-center justify-center text-[0.75rem] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
-            ) : (
-            // 卡片已定高：词组多 / 详情卡展开一律不撑高外层，全部在本容器内滚动
-            // （min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位
-            <div aria-live="polite" className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 pr-1">
-              {/* 换档失败（20s 超时/网络断）：行内失败态 + 重试，复用本容器既有 aria-live 播报；
-                  下方仍是原档位词组（换档失败不清空已有内容） */}
-              {phrasesError !== null && (
+            {/* 状态播报区【常驻不卸载】：加载中/换档失败的文案只在这个恒存在的容器【内部】变化。
+                为什么不能把 aria-live 挂在随状态三元互换的容器上：那种容器每次状态切换都整体重建，
+                文案成了「新挂载区域的初始内容」，而多数读屏只播已存在 live 区域内发生的变化、不播新区域的初始内容
+                → 失败提示读不出来。这里位置/元素类型固定，只有 className 与子节点变，React 不会重建 DOM 节点。
+                与 AnalysisMobile 同款结构，两端保持一致。 */}
+            <div
+              role="status"
+              aria-live="polite"
+              className={phrasesLoading ? 'flex-1 flex items-center justify-center' : phrasesError !== null ? 'mb-3.5' : ''}
+            >
+              {phrasesLoading && (
+                <p className="text-[0.75rem] text-v2-text-muted">正在按雅思 {level} 出词组…</p>
+              )}
+              {/* 换档失败（20s 超时/网络断）：失败文案 + 重试；下方仍是原档位词组（换档失败不清空已有内容） */}
+              {!phrasesLoading && phrasesError !== null && (
                 <div className="flex items-center gap-2">
                   <p className="flex-1 text-[0.75rem] text-error leading-[1.5]">网络原因没能拿到词组，点一下重试</p>
                   <button
@@ -305,6 +310,12 @@ export default function AnalysisDesktop({
                   </button>
                 </div>
               )}
+            </div>
+            {/* 词组列表容器同样【常驻】：换档后整份词组被替换，是稳定 live 区域内的内容变化，读屏才播得出来。
+                卡片已定高：词组多 / 详情卡展开一律不撑高外层，全部在本容器内滚动
+                （min-h-0 让 flex 子项可收缩、触发 overflow）；pr-1 给滚动条留位。
+                加载中时收起（hidden）而不是卸载，保住 live 区域的连续性。 */}
+            <div aria-live="polite" className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 pr-1${phrasesLoading ? ' hidden' : ''}`}>
               {(data.analysis.phrases ?? []).map((g, gi) => {
                 const [og, oi] = openPhrase ? openPhrase.split('-').map(Number) : [-1, -1]
                 const openItem = og === gi ? g.items[oi] : null
@@ -347,7 +358,6 @@ export default function AnalysisDesktop({
                 )
               })}
             </div>
-            )}
           </GradCard>
         </div>
 
