@@ -55,7 +55,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh" className={jakarta.variable}>
+    // suppressHydrationWarning：FONT_SCALE_INIT_SCRIPT 会在 React 之前同步给 <html> 写 --fs-scale
+    // （为的是首屏字号一步到位、零 FOUC），于是服务端 HTML 没有这个 style、客户端 DOM 有，React 水合时
+    // 必然判定不一致并警告。这正是该属性的设计用途：声明「本元素的属性由外部脚本管，别拿它当水合错误」。
+    // ⚠️ 只作用于 <html> 自身的属性，不向子树传播，所以不会掩盖真正的水合 bug。
+    <html lang="zh" className={jakarta.variable} suppressHydrationWarning>
       <head>
         {/* 预连 Supabase：浏览器提前建好 DNS+TCP+TLS，省掉客户端直连 Supabase（注册/登录/会话读取）
             首次调用的握手时延。仅助「浏览器→Supabase」，不影响服务端插库。 */}
