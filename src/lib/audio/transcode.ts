@@ -23,6 +23,21 @@ if (!existsSync(ffmpegBin)) {
 ffmpeg.setFfmpegPath(ffmpegBin)
 
 /**
+ * 转码接受的最长音频秒数（硬闸，见 transcodeToWav 内注释）。
+ * 依据：生产真实用户录音 66 条实测 p50=46s / p99=207s / 最长 207s，取 600 秒 ≈ p99 的 3 倍。
+ */
+const MAX_AUDIO_SECONDS = 600
+
+/** 转码超时：实测 2.5 小时音频只需 6 秒，30 秒足以覆盖任何正常输入 */
+const TRANSCODE_TIMEOUT_MS = 30_000
+
+/**
+ * WAV 产物体积上限（第二道闸，不依赖 ffmpeg 的时长判断）。
+ * 16kHz × 单声道 × 2 字节 = 32000 字节/秒；留 10% 余量给 WAV 头与边界。
+ */
+const MAX_WAV_BYTES = Math.ceil(MAX_AUDIO_SECONDS * 32000 * 1.1)
+
+/**
  * 将任意音频 Buffer 转码为 16kHz 单声道 PCM WAV
  * @param input     原始音频数据（webm / mp4 / ogg / wav 等均可）
  * @param inputExt  输入文件扩展名（不含点，如 "webm"、"mp4"）
@@ -44,8 +59,23 @@ export async function transcodeToWav(input: Buffer, inputExt: string): Promise<B
         .audioFrequency(16000)
         .audioChannels(1)
         .audioCodec('pcm_s16le')
+        // 🔴【时长硬闸，2026-08-06 安全修复】体积上限（MAX_AUDIO_BYTES=10MB）挡不住时长：
+        //   实测用 6kbps opus 编码，10MB 正好能塞进 2.5 小时音频、顺利通过体积闸，
+        //   转成 16kHz 单声道 WAV 后是 274MB，会被下面的 readFile 整个读进内存，
+        //   再 base64 编码（再涨 1.33 倍）发给豆包，单请求峰值约 640MB。
+        //   而转码【在并发闸之外】（asrGate 对齐的是豆包配额、刻意不圈转码），
+        //   所以几个并发请求就能把单实例打到 OOM，且进程被 kill 时 finally 的 unlink 不执行、
+        //   /tmp 里的大文件会一直堆积。
+        //   取 600 秒的依据：生产真实用户录音 66 条实测 p50=46s、p99=207s、最长 207s，
+        //   600 秒是 p99 的近 3 倍，任何真实使用都碰不到，而攻击载荷被压到 10 分钟（WAV 约 19MB）。
+        //   ⚠️ 改这个数前先重跑那份分布，别凭感觉调。
+        .duration(MAX_AUDIO_SECONDS)
         .format('wav')
+      // 转码超时：ffmpeg 卡住时（畸形容器、异常编码）不能让请求无限挂着占内存与文件句柄。
+      // 实测 2.5 小时音频转码只要 6 秒，30 秒足够覆盖任何正常输入。
+      const killer = setTimeout(() => { cmd.kill('SIGKILL') }, TRANSCODE_TIMEOUT_MS)
       cmd.on('error', (err: Error, _stdout: string | null, stderr: string | null) => {
+        clearTimeout(killer)
         const appErr: AppError = {
           code:    'TRANSCODE_FAILED',
           message: `ffmpeg 转码失败：${err.message}`,
@@ -53,10 +83,23 @@ export async function transcodeToWav(input: Buffer, inputExt: string): Promise<B
         }
         reject(appErr)
       })
-      cmd.on('end', () => resolve())
+      cmd.on('end', () => { clearTimeout(killer); resolve() })
       cmd.save(outPath)
     })
 
+    // 第二道闸：先看文件大小再决定要不要读进内存。
+    // -t 理论上已经封住时长，但畸形容器有可能让 ffmpeg 误判时长基准而绕过它；
+    // 这一步不依赖 ffmpeg 的任何判断，只认最终产物的字节数，是纯物理防线。
+    // 阈值 = 时长上限对应的 WAV 体积 + 一点余量（16kHz × 单声道 × 2 字节 = 32000 字节/秒）。
+    const { size } = await fs.stat(outPath)
+    if (size > MAX_WAV_BYTES) {
+      const appErr: AppError = {
+        code:    'TRANSCODE_FAILED',
+        message: `转码产物过大（${Math.round(size / 1024 / 1024)}MB），已拒绝`,
+        cause:   { size, limit: MAX_WAV_BYTES },
+      }
+      throw appErr
+    }
     const outBuf = await fs.readFile(outPath)
     return outBuf
   } finally {
