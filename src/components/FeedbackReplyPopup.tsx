@@ -28,6 +28,7 @@ import Tag from '@/components/Tag'
 import { apiFetch } from '@/lib/api-client'
 import { getLatestChangelog } from '@/lib/changelog'
 import { hasSeenChangelog, hasSeenTargetBandNudge } from '@/lib/storage'
+import { useAccount } from '@/hooks/useAccount'
 
 interface ReplyItem {
   id: string
@@ -53,16 +54,26 @@ function hkDate(iso: string): string {
  */
 export default function FeedbackReplyPopup(): JSX.Element | null {
   const [items, setItems] = useState<ReplyItem[]>([])
+  const { account } = useAccount()
 
   useEffect(() => {
     let cancelled = false
-    // 串行门控（与 TargetBandNudge 同款范式）：前两个弹层都看过了才轮到本条，绝不叠屏。
-    // 顺序 ChangelogAnnouncement → TargetBandNudge → 本条：前两个是「全员/多数人都会见到」的通知，
-    // 本条只对提过反馈的极少数人出现，排最后既不挡路、也不会因为前面没看完就被永久跳过
-    // （本条的已读记在服务端 notified_at，前面没看完只是这次不弹，下次进首页还会再判）。
+    // 串行门控（顺序 ChangelogAnnouncement → TargetBandNudge → 本条），绝不叠屏。
+    //
+    // 🔴【判据是「前一个弹窗现在还会不会显示」，不是「它有没有被看过」】2026-08-06 修：
+    //   初版写成 `if (!hasSeenTargetBandNudge()) return`，看着合理，实则把 34% 的注册用户永久挡在门外 ——
+    //   目标分提醒【只对没设目标分的人显示】，设过的人永远见不到它、永远不会写下「已看过」标记，
+    //   于是这一行 return 永远成立，连 GET 都不发。生产实测当时 125 名注册用户里 43 人已设目标分，
+    //   4 条待通知的回复里 3 条的收件人正在这 43 人中，且失败完全静默（看板也看不出来）。
+    //   教训：串行门控里的「前一个」如果自带资格条件，就不能拿它的已读标记当放行信号。
+    //
+    // 因此这里判的是「目标分提醒此刻是否仍会占屏」：只有「未设目标分 且 还没看过它」时才让路。
+    // account 为 null 表示账号信息还没加载完，这次不判（下次进首页再来，不会永久错过）。
     const latest = getLatestChangelog()
     if (latest && !hasSeenChangelog(latest.version)) return
-    if (!hasSeenTargetBandNudge()) return
+    if (!account) return
+    if (account.isAnonymous) return                                        // 匿名不弹（服务端也会返回空，双保险）
+    if (account.targetBand === null && !hasSeenTargetBandNudge()) return   // 目标分提醒还会显示，让它先
     void (async () => {
       try {
         const res = await apiFetch('/api/feedback-notified', { method: 'GET' })
@@ -75,7 +86,7 @@ export default function FeedbackReplyPopup(): JSX.Element | null {
       }
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [account])
 
   if (items.length === 0) return null
 
@@ -106,8 +117,11 @@ export default function FeedbackReplyPopup(): JSX.Element | null {
 
           <div className="flex-shrink-0 pr-10">
             <Tag label="你的反馈" variant="green" />
+            {/* 标题保持中性：看板侧的语义是「已处理」，而已处理不等于「改好了」——
+                产品方完全可能勾上并回复「这个暂时不做，原因是…」，那时标题说改好了、正文说不做，同屏自相矛盾。
+                改没改由回复正文自己说，标题只负责让用户认出「这是对我那条反馈的回应」。 */}
             <p className="text-[1.1875rem] lg:text-[1.375rem] font-bold text-v2-text-primary mt-3 tracking-[-0.2px]">
-              {items.length > 1 ? `你提的 ${items.length} 条反馈，我们改好了` : '你提的这件事，我们改好了'}
+              {items.length > 1 ? `你提的 ${items.length} 条反馈，有回音了` : '你提的这件事，有回音了'}
             </p>
           </div>
 
