@@ -4,7 +4,7 @@
  * @author   LingoBridge
  * @created  2026-06-03
  */
-import { getSupabase, ensureSession } from '../supabase'
+import { getSupabase } from '../supabase'
 import { CURRENT_SEASON } from '../constants'
 import type { DBQuestion, QuestionWithLinks, SwitchQuestion } from '../types'
 
@@ -73,7 +73,11 @@ function mapSwitchQuestion(raw: RawQuestionRow): SwitchQuestion {
  * @returns     题目列表 + 关联观察点 code 列表
  */
 export async function getQuestions(part?: 1 | 2 | 3): Promise<QuestionWithLinks[]> {
-  await ensureSession()
+  // 不调 ensureSession：本函数只读题库与观察点关联，两表对 anon/authenticated 都有公开 select 策略
+  // （迁移 0057），不需要用户身份。而这些函数也会在服务端 API 路由里被调用，那里没有 localStorage、
+  // session 恒为 null，ensureSession 会当场 signInAnonymously 建一个用不上的匿名号 ——
+  // 2026-08-06 稳定性审计实测：一次无鉴权的 GET /api/questions 就凭空造出一个 auth.users 行。
+  // 这正是 getRandomSwitchQuestion 早就注释过的坑，本次把同文件其余 5 处一并对齐。
   const supabase = getSupabase()
   let query = supabase
     .from('questions')
@@ -103,7 +107,6 @@ export async function getQuestionsByObservation(
   observationPointId: string,
   includeSecondary = false,
 ): Promise<QuestionWithMatchTag[]> {
-  await ensureSession()
   const supabase = getSupabase()
   // questions!inner + questions.season 过滤：只召回当季题，过季题的映射行整行剔除（inner join）
   const base = supabase
@@ -133,7 +136,6 @@ export async function getQuestionCountByObservations(
   includeSecondary = false,
 ): Promise<number> {
   if (codes.length === 0) return 0
-  await ensureSession()
   // questions!inner + questions.season 过滤：只计当季题（去重口径与召回一致）
   const base = getSupabase()
     .from('question_observation_links')
@@ -153,7 +155,6 @@ export async function getQuestionCountByObservations(
  * @returns       该卡的 Part 3 题目列表（按创建顺序）
  */
 export async function getQuestionsByParent(cardId: string): Promise<QuestionWithLinks[]> {
-  await ensureSession()
   const { data, error } = await getSupabase()
     .from('questions')
     .select(`*, question_observation_links(observation_point_id)`)
@@ -170,7 +171,6 @@ export async function getQuestionsByParent(cardId: string): Promise<QuestionWith
  * @returns   题目 + 观察点列表，找不到返回 null
  */
 export async function getQuestionById(id: string): Promise<QuestionWithLinks | null> {
-  await ensureSession()
   const { data, error } = await getSupabase()
     .from('questions')
     .select(`*, question_observation_links(observation_point_id)`)
@@ -198,9 +198,10 @@ export async function getQuestionById(id: string): Promise<QuestionWithLinks | n
 export async function getRandomSwitchQuestion(
   excludeIds: string[] = [],
 ): Promise<SwitchQuestion | null> {
-  // 不调 ensureSession：本函数仅读 questions / question_observation_links（两表 RLS 关闭、公开可读，
-  // anon key 直读即可），无需用户身份。而它只在服务端 API 路由被调用，若走 ensureSession 会在每个冷启动
-  // signInAnonymously 建一个用不上的临时匿名用户（auth.users 垃圾账号来源之一），故此处显式不建会话。
+  // 不调 ensureSession：本函数仅读 questions / question_observation_links，无需用户身份。
+  // ⚠️ 口径更新（2026-08-06）：这两张表【已经开了 RLS】（迁移 0057 补的，此前从建库起裸奔、匿名可任意写），
+  // 现在靠的是「对 anon/authenticated 开放 select、写权限全部 revoke」的公开读策略，anon key 直读依然成立。
+  // 若走 ensureSession 会在每个冷启动 signInAnonymously 建一个用不上的临时匿名用户（auth.users 垃圾账号来源之一）。
   const supabase = getSupabase()
   const selectFields = `id, part, topic, question_text, question_text_zh, cue_card_title, cue_card_title_zh, topic_only, question_observation_links(observation_point_id)`
 
