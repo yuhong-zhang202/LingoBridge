@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.5',
+    date: '2026-08-07',
+    title: '修复收藏与练习句子丢失',
+    notes: [
+      '修复反馈页点了收藏、其实没存进素材库的问题；现在存不上会明确告诉你',
+      '练习中途页面被手机浏览器刷新后，攒下的句子不会再丢，结束时照样能看到',
+    ],
+  },
+  {
     version: 'v0.10.4',
     date: '2026-08-07',
     title: '修复个人页保存按钮失效',
