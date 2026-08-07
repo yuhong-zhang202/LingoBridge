@@ -22,6 +22,16 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.4',
+    date: '2026-08-07',
+    title: '修复个人页保存按钮失效',
+    notes: [
+      '修复「设置备考目标」「修改昵称」「修改密码」点保存没反应的问题（8 月 3 日起受影响，给你添麻烦了）',
+      '考试日期已过之后，仍然可以正常修改目标分，不会再卡住',
+      '选到过早的考试日期时会明确提示，不再是点了没反应',
+    ],
+  },
+  {
     version: 'v0.10.3',
     date: '2026-08-04',
     title: '录音与词组提速',
