@@ -15,6 +15,8 @@ import {
   fetchRetention, fetchRegistration, fetchDailyRegistrations, fetchActiveRegistered,
   fetchCoreActive, fetchWindowCoreActive, fetchActivation, fetchWeeklyRetention,
   fetchCohortReturns, fetchPageViewStats,
+  // 成本看板身份口径（迁移 0058）：用户【当前】身份读取 + 按当前身份聚合 Top-N / 匿名占比。
+  fetchUserAnonFlags, aggregateUserCosts,
 } from '@/lib/db/dashboard-metrics'
 // 「有新反馈吗」待办清单读取（未处理全量 + 已处理近 20）：同样抽出成帮手守 <1000 行红线；
 // 三态自降级（迁移 0055 未跑 → 近 7 天只读；读表异常 → loadFailed），绝不让主看板 500。
@@ -60,7 +62,8 @@ import {
  * 聚合 api_usage_logs，返回看板所需全部统计数据
  * @param req  GET 请求，支持 ?range=7d|14d|30d
  * @returns    Tier1 今日经营（活跃注册/匿名会话数/练习新练复练/故障按环节/空录音/新增注册）、
- *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比）、
+ *             三张费用卡、迷你统计、服务分组、按环节成本、按用户成本 Top-N（含匿名/登录占比；身份取
+ *             auth.users 当前身份，0058 RPC，迁移未跑时回退旧标记口径并置 userIdentityPending）、
  *             每日费用趋势 + 每日参与度趋势（活跃+场次+新增注册）、每日失败次数、各环节耗时（分布 + 趋势）、
  *             今日状况、小时分布、最近 / 最贵 / 失败三份调用明细；注册用户留存（D1/D7 池化，get_retention_stats RPC，
  *             迁移未跑时优雅降级 null）；假空率（区间内空录音 peak≥阈值占比，无带信号样本时 pending 降级）；
@@ -110,6 +113,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const cohortPromise = fetchCohortReturns(supabase)
     // 「哪些页面被用得多」（窗口 page.view 聚合，随区间选择器变）：与主查询并发、失败降级 null。
     const pageViewsPromise = fetchPageViewStats(supabase, rangeDays)
+    // 用户【当前】身份表（0058·get_user_anon_flags，成本看板 Top-N 与匿名占比的口径权威源）：
+    // 与主查询并发、自带降级；null = 迁移未跑/出错/结果疑似被截断 → 下方逐字回退旧标记口径并置 pending。
+    const userFlagsPromise = fetchUserAnonFlags(supabase)
 
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
@@ -398,26 +404,28 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     // ── 按用户成本 Top-N（谁烧最多）+ 匿名/登录成本占比 ──
     // 归因口径：按 user_id（UUID）分组累计全时段成本，降序取前 N（烧最多在最前）。
-    // user_id 为空的行（补归属字段前的老行 / 无归属调用）无法归因到人，跳过分组；
-    // 但匿名 vs 登录的成本占比按 is_anonymous 标记独立统计，不受 user_id 是否存在影响。
+    // user_id 为空的行（补归属字段前的老行 / 无归属调用）无法归因到人，跳过分组、也不计入占比两侧。
     // 隐私：只按 user_id（UUID、非邮箱/姓名）归因，刻意不 join users 表拉个人信息进成本看板。
-    const userMap = new Map<string, { cost: number; calls: number; isAnonymous: boolean }>()
-    let anonymousCost = 0
-    let loggedInCost  = 0
-    for (const row of allRows) {
-      if (row.is_anonymous === true)       anonymousCost += row.estimated_cost_cny
-      else if (row.is_anonymous === false) loggedInCost  += row.estimated_cost_cny
-      if (row.user_id == null) continue
-      const cur = userMap.get(row.user_id) ?? { cost: 0, calls: 0, isAnonymous: row.is_anonymous === true }
-      cur.cost += row.estimated_cost_cny
-      cur.calls += 1
-      if (row.is_anonymous === true) cur.isAnonymous = true   // 同一 user_id 只要有一条匿名即标匿名
-      userMap.set(row.user_id, cur)
-    }
-    const userTotals = Array.from(userMap.entries())
-      .map(([userId, v]) => ({ userId, isAnonymous: v.isAnonymous, cost: r2(v.cost), calls: v.calls }))
-      .sort((a, b) => b.cost - a.cost)
-      .slice(0, TOP_USER_N)
+    //   ⚠️ 0058 的 RPC 同样【只返回 (id, is_anonymous) 两列】，这条红线不因引入身份表而松动。
+    //
+    // ⚠️⚠️【为什么身份【不能】用 api_usage_logs.is_anonymous 判 —— 别再"顺手优化"改回去】
+    //   该列记的是【调用发生那一刻】的身份，而本项目「注册 = updateUser({email,password}) 升级
+    //   当前匿名账号、user_id 不变」（src/lib/auth.ts 顶注）。于是：
+    //     ① 任何「先匿名试用、后注册」的转化用户都永久带着一批 is_anonymous=true 的历史行，
+    //        旧口径「同一 user_id 只要有一条匿名即标匿名」会把转化最成功的用户标成匿名 ——
+    //        2026-08-07 线上确证：某用户匿名期 2 次调用即注册、之后作为注册用户用了 107 次，
+    //        却在成本榜上顶着「匿名」排第一，看起来像在薅羊毛；
+    //     ② 绑邮箱后 updateUser 不换发新 token（stale JWT），注册后一小段时间的调用仍记成匿名。
+    //   故身份一律取【当前】身份（auth.users 权威源，0058 RPC），与「今日活跃·注册」(0045)、
+    //   「新增注册」(0043/0044)、漏斗 (0047) 的口径同源。历史行的 is_anonymous 只用于降级兜底。
+    //
+    // 历史 NULL 行：analysis / phrases / matching 三个路由在 2026-08-07 前没写 is_anonymous
+    //   （写进去是 NULL），这些行有 user_id 就照常计入该用户、身份取当前身份（NULL 不参与判断），
+    //   无 user_id 才被跳过 —— 详见 aggregateUserCosts 顶注。
+    const userFlags = await userFlagsPromise
+    // true = 迁移 0058 未跑 / RPC 出错 / 结果疑似被截断 → 下面走旧标记口径，前端卡片标注「口径待生效」。
+    const userIdentityPending = userFlags === null
+    const { userTotals, anonymousCost, loggedInCost } = aggregateUserCosts(allRows, userFlags, TOP_USER_N)
 
     // ── 每日趋势（rangeDays 天，升序，按东八区分桶） ──
     const dailyMap = new Map<string, Record<string, number>>()
@@ -628,9 +636,14 @@ export async function GET(req: Request): Promise<NextResponse> {
       dailyBudget: DAILY_BUDGET_CNY,
       serviceTotals,
       phaseTotals,
+      // 按用户成本 Top-N + 匿名/登录成本占比：身份取【当前】身份（0058 RPC），非历史调用标记。
+      // 占比按【用户】归类（转化用户匿名期的成本计入登录侧），与榜单标签同源、可对账。
       userTotals,
-      anonymousCost: r2(anonymousCost),
-      loggedInCost:  r2(loggedInCost),
+      anonymousCost,
+      loggedInCost,
+      // userIdentityPending：true = 0058 未跑/RPC 不可用，以上三项回退旧标记口径（转化用户会被误标匿名），
+      // 前端在该卡上标「口径待生效」+ 说明，不静默显错数（范式同 newRegistrationsPending / activePending）。
+      userIdentityPending,
       dailyData,
       dailyFailures,
       // Tier2 每日参与度趋势（活跃人数 + 练习场次 + 新增注册），所选区间口径。

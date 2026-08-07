@@ -2,6 +2,8 @@
  * @module   db/dashboard-metrics
  * @desc     经营看板指标的服务端读取帮手 —— 从 api/dashboard/route.ts 抽出以守 <1000 行红线（ENGINEERING.md §1）。
  *           前半为指标 RPC 读取（2026-07-31 纯物理搬迁，逻辑/返回结构一字未改）；
+ *           中段为 2026-08-07 成本看板身份口径修正（迁移 0058）：fetchUserAnonFlags 取用户【当前】身份、
+ *           aggregateUserCosts 按当前身份聚合 Top-N 与匿名/登录占比（纯函数可单测）；
  *           后半为 2026-08-04 看板重设计新增的两个表级读取帮手（fetchCohortReturns / fetchPageViewStats，
  *           聚合逻辑抽成纯函数可单测）。每个 fetcher 独立自降级（内部 try/catch、失败返 null），
  *           绝不 reject 拖垮主看板；与 route 的主 Promise.all 并发跑。
@@ -12,6 +14,7 @@ import 'server-only'
 import type { getSupabaseServer } from '@/lib/supabase-server'
 import { isInternalAccount } from '@/lib/internal-accounts'
 import { flowWindowStart } from '@/lib/db/dashboard-flow-events'
+import { r2 } from '@/lib/db/dashboard-shared'
 
 /** service_role 客户端类型（route 传入，RPC 内 security definer 读 auth.users） */
 type SupabaseServer = ReturnType<typeof getSupabaseServer>
@@ -272,6 +275,134 @@ export async function fetchWeeklyRetention(
     return { w1N: row.w1_n, w1Ret: row.w1_ret, w1Rate: row.w1_rate == null ? null : Number(row.w1_rate) }
   } catch {
     return null
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 2026-08-07 成本看板身份口径修正（迁移 0058）：用户【当前】身份 + 按用户成本聚合
+// ══════════════════════════════════════════════════════════════════════════════
+
+// get_user_anon_flags（0058）返回行：id = 用户 UUID，is_anonymous = 该用户【当前】是否匿名
+// （口径 = 不在真注册集 auth.users(非匿名·有邮箱) 里即算匿名，与 0043/0044/0045/0047 同源）。
+type UserAnonFlagRow = { id: string; is_anonymous: boolean | null }
+
+/**
+ * 身份表单次可取的最大行数（= PostgREST db-max-rows 默认值）。RPC 不带 range 时会被【静默截断】
+ * 到这个数，拿半张身份表去标人比不标更糟（一批注册用户会被误标匿名）。故收到 ≥ 此值即整块降级。
+ * ⚠️ 真撞上了不要简单调大：该把 0058 改成带 user_id 数组参数的 RPC，或让本帮手分页。
+ */
+const USER_FLAGS_MAX_ROWS = 1000
+
+/**
+ * 调 get_user_anon_flags RPC（0058）取「user_id → 当前是否匿名」映射，供成本看板判身份。
+ *
+ * ⚠️ 为什么不能用 api_usage_logs.is_anonymous 判身份（本函数存在的全部理由）：
+ *   ① 本项目「注册 = updateUser 升级当前匿名账号、user_id 不变」（src/lib/auth.ts 顶注），
+ *      转化用户会永久留着匿名期的历史行 → 旧口径「有一条匿名即标匿名」把转化最成功的用户
+ *      标成匿名（2026-08-07 线上确证）；
+ *   ② 绑邮箱后 updateUser 不换发新 token（stale JWT），注册后一小段时间的调用仍被记成匿名。
+ *   该字段记的是「调用那一刻的身份」，只适合看历史、绝不能拿来判「这个人现在是谁」。
+ *
+ * 迁移 0058 未跑 / RPC 出错 / 结果疑似被截断时【优雅降级】返回 null，调用方逐字回退旧标记口径
+ * 并在卡片上标注「口径待生效」，绝不让整个看板 500（降级风格与本文件其余 fetcher 一致）。
+ * @param supabase  service_role 客户端（RPC 内 security definer 读 auth.users）
+ * @returns         「user_id → 当前是否匿名」映射；不可用时 null
+ */
+export async function fetchUserAnonFlags(
+  supabase: SupabaseServer,
+): Promise<Map<string, boolean> | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_user_anon_flags')
+    if (error) return null
+    const rows = (Array.isArray(data) ? data : []) as UserAnonFlagRow[]
+    // 触顶 = 结果可能已被 PostgREST 静默截断 → 身份表不完整 → 宁可整块降级，不拿半张表标人。
+    if (rows.length >= USER_FLAGS_MAX_ROWS) return null
+    const map = new Map<string, boolean>()
+    for (const row of rows) {
+      if (typeof row.id !== 'string' || row.id === '') continue
+      // is_anonymous 由 RPC 保证非空；万一回了 null（口径被改坏），按匿名处理 = 与旧口径同向保守，不静默当注册。
+      map.set(row.id, row.is_anonymous !== false)
+    }
+    return map
+  } catch {
+    return null
+  }
+}
+
+/** 按用户成本聚合的入参行（= api_usage_logs 全时段归因查询取的三列） */
+export type UserCostRow = { estimated_cost_cny: number; user_id: string | null; is_anonymous: boolean | null }
+
+/** Top-N 榜单里的一行（只含 UUID，绝无任何个人信息 —— 成本看板隐私红线） */
+export type UserCostEntry = { userId: string; isAnonymous: boolean; cost: number; calls: number }
+
+/** 按用户成本聚合结果：Top-N 榜单 + 匿名/登录两侧成本合计（均已保留两位小数） */
+export type UserCostTotals = { userTotals: UserCostEntry[]; anonymousCost: number; loggedInCost: number }
+
+/**
+ * 「按用户成本 Top-N」+「匿名/登录成本占比」聚合。
+ *
+ * 【身份口径（本次修正的核心，勿改回）】identities 可用时，一个 user_id 的匿名与否一律取
+ * 【当前身份】（auth.users 权威源，见 fetchUserAnonFlags 顶注），而不是「历史上有没有过匿名调用」。
+ * 于是转化用户（先匿名试用后注册、user_id 不变）不再被误标匿名。
+ * 相应地，匿名/登录成本占比按【用户】归类：转化用户匿名期烧的钱也计入登录侧 —— 与 Top-N 的
+ * 标签同源，两个数字不会互相打架（若按行拆，榜上标「登录」的人却在匿名侧贡献成本，无法对账）。
+ *
+ * 【历史 NULL 行怎么处理】三个路由 2026-08-07 前没写 is_anonymous（写进去是 NULL），这些行：
+ *   · 有 user_id → 照常计入该用户的成本/次数，身份取当前身份，NULL 不影响任何判断（这正是
+ *     改用当前身份的附带收益：历史 NULL 行不再让占比两边漏算）；
+ *   · 无 user_id  → 无法归因到人，跳过分组、且不计入匿名/登录任一侧（分母只含可归因成本）。
+ *   降级路径（identities=null）下仍按旧行为：NULL 行两侧都不计。
+ *
+ * @param rows        全时段归因行（estimated_cost_cny / user_id / is_anonymous）
+ * @param identities  「user_id → 当前是否匿名」映射；null = 迁移 0058 未跑/RPC 不可用 → 逐字回退旧口径
+ * @param topN        榜单取前几名（成本降序）
+ * @returns           Top-N 榜单 + 匿名/登录成本合计
+ */
+export function aggregateUserCosts(
+  rows: readonly UserCostRow[],
+  identities: Map<string, boolean> | null,
+  topN: number,
+): UserCostTotals {
+  // 每个 user_id 的累计成本/次数 + 旧标记推断（同一 user_id 只要有一条匿名即算匿名）。
+  // legacyAnonymous 只在两种情况下被用到：整块降级、或该 id 不在身份表里（如已注销账号，
+  // auth.users 行已删但成本历史仍要留账）。
+  const perUser = new Map<string, { cost: number; calls: number; legacyAnonymous: boolean }>()
+  // 旧口径的逐行分摊（降级路径专用，逐字保持 2026-08-07 之前的行为）
+  let legacyAnonCost = 0
+  let legacyLoggedCost = 0
+  for (const row of rows) {
+    if (row.is_anonymous === true)       legacyAnonCost   += row.estimated_cost_cny
+    else if (row.is_anonymous === false) legacyLoggedCost += row.estimated_cost_cny
+    if (row.user_id == null) continue
+    const cur = perUser.get(row.user_id) ?? { cost: 0, calls: 0, legacyAnonymous: false }
+    cur.cost += row.estimated_cost_cny
+    cur.calls += 1
+    if (row.is_anonymous === true) cur.legacyAnonymous = true
+    perUser.set(row.user_id, cur)
+  }
+
+  let anonymousCost = 0
+  let loggedInCost  = 0
+  const entries: UserCostEntry[] = []
+  for (const [userId, v] of perUser) {
+    // 当前身份优先；身份表缺该 id（已注销 / 映射不全）时退回旧标记，至少不比修复前更差。
+    const isAnonymous = identities ? (identities.get(userId) ?? v.legacyAnonymous) : v.legacyAnonymous
+    entries.push({ userId, isAnonymous, cost: r2(v.cost), calls: v.calls })
+    if (identities) {
+      if (isAnonymous) anonymousCost += v.cost
+      else             loggedInCost  += v.cost
+    }
+  }
+  if (!identities) {
+    // 降级：占比逐字回退旧行为（按每一行的 is_anonymous 标记分摊，NULL 行两侧都不计）
+    anonymousCost = legacyAnonCost
+    loggedInCost  = legacyLoggedCost
+  }
+
+  return {
+    userTotals: entries.sort((a, b) => b.cost - a.cost).slice(0, topN),
+    anonymousCost: r2(anonymousCost),
+    loggedInCost:  r2(loggedInCost),
   }
 }
 

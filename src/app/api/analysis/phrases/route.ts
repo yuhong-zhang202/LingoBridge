@@ -166,7 +166,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       generatePhrases({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level }, (u) => { realUsage = u }),
     )
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(enForAI.length * 0.3 + 500), completionTokens: 300 }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, corpus_id: storyId || undefined, metadata: { phase: 'phrases', level, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    // is_anonymous 自 2026-08-07 起补写（此前漏传、落库为 NULL，让看板「匿名 vs 登录成本占比」两侧都漏算）。
+    // 只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理见 aggregateUserCosts 顶注
+    //（有 user_id 就按该用户【当前】身份归类，NULL 不参与判断）。该字段只是「调用那一刻的身份」快照，
+    // 不能拿来判「这个人现在是谁」——转化用户 user_id 不变 + 绑邮箱后 stale JWT。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, corpus_id: storyId || undefined, metadata: { phase: 'phrases', level, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     // 回填（合并写，两道硬门见 mergeWritePhrasesCache）：这一步正是「响应丢了、重试秒回」成立的前提——
     // 响应即使在网上丢了，结果也已落库，用户重试读档即得。
     if (canCachePersonal && story) {

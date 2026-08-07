@@ -72,6 +72,9 @@ type DashboardData = {
   userTotals: UserTotal[]
   anonymousCost: number
   loggedInCost: number
+  // true = 用户身份 RPC（0058·get_user_anon_flags）未接入/不可用，上面三项回退旧「有一条匿名调用即标匿名」
+  // 口径（转化用户会被误标匿名），卡片上标「口径待生效」+ 说明。旧部署的 API 无此字段，故可选。
+  userIdentityPending?: boolean
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   dailyFailures: Array<{ date: string; failures: number }>
   // newReg：每日新增注册线（迁移 0044 未跑/降级时整列 null，图表不渲染该线）。
@@ -211,25 +214,37 @@ function PhaseFailureBreakdown({ phases, failedCost }: { phases: PhaseTotal[]; f
   )
 }
 
+// 用户身份口径未生效时的说明（0058 未跑/RPC 不可用）：与漏斗各段 *_REASON 同范式，措辞点明"错在哪"。
+const USER_IDENTITY_REASON = '用户身份 RPC（get_user_anon_flags）尚未接入：「匿名」标签暂按历史调用标记推断，'
+  + '先匿名试用后注册的转化用户会被误标成匿名、其试用期成本也被算进匿名侧。待部署方跑迁移 0058 后自动切当前身份口径。'
+
 /**
  * 「按用户成本 Top-N」视图 — 内测 200 陌生人下一眼看出"谁烧最多、是不是匿名"。
  * 仅按 user_id（UUID）归因、不含任何个人信息；匿名单独标出（匿名试用是纯成本高风险）。
  * 顶部另给匿名 vs 登录的成本占比。横向条按最高成本归一化，降序（烧最多在最前）。
- * @param users         已按成本降序的每用户聚合数组（Top-N）
- * @param anonymousCost 全时段匿名调用成本合计
- * @param loggedInCost  全时段登录调用成本合计
+ * 身份口径：匿名 = 该账号【当前】不是真注册用户（auth.users 权威源）；pending 时退回旧标记口径并明示。
+ * @param users          已按成本降序的每用户聚合数组（Top-N）
+ * @param anonymousCost  全时段匿名用户成本合计（pending 时为旧的按行标记口径）
+ * @param loggedInCost   全时段登录用户成本合计（同上）
+ * @param identityPending true = 身份 RPC 未接入，标注「口径待生效」并给出误导说明
  */
-function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: UserTotal[]; anonymousCost: number; loggedInCost: number }) {
+function UserCostBreakdown({ users, anonymousCost, loggedInCost, identityPending }: {
+  users: UserTotal[]; anonymousCost: number; loggedInCost: number; identityPending: boolean
+}) {
   const max = users.reduce((m, u) => Math.max(m, u.cost), 0)
   const attributed = anonymousCost + loggedInCost
   const anonPct = attributed > 0 ? Math.round(anonymousCost / attributed * 100) : 0
   return (
     <section aria-label="按用户成本 Top-N" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mb-4">
       <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2 flex-wrap">
           <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">按用户成本 Top-N</h2>
           {/* 本区块口径独立于区间：按 user_id 全时段累计（抓"谁烧最多"要看历史总账，不随区间切换） */}
           <span className="text-[0.625rem] text-v2-text-muted">全时段累计</span>
+          {/* 口径未生效标记：badge 样式与漏斗降级段（FunnelDegraded）一致，不自造新样式 */}
+          {identityPending && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[0.5625rem] font-medium bg-black/[0.04] text-v2-text-muted">口径待生效</span>
+          )}
         </div>
         {/* 匿名/登录成本占比：匿名占比高 = 陌生人试用在烧钱，内测阶段重点盯 */}
         {attributed > 0 && (
@@ -264,6 +279,12 @@ function UserCostBreakdown({ users, anonymousCost, loggedInCost }: { users: User
           ))}
         </div>
       )}
+      {/* 口径小字（10px muted，同漏斗段 FunnelNote 的字号/色）：pending 显"错在哪 + 怎么修"，否则交代当前口径 */}
+      <div className="text-[0.625rem] text-v2-text-muted leading-relaxed mt-3">
+        {identityPending
+          ? USER_IDENTITY_REASON
+          : '匿名 = 该账号当前不是注册用户（口径同「今日活跃·注册」）；转化用户（先试用后注册）的试用期成本计入登录侧。'}
+      </div>
     </section>
   )
 }
@@ -712,7 +733,9 @@ export default function DashboardPage() {
             <summary className="cursor-pointer list-none select-none min-h-[44px] flex items-center text-[0.75rem] font-medium text-v2-text-secondary [&::-webkit-details-marker]:hidden">
               按用户成本 · 展开
             </summary>
-            <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost} />
+            {/* userIdentityPending 缺省（旧部署 API 无此字段）按 false 处理：不对老部署凭空喊"口径待生效" */}
+            <UserCostBreakdown users={data.userTotals} anonymousCost={data.anonymousCost} loggedInCost={data.loggedInCost}
+              identityPending={data.userIdentityPending === true} />
           </details>
 
           {/* 单价参考折叠收起（解释来源的口径小字，按三档收敛规则收进 details） */}

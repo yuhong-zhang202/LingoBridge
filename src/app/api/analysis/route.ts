@@ -178,7 +178,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
         generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level }, (u) => { realUsage = u }),
       )
       // 记账 + 缓存回填走共享 helper（与 handleStreaming 单一真源，杜绝分叉）：详见 logAnalysisUsage/writeAnalysisCache。
-      await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch })
+      await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch })
       if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
       } finally {
         // 名额必须归还（成功/抛错都要），否则预取闸越关越死。真实请求 slot=null、跳过。
@@ -226,12 +226,16 @@ function sseFrame(event: string, data: unknown): Uint8Array {
  * 计费记账（共享 helper，handleBuffered + handleStreaming 单一真源）：未命中真调 AI 后记一条 qwen_plus usage。
  * 模型真实 usage 优先、无则按题长估算（0.3/字+800，输出 400）；metadata 的 phase/prompt_tokens/
  * completion_tokens/cost_source/prefetch 字段与职责固定。两路共用此一份，改这里即两路同步、不会分叉。
+ * ⚠️ is_anonymous 自 2026-08-07 起补写（此前本路由漏传、落库为 NULL，让看板「匿名 vs 登录成本占比」
+ *    两侧都漏算这部分成本）。只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理
+ *    见 dashboard-metrics.aggregateUserCosts 顶注（有 user_id 就按该用户当前身份归类，NULL 不参与判断）。
+ *    该字段只是「调用那一刻的身份」快照，不能拿来判「这个人现在是谁」（转化用户 user_id 不变 + stale JWT）。
  */
 async function logAnalysisUsage(a: {
-  realUsage: LLMUsage | null; enForAI: string; userId: string; storyId: string; t0: number; isPrefetch: boolean
+  realUsage: LLMUsage | null; enForAI: string; userId: string; isAnonymous: boolean; storyId: string; t0: number; isPrefetch: boolean
 }): Promise<void> {
   const usage: LLMUsage = a.realUsage ?? { promptTokens: Math.round(a.enForAI.length * 0.3 + 800), completionTokens: 400 }
-  await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - a.t0, status: 'success', user_id: a.userId, corpus_id: a.storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: a.realUsage ? 'actual' : 'estimate', prefetch: a.isPrefetch } })
+  await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - a.t0, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: a.realUsage ? 'actual' : 'estimate', prefetch: a.isPrefetch } })
 }
 
 /**
@@ -389,7 +393,7 @@ async function handleStreaming(req: Request): Promise<Response> {
           )
           // 流末落地：记账（传真实 isPrefetch，预取的成本归因 metadata.prefetch 才对）+ 回填缓存
           // （时机从「响应前」挪到「流末」，字段/职责与 handleBuffered 一字不变）。
-          await logAnalysisUsage({ realUsage, enForAI, userId, storyId, t0, isPrefetch })
+          await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch })
           if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
           safeEnqueue(sseFrame('done', { question: metaQuestion, analysis }))
           releaseSlot()   // 成功出路：AI + 缓存写跑完、done 帧后释放预取闸名额

@@ -85,20 +85,24 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
  *   重排 = 语料字数×0.8 + 候选题干字数×0.5 + 2000 / 输出 候选数×40。
  * latency_ms 走 matchByStory 内部【分段实测】(extractionMs/rankingMs)，非请求总耗时——
  *   2026-07-20 修正：此前两条都写请求总耗时、把 matching 耗时虚报约一倍，看板须按该时点断开口径。
+ * ⚠️ is_anonymous 自 2026-08-07 起补写（此前两条都漏传、落库为 NULL，让看板「匿名 vs 登录成本占比」
+ *   两侧都漏算这部分成本）。只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理
+ *   见 dashboard-metrics.aggregateUserCosts 顶注（有 user_id 就按该用户【当前】身份归类，NULL 不参与判断）。
+ *   该字段只是「调用那一刻的身份」快照，不能拿来判「这个人现在是谁」（转化用户 user_id 不变 + stale JWT）。
  */
 function pushMatchUsageLogs(
   afterTasks: Promise<unknown>[],
-  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; corpusId: string },
+  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string },
 ): void {
   const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
   if (a.result.questions.length > 0) {
     const candidateChars = a.result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
     const rkUsage: LLMUsage = a.rankingUsage ?? {
       promptTokens: Math.round(a.cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
       completionTokens: a.result.questions.length * 40,
     }
-    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
   }
 }
 
@@ -197,7 +201,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       }
 
       // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
-      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
+      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId })
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
@@ -433,7 +437,7 @@ async function handleStreaming(req: Request): Promise<Response> {
                 .catch((e) => logErr('[matching snapshot upsert]', e)),
             )
           }
-          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, corpusId })
+          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId })
           afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, 'fresh') }))
           await Promise.all(afterTasks)
 
