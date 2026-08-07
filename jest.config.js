@@ -7,6 +7,9 @@ module.exports = {
       tsconfig: {
         module: 'CommonJS',
         moduleResolution: 'node',
+        // 根 tsconfig 是 jsx:'preserve'（Next 要求，构建侧不能动），但 jest 拿到保留了 JSX 的产物直接执行会
+        // 报 SyntaxError: Unexpected token '<'——组件测试一律跑不起来。这里只在测试侧覆盖成 react-jsx。
+        jsx: 'react-jsx',
       },
     }],
   },
