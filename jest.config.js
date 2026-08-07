@@ -13,4 +13,10 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // .claude/worktrees/ 下是本仓库的 git worktree 副本（隔离改动用），里面有整套 src 和测试。
+  // 不排除的话裸跑 `npx jest` 会把它们一并扫进来：副本里的 '@/' 会解析到【本 rootDir】的 src，
+  // 跨版本串味、大面积假红（实测多扫 63 个测试文件），很容易被误读成「测试崩了」。
+  // 两个都要：testPathIgnorePatterns 管「跑哪些测试」，modulePathIgnorePatterns 管「解析哪些模块」。
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/.claude/worktrees/'],
+  modulePathIgnorePatterns: ['<rootDir>/.claude/worktrees/'],
 }
