@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 16 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 19 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -24,7 +24,8 @@ import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
   VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE,
-  GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_VIEW, COLLECT_FAIL_REASON,
+  GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_VIEW, COLLECT_FAIL_REASON, GOAL_EDITOR_SOURCE,
+  QUEUE_DELAY_SEC_KEY, QUEUE_DELAY_SEC_MAX,
 } from '@/lib/event-schema'
 
 /**
@@ -381,6 +382,71 @@ function sanitizePhraseCollectFailed(raw: unknown): SafeProps {
   return out
 }
 
+// ── 分母事件三件套的 sanitize（同款：一事件一函数、字段逐个显式列出）─────────────────────────
+
+/** 一次练习最多几轮（产品上限 8 轮，取 100 只为挡脏数据）；本场攒下的句子数上界同收藏序号。 */
+const PRACTICE_TURNS_MAX = 100
+/** 反馈页卡片数 / 本场润色句数的上界（与 COLLECT_NTH_MAX 同源：几十条已属极端，500 纯为挡天文数字）。 */
+const POLISHED_COUNT_MAX = COLLECT_NTH_MAX
+
+/**
+ * flow.feedback_rendered：反馈页展示了几张卡（收藏两个事件的分母）。
+ *
+ * 🔴【隐私红线】只取 cardCount(整数) 与 view(枚举)。卡片里的句子（original / optimized / note）
+ *   就算客户端塞进来也进不了库 —— 本函数从不遍历客户端的 key，只按白名单逐个取。
+ * ⚠️ cardCount 的下界是 0 而不是 1：空态（练了却一句都没攒下）本身就是最重要的那格信号，
+ *   把 0 当非法丢掉等于把这类事故重新藏起来（见 event-schema 该事件条目）。
+ * @param  raw  客户端上报的 props
+ * @returns     cardCount(整数 0..500) + view(枚举)
+ */
+function sanitizeFeedbackRendered(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const cardCount = pickInt(o, 'cardCount', 0, POLISHED_COUNT_MAX)
+  if (cardCount !== undefined) out.cardCount = cardCount
+  const view = pickEnum(o, 'view', COLLECT_VIEW)
+  if (view !== undefined) out.view = view
+  return out
+}
+
+/**
+ * flow.practice_ended：一场练习主动结束（反馈页的分母）。
+ *
+ * 🔴【隐私红线】只取两个计数。对话内容 / 题面 / 被润色的句子一个字都不许进库。
+ * ⚠️ 两个字段下界都是 0：0 轮就点结束（抽到题→误入→立即退出）是真实且要看的一格。
+ * @param  raw  客户端上报的 props
+ * @returns     turns(整数 0..100) + polishedCount(整数 0..500)
+ */
+function sanitizePracticeEnded(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const turns = pickInt(o, 'turns', 0, PRACTICE_TURNS_MAX)
+  if (turns !== undefined) out.turns = turns
+  const polishedCount = pickInt(o, 'polishedCount', 0, POLISHED_COUNT_MAX)
+  if (polishedCount !== undefined) out.polishedCount = polishedCount
+  return out
+}
+
+/**
+ * auth.goal_editor_opened：备考目标弹窗打开了（保存成败两个事件的分母）。
+ *
+ * 🔴【隐私红线】只取 source(枚举) + 两个布尔 ——【绝不设任何日期或分数字段】：
+ *   本事件与 auth.goal_saved 在同一屏里发生，日期原文离得最近，口子一开就是个人备考计划外泄。
+ * @param  raw  客户端上报的 props
+ * @returns     source(枚举) + isFirstTime/hasDate(布尔)
+ */
+function sanitizeGoalEditorOpened(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const source = pickEnum(o, 'source', GOAL_EDITOR_SOURCE)
+  if (source !== undefined) out.source = source
+  const isFirstTime = pickBool(o, 'isFirstTime')
+  if (isFirstTime !== undefined) out.isFirstTime = isFirstTime
+  const hasDate = pickBool(o, 'hasDate')
+  if (hasDate !== undefined) out.hasDate = hasDate
+  return out
+}
+
 // ── P3 页面浏览的 sanitize ──────────────────────────────────────────────────────────
 
 /**
@@ -428,7 +494,25 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['page.view',              { event: 'page.view',              sanitize: sanitizePageView }],
   ['flow.phrase_collected',      { event: 'flow.phrase_collected',      sanitize: sanitizePhraseCollected }],
   ['flow.phrase_collect_failed', { event: 'flow.phrase_collect_failed', sanitize: sanitizePhraseCollectFailed }],
+  ['flow.feedback_rendered',     { event: 'flow.feedback_rendered',     sanitize: sanitizeFeedbackRendered }],
+  ['flow.practice_ended',        { event: 'flow.practice_ended',        sanitize: sanitizePracticeEnded }],
+  ['auth.goal_editor_opened',    { event: 'auth.goal_editor_opened',    sanitize: sanitizeGoalEditorOpened }],
 ])
+
+/**
+ * 取【全事件通用】的补发延迟元字段 queueDelaySec（秒，整数 0..24h）。
+ *
+ * ⚠️【为什么它可以脱离「一事件一函数」的规矩】本文件顶注禁止的是「所有整数字段一律放行」那种
+ *   把 props 变成客户端可控自由 key 空间的通用 sanitize。这里【只放行一个写死名字的整数字段】，
+ *   取值域比任何业务字段都窄，而它对所有事件一视同仁 —— 抄进 19 个 sanitize 函数只会多 18 个漏抄
+ *   的机会（漏一个 = 那个事件的补发行永远看不出是补发的、时间轴悄悄搬家）。
+ *   ⚠️ 除它之外【永远不许】在这里加第二个跨事件字段，尤其不许加任何字符串字段。
+ * @param  raw  客户端上报的 props（unknown）
+ * @returns     合法秒数，否则 undefined（= 这条是当场发的，不是补发）
+ */
+function pickQueueDelaySec(raw: unknown): number | undefined {
+  return pickInt(asObject(raw), QUEUE_DELAY_SEC_KEY, 0, QUEUE_DELAY_SEC_MAX)
+}
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
@@ -453,6 +537,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: '不支持的事件' }, { status: 400 })
     }
     const props = spec.sanitize(body.props)
+    // 补发延迟是跨事件的元字段，故在【分发之后】统一挂上（理由见 pickQueueDelaySec）。
+    // 放在 sanitize 之后覆写是有意的：即便哪个事件将来自己也叫这个名字，也以这里的收敛结果为准。
+    const queueDelaySec = pickQueueDelaySec(body.props)
+    if (queueDelaySec !== undefined) props[QUEUE_DELAY_SEC_KEY] = queueDelaySec
     const storyId = typeof body.storyId === 'string' && body.storyId.trim() ? body.storyId.trim() : null
     const flowId = req.headers.get('x-flow-id')
     await logEvent({

@@ -31,6 +31,11 @@
  *       错误被 .catch(()=>{}) 吞掉 —— 表现为「埋点代码在跑、库里零数据」。
  *     · 第 3 步漏改 → 【不报错】。insert 撞 CHECK 约束，异常又被 logEvent 的 catch 静默吞掉 —— 同上。
  *
+ *   【每个事件都可能多带一个字段】`queueDelaySec`（补发延迟秒数）由 track 在【补发路径】上自动挂上，
+ *     对所有事件一视同仁、不写进任何一个事件的 props 契约，服务端在分发之后统一收敛。
+ *     写分析 SQL 时记得：**落库时间 ≠ 发生时间**，带了这个字段的行要减掉它。口径全文见
+ *     本文件下方 QUEUE_DELAY_SEC_KEY 条目。
+ *
  * @author   LingoBridge
  * @created  2026-08-03
  */
@@ -218,7 +223,12 @@ export const GOAL_SAVE_FAIL_REASON = ['date_before_min', 'update_failed', 'unkno
 export type GoalSaveFailReason = (typeof GOAL_SAVE_FAIL_REASON)[number]
 
 /**
- * 「收藏一句优化表达」发生在反馈页的哪一套视图。
+ * 反馈页的哪一套视图（收藏事件与「本页展示了几张卡」的分母事件共用同一份取值域）。
+ *
+ * ⚠️【为什么分子分母必须共用这一个枚举】要答的问题是「移动端是不是更容易收藏失败」，
+ *   那就得拿 flow.phrase_collected / flow.phrase_collect_failed 去除 flow.feedback_rendered，
+ *   三者的 view 只要有一处另立一套值（哪怕只是 'mb' vs 'mobile'），分组一 join 就对不上、
+ *   比率算出来是空的。故 flow.feedback_rendered 刻意复用本枚举，不新增 FEEDBACK_VIEW。
  *
  * ⚠️【为什么不叫 *_SURFACE】本项目的 surface 一律指「哪个页面」（MIC_SURFACE / QUOTA_SURFACE），
  *   而这里两个值是【同一个页面】的两套视图：反馈页把移动/桌面两套 DOM 同时挂载、由 lg 断点决定谁可见。
@@ -248,6 +258,18 @@ export type CollectView = (typeof COLLECT_VIEW)[number]
  */
 export const COLLECT_FAIL_REASON = ['session_failed', 'insert_failed', 'unknown'] as const
 export type CollectFailReason = (typeof COLLECT_FAIL_REASON)[number]
+
+/**
+ * 备考目标弹窗是被谁打开的。
+ *
+ * 【为什么非分开不可】它是 auth.goal_saved 的分母，而两条打开路径的性质完全不同：
+ *   · card     = 用户自己点了卡片上的编辑/引导按钮 —— 这才是「有多少人想设目标」；
+ *   · deeplink = /profile?goal=1 自动弹出（首页目标分提醒的落点），用户【没做任何选择】。
+ * 混成一格，分母里就掺进一批「弹给他看、他压根没想设」的次数，保存率会被系统性拉低，
+ * 而且首页那条提醒的曝光量一变、这个比率就跟着漂 —— 看着像产品变坏了，其实只是分母换了成分。
+ */
+export const GOAL_EDITOR_SOURCE = ['card', 'deeplink'] as const
+export type GoalEditorSource = (typeof GOAL_EDITOR_SOURCE)[number]
 
 // ── 字段名白名单（match.* 两个事件的 props 全是计数/布尔/内部 id，取值域不是枚举而是数值区间）──────
 
@@ -279,6 +301,37 @@ export type QuestionOpenedProps =
     /** 排序算法版本短枚举串（形如 'v1-2026-07-17'） */
     algoVersion?: string
   }
+
+// ── 全事件通用的元字段（不属于任何一个事件的业务 props，由 track 在补发时自动挂上）───────────────
+
+/**
+ * 【通用元字段】`queueDelaySec` —— 这条事件是补发的，且在本地补发队列里躺了多少【秒】。
+ *
+ * 【为什么必须有它·落库时间不等于发生时间】埋点拿不到 token / 请求失败时会进本地队列（见
+ *   lib/client-events.ts 的 outbox），下次有会话时补发。补发那条事件落库的 `created_at`
+ *   是【补发那一刻】，不是事情发生那一刻 —— 跨过零点补发，就会把昨天的事算进今天，
+ *   按天/按小时的曲线会被悄悄搬家，而且看不出来（一条正常的事件而已）。
+ *   带上本字段后，真实发生时间 = created_at - queueDelaySec，口径可还原。
+ *
+ * 【口径】
+ *   · 字段【不存在】= 这条事件是当场发出去的（绝大多数），不是「延迟 0 秒」；
+ *   · 存在且 = 0     = 补发的，但入队到补发不足 0.5 秒（取整到 0）；
+ *   · 单位秒、整数（走 normalize 的 Math.round 不会失真，这也是刻意不用毫秒/小数的原因）；
+ *   · 上限 {@link QUEUE_DELAY_SEC_MAX}：超过这个岁数的队列条目在补发前就被丢掉，不会出现更大的值。
+ *
+ * 【为什么不写进每个事件的 props 契约】它对【所有】事件一视同仁，写进 ClientEventPropsMap 就得在
+ *   十几个事件里各抄一遍、且逼着每个调用方显式传一个与业务无关的字段。故它由 track 在补发路径上
+ *   自行挂载，服务端也在【分发之后统一】收敛（见 api/events/route.ts 的 pickQueueDelaySec）——
+ *   那是全表唯一一个跨事件的字段，除它之外绝不许再开第二个「通用放行」的口子。
+ */
+export const QUEUE_DELAY_SEC_KEY = 'queueDelaySec'
+
+/**
+ * 补发延迟的上限（秒）= 24 小时，同时也是本地队列条目的存活上限。
+ * 取 24h 的理由：再老的事件对「按天看趋势」已无意义，而队列越老越可能跨越一次账号切换
+ * （换人 = 归属记错人，见 client-events 的 clearAuthCache）—— 宁可丢，不可记错人。
+ */
+export const QUEUE_DELAY_SEC_MAX = 24 * 60 * 60
 
 // ── 客户端可上报事件 → props 契约映射（本 map 的 key 即 ClientEventName 全集）──────────────────
 
@@ -412,6 +465,71 @@ export type ClientEventPropsMap = {
   'flow.phrase_collect_failed': {
     reason: CollectFailReason
     view: CollectView
+  }
+  /**
+   * 反馈页展示了几张卡 ——【收藏两个事件的分母】。反馈页读完暂存、loaded 置位那一刻发一条。
+   *
+   * 【为什么非有不可·分母缺失是本项目最贵的一类盲区】埋点此前只记「收藏成功」和「收藏失败」，
+   *   从不记「有多少人有机会收藏」。于是 flow.phrase_collected 全为 0 有两种解释 ——
+   *   「没人想收藏」和「所有人都点了但按钮是死的」——【在数据里长得一模一样】。
+   *   后者 2026-08-07 上午真的发生过：commit 9609d78 把 GradientButton 默认 type 改成 'button'，
+   *   三个表单的提交按钮同时变成装饰品，而 tsc / eslint / build / 全部单测【全绿】，
+   *   最后靠用户口头反馈才发现。有了本事件，「展示 N 次、收藏尝试 0 次」一眼可见。
+   *
+   * ⚠️【cardCount === 0 也必须发】那不是「没数据不用发」，恰恰是最重要的一条信号：
+   *   说明用户练完了却一句都没攒下（润色全失败 / 暂存被清 / 存储不可用）。漏发 = 这类事故永远看不见。
+   *
+   * ⚠️【口径：本事件计的是「反馈页挂载次数」，不是「场次数」】用户从反馈页退出再进来会【再记一条】，
+   *   且那一条多半 cardCount=0（暂存已在处理完时清掉）。⇒ 本事件的量【会大于】flow.practice_ended，
+   *   多出来的部分是回访，不是新场次。算「练完却没看到反馈」的缺口时，
+   *   分母一律用 flow.practice_ended，别反过来拿本事件当场次数。
+   *
+   * 🔴【隐私】只带一个计数与一个视图枚举。卡片里的句子（原句/润色句/笔记）一个字都不许进 props。
+   */
+  'flow.feedback_rendered': {
+    /** 本次展示的卡片数；0 = 空态，见上方「必须发」那条。整数，不受 normalize 的 Math.round 影响。 */
+    cardCount: number
+    /** 当前生效的是移动还是桌面视图（两套 DOM 同时挂载，由 lg 断点决定谁可见，故按断点实测取值） */
+    view: CollectView
+  }
+  /**
+   * 一场练习结束了 ——【反馈页的分母】。练习页 handleEnd（点「结束」）里发一条。
+   *
+   * 【为什么非有不可】有了它，「练习结束 N 次、反馈页展示 M 次」的缺口才看得见：
+   *   N ≫ M 说明用户点了结束却没走到反馈页（跳转失败 / 中途关页），此前这段路完全不可观测。
+   *
+   * ⚠️【偏低方向已知】只在点「结束」按钮这一条路上报。直接关标签页/地址栏跳走的场次不会有本事件
+   *   （与 flow.capture_abandoned 同源的卸载丢失，见该条目）。⇒ 本事件计的是【主动结束】的场次，
+   *   不是「练习总场次」，别拿它当练习量的真值。
+   *
+   * 🔴【隐私】只带两个计数。对话内容、题目题面、被润色的句子一个字都不许进 props。
+   */
+  'flow.practice_ended': {
+    /** 本场用户说了几轮（= messages 里 role==='user' 的条数）；0 = 抽到题就退，也要发 */
+    turns: number
+    /** 本场攒下几句优化表达（= 写进暂存、反馈页会拿到的条数）—— 与 feedback_rendered 的 cardCount 对照 */
+    polishedCount: number
+  }
+  /**
+   * 备考目标弹窗打开了 ——【auth.goal_saved / auth.goal_save_failed 的分母】。
+   *
+   * 【为什么非有不可】保存成败两条事件此前【没有分母】：goal_saved 为 0 既可能是「没人想设目标」，
+   *   也可能是「弹窗里的保存按钮是死的」（2026-08-07 就是这种：form 带 noValidate + 按钮 type
+   *   被改成 'button'，点了完全没反应，全套自动检查照样全绿）。有了本事件，
+   *   「弹窗开了 N 次、保存事件 0 条」立刻能看见。
+   *
+   * ⚠️ 上报点必须在【弹窗真的打开】那一刻，不是在按钮的 onClick 里 —— 后者会把「点了但没打开」
+   *   也算成一次打开，正好把要观测的那类 bug 抹平（与 flow.phrase_collected 不许报在点击那一刻同理）。
+   *
+   * 🔴【隐私】只带一个来源枚举 + 两个布尔。绝不带目标分数值、更绝不带考试日期（见 GOAL_BAND / auth.goal_saved）。
+   */
+  'auth.goal_editor_opened': {
+    /** 谁把它打开的（用户点卡片 vs ?goal=1 深链自动弹），口径见 GOAL_EDITOR_SOURCE */
+    source: GoalEditorSource
+    /** 打开时还没设过目标分 = 首次设置。与 auth.goal_saved 的同名字段【同一算法】（targetBand === null），否则两头对不上 */
+    isFirstTime: boolean
+    /** 打开时是否已有考试日期（只记有没有，不记日期） */
+    hasDate: boolean
   }
   /**
    * 页面浏览 —— 漏斗的分母那一格（「有多少人到过这一页」）。

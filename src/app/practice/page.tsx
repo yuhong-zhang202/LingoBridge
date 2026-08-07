@@ -541,6 +541,15 @@ function PracticeContent(): JSX.Element {
       // storyIdForRecord 已做 UUID 校验：非 UUID/空串 → null，绝不把脏值写进 story_id
       startPracticeSessionRecord(questionId || null, isReview, storyIdForRecord, rank)
     }
+    // 分母事件：反馈页的「有多少场练习走到了这里」。turns/polishedCount 与反馈页的 cardCount 对照，
+    // 「结束 N 次、反馈页展示 M 次」的缺口才看得见。
+    // try/catch：这是用户点「结束」的主路径，埋点抛出会把跳转吃掉 —— 那正好是本批在修的
+    // 「按钮点了没反应」那类 bug（立场同 collect.ts 的 safeTrack）。
+    try {
+      track('flow.practice_ended', { turns: userTurnCount, polishedCount: polishHistory.length })
+    } catch (e) {
+      console.error('[practice] 结束埋点失败', e)
+    }
     // navigate：点「结束」瞬间即亮顶部条（反馈页需生成总结、非瞬时），避免用户以为结束按钮没反应重复点。
     navigate('/feedback')
   }, [polishHistory, practiceScope, questionId, isReview, storyIdForRecord, rank, navigate, userTurnCount, clearRetryTimer])

@@ -154,6 +154,7 @@ export async function registerWithPassword(email: string, password: string): Pro
 /**
  * 登录：邮箱 + 密码。
  * @throws INVALID_EMAIL / LOGIN_FAILED（邮箱或密码错误）
+ * @sideEffect 登录成功后清埋点身份态（Authorization 缓存 + 补发队列，见下方注释）
  */
 export async function loginWithPassword(email: string, password: string): Promise<void> {
   const e = validateEmail(email)
@@ -169,6 +170,11 @@ export async function loginWithPassword(email: string, password: string): Promis
     }
     throw appError('LOGIN_FAILED', '邮箱或密码错误', error)
   }
+  // 登录成功 = 换人。此刻必须把埋点的身份态整个丢掉，两件事各修一个错归属：
+  //   · Authorization 缓存里还是【上一个身份】（匿名账号或上一个登录者）的 Bearer；
+  //   · 补发队列里躺着【上一个身份】没发出去的事件，留着就会被补发记到刚登录的这个人头上。
+  // 宁可丢事件，不可记错人（完整理由见 clearAuthCache 顶注）。
+  clearAuthCache()
 }
 
 /**

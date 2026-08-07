@@ -41,6 +41,7 @@
 import { apiFetch, authHeaders } from '@/lib/api-client'
 import { currentFlowId } from '@/lib/flow-id'
 import { qaToken } from '@/lib/qa-flag'
+import { QUEUE_DELAY_SEC_KEY, QUEUE_DELAY_SEC_MAX } from '@/lib/event-schema'
 import type { ClientEventName, ClientEventPropsMap } from '@/lib/event-schema'
 
 // 事件名与各事件的 props 契约【一律来自 lib/event-schema.ts】，本文件不再手抄一份。
@@ -81,15 +82,25 @@ function normalize(props: ClientEventProps): Record<string, string | number | bo
 let cachedAuthorization = ''
 
 /**
- * 清空上面那个缓存。**登出时必须调用**（`lib/auth.ts` 的 `logout()` 里与 clearFlowId 并排）。
+ * 清空上面那个缓存 **以及本地补发队列**。
+ * **登录成功后与登出时都必须调用**（`lib/auth.ts` 的 `loginWithPassword()` / `logout()` 里，与 clearFlowId 并排）。
  *
- * 【为什么必须清】Supabase `signOut` 之后，已签发的 access_token 作为无状态 JWT 到 exp 前【仍然验得过】，
+ * 【为什么必须清缓存】Supabase `signOut` 之后，已签发的 access_token 作为无状态 JWT 到 exp 前【仍然验得过】，
  * 不会自然 401 失效。A 登出后模块不卸载、缓存仍是 A 的 Bearer，此时同一标签页里谁再写点东西然后关掉，
  * keepalive 路径就会带着【A 的 token】把这条 capture_abandoned 发出去 —— 这条「放弃」被记到 A 头上；
  * A 若是内部账户，还会连带被标成 is_qa。只污染埋点归属、不构成越权，但正是本批一直在修的那类静默偏差。
+ *
+ * 【为什么必须【同时】清队列·这是补发队列最危险的一条】队列里躺的是「A 在场时没发出去的事件」，
+ * 补发是在【补发那一刻的身份】下发生的 —— 共用设备上 A 登出、B 登录，A 的队列就会被原样记到 B 头上。
+ * 这比丢事件坏得多：丢是分母小一点，记错人是把两个人的行为搅在一起，事后无法分离、也无法发现。
+ * ⇒ 立场固定为【宁可丢，不可记错人】：身份一变，队列整个扔掉，不做任何「尽量抢救」。
+ * ⚠️ 将来若新增别的身份切换入口（换号、删号、recovery 会话等），必须一并调用本函数。
+ * @returns    无
+ * @sideEffect 清模块级 Authorization 缓存 + 删除 localStorage 里的补发队列（存储不可用时静默跳过）
  */
 export function clearAuthCache(): void {
   cachedAuthorization = ''
+  dropOutbox()
 }
 
 /** /api/events 的请求体形态（keepalive 路径与常规路径共用同一份，避免两路字段分叉）。 */
@@ -97,6 +108,145 @@ interface EventBody {
   event: ClientEventName
   storyId: string | null
   props: Record<string, string | number | boolean>
+}
+
+// ── 补发队列（outbox）─────────────────────────────────────────────────────────────────
+//
+// 【它解决什么】track 此前对两类失败一律【直接丢弃】：拿不到 token（`if (!headers.Authorization) return`）
+//   与请求失败。而「拿不到 token」恰恰与最要命的一档失败强相关 —— flow.phrase_collect_failed 的
+//   reason='session_failed' 就是「没有会话」，那一档很可能连上报都发不出去，导致它在库里【系统性偏低】。
+//   本队列把这类事件暂存本地，下次有会话时补发，把偏差收窄。
+//
+// 【它明确不解决什么·别把它当「送达保证」】
+//   · 用户再也没回来过 → 队列永远没有下一次 track，事件跟着设备一起消失；
+//   · 用户清了浏览器数据 / 用隐私模式 / 浏览器策略禁用存储 → 队列本身就存不下来，退回今天的行为（丢弃）；
+//   · 卸载路径（keepalive）失败无从得知，不进队列。
+//   ⇒ 它只把「有会话时的重试」补上，方向是【只减少低估、不会造成高估】，但不消除低估。
+//
+// 【为什么这不违背 track 顶注「刻意不做本地队列、不做重试」】那条立场反对的是【重复计数】：
+//   同一次动作被计多次会让 distinct 与转化率失真。本实现用「取走即清空、补发失败不再回队」保证
+//   每条事件最多被投递两次（首发一次 + 补发一次），且首发只在【确知没送到】时才入队：
+//     · 拿不到 token（请求根本没发出）、
+//     · fetch 抛错（网络层失败）、
+//     · 401 / 5xx（服务端明确没记账）。
+//   4xx（除 401）不入队：那是事件本身不合契约，重发一万次也是同样结果，只会白打接口。
+
+/** 补发队列在 localStorage 的键（与 flow-id / qa-flag 同款 `lingobridge:` 前缀）。 */
+const OUTBOX_KEY = 'lingobridge:event_outbox'
+/**
+ * 队列条数上限，满了【丢最旧的】。
+ * 20 条的依据：埋点在真实链路上是几秒一条的量级，攒到 20 条还没有会话，说明这台设备处在
+ * 「长时间没有会话」的异常态，再攒下去只是把 localStorage 当垃圾桶；且丢旧留新更贴近
+ * 「补发是为了看清最近发生了什么」。⚠️ 必须封顶：无上限的本地队列会被异常态无限撑大。
+ */
+const OUTBOX_MAX = 20
+
+/** 队列里的一条：事件体 + 入队时刻（补发时据此算 queueDelaySec）。 */
+interface OutboxItem {
+  body: EventBody
+  /** Date.now()，毫秒 */
+  at: number
+}
+
+/**
+ * 读队列。存储不可用 / 内容被外部改坏（非数组、条目缺字段）一律当【空队列】并把脏值删掉 ——
+ * 绝不让一段坏 JSON 把后续所有补发永久堵死。
+ * @returns 队列条目数组（异常时为空数组）
+ */
+function readOutbox(): OutboxItem[] {
+  try {
+    const raw = window.localStorage.getItem(OUTBOX_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) { dropOutbox(); return [] }
+    return parsed.filter((it): it is OutboxItem => {
+      if (typeof it !== 'object' || it === null) return false
+      const { body, at } = it as { body?: unknown; at?: unknown }
+      if (typeof at !== 'number' || !Number.isFinite(at)) return false
+      if (typeof body !== 'object' || body === null) return false
+      return typeof (body as { event?: unknown }).event === 'string'
+    })
+  } catch {
+    // 存储被禁用 / JSON 坏了：当作没有队列，绝不外抛（调用方全在埋点路径上）
+    return []
+  }
+}
+
+/**
+ * 删除整个队列。存储不可用时静默跳过。
+ * @returns 无
+ * @sideEffect localStorage.removeItem
+ */
+function dropOutbox(): void {
+  try {
+    if (typeof window === 'undefined') return
+    window.localStorage.removeItem(OUTBOX_KEY)
+  } catch {
+    /* 存储不可用：本来也没存进去，无事可做 */
+  }
+}
+
+/**
+ * 事件入队（发不出去时调用）。超过 OUTBOX_MAX 丢最旧的。
+ * 写入失败（存储被禁 / 配额满）一律吞掉 —— 退回本次改动前的行为：这条事件就此丢弃。
+ * @param  body  已规范化的事件体
+ * @returns      无
+ * @sideEffect   localStorage 写入一条
+ */
+function enqueue(body: EventBody): void {
+  try {
+    const next = [...readOutbox(), { body, at: Date.now() }].slice(-OUTBOX_MAX)
+    window.localStorage.setItem(OUTBOX_KEY, JSON.stringify(next))
+  } catch {
+    /* 存储不可用 / 写满：静默丢弃这条事件（= 本次改动前的既有行为，不是退步） */
+  }
+}
+
+/**
+ * 取走并清空队列（读 + 删是一个【同步】动作，故不存在两个 flush 拿到同一批的竞态）。
+ * @returns 取走的条目（可能为空数组）
+ * @sideEffect 清空 localStorage 里的队列
+ */
+function takeOutbox(): OutboxItem[] {
+  const items = readOutbox()
+  if (items.length > 0) dropOutbox()
+  return items
+}
+
+/**
+ * 补发队列里的全部事件。**只在已确认拿到 token 之后调用**（否则补发必然 401、白打一轮接口）。
+ *
+ * 【每条最多补发一次】队列在开头就被整个取走清空，失败【不回队】。这是「绝不无限重试打爆接口」
+ * 与「绝不重复计数」两条约束的共同实现方式，也让最坏情况有个死上界：一次 flush 最多 OUTBOX_MAX 个请求。
+ * 【超龄丢弃】躺过 QUEUE_DELAY_SEC_MAX 的条目直接扔（越老越可能跨过一次账号切换，理由见该常量）。
+ * 【不阻塞】调用方不 await 本函数；本函数内部也不 await 各条请求，失败一律吞掉。
+ * @returns    无
+ * @sideEffect 清空本地队列并对每条发一次 POST /api/events（带上 queueDelaySec 元字段）
+ */
+function flushOutbox(): void {
+  const now = Date.now()
+  for (const item of takeOutbox()) {
+    const delaySec = Math.round((now - item.at) / 1000)
+    // 负数（用户改过系统时钟 / 跨设备同步来的脏值）按 0 记：宁可说「没延迟」，也不写一个服务端会丢掉的非法值。
+    if (delaySec > QUEUE_DELAY_SEC_MAX) continue
+    const body: EventBody = {
+      ...item.body,
+      props: { ...item.body.props, [QUEUE_DELAY_SEC_KEY]: delaySec > 0 ? delaySec : 0 },
+    }
+    // 补发失败【不回队】：这条就此丢弃（见上方「每条最多补发一次」）。
+    void apiFetch('/api/events', { method: 'POST', json: body }).catch(() => {})
+  }
+}
+
+/**
+ * 这次上报失败要不要留着下次补发。
+ * 只有「服务端明确没记这一笔、而且下次可能就好了」的状态才值得留：401（token 过期/掉了）与 5xx（服务端故障）。
+ * 其余 4xx 是事件本身不合契约（事件名没注册 / body 不合法），重发多少次都一样，留着只是白打接口。
+ * @param  status  本次响应的 HTTP 状态码
+ * @returns        true = 入队等下次补发
+ */
+function shouldRequeue(status: number): boolean {
+  return status === 401 || status >= 500
 }
 
 /**
@@ -137,15 +287,18 @@ function sendKeepalive(body: EventBody): void {
  * fire-and-forget：不返回 Promise、绝不 await、绝不进任何 if 条件、
  * 不影响任何调用方的返回值或跳转 —— 埋点失败必须对用户完全无感（沿用 matching/page.tsx 已验证的范式）。
  *
- * 刻意【不做本地队列、不做重试】：重试会让同一次动作被计多次，distinct 计数与漏斗转化率随即失真；
- * 埋点丢几条只是分母略小，重复计数则是把结论算错 —— 后者坏得多。
+ * ⚠️【2026-08-07 修正】原注释写的是「刻意不做本地队列、不做重试」，理由是重试会让同一次动作被计多次、
+ * 把 distinct 与转化率算错。**那条理由仍然成立，被推翻的只是「所以什么都不做」这个结论**：
+ * 无会话时直接丢弃，恰好把「没有会话」这一档失败（collect 的 session_failed）系统性抹掉。
+ * 现在走本地补发队列（见下方 outbox 段），并用「取走即清空 + 失败不回队」把投递次数钉死在
+ * 最多两次、且只在【确知没送到】时才留 —— 重复计数这条红线没有放松。
  *
  * @param  event  事件名（须在服务端分发表里注册）
  * @param  props  事件字段（枚举串/数字/布尔，无原文）
  * @param  opts   storyId = corpus.id（有则带）；keepalive = 页面离开时上报（pagehide/卸载路径必须传 true）
  * @returns       无
- * @sideEffect    POST /api/events；无 session 时静默不发（全新访客首页尚无 session，
- *                不短路会打出一串 401 噪音）；任何失败一律吞掉
+ * @sideEffect    POST /api/events；无 session 时【不发、转入本地补发队列】（全新访客首页尚无 session，
+ *                当场发只会打出一串 401 噪音）；顺带补发队列里的旧事件；任何失败一律吞掉
  */
 export function track<E extends ClientEventName>(
   event: E,
@@ -159,17 +312,39 @@ export function track<E extends ClientEventName>(
     sendKeepalive(body)
     return
   }
-  // 常规路径：行为与改动前逐字一致，仅多一句「顺手把 token 存进缓存」（无可观察副作用）。
+  // 常规路径。
   void (async () => {
     const headers = await authHeaders()
     // 取不到 token（未登录/已登出）时【也要清缓存】：不清的话，登出后缓存仍是上一个账号的 Bearer，
     // 卸载路径会拿它继续发事件、把归属记错人（见 clearAuthCache 顶注）。
-    if (!headers.Authorization) { cachedAuthorization = ''; return }
+    if (!headers.Authorization) {
+      cachedAuthorization = ''
+      // 【改动前是直接 return 丢弃】而「没有会话」正是最要命的那一档失败的成因本身
+      //（collect 的 reason='session_failed'），丢弃 = 那一档在库里系统性偏低。改为暂存待补发。
+      enqueue(body)
+      return
+    }
     cachedAuthorization = headers.Authorization
-    await apiFetch('/api/events', {
-      method: 'POST',
-      keepalive: opts?.keepalive,
-      json: body,
-    })
+    try {
+      const res = await apiFetch('/api/events', {
+        method: 'POST',
+        keepalive: opts?.keepalive,
+        json: body,
+      })
+      // 这一条都没送到，说明「有 token」只是表象（token 过期 / 服务端故障）。
+      // 此时【绝不能去补发】：队列是「取走即清空、失败不回队」的，在这一刻烧掉等于把攒下的事件
+      // 全部丢光，正好挑在最不该丢的时候。留到下一次真的发成功了再补。
+      if (shouldRequeue(res.status)) { enqueue(body); return }
+    } catch {
+      // fetch 抛错 = 网络层失败，服务端一定没记这一笔 → 留着下次补；同样不在此刻补发（理由同上）
+      enqueue(body)
+      return
+    }
+    // 【补发时机】刚刚**实测**这条发成功了 —— 这是全流程里唯一一个「已经证明现在发得出去、
+    // 又不用额外花一次 getSession」的点，补发成功率最高。
+    // 不另设定时器 / 不挂 online 事件 / 不在模块加载时跑：那些时机都得自己再问一次会话
+    //（可能没有 → 整队列立刻全数失败又不回队 = 白丢），还多一份生命周期要维护。
+    // 不 await：补发绝不许拖慢本条事件，更不许拖住调用方（fire-and-forget 纪律）。
+    flushOutbox()
   })().catch(() => {})
 }

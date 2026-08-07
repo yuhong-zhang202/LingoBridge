@@ -48,7 +48,7 @@ import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
-import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_FAIL_REASON, COLLECT_VIEW } from '@/lib/event-schema'
+import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_FAIL_REASON, COLLECT_VIEW, GOAL_EDITOR_SOURCE } from '@/lib/event-schema'
 
 const mockLogEvent = logEvent as jest.MockedFunction<typeof logEvent>
 
@@ -149,6 +149,9 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['page.view',              { route: 'practice_question' }],
     ['flow.phrase_collected',      { nth: 3, view: 'mobile' }],
     ['flow.phrase_collect_failed', { reason: 'session_failed', view: 'desktop' }],
+    ['flow.feedback_rendered',     { cardCount: 0, view: 'mobile' }],
+    ['flow.practice_ended',        { turns: 3, polishedCount: 2 }],
+    ['auth.goal_editor_opened',    { source: 'deeplink', isFirstTime: true, hasDate: false }],
   ]
   test.each(CASES)('%s 正例', async (event, props) => {
     await POST(makeEventReq(event, props))
@@ -442,6 +445,101 @@ describe('flow.phrase_collected / flow.phrase_collect_failed · 收敛口径', (
   })
 })
 
+// ───────────────────────────────────────────────────────────────────────────────
+// 分母三件套（2026-08-07）—— 这三个事件存在的意义就是「有多少次机会」，
+// 故 0 值必须能落库：把 0 当非法丢掉，正好把它们要暴露的那类事故（展示了 N 次、动作 0 次）重新藏起来。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('flow.feedback_rendered / flow.practice_ended / auth.goal_editor_opened · 收敛口径', () => {
+  test('🔴 cardCount = 0（空态：练了却一句都没攒下）必须原样落库，不许被当成非法值丢掉', async () => {
+    await POST(makeEventReq('flow.feedback_rendered', { cardCount: 0, view: 'desktop' }))
+    expect(capturedProps()).toEqual({ cardCount: 0, view: 'desktop' })
+  })
+
+  test('🔴 turns = 0 / polishedCount = 0（抽到题就退）同样必须落库', async () => {
+    await POST(makeEventReq('flow.practice_ended', { turns: 0, polishedCount: 0 }))
+    expect(capturedProps()).toEqual({ turns: 0, polishedCount: 0 })
+  })
+
+  test.each([...COLLECT_VIEW].map((v) => [v]))('feedback_rendered 的 view=%s 与收藏事件共用同一份取值域', async (view) => {
+    await POST(makeEventReq('flow.feedback_rendered', { cardCount: 5, view }))
+    expect(capturedProps()).toEqual({ cardCount: 5, view })
+  })
+
+  test.each([...GOAL_EDITOR_SOURCE].map((s) => [s]))('goal_editor_opened 的 source=%s 原样放行', async (source) => {
+    await POST(makeEventReq('auth.goal_editor_opened', { source, isFirstTime: false, hasDate: true }))
+    expect(capturedProps()).toEqual({ source, isFirstTime: false, hasDate: true })
+  })
+
+  test('负数 / 小数 / 超界的计数一律丢（cardCount>500、turns>100）', async () => {
+    await POST(makeEventReq('flow.feedback_rendered', { cardCount: -1, view: 'mobile' }))
+    expect(capturedProps()).toEqual({ view: 'mobile' })
+    jest.clearAllMocks()
+    await POST(makeEventReq('flow.feedback_rendered', { cardCount: 501, view: 'mobile' }))
+    expect(capturedProps()).toEqual({ view: 'mobile' })
+    jest.clearAllMocks()
+    await POST(makeEventReq('flow.practice_ended', { turns: 101, polishedCount: 1.5 }))
+    expect(capturedProps()).toEqual({})
+  })
+
+  test('goal_editor_opened 的 source 枚举外 / 布尔非严格布尔一律丢', async () => {
+    await POST(makeEventReq('auth.goal_editor_opened', { source: 'Card', isFirstTime: 'true', hasDate: 1 }))
+    expect(capturedProps()).toEqual({})
+  })
+
+  test('🔴 三个事件混入原文 / 日期 / 邮箱 → 一个字节都不进库', async () => {
+    await POST(makeEventReq('flow.feedback_rendered', {
+      cardCount: 2, view: 'mobile',
+      original: '我昨天和妈妈吵了一架', optimized: 'I had a row with my mum', note: '用 row 更地道',
+    }))
+    expect(JSON.stringify(capturedProps())).toBe('{"cardCount":2,"view":"mobile"}')
+    jest.clearAllMocks()
+    await POST(makeEventReq('auth.goal_editor_opened', {
+      source: 'card', isFirstTime: true, hasDate: true,
+      examDate: '2026-11-15', band: '7.0', email: 'a@b.com',
+    }))
+    expect(JSON.stringify(capturedProps())).toBe('{"source":"card","isFirstTime":true,"hasDate":true}')
+    jest.clearAllMocks()
+    await POST(makeEventReq('flow.practice_ended', {
+      turns: 2, polishedCount: 1, transcript: 'yesterday I had an argument', question: 'Describe a person…',
+    }))
+    expect(JSON.stringify(capturedProps())).toBe('{"turns":2,"polishedCount":1}')
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 通用元字段 queueDelaySec（补发延迟秒数）—— 全表唯一一个跨事件的字段，在分发【之后】统一收敛。
+// 缺了它，补发事件的 created_at 会被当成发生时间，按天统计悄悄搬家（一条看起来很正常的行）。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('queueDelaySec · 通用元字段', () => {
+  test.each([
+    ['flow.capture_started', { mode: 'voice' }],
+    ['page.view', { route: 'feedback' }],
+    ['flow.phrase_collect_failed', { reason: 'session_failed', view: 'mobile' }],
+    ['flow.feedback_rendered', { cardCount: 1, view: 'mobile' }],
+  ] as Array<[string, Record<string, unknown>]>)('%s 带 queueDelaySec 时原样落库（不分事件，一视同仁）', async (event, props) => {
+    await POST(makeEventReq(event, { ...props, queueDelaySec: 90 }))
+    expect(capturedProps()).toEqual({ ...props, queueDelaySec: 90 })
+  })
+
+  test('不带这个字段时【不许】补一个 0 —— 「当场发的」和「补发但延迟 0 秒」必须分得开', async () => {
+    await POST(makeEventReq('page.view', { route: 'feedback' }))
+    expect(capturedProps()).toEqual({ route: 'feedback' })
+  })
+
+  test('边界：0 与 24h 放行，负数 / 小数 / 超 24h / 字符串一律丢', async () => {
+    await POST(makeEventReq('page.view', { route: 'feedback', queueDelaySec: 0 }))
+    expect(capturedProps()).toEqual({ route: 'feedback', queueDelaySec: 0 })
+    jest.clearAllMocks()
+    await POST(makeEventReq('page.view', { route: 'feedback', queueDelaySec: 86400 }))
+    expect(capturedProps()).toEqual({ route: 'feedback', queueDelaySec: 86400 })
+    for (const bad of [-1, 1.5, 86401, '90', null]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('page.view', { route: 'feedback', queueDelaySec: bad }))
+      expect(capturedProps()).toEqual({ route: 'feedback' })
+    }
+  })
+})
+
 describe('事件名分发闸 —— 未注册立即 400、绝不落库', () => {
   test.each([
     ['flow.unknown_event'],       // 编造的名字
@@ -500,6 +598,9 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'page.view': true,
   'flow.phrase_collected': true,
   'flow.phrase_collect_failed': true,
+  'flow.feedback_rendered': true,
+  'flow.practice_ended': true,
+  'auth.goal_editor_opened': true,
 }
 
 /** 客户端可上报事件名全集（同款 Record 手法，漏登记即 tsc 报错） */
@@ -520,6 +621,9 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'page.view': true,
   'flow.phrase_collected': true,
   'flow.phrase_collect_failed': true,
+  'flow.feedback_rendered': true,
+  'flow.practice_ended': true,
+  'auth.goal_editor_opened': true,
 }
 
 describe('事件名形态护栏 —— 必须过 0053 的 DB CHECK 正则', () => {

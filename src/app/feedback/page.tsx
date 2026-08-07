@@ -20,12 +20,27 @@ import {
   PRACTICE_RECORD_FAILED_MESSAGE,
 } from '@/lib/practice-session-record'
 import Toast from '@/components/Toast'
+import { track } from '@/lib/client-events'
+import type { CollectView } from '@/lib/event-schema'
 import { makeCollectHandler } from './collect'
 import type { SessionPolish } from '@/lib/types'
 import FeedbackMobile from './FeedbackMobile'
 import FeedbackDesktop from './FeedbackDesktop'
 import FlowShellDesktop from '@/components/desktop/FlowShellDesktop'
 import type { FeedbackViewProps } from './types'
+
+/**
+ * 当前生效的是哪一套视图。两套 DOM 同时挂载、靠 `lg:hidden` / `hidden lg:block` 决定谁可见，
+ * 组件自己是不知道的 —— 故按【同一条断点线】实测：lg = 1024px（tailwind 默认，本项目未覆写 screens）。
+ * ⚠️ 改动布局的断点时这里必须跟着改，否则移动/桌面两格的口径会与实际可见的视图对不上。
+ * matchMedia 在极老/异常环境可能缺失，取不到时按 'mobile' 记（本产品移动端占绝对多数，
+ * 猜错的方向也与真实分布一致，不会把桌面那格灌大）。
+ * @returns 'desktop' 或 'mobile'
+ */
+function currentView(): CollectView {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'mobile'
+  return window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile'
+}
 
 export default function FeedbackPage(): JSX.Element {
   const { navigate } = useNav() // 回首页/退出跳首页走 navigate → 点击即亮顶部进度条（消冷缓存空窗）
@@ -41,7 +56,20 @@ export default function FeedbackPage(): JSX.Element {
   const isDragging = useRef(false)
 
   // 唯一一次读取本场暂存
-  useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
+  useEffect(() => {
+    const list = getSessionPolishes()
+    setCards(list)
+    setLoaded(true)
+    // 分母事件：收藏成败两条事件的「有多少次机会」。**空态（list.length === 0）照发**——
+    // 那说明用户练完了却一句都没攒下，是本事件最重要的一格信号，不是「没数据不用发」。
+    // try/catch 的理由同 collect.ts 的 safeTrack：这段跑在 effect 里，抛出去会直接把整页打崩，
+    // 而它只是一条埋点 —— 埋点永远不许影响用户看到的东西。
+    try {
+      track('flow.feedback_rendered', { cardCount: list.length, view: currentView() })
+    } catch (e) {
+      console.error('[feedback] 展示埋点失败', e)
+    }
+  }, [])
 
   // 本页只有【一条】Toast，两个来源共用同一个 message 状态：打卡没存上 / 收藏没存上。
   // 为什么合并而不是挂两个 Toast：Toast 是 fixed bottom-6 居中的浮层，两个实例会重叠在同一位置互相压住，

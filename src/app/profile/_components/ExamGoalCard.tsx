@@ -6,10 +6,12 @@
  * @created  2026-07-10
  */
 'use client'
-import { type JSX, useEffect, useState } from 'react'
+import { type JSX, useEffect, useRef, useState } from 'react'
 import { CalendarDays, Target, Pencil } from 'lucide-react'
 import Card from '@/components/Card'
 import { useAccount } from '@/hooks/useAccount'
+import { track } from '@/lib/client-events'
+import type { GoalEditorSource } from '@/lib/event-schema'
 import ExamGoalModal from './ExamGoalModal'
 
 // /profile?goal=1（首页目标分提醒 CTA 落点）自动打开编辑弹窗：模块级消费一次，防桌面/移动两个
@@ -57,6 +59,12 @@ export default function ExamGoalCard(): JSX.Element | null {
   const { account } = useAccount()
   const [editing, setEditing] = useState(false)
 
+  // 本次打开是谁触发的。默认 'card'（用户点卡片上的按钮），深链路径在 setEditing 前改写它 ——
+  // 这样 5 个 setEditing(true) 调用点一个都不用动，也就不会有人日后新加一个入口时漏传来源。
+  const editorSourceRef = useRef<GoalEditorSource>('card')
+  // 本次打开是否已上报（挡 React 重渲染 / account 刷新导致的重复计数）
+  const openTrackedRef = useRef(false)
+
   // /profile?goal=1：自动打开编辑弹窗（用户从首页目标分提醒直落 Band 选择器）。只在客户端读 window.location.search
   //（不用 useSearchParams，免得给未包 Suspense 的 profile 页引入 Suspense 要求 / 构建报错）。
   // 消费后 replaceState 清掉 goal 参数，避免刷新/返回再次自动开；模块级 goalParamConsumed 保证两实例只开一次。
@@ -65,10 +73,39 @@ export default function ExamGoalCard(): JSX.Element | null {
     const url = new URL(window.location.href)
     if (url.searchParams.get('goal') !== '1') return
     goalParamConsumed = true
+    editorSourceRef.current = 'deeplink'
     setEditing(true)
     url.searchParams.delete('goal')
     window.history.replaceState(null, '', url.pathname + url.search)
   }, [])
+
+  // 分母事件：auth.goal_saved / auth.goal_save_failed 的「有多少次机会」。
+  //
+  // 【为什么落在 editing 的 false→true 上，而不是各个 onClick 里】① 打开弹窗有 5 个入口，
+  //   逐个抄一遍必然有人漏（漏掉的那个入口在数据里就是不存在）；② onClick 报的是「点了」，
+  //   而要观测的恰恰是「点了却没打开」那类 bug —— 报在这里，只有弹窗真的开了才计数。
+  // 【为什么要等 account】深链路径在账号加载完【之前】就把 editing 置了 true，
+  //   那时 targetBand 还读不到，当场发会把 isFirstTime 记反（全成 true）。故等 account 到位再发；
+  //   isFirstTime 的算法与 ExamGoalModal 里逐字一致（targetBand === null），否则分子分母对不上。
+  useEffect(() => {
+    if (!editing) {
+      openTrackedRef.current = false
+      editorSourceRef.current = 'card'
+      return
+    }
+    if (openTrackedRef.current || !account) return
+    openTrackedRef.current = true
+    // try/catch：埋点抛出绝不许连累弹窗（本批修的就是「点了没反应」，别在这儿造一个新的）
+    try {
+      track('auth.goal_editor_opened', {
+        source: editorSourceRef.current,
+        isFirstTime: account.targetBand === null,
+        hasDate: account.examDate !== null,
+      })
+    } catch (e) {
+      console.error('[profile] 备考目标弹窗埋点失败', e)
+    }
+  }, [editing, account])
 
   // 账号未加载完（含 SSR 首帧）先不渲染：避免闪一次「设置目标」引导，也避免 hydration 失配
   if (!account) return null
