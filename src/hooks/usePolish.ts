@@ -15,6 +15,11 @@
  *   - lastPolishArgsRef 存的是 applyPronunciationFixes **处理后**的串：重试要逐字重发同一次请求。
  *   - 每次调用【恰好一条 ai_call】：reportAi 在本次调用内自去重（否则非 2xx 会被 catch 再记一遍）。
  *
+ *   【polishHistory 的持久化】优化成功追加一条就往 sessionStorage 写一次（边攒边存），初始值用
+ *   useState 初始化器同步回填。手机浏览器会回收后台标签页，页面中途重载一次，纯内存的 history 就归零、
+ *   用户点「结束」写进去的是空数组 —— 线上「反馈页有时候是空的、只在手机上」就是这么来的。
+ *   用初始化器而不是 useEffect：useEffect 会先渲染一帧空态，还可能和「结束」那次写入抢先后。
+ *
  * @author   LingoBridge
  * @created  2026-08-03
  */
@@ -23,6 +28,7 @@ import { useCallback, useRef, useState, type RefObject } from 'react'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { apiFetch } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
+import { resumeSessionPolishes, setSessionPolishes, type PracticeSessionScope } from '@/lib/storage'
 // 优化（polish）调用结局的取值域【来自 event-schema 这一份真源】，本文件不再手抄：
 // 服务端 sanitize 对不认识的值是【静默丢弃】，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
 import type { AiResult } from '@/lib/event-schema'
@@ -31,6 +37,8 @@ import type { PracticeScaffold, PolishResult, SessionPolish } from '@/lib/types'
 interface UsePolishArgs {
   /** 目标分档，随请求体发给服务端（练习页的 ?level=，缺省 '6.0'） */
   level: string
+  /** 本场题目参数（URL query 四件套）：随句子一起存，也是重载后回填的判据之一 */
+  scope: PracticeSessionScope
   /** 当前脚手架：只用于给 polishHistory 补 part / questionEn 两个归档字段 */
   scaffold: PracticeScaffold | null
   /** 优化弹窗根容器（tabIndex=-1）：重试时按钮会随 loading 分支被卸载，先把焦点收回来，读屏用户不掉线 */
@@ -62,16 +70,25 @@ interface UsePolishReturn {
 
 /**
  * 练习页优化（换个说法）状态机。
- * @param  args  { level, scaffold, popupRef, onTrialQuota, onConsentDenied }
+ * @param  args  { level, scope, scaffold, popupRef, onTrialQuota, onConsentDenied }
  * @returns      弹窗三态 + polishHistory + runPolish / retryPolish / reopenPolish / closePolish
  * @sideEffect   调用 /api/practice/polish；每次调用报恰好一条 flow.ai_call(stage='polish')；
+ *               每优化成功一句往 sessionStorage 写一次本场句子；
  *               402 时调 onTrialQuota、403 时调 onConsentDenied（本 hook 自身不做跳转）
  */
-export function usePolish({ level, scaffold, popupRef, onTrialQuota, onConsentDenied }: UsePolishArgs): UsePolishReturn {
+export function usePolish({ level, scope, scaffold, popupRef, onTrialQuota, onConsentDenied }: UsePolishArgs): UsePolishReturn {
   const [showPolish, setShowPolish]       = useState(false)
   const [polishLoading, setPolishLoading] = useState(false)
   const [polishResult, setPolishResult]   = useState<PolishResult | null>(null)
-  const [polishHistory, setPolishHistory] = useState<SessionPolish[]>([])
+  // 初始值同步回填：页面被浏览器回收后重载，本场已攒的句子在这里就位（判据不通过则为空数组，等同修复前）。
+  // 初始化器只在首次渲染跑一次，故直接读 scope 即可。
+  const [polishHistory, setPolishHistory] = useState<SessionPolish[]>(() => resumeSessionPolishes(scope))
+  // history 的同步镜像：追加时要拿到「上一份 + 这一条」去写存储，而 handlePolish 的依赖里没有
+  // polishHistory（列进去会重建回调），读 state 会是旧值。ref 与 setPolishHistory 永远同一处更新。
+  const historyRef = useRef<SessionPolish[]>(polishHistory)
+  // 题目参数给异步回调读最新的一份，不进 useCallback 依赖（换题会重挂练习页，实际不会中途变）
+  const scopeRef = useRef(scope)
+  scopeRef.current = scope
   // 上次优化请求的入参，供失败态「再试一次」原样重发（详见 handlePolish 首行注释）
   const lastPolishArgsRef = useRef<[string, string | undefined] | null>(null)
 
@@ -138,13 +155,18 @@ export function usePolish({ level, scaffold, popupRef, onTrialQuota, onConsentDe
       reportAi('ok', 200)
       setPolishResult(data)
       if (data.needsWork && data.optimized) {
-        setPolishHistory(h => [...h, {
+        const next: SessionPolish[] = [...historyRef.current, {
           original: sentence,
           optimized: data.optimized,
           note: data.note,
           part: scaffold?.part ?? 1,
           questionEn: scaffold?.displayEn ?? '',
-        }])
+        }]
+        historyRef.current = next
+        setPolishHistory(next)
+        // 边攒边存：立刻落 sessionStorage。不能等到点「结束」才写 —— 手机浏览器随时可能回收本页，
+        // 到那时内存里的 next 已经不存在了。写失败只记日志（storage 内部已 catch），不打断优化流程。
+        setSessionPolishes(next, scopeRef.current)
       }
     } catch {
       // 到此只剩【真·网络 reject】：非 2xx 一律在上面按状态码分流后 return，不再 throw 进这里

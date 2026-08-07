@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useNav } from '@/components/NavProgress'
+import { startPracticeSession } from '@/lib/storage'
 import PartTag from '@/components/PartTag'
 import Chip from '@/components/Chip'
 import Card from '@/components/Card'
@@ -54,7 +55,9 @@ export default function PracticeTopicsTab({ topics }: Props) {
             </span>
             <Chip
               variant="gradient"
-              onClick={() => navigate(`/practice?questionId=${topic.questionId}`)}
+              // startPracticeSession 必须在这里（入口）调、且在跳转之前：生成本场 id + 清掉上一场遗留的句子。
+              // 练习页自己不能调 —— 那样页面被手机浏览器回收后重载也算「新的一场」，本场句子照样清空。
+              onClick={() => { startPracticeSession(); navigate(`/practice?questionId=${topic.questionId}`) }}
               className="font-medium"
             >
               练习

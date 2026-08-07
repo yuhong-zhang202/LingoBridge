@@ -23,6 +23,7 @@ import type { AnalysisResponse, AnalysisPhraseGroup, AnalysisPhrase, AnalysisFoc
 import { addSavedWord, removeSavedWord, listSavedWords } from '@/lib/db/saved-words'
 import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
+import { startPracticeSession } from '@/lib/storage'
 import { track } from '@/lib/client-events'
 // AI 调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
 // 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
@@ -336,7 +337,13 @@ function AnalysisContent() {
     onTogglePhrase: (key) => setOpenPhrase(key),
     onToggleSave: toggleSave,
     // navigate：点「开始练习」瞬间即亮顶部条，练习页初始化对话（AI 调用）期间有跳转反馈。
-    onStartPractice: () => navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}${rank ? `&rank=${rank}` : ''}`),
+    // startPracticeSession 必须在这里（入口）调、且在跳转之前：它生成本场 id 并清掉上一场遗留的句子。
+    // 练习页自己不能调 —— 那样页面被手机浏览器回收后重载也会算作「新的一场」，本场句子照样清空。
+    // 新增第三个进 /practice 的入口时也要照做，src/__tests__/practice-session-entry-rule.test.ts 会守。
+    onStartPractice: () => {
+      startPracticeSession()
+      navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}${rank ? `&rank=${rank}` : ''}`)
+    },
     // 复习卡/返回上一步/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
     onReviewCards: () => navigate('/review'),
     onBack: () => navigate(backTarget.href),

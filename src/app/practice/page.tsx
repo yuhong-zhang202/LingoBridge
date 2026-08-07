@@ -13,13 +13,13 @@
  * @created  2026-05-15
  */
 'use client'
-import { type JSX, useState, useRef, useEffect, useCallback, Suspense } from 'react'
+import { type JSX, useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { usePolish } from '@/hooks/usePolish'
 import { useNav } from '@/components/NavProgress'
-import { setSessionPolishes, hasSeenPracticeIntro, markPracticeIntroSeen } from '@/lib/storage'
+import { setSessionPolishes, hasSeenPracticeIntro, markPracticeIntroSeen, type PracticeSessionScope } from '@/lib/storage'
 import { addSavedPronunciation } from '@/lib/db/saved-pronunciations'
 import { useSavedPronunciations, refreshSavedPronunciations } from '@/hooks/library-data'
 import { applyPronunciationFixes } from '@/lib/pronunciation'
@@ -99,6 +99,13 @@ function PracticeContent(): JSX.Element {
   // 深链构造的脏值直接落库会让 insert 撞 uuid 类型抛错。非 UUID → 作 null（泛题池流本就传 null），不硬写脏值。
   // 仅约束写库路径，不动 storyId 本身（scaffold 取语料走 getCorpusByIdServer，非 UUID 自然取空、无副作用）。
   const storyIdForRecord = UUID_RE.test(storyId) ? storyId : null
+  // 本场身份：优化句子随它一起存，页面被手机浏览器回收后重载时靠它核对「存的是不是当前这一场」。
+  // 用原始 URL 取值（不是 storyIdForRecord 那个校验后的值）——判据只要「和当前 URL 一致」，不掺加工。
+  // ⚠️ 开场（startPracticeSession）在【进入练习页的入口】调用，绝不能挪到本页：本页调 = 重载也算新一场，等于没修。
+  const practiceScope = useMemo<PracticeSessionScope>(
+    () => ({ questionId, storyId, level, review: isReview }),
+    [questionId, storyId, level, isReview],
+  )
 
   const [scaffold, setScaffold]           = useState<PracticeScaffold | null>(null)
   const [messages, setMessages]           = useState<PracticeMessage[]>([])
@@ -157,7 +164,7 @@ function PracticeContent(): JSX.Element {
   const {
     showPolish, polishLoading, polishResult, polishHistory,
     runPolish, retryPolish, reopenPolish, closePolish,
-  } = usePolish({ level, scaffold, popupRef, onTrialQuota: onPolishTrialQuota, onConsentDenied: onPolishConsentDenied })
+  } = usePolish({ level, scope: practiceScope, scaffold, popupRef, onTrialQuota: onPolishTrialQuota, onConsentDenied: onPolishConsentDenied })
 
   /** 清掉待触发的重试计时器（卸载 / 结束 / 取消录音 / 提交文字时都要清，防泄漏与错发） */
   const clearRetryTimer = useCallback(() => {
@@ -522,7 +529,9 @@ function PracticeContent(): JSX.Element {
 
   const handleEnd = useCallback(() => {
     clearRetryTimer()   // 结束这场：清掉悬空的转写重试计时器，别在反馈页还偷偷重发
-    setSessionPolishes(polishHistory)
+    // 收口写一次。练习中每优化成功一句就已经存过（usePolish 边攒边存），这里写的是同一份内容：
+    // 重载过的场次 polishHistory 已由 usePolish 初始化器回填，不会再拿空数组把存好的句子盖掉。
+    setSessionPolishes(polishHistory, practiceScope)
     // 只在用户至少说过一轮时才计入练习记录（= 产品定义的「走完完整链路」）。
     // 0 轮就点结束（抽到题→误入→立即退出）不该被计为「已练」，否则该题会被首页抽题【永久】排除，
     // 也会误计练习总数 / 复练月额度。打卡「发起即走」不 await —— 点结束就该马上看反馈页；
@@ -534,7 +543,7 @@ function PracticeContent(): JSX.Element {
     }
     // navigate：点「结束」瞬间即亮顶部条（反馈页需生成总结、非瞬时），避免用户以为结束按钮没反应重复点。
     navigate('/feedback')
-  }, [polishHistory, questionId, isReview, storyIdForRecord, rank, navigate, userTurnCount, clearRetryTimer])
+  }, [polishHistory, practiceScope, questionId, isReview, storyIdForRecord, rank, navigate, userTurnCount, clearRetryTimer])
   // A5 防重入：两处「结束」按钮共用同一 ref 守卫，连点/双击只会记一次会话、计一次额度
   const [endSession] = useAsyncAction(handleEnd)
   const capHint =
