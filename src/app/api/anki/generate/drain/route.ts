@@ -109,6 +109,11 @@ async function failJob(job: ClaimedJob, kind: FailureKind, err: string, t0: numb
     status: 'error',
     user_id: job.user_id,
     corpus_id: job.corpus_id ?? undefined,
+    // is_qa 恒 false（0059）：本路由是 cron 拉起的队列排水，请求头来自定时器、不带任何用户的 X-QA-Traffic，
+    // 入队那一刻的 QA 标记也没有随任务落库（anki_generation_jobs 无该列）。故这里【无从判定】，
+    // 一律记 false = 「不是自测」。宁可少标（自测的卡背成本仍混在真实数字里），绝不错标真实用户的成本为自测。
+    // 要真标必须给 jobs 表加列、入队时把 isQaRequest 的结果一并写进去 —— 那是另一次改动，本轮不做。
+    is_qa: false,
     metadata: { phase: 'anki_answer', kind, error: err.slice(0, 200), ...errorLogMeta(cause), ...errorKindMeta(cause) },
   })
 }
@@ -210,6 +215,8 @@ async function processJob(job: ClaimedJob): Promise<void> {
       status: 'success',
       user_id: job.user_id,
       corpus_id: job.corpus_id ?? undefined,
+      // is_qa 恒 false，理由与 failJob 处同（cron 排水拿不到用户的 QA 上下文），详见那里的注释。
+      is_qa: false,
       metadata: {
         phase: 'anki_answer',
         part: question.part,

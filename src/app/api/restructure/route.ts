@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { restructureText } from '@/services/restructure'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
@@ -22,8 +23,12 @@ const MAX_RAW_TEXT_LENGTH = 3000
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账也要标 QA（失败一样烧钱），而 userId 声明在 try 内、catch 读不到，故在此暂存一份。
+  // 只服务于 is_qa 判定：本路由失败行仍不带 user_id/is_anonymous（归属口径一字未动）。
+  let qaUserId: string | undefined
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    qaUserId = userId
     // 服务端同意闸：文字流首个第三方 AI 入口（阿里云千问）。未捕获同意 → 拒绝，绝不把文字外发。
     // 客户端同意弹窗只挂首页、深链可绕过，故这里必须再硬校验一次（放在计次/AI 调用之前）。
     if (!(await hasRecordedConsent(userId))) {
@@ -67,14 +72,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     // qwen-flash 单价扁平按总 token 计，故估算兜底把全部字数塞进 promptTokens、completionTokens 记 0，合计即估算 token。
     const usage: LLMUsage = realUsage ?? { promptTokens: Math.round(rawText.length * 1.5), completionTokens: 0 }
     const usage_amount = usage.promptTokens + usage.completionTokens
-    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'restructure', cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount, usage_unit: 'tokens', estimated_cost_cny: (usage_amount / 1000) * API_PRICING.qwen_flash_per_1k_tokens, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), metadata: { phase: 'restructure', cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json({ cleanedText, usable, summary })
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值），否则空 metadata 会掉进看板「other」桶、辨不出是哪个环节挂的。
     // 此处 catch 只接 AI/系统故障（rawText 空/超长在前面已 400 早退），故不补 error_kind（缺键即系统故障）。
-    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'restructure', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_flash', endpoint: 'dashscope/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', is_qa: isQaRequest(req, qaUserId), metadata: { phase: 'restructure', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[restructure API]', e)
     return NextResponse.json({ error: '整理失败，请稍后再试' }, { status: 500 })
   }

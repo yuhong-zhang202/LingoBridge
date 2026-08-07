@@ -99,6 +99,33 @@ export const EXCLUDE_INTERNAL_BY_USER = `user_id.is.null,user_id.not.in.(${INTER
 /** profiles 表主键列名为 id（非空 PK，无 null 顾虑，但沿用 or 形式保持一致、防空集边界）。 */
 export const EXCLUDE_INTERNAL_BY_ID = `id.is.null,id.not.in.(${INTERNAL_ID_LIST})`
 
+// ── QA 自测流量从成本口径排除（迁移 0059 起）──
+// 与内部账户排除【同一档】：都在查询侧逐条套用、都只作用于成本口径，不进任何业务判定。
+// 为什么必须有它：内部账户名册只认产品方的【注册】账号，而产品方用无痕模式自测时每次都是一个全新的
+// 匿名 user_id，一个都进不了名册 —— 只靠 EXCLUDE_INTERNAL_BY_USER，自测成本永远剔不掉。
+/**
+ * 排除 QA 自测流量的过滤参数，供 `.not(...EXCLUDE_QA_TRAFFIC)` 展开使用（生成 `is_qa=not.is.true`，
+ * 即 SQL `is_qa IS NOT TRUE`）。与内部账户那条是不同的 query 参数键，PostgREST 以 AND 同时生效。
+ *
+ * ⚠️ 刻意【不写】 `.eq('is_qa', false)`：迁移 0059 生效前的历史行、以及任何 NULL 值，在 `= false` 下
+ *    求值为 NULL（非 TRUE）→ 会被连同真 QA 行一起滤掉。那等于把「不知道是不是自测」当成「就是自测」，
+ *    历史成本凭空缩水。`IS NOT TRUE` 对 NULL 求值为 TRUE，NULL 行原样保留 —— 宁可少剔，绝不错剔。
+ *    这与上面 EXCLUDE_INTERNAL_BY_USER 刻意用 or(is.null, not.in) 保住 null 行是同一条纪律。
+ *
+ * ⚠️ 迁移未应用时本过滤会让查询报「列不存在」→ 看板整页 500。这是刻意的响亮失败：
+ *    宁可看板打不开（一眼可见、CI 跑完迁移即自愈），也不要它照常显示一个混着自测流量的数字。
+ */
+export const EXCLUDE_QA_TRAFFIC = ['is_qa', 'is', true] as const
+
+/**
+ * 成本口径「剔除自测流量」的起算日（东八区，展示用）：= 迁移 0059 由 CI 应用之日。
+ * 此日之前的 api_usage_logs 行【无法回溯标记】——谁在什么时候用无痕窗口自测过，事后没有依据可判；
+ * 加列时 PG 把已有行一律填成 false（= 当作「不是自测」），那是默认值、不是判断结果。
+ * 故看板必须把这个日子标出来，提醒【别拿起算日前后的成本做同比】。范式同漏斗侧的 FLOW_BASELINE_START。
+ * ⚠️ CI 实际应用日若与此不符，改这一处（它是唯一真源，前端口径小字直接读它）。
+ */
+export const COST_QA_BASELINE_START = '2026-08-08'
+
 /** 保留两位小数 */
 export function r2(n: number): number {
   return Math.round(n * 100) / 100

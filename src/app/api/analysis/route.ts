@@ -17,6 +17,7 @@ import { getCorpusByIdServer, getCorpusPrimaryPointCodeServer, bumpDailyUsageSer
 import { generateAnalysis, generateAnalysisStreaming } from '@/services/analysis'
 import type { AnalysisStreamSection } from '@/lib/analysis-stream-parse'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
@@ -74,8 +75,12 @@ function str(v: unknown): string {
  */
 async function handleBuffered(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账用的归属 + QA 标记：userId/isAnonymous 声明在 try 内、catch 读不到，故在此暂存一份
+  // （写法对齐 transcribe 的 attribution）。失败行同样烧过钱，既要能归到人、也要能被剔除自测流量。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     // 同意闸硬前置：分析会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -178,7 +183,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
         generateAnalysis({ part: q.part, en: enForAI, zh: q.question_text_zh, story, level }, (u) => { realUsage = u }),
       )
       // 记账 + 缓存回填走共享 helper（与 handleStreaming 单一真源，杜绝分叉）：详见 logAnalysisUsage/writeAnalysisCache。
-      await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch })
+      await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch, isQa: isQaRequest(req, userId) })
       if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
       } finally {
         // 名额必须归还（成功/抛错都要），否则预取闸越关越死。真实请求 slot=null、跳过。
@@ -203,7 +208,9 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值 'analysis'），避免空 metadata 掉进看板 other 桶、辨不出环节。
     // 此处只接 AI/系统故障（缺 questionId、题目不存在在前面已 400/404 早退），故不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    // 归属三字段（user_id/is_anonymous/is_qa）自 2026-08-07 起补写：此前失败行完全无归属，
+    // 既进不了「按用户成本」、也剔不掉自测流量。只补归属，不碰任何计费/错误处理口径。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[analysis API]', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }
@@ -230,12 +237,17 @@ function sseFrame(event: string, data: unknown): Uint8Array {
  *    两侧都漏算这部分成本）。只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理
  *    见 dashboard-metrics.aggregateUserCosts 顶注（有 user_id 就按该用户当前身份归类，NULL 不参与判断）。
  *    该字段只是「调用那一刻的身份」快照，不能拿来判「这个人现在是谁」（转化用户 user_id 不变 + stale JWT）。
+ * ⚠️ is_qa 自 2026-08-07（迁移 0059）起必填：产品方无痕自测的匿名号进不了 isInternalAccount 名册，
+ *    不标就永远剔不掉。值由调用方 isQaRequest(req, userId) 算好传入（本 helper 没有 req）。
+ *    该标记可伪造，只可写统计列，永不参与额度/权限/计费判定。
  */
 async function logAnalysisUsage(a: {
   realUsage: LLMUsage | null; enForAI: string; userId: string; isAnonymous: boolean; storyId: string; t0: number; isPrefetch: boolean
+  /** 是否记作 QA 自测流量（0059）：由调用方用 isQaRequest(req, userId) 算好传入——本 helper 拿不到 req。 */
+  isQa: boolean
 }): Promise<void> {
   const usage: LLMUsage = a.realUsage ?? { promptTokens: Math.round(a.enForAI.length * 0.3 + 800), completionTokens: 400 }
-  await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - a.t0, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: a.realUsage ? 'actual' : 'estimate', prefetch: a.isPrefetch } })
+  await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - a.t0, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.storyId || undefined, metadata: { phase: 'analysis', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: a.realUsage ? 'actual' : 'estimate', prefetch: a.isPrefetch } })
 }
 
 /**
@@ -280,8 +292,11 @@ function analysisToSections(analysis: QuestionAnalysis): AnalysisStreamSection[]
  */
 async function handleStreaming(req: Request): Promise<Response> {
   const t0 = Date.now()
+  // 同 handleBuffered：开流前异常的失败记账要能拿到归属 + QA 标记（userId 在 try 内、外层 catch 读不到）。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
     const reqBody = await req.json().catch(() => ({})) as AnalysisRequestBody
@@ -393,14 +408,14 @@ async function handleStreaming(req: Request): Promise<Response> {
           )
           // 流末落地：记账（传真实 isPrefetch，预取的成本归因 metadata.prefetch 才对）+ 回填缓存
           // （时机从「响应前」挪到「流末」，字段/职责与 handleBuffered 一字不变）。
-          await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch })
+          await logAnalysisUsage({ realUsage, enForAI, userId, isAnonymous, storyId, t0, isPrefetch, isQa: isQaRequest(req, userId) })
           if (canCachePersonal) await writeAnalysisCache(storyId, q.id, q.season, storyHash, analysis)
           safeEnqueue(sseFrame('done', { question: metaQuestion, analysis }))
           releaseSlot()   // 成功出路：AI + 缓存写跑完、done 帧后释放预取闸名额
           safeClose()
         } catch (e) {
           // 4) 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级 ?stream=0。
-          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
+          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', user_id: userId, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
           logErr('[analysis API stream]', e)
           releaseSlot()   // 异常出路：释放预取闸名额
           try {
@@ -422,7 +437,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     // 开流前异常（鉴权/同意/入参/归属/配额/取题）：返回普通 JSON。前端据状态（402/403/429）处理，或降级重发 ?stream=0。
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'analysis', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[analysis API stream pre]', e)
     return NextResponse.json({ error: '生成分析失败' }, { status: 500 })
   }

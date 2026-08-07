@@ -75,6 +75,9 @@ type DashboardData = {
   // true = 用户身份 RPC（0058·get_user_anon_flags）未接入/不可用，上面三项回退旧「有一条匿名调用即标匿名」
   // 口径（转化用户会被误标匿名），卡片上标「口径待生效」+ 说明。旧部署的 API 无此字段，故可选。
   userIdentityPending?: boolean
+  // 成本口径「剔除自测流量」的起算日（0059 生效日，形如 '2026-08-08'）：此日之前的成本仍混着产品方自测、
+  // 且无法回溯剔除。费用区据此打一行口径小字。旧部署的 API 无此字段，故可选（缺省即不显示这行）。
+  costQaBaselineStart?: string
   dailyData: Array<{ date: string; doubao_asr: number; qwen_flash: number; qwen_plus: number; total: number }>
   dailyFailures: Array<{ date: string; failures: number }>
   // newReg：每日新增注册线（迁移 0044 未跑/降级时整列 null，图表不渲染该线）。
@@ -698,6 +701,16 @@ export default function DashboardPage() {
           rangeBadge={rangeBadge}>
           {/* 本月 + 累计（+ 今日）费用卡：日历口径（USD 副行与汇率脚注已删，方案 §六瘦身） */}
           <CostCards data={data} />
+          {/* 成本口径小字（10px muted，同下方预算线注/漏斗 FunnelNote 的字号色，不自造组件）：
+              自测流量已从本区块所有数字里剔除，但只对起算日之后的行成立——起算日之前无法回溯标记。
+              缺省（旧部署 API 无此字段）不渲染，不对老部署凭空声明一个它没有的口径。 */}
+          {data.costQaBaselineStart && (
+            <div className="text-[0.625rem] text-v2-text-muted leading-relaxed mt-2">
+              注：本区块所有成本数字已剔除产品方自测流量（带 QA 标记的请求）与内部账户。
+              但该标记自 {data.costQaBaselineStart} 起才写入日志，此前的行无从回溯判定、仍混着自测流量——
+              别拿这个日子前后的成本做同比。
+            </div>
+          )}
           <div className="mb-4" />
 
           {/* 费用趋势 + 按服务占比 */}

@@ -10,7 +10,7 @@ import { createHash } from 'crypto'
 
 // —— 依赖全 mock 在模块边界（不碰真实 DB / 模型 / 鉴权 / 埋点）——
 jest.mock('server-only', () => ({}))
-jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true } }))
+jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true, qaTrafficToken: '' } }))
 jest.mock('@/services/matching', () => ({ matchByStory: jest.fn() }))
 jest.mock('@/lib/db/match-snapshots', () => ({
   getMatchSnapshotServer: jest.fn(),
@@ -485,5 +485,68 @@ describe('POST /api/matching · 默认流式 SSE', () => {
     expect(res.status).toBe(402)
     expect(body.code).toBe('QUOTA_EXCEEDED')
     expect(mockMatchByStory).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * QA 自测流量标记（迁移 0059）—— 萃取/重排两条 usage 是全站最贵的 AI 调用，
+ * 产品方自测时不标就永远剔不掉（无痕模式的匿名号进不了 isInternalAccount 名册）。
+ * 阻塞路与流式路走同一份 pushMatchUsageLogs，故两路各测一次即可覆盖两条记账。
+ * ⚠️ 只验统计列取值，绝不把 is_qa 接到额度/权限判定上（可伪造，红线见 qa-traffic 顶注）。
+ */
+describe('POST /api/matching · 成本记账的 QA 标记', () => {
+  /** 服务端配置的 QA token */
+  const TOKEN = 's3cret-token'
+
+  /** 带 QA 头的请求（stream 参数决定走阻塞路还是流式路） */
+  function qaReq(buffered: boolean, header?: string): Request {
+    const headers: Record<string, string> = { authorization: 'Bearer t', 'x-flow-id': 'f', 'content-type': 'application/json' }
+    if (header !== undefined) headers['x-qa-traffic'] = header
+    return new Request(`http://localhost/api/matching${buffered ? '?stream=0' : ''}`, {
+      method: 'POST', headers, body: JSON.stringify({ corpusId: 'c1' }),
+    })
+  }
+
+  /** 本次全部记账入参的 is_qa 取值集合（两条账必须同值） */
+  function isQaValues(): unknown[] {
+    return [...new Set(mockLogApiUsage.mock.calls.map((c) => (c[0] as { is_qa?: boolean }).is_qa))]
+  }
+
+  beforeEach(() => {
+    ;(env as { qaTrafficToken: string }).qaTrafficToken = TOKEN
+  })
+
+  test('阻塞路（?stream=0）：带对 QA 头 → 萃取/重排两条账都标 is_qa=true', async () => {
+    await POST(qaReq(true, TOKEN))
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(isQaValues()).toEqual([true])
+  })
+
+  test('阻塞路：普通用户不带头 → 两条账都 false（绝不误剔真实成本）', async () => {
+    await POST(qaReq(true))
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(isQaValues()).toEqual([false])
+  })
+
+  test('流式默认路：带对 QA 头 → 两条账同样标 true（2026-08-02 漏标 isQa 那次就出在这一路）', async () => {
+    const res = await POST(qaReq(false, TOKEN))
+    await readSSE(res)
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(isQaValues()).toEqual([true])
+  })
+
+  test('服务端未配 token → 头再对也判 false（fail-closed，绝不能全站成本被标成自测）', async () => {
+    ;(env as { qaTrafficToken: string }).qaTrafficToken = ''
+    await POST(qaReq(true, TOKEN))
+    expect(isQaValues()).toEqual([false])
+  })
+
+  test('失败记账（模型抛错）同样带 QA 标记 —— 失败也烧钱', async () => {
+    mockMatchByStory.mockRejectedValueOnce(new Error('模型超时'))
+    const res = await POST(qaReq(true, TOKEN))
+    expect(res.status).toBe(500)
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error', is_qa: true, user_id: 'u1', is_anonymous: false,
+    }))
   })
 })

@@ -183,7 +183,9 @@ function wire(allTimeRows: UserCostRow[], flags: Array<{ id: string; is_anonymou
     const b: Record<string, unknown> = {}
     const self = () => b
     b.select = (cols: string) => { select = cols; return b }
-    b.gte = self; b.lt = self; b.eq = self; b.or = self; b.order = self; b.limit = self
+    // .not 是 0059 的 QA 流量排除（`.not(...EXCLUDE_QA_TRAFFIC)`）：本测试的行不带 is_qa，
+    // 过滤无影响，只需维持链式；它滤得对不对由 dashboard-qa-exclusion.test.ts 专测。
+    b.gte = self; b.lt = self; b.eq = self; b.or = self; b.not = self; b.order = self; b.limit = self
     const rows = (): unknown[] => (select === ALLTIME_SELECT ? allTimeRows : [])
     b.range = (from: number, to: number) => ({
       then: (resolve: (r: { data: unknown[]; error: null }) => void) =>

@@ -89,20 +89,23 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
  *   两侧都漏算这部分成本）。只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理
  *   见 dashboard-metrics.aggregateUserCosts 顶注（有 user_id 就按该用户【当前】身份归类，NULL 不参与判断）。
  *   该字段只是「调用那一刻的身份」快照，不能拿来判「这个人现在是谁」（转化用户 user_id 不变 + stale JWT）。
+ * ⚠️ is_qa 自 2026-08-07（迁移 0059）起必填：产品方无痕自测的匿名号进不了 isInternalAccount 名册，
+ *   不标就永远剔不掉。值由调用方 isQaRequest(req, userId) 算好传入（与同一次请求的 match.result 埋点同源，
+ *   两边必然一致）。该标记可伪造，只可写统计列，永不参与额度/权限/计费判定。
  */
 function pushMatchUsageLogs(
   afterTasks: Promise<unknown>[],
-  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string },
+  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string; isQa: boolean },
 ): void {
   const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
   if (a.result.questions.length > 0) {
     const candidateChars = a.result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
     const rkUsage: LLMUsage = a.rankingUsage ?? {
       promptTokens: Math.round(a.cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
       completionTokens: a.result.questions.length * 40,
     }
-    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
   }
 }
 
@@ -113,8 +116,12 @@ function pushMatchUsageLogs(
  */
 async function handleBuffered(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账用的归属 + QA 标记：userId/isAnonymous 声明在 try 内、catch 读不到，故在此暂存一份
+  // （写法对齐 transcribe 的 attribution）。失败行同样烧过钱，既要能归到人、也要能被剔除自测流量。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     // 同意闸硬前置：匹配会把整理后故事全文发往千问（萃取 + 重排）。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -201,7 +208,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       }
 
       // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
-      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId })
+      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa: isQaRequest(req, userId) })
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
@@ -263,7 +270,9 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     // 失败行补 phase：本 catch 包住 extraction + ranking 两步（都在 matchByStory 内深处），
     // 从 catch 处无法判定挂在哪一步，故用能表意的兜底值 'matching'（看板 PHASE_META 无此键则原样显示，
     // 仍好过掉进空 metadata 的 other 桶）。此处只接系统故障（入参校验在前面已 400 早退），不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    // 归属三字段（user_id/is_anonymous/is_qa）自 2026-08-07 起补写：此前失败行完全无归属，
+    // 既进不了「按用户成本」、也剔不掉自测流量。只补归属，不碰任何计费/错误处理口径。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
@@ -337,9 +346,12 @@ async function buildStreamDto(
  */
 async function handleStreaming(req: Request): Promise<Response> {
   const t0 = Date.now()
+  // 同 handleBuffered：开流前异常的失败记账要能拿到归属 + QA 标记（userId 在 try 内、外层 catch 读不到）。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
   try {
     // 鉴权 / 同意闸 / 入参 / 归属校验（与 handleBuffered 同口径，必须在开流前过，早退返回普通 JSON）
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
     const body = (await req.json()) as { corpusId?: unknown }
@@ -437,7 +449,7 @@ async function handleStreaming(req: Request): Promise<Response> {
                 .catch((e) => logErr('[matching snapshot upsert]', e)),
             )
           }
-          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId })
+          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa })
           afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, 'fresh') }))
           await Promise.all(afterTasks)
 
@@ -446,7 +458,7 @@ async function handleStreaming(req: Request): Promise<Response> {
           safeClose()
         } catch (e) {
           // 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级到 ?stream=0。
-          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
+          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', user_id: userId, is_anonymous: isAnonymous, is_qa: isQa, metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
           logErr('[matching API stream]', e)
           try {
             safeEnqueue(sseFrame('error', { error: '匹配失败' }))
@@ -465,7 +477,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     // 开流前异常（鉴权/同意/入参/存档读取/配额）：返回普通 JSON。前端据状态（402/403/429）处理，或降级重发 ?stream=0。
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[matching API stream pre]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }

@@ -26,8 +26,10 @@ import {
   AttribRow,
   CostRow,
   DAILY_BUDGET_CNY,
+  COST_QA_BASELINE_START,
   EXCLUDE_INTERNAL_BY_ID,
   EXCLUDE_INTERNAL_BY_USER,
+  EXCLUDE_QA_TRAFFIC,
   FAILED_LOG_N,
   FAKE_EMPTY_PEAK_THRESHOLD,
   FailedRow,
@@ -120,6 +122,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     // ── 10 条并行查询 ──
     // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
     // 其余 3 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
+    // ⚠️ 八条 api_usage_logs 查询【逐条】套两个排除过滤，缺一条那张卡/那张图就掺着自测流量：
+    //    · .or(EXCLUDE_INTERNAL_BY_USER) —— 内部账户（产品方的注册号）；
+    //    · .not(...EXCLUDE_QA_TRAFFIC)   —— QA 自测流量（0059 的 is_qa，专治无痕模式的匿名自测号）。
+    //    两者【同一档】、都只作用于成本口径；NULL 行两边都刻意保留（理由见各自常量注释）。
+    //    practice_sessions / profiles 两条不套 QA 过滤：那两张表没有 is_qa 列（套了直接查询报错）。
     const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes, failedRes, practiceRes, profilesRes] = await Promise.all([
       // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
       // 这条永不设时间下界、行数只增不减，是最先撞 1000 行上限、也是少报最严重的一条。
@@ -127,12 +134,14 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('estimated_cost_cny, user_id, is_anonymous')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
       fetchAllRows<CostRow>(() => supabase
         .from('api_usage_logs')
         .select('estimated_cost_cny')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .gte('created_at', monthStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
@@ -140,6 +149,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('estimated_cost_cny')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .gte('created_at', lastMonthStart.toISOString())
         .lt('created_at', monthStart.toISOString())
         .order('created_at', { ascending: true })
@@ -148,6 +158,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('estimated_cost_cny, user_id, is_anonymous, status, service, metadata')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .gte('created_at', todayStart.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
@@ -155,6 +166,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata, user_id, is_anonymous')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: true })
         .order('id', { ascending: true })),
@@ -162,6 +174,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .order('created_at', { ascending: false })
         .limit(30),
       // 最贵 Top-N（全时段按成本降序）：时间序的"最近调用"抓不到某次异常昂贵，需独立按成本排。
@@ -169,6 +182,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .order('estimated_cost_cny', { ascending: false })
         .limit(TOP_COST_N),
       // 失败明细（区间内 status='error'，时间倒序）：每日失败柱图的下钻出口。
@@ -179,6 +193,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         .from('api_usage_logs')
         .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata, user_id, is_anonymous')
         .or(EXCLUDE_INTERNAL_BY_USER)
+        .not(...EXCLUDE_QA_TRAFFIC)
         .eq('status', 'error')
         .gte('created_at', rangeStartDate.toISOString())
         .order('created_at', { ascending: false })
@@ -693,6 +708,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       failedLogs: failed,
       // 数据完整性标记：true = 分页触顶、以上金额均偏低，不可当作真实花费看。正常恒为 false。
       dataTruncated,
+      // 成本口径「剔除自测流量」的起算日（0059 生效日）：此日之前的行无法回溯标记、仍混着产品方自测，
+      // 前端据此在费用区打一行口径小字（别拿起算日前后做同比）。唯一真源见 COST_QA_BASELINE_START。
+      costQaBaselineStart: COST_QA_BASELINE_START,
     })
   } catch (e) {
     const authRes = authErrorResponse(e)

@@ -448,5 +448,16 @@ export type ApiUsageLog = {
   user_id?: string
   corpus_id?: string
   is_anonymous?: boolean
+  /**
+   * QA 自测流量标记（0059 补列，与 flow_events.is_qa 同口径）：true = 产品方自测，看板成本口径整行剔除。
+   * 取值【一律走 isQaRequest(req, userId)】，不许各 route 自己拼判定（qa-traffic 是唯一入口）。
+   *
+   * ⚠️ 刻意【必填】而非可选：漏传 = 那条成本静默混进真实数字里、事后无从分辨，正是本轮要治的病。
+   *   设成必填后，将来任何新的 logApiUsage 调用点不写这个字段就编译不过 —— 让 tsc 当哨兵，别靠人记得。
+   *   拿不到用户请求上下文的调用点（如 anki drain 这种 cron 拉起的队列任务）显式写 false 并注明理由。
+   *
+   * ⚠️ 可伪造（来自客户端请求头），**永久禁止**用于额度/权限/计费/RLS 判定，只可写入统计列。
+   */
+  is_qa: boolean
   metadata?: Record<string, unknown>
 }

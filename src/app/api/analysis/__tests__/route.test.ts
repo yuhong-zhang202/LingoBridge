@@ -40,6 +40,8 @@ jest.mock('@/lib/api-auth', () => ({
   authErrorResponse: jest.fn(() => null),
 }))
 jest.mock('@/lib/consent-server', () => ({ requireConsent: jest.fn(() => Promise.resolve(null)) }))
+// env-server 只在 qa-traffic 这条链路被用到（读 QA_TRAFFIC_TOKEN）：mock 掉，供 QA 标记用例开关它。
+jest.mock('@/lib/env-server', () => ({ env: { qaTrafficToken: '' } }))
 // 预取闸：acquire 走可控 mockAcquire（惰性引用，绕开 jest.mock 提升 TDZ）；测试改其 resolve 值控制取闸成功/满，
 // 挂 mockReleaseFn 供断言【恰好释放一次】。真实用户请求（非预取）根本不调 acquire。
 const mockAcquire = jest.fn()
@@ -56,6 +58,7 @@ import { getCorpusByIdServer, getCorpusPrimaryPointCodeServer, bumpDailyUsageSer
 import { generateAnalysis, generateAnalysisStreaming } from '@/services/analysis'
 import { logApiUsage } from '@/lib/api-logger'
 import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
+import { env } from '@/lib/env-server'
 import type { QuestionAnalysis } from '@/lib/types'
 
 const mockGetQuestion   = getQuestionById as jest.MockedFunction<typeof getQuestionById>
@@ -297,5 +300,64 @@ describe('POST /api/analysis · 预取（流式）/ 降级（?stream=0 → handl
     expect(mockLogApiUsage).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: expect.objectContaining({ phase: 'analysis', prefetch: false }) }),
     )
+  })
+})
+
+/**
+ * QA 自测流量标记（迁移 0059）——【流式默认路】的记账同样要标：真实用户走的就是这一路，
+ * 2026-08-02 matching 那次「漏标 isQa、生产数据全 false」正是只漏在流式路上。
+ * ⚠️ 只验统计列取值，绝不把 is_qa 接到额度/权限判定上（可伪造，红线见 qa-traffic 顶注）。
+ */
+describe('POST /api/analysis · 流式路记账的 QA 标记', () => {
+  const TOKEN = 's3cret-token'
+
+  /** 带（或不带）QA 头的流式请求 */
+  function qaStreamReq(header?: string): Request {
+    const headers: Record<string, string> = { authorization: 'Bearer t', 'content-type': 'application/json' }
+    if (header !== undefined) headers['x-qa-traffic'] = header
+    return new Request('http://localhost/api/analysis', {
+      method: 'POST', headers, body: JSON.stringify({ questionId: 'q1', storyId: 'c1' }),
+    })
+  }
+
+  /** 本次唯一一条记账的 is_qa */
+  function isQaOf(): boolean | undefined {
+    const call = mockLogApiUsage.mock.calls[0]?.[0] as { is_qa?: boolean } | undefined
+    if (!call) throw new Error('未记到任何一条账')
+    return call.is_qa
+  }
+
+  // 未命中缓存 + generateAnalysisStreaming 的桩由外层 beforeEach 统一提供（本 describe 不另造，
+  // 免得两份桩漂移）；这里只把服务端 QA token 配上。
+  beforeEach(() => {
+    ;(env as { qaTrafficToken: string }).qaTrafficToken = TOKEN
+  })
+
+  test('带对 QA 头 → 流末那条 usage 标 is_qa=true', async () => {
+    const res = await POST(qaStreamReq(TOKEN))
+    await res.text()
+    expect(isQaOf()).toBe(true)
+  })
+
+  test('普通用户不带头 → false（绝不误剔真实成本）', async () => {
+    const res = await POST(qaStreamReq())
+    await res.text()
+    expect(isQaOf()).toBe(false)
+  })
+
+  test('服务端未配 token → 头再对也判 false（fail-closed）', async () => {
+    ;(env as { qaTrafficToken: string }).qaTrafficToken = ''
+    const res = await POST(qaStreamReq(TOKEN))
+    await res.text()
+    expect(isQaOf()).toBe(false)
+  })
+
+  test('开流后异常的失败记账：同样带 QA 标记与归属（失败也烧钱）', async () => {
+    mockGenStream.mockRejectedValueOnce(new Error('模型超时'))
+    const res = await POST(qaStreamReq(TOKEN))
+    await res.text()
+    expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error', is_qa: true, user_id: 'u1', is_anonymous: false,
+    }))
   })
 })

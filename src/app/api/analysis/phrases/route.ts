@@ -20,6 +20,7 @@ import { getPersonalAnalysis, upsertPersonalAnalysis } from '@/lib/db/question-a
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import type { AnalysisPhraseGroup, QuestionAnalysis } from '@/lib/types'
@@ -86,8 +87,12 @@ async function mergeWritePhrasesCache(a: {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账用的归属 + QA 标记：userId/isAnonymous 声明在 try 内、catch 读不到，故在此暂存一份
+  // （写法对齐 transcribe 的 attribution）。失败行同样烧过钱，既要能归到人、也要能被剔除自测流量。
+  let attribution: { userId: string; isAnonymous: boolean } | null = null
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    attribution = { userId, isAnonymous }
     // 同意闸硬前置：换词组会把用户故事全文发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -170,7 +175,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理见 aggregateUserCosts 顶注
     //（有 user_id 就按该用户【当前】身份归类，NULL 不参与判断）。该字段只是「调用那一刻的身份」快照，
     // 不能拿来判「这个人现在是谁」——转化用户 user_id 不变 + 绑邮箱后 stale JWT。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, corpus_id: storyId || undefined, metadata: { phase: 'phrases', level, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), corpus_id: storyId || undefined, metadata: { phase: 'phrases', level, prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     // 回填（合并写，两道硬门见 mergeWritePhrasesCache）：这一步正是「响应丢了、重试秒回」成立的前提——
     // 响应即使在网上丢了，结果也已落库，用户重试读档即得。
     if (canCachePersonal && story) {
@@ -182,7 +187,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (authRes) return authRes
     // 失败行补 phase（与成功分支同值 'phrases'），避免空 metadata 掉进看板 other 桶、辨不出环节。
     // 此处只接 AI/系统故障（缺 questionId、题目不存在在前面已 400/404 早退），故不补 error_kind。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'phrases', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    // 归属三字段（user_id/is_anonymous/is_qa）自 2026-08-07 起补写：此前失败行完全无归属，
+    // 既进不了「按用户成本」、也剔不掉自测流量。只补归属，不碰任何计费/错误处理口径。
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'phrases', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[phrases API]', e)
     return NextResponse.json({ error: '生成词组失败' }, { status: 500 })
   }

@@ -9,6 +9,7 @@ import { logErr } from '@/lib/log'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { logApiUsage, API_PRICING } from '@/lib/api-logger'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
@@ -221,7 +222,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       )
       // metadata.phase：按 scene 分 transcribe_story / transcribe_practice（缺省 'transcribe'），
       // 让看板把「语料转写」「练习转写」两条链路的耗时/故障分开归位，不落 other 桶。
-      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase } })
+      await logApiUsage({ service: 'doubao_asr', endpoint: 'openspeech.bytedance.com/auc/bigmodel/recognize/flash', usage_amount: duration_s, usage_unit: 'seconds', estimated_cost_cny: duration_s * API_PRICING.doubao_asr_per_second, latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), metadata: { phase } })
       return NextResponse.json({ text })
     } finally {
       // 名额必须归还：无论成功、超额早退还是抛错。漏了就是永久泄漏，闸门会越关越死。
@@ -254,6 +255,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       latency_ms: Date.now() - t0,
       status: 'error',
       ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}),
+      // 失败也烧钱（EMPTY_TRANSCRIPT 那一类豆包已完整跑过一趟、照样计费），故失败行同样要标 QA，
+      // 否则自测的失败成本仍混在真实数字里。attribution 为 null（鉴权前就挂了）时只剩请求头这一路判定。
+      is_qa: isQaRequest(req, attribution?.userId),
       // phase 始终打（按环节归位；scene 已解析则为 transcribe_story/transcribe_practice，否则兜底 'transcribe'）；
       // error_code/error_message/logId 三键来自豆包响应、无用户内容；
       // 再经 errorKindMeta 叠四分类归因（空录音/静音→user_input、并发超限→capacity、网络中断→network，

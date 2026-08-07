@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { polishSentence } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
+import { isQaRequest } from '@/lib/qa-traffic'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
@@ -18,8 +19,12 @@ import { ANON_POLISH_LIMIT, REG_POLISH_DAILY_LIMIT } from '@/lib/constants'
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
+  // 失败记账也要标 QA（失败一样烧钱），而 userId 声明在 try 内、catch 读不到，故在此暂存一份。
+  // 只服务于 is_qa 判定：本路由失败行仍不带 user_id/is_anonymous（归属口径一字未动）。
+  let qaUserId: string | undefined
   try {
     const { userId, isAnonymous } = await requireUserAllowAnon(req)
+    qaUserId = userId
     // 同意闸硬前置：润色会把用户句子发往千问。未捕获当前版本同意 → 403，绝不外发。
     const consentDenied = await requireConsent(userId)
     if (consentDenied) return consentDenied
@@ -72,7 +77,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       promptTokens: Math.round((sentence.length + (aiQuestion?.length ?? 0)) * 0.3 + 1400),
       completionTokens: 200,
     }
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, metadata: { phase: 'polish', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: usage.promptTokens + usage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(usage.promptTokens, usage.completionTokens), latency_ms: Date.now() - t0, status: 'success', user_id: userId, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), metadata: { phase: 'polish', prompt_tokens: usage.promptTokens, completion_tokens: usage.completionTokens, cost_source: realUsage ? 'actual' : 'estimate' } })
     return NextResponse.json(result)
   } catch (e) {
     const authRes = authErrorResponse(e)
@@ -80,7 +85,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // 失败行补 phase（与成功分支同值 'polish'），避免空 metadata 掉进看板 other 桶、辨不出环节。
     // 再经 errorKindMeta 做四分类归因：命中 network（到千问 ECONNRESET/aborted）等则摘出、非系统故障；
     // 其余（缺键）按系统故障计入错误率。sentence 空/超长在前面已 400 早退、不进本分支。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', metadata: { phase: 'polish', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', is_qa: isQaRequest(req, qaUserId), metadata: { phase: 'polish', ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[polish API]', e)
     return NextResponse.json({ error: '优化失败' }, { status: 500 })
   }

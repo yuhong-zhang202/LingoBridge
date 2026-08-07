@@ -3,6 +3,11 @@
  * @desc     【仅服务端】记录第三方 API 调用的用量与费用到 api_usage_logs 表；写入失败只告警不阻断主流程。
  *           用 service_role 写库（绕 RLS）：0014 删掉了 api_usage_logs 的客户端 insert 策略，
  *           日志写入唯一入口收归服务端，杜绝任何客户端会话灌水污染成本看板。
+ *
+ *   ⚠️ 每条记录都必须带 is_qa（0059 补列，ApiUsageLog 里是【必填】字段）：产品方自测流量剔不掉，
+ *   成本数字就永远掺着不可知的水分。取值一律走 isQaRequest(req, userId)（src/lib/qa-traffic.ts 是唯一入口），
+ *   失败记账（status:'error'）同样要带 —— 失败也烧钱（ASR 调失败照样计费），漏了等于自测的失败成本仍混在里面。
+ *   该标记可伪造，**永久禁止**用于额度/权限/计费/RLS 判定，只可写入统计列。
  * @author   LingoBridge
  * @created  2026-06-04
  */
