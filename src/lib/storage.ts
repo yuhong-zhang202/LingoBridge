@@ -13,9 +13,29 @@ import type { SessionPolish } from '@/lib/types'
 const SESSION_KEY = 'lingobridge:session_polishes'
 
 // ── 本场暂存：practice → feedback ──
-export function setSessionPolishes(items: SessionPolish[]): void {
-  if (typeof window === 'undefined') return
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(items))
+/**
+ * 写入本场优化句子（练习页点「结束」时调用）。
+ *
+ * ⚠️ try/catch 不能删：本函数是 practice/page.tsx handleEnd 的【第一行】，其后还有打卡记录与
+ *    navigate('/feedback')；而包在外面的 useAsyncAction 只有 try/finally、没有 catch。
+ *    一旦 setItem 抛异常（Safari 无痕模式、iOS 存储限制、配额），异常会一路冒出去变成无人接管的
+ *    promise rejection —— 打卡不记、页面不跳、不报错，用户看到的是「点了结束没反应」。
+ *    本文件其余写函数（markPracticeIntroSeen 等）一直都有这层保护，唯独这里漏了。
+ *
+ * @param items 本场优化条目
+ * @returns     是否写入成功（false = 存储不可用，句子这一路没了；调用方据此决定是否告知用户）
+ */
+export function setSessionPolishes(items: SessionPolish[]): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(items))
+    return true
+  } catch (e) {
+    // 不静默：这条路失败等于用户这场的句子全丢，反馈页会显示「这次没有要回顾的句子」——
+    // 那句文案在这种情况下是误导（用户明明标了星）。留日志供排查，是否提示交调用方。
+    console.error('[storage] 本场优化句子写入失败，反馈页将没有句子', e)
+    return false
+  }
 }
 export function getSessionPolishes(): SessionPolish[] {
   if (typeof window === 'undefined') return []
