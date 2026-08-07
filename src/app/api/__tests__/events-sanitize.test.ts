@@ -14,6 +14,10 @@
  *           P3 页面浏览（2026-08-03）追加 page.view：props 只允许 route 一个枚举字段 ——
  *           URL / query 形态的键（path/url/query/referrer…）一律不进库，这是该事件的最高红线
  *           （本项目 query 里的 `?h=` handoff key 可反查用户故事原文）。
+ *           备考目标补埋点（2026-08-07）追加 auth.goal_saved / auth.goal_save_failed：
+ *           band 只收枚举串（数字会被客户端 normalize 的 Math.round 并档，故服务端连数字都不收）、
+ *           reason 只收收敛后的 code —— 【考试日期原文与后端 error message（可能含邮箱）一律不进库】，
+ *           这条路客户端直连 supabase updateUser、服务端零痕迹，埋点是唯一观测渠道，props 面必须掐死。
  *             · 事件名分发闸：未注册事件名必须 400 且零落库（0053 起 DB CHECK 已放宽为前缀正则，
  *               这里是唯一的真闸）；
  *             · QA 流量标记：严格 === 比对、token 未配时 fail-closed、内部账户为服务端权威来源。
@@ -41,7 +45,7 @@ import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
-import { PAGE_ROUTE } from '@/lib/event-schema'
+import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON } from '@/lib/event-schema'
 
 const mockLogEvent = logEvent as jest.MockedFunction<typeof logEvent>
 
@@ -137,6 +141,8 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['quota.reached',          { variant: 'trial', surface: 'question_bank' }],
     ['quota.cta',              { variant: 'ielts', cta: 'practice_ielts' }],
     ['auth.registered',        { fromAnonymous: true }],
+    ['auth.goal_saved',        { band: '6.5', hasDate: true, isFirstTime: true }],
+    ['auth.goal_save_failed',  { reason: 'update_failed', isFirstTime: false }],
     ['page.view',              { route: 'practice_question' }],
   ]
   test.each(CASES)('%s 正例', async (event, props) => {
@@ -321,6 +327,66 @@ describe('page.view · URL 原文注入负例', () => {
   })
 })
 
+// ───────────────────────────────────────────────────────────────────────────────
+// 🔴 备考目标两个事件（2026-08-07）的红线：考试日期与后端 error message 一个字节都不许进库
+// 这条路客户端直连 supabase updateUser、服务端零痕迹，埋点是唯一观测渠道 —— 也正因此
+// props 面必须掐死：日期 = 用户的个人备考计划、error message = 可能含邮箱的自由文本。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('auth.goal_saved / auth.goal_save_failed · 收敛口径', () => {
+  test.each(GOAL_BAND.map((b) => [b]))('band=%s 原样放行（漏一档 = 该分数段在库里恒空）', async (band) => {
+    await POST(makeEventReq('auth.goal_saved', { band, hasDate: false, isFirstTime: true }))
+    expect(capturedProps()).toEqual({ band, hasDate: false, isFirstTime: true })
+  })
+
+  test('band 传数字（6.5 / 7）一律丢 —— 只收枚举串，防「被 Math.round 并档的假值」混进来', async () => {
+    for (const band of [6.5, 7, '6.50', '6', 'band-6.5']) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('auth.goal_saved', { band, hasDate: true, isFirstTime: false }))
+      expect(capturedProps()).toEqual({ hasDate: true, isFirstTime: false })
+    }
+  })
+
+  test('考试日期原文（examDate/date/exam_date）绝不进库，只留 hasDate 布尔', async () => {
+    await POST(makeEventReq('auth.goal_saved', {
+      band: '7.0', hasDate: true, isFirstTime: false,
+      examDate: '2026-11-15', date: '2026-11-15', exam_date: '2026-11-15', email: 'a@b.com',
+    }))
+    expect(JSON.stringify(capturedProps())).toBe('{"band":"7.0","hasDate":true,"isFirstTime":false}')
+  })
+
+  test('hasDate / isFirstTime 只收严格布尔（"true" / 1 / null 一律丢）', async () => {
+    await POST(makeEventReq('auth.goal_saved', { band: '5.5', hasDate: 'true', isFirstTime: 1 }))
+    expect(capturedProps()).toEqual({ band: '5.5' })
+  })
+
+  test.each([...GOAL_SAVE_FAIL_REASON].map((r) => [r]))('reason=%s 原样放行', async (reason) => {
+    await POST(makeEventReq('auth.goal_save_failed', { reason, isFirstTime: false }))
+    expect(capturedProps()).toEqual({ reason, isFirstTime: false })
+  })
+
+  test('reason 枚举外 / 近似值 / 后端 error message 原样塞入 → 一律丢弃', async () => {
+    for (const reason of [
+      'Unknown', 'unknown ', 'save_failed',
+      'AuthApiError: User email a@b.com already registered', // 后端原文（含邮箱）绝不许成为 code
+      42, null,
+    ]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('auth.goal_save_failed', { reason, isFirstTime: true }))
+      expect(capturedProps()).toEqual({ isFirstTime: true })
+    }
+  })
+
+  test('失败事件混入 message / errorMessage / email 等自由文本键 → 写库 props 只剩两个白名单字段', async () => {
+    await POST(makeEventReq('auth.goal_save_failed', {
+      reason: 'unknown', isFirstTime: true,
+      message: 'AuthApiError: invalid claim for a@b.com', errorMessage: '保存失败：a@b.com', email: 'a@b.com',
+    }))
+    const dumped = JSON.stringify(capturedProps())
+    for (const secret of ['a@b.com', 'AuthApiError', '保存失败']) expect(dumped).not.toContain(secret)
+    expect(dumped).toBe('{"reason":"unknown","isFirstTime":true}')
+  })
+})
+
 describe('事件名分发闸 —— 未注册立即 400、绝不落库', () => {
   test.each([
     ['flow.unknown_event'],       // 编造的名字
@@ -374,6 +440,8 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'quota.reached': true,
   'quota.cta': true,
   'auth.registered': true,
+  'auth.goal_saved': true,
+  'auth.goal_save_failed': true,
   'page.view': true,
 }
 
@@ -390,6 +458,8 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'quota.reached': true,
   'quota.cta': true,
   'auth.registered': true,
+  'auth.goal_saved': true,
+  'auth.goal_save_failed': true,
   'page.view': true,
 }
 

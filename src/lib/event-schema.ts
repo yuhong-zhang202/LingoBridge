@@ -182,6 +182,41 @@ export const PAGE_ROUTE = [
 ] as const
 export type PageRoute = (typeof PAGE_ROUTE)[number]
 
+/**
+ * 备考目标分（IELTS band，4.0–9.0 步进 0.5）的取值域 —— 【刻意用字符串枚举，不用数字】。
+ *
+ * 不是洁癖，是躲一个静默改值的坑：client-events 的 normalize() 对所有 number 字段一律 `Math.round`
+ * （因为服务端 sanitize 只收 Number.isInteger），直接报 6.5 会在【发出去之前】就被四舍五入成 7 ——
+ * 6.5 与 7.0 在库里长得一模一样，4.5/5.5/…同理，一半档位悄悄并档。这比丢字段更坏：
+ * 事件照常落库、字段也有值，只是值是错的，本地永远测不出来。
+ * 走字符串则原样穿过 normalize，且顺手成了白名单：将来 UI 改步进冒出 '7.3' 这种野值会被服务端丢弃、
+ * 表现为该字段缺失（看板上看得见），而不是被 round 成一个看着很合理的假值（看不见）。
+ * 值固定一位小数、等宽 ⇒ 字符串排序即分数排序，分组统计不用记两套写法。
+ */
+export const GOAL_BAND = [
+  '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0',
+] as const
+export type GoalBand = (typeof GOAL_BAND)[number]
+
+/**
+ * 备考目标保存失败的原因 code。
+ *
+ * 🔴【隐私红线】只上报本枚举里的 code，**绝不上报 supabase 返回的 error.message 原文** ——
+ *   那是自由文本、可能带邮箱等身份信息，还会把 props 的取值空间搞成无限维（事后没法分组统计）。
+ *   收敛不出来的一律记 'unknown'，宁可粗，不可漏原文。
+ *
+ *   · date_before_min = 考试日期早于允许下限，被 handleSave 的 JS 守卫拦下 —— 压根没走到 updateUser；
+ *   · update_failed   = saveExamGoal 里 updateUser 返回了 error（AppError code = 'SAVE_FAILED'）；
+ *   · unknown         = 其余未预期异常（网络中断、SDK 内部抛错等）。
+ *
+ * ⚠️ 刻意【不设】form_invalid 之类「原生校验没过」的 code：ExamGoalModal 的 form 带 noValidate，
+ *   浏览器根本不跑原生约束校验（那条路会在 fire submit 之前静默取消提交，正是 2026-08-07 那个
+ *   「点了没反应」的成因）。留个恒为 0 的分桶只会让人日后怀疑埋点坏了。
+ *   将来若有表单重新启用原生校验，再连同上报点一起加。
+ */
+export const GOAL_SAVE_FAIL_REASON = ['date_before_min', 'update_failed', 'unknown'] as const
+export type GoalSaveFailReason = (typeof GOAL_SAVE_FAIL_REASON)[number]
+
 // ── 字段名白名单（match.* 两个事件的 props 全是计数/布尔/内部 id，取值域不是枚举而是数值区间）──────
 
 /** match.view_rendered 的数字字段白名单（全为计数，无原文） */
@@ -281,6 +316,43 @@ export type ClientEventPropsMap = {
    * 已变 false，事后读到的恒为 false，这一格就永远是空的。
    */
   'auth.registered': { fromAnonymous: boolean }
+  /**
+   * 备考目标（目标分 + 考试日期）保存【成功】。
+   *
+   * ⚠️【为什么非有不可】这条路是客户端直连 supabase `updateUser` 写 user_metadata，
+   *   **不经过我方任何 API、服务端零痕迹**。没有本事件，「目标分到底存没存上」除了用户口头反馈
+   *   （2026-08-07 就是这么发现问题的）没有第二个观测渠道。
+   *
+   * ⚠️【为什么叫 auth. 而不是 profile.】DB 的 event CHECK 是前缀正则 `^(flow|match|quota|auth|page)\.`
+   *   （migration 0053），`profile.` 会被 CHECK 拒绝，而 logEvent 的 catch 把异常静默吞掉 ——
+   *   表现为「埋点代码全在跑、库里零数据」（正是本文件顶注第 3 步那个坑）。故复用 auth. 前缀，
+   *   语义上也贴 auth.registered 的「账号级设置」。
+   *
+   * 🔴【隐私】只报一个 band 枚举 + 两个布尔。**绝不上报考试日期本身** —— 那是用户的个人备考计划；
+   *   「有多少人愿意填日期」用 hasDate 就答完了，多存一个日期只多一份个人信息、换不到任何信息量。
+   */
+  'auth.goal_saved': {
+    /**
+     * 本次保存的目标分（枚举串，见 GOAL_BAND 的「为什么不是数字」）。
+     * 【必填 key】写成 `| undefined`：调用方必须显式表态；映射不出枚举值时传 undefined，
+     * 该字段缺失（可发现），绝不许兜底塞个近似值。
+     */
+    band: GoalBand | undefined
+    /** 是否同时设了考试日期（只记有没有，不记日期） */
+    hasDate: boolean
+    /** 此前没设过目标分 = 首次设置；false = 修改已有目标。漏斗上是两个不同动作，不能混算成功率。 */
+    isFirstTime: boolean
+  }
+  /**
+   * 备考目标保存【失败】—— 与 auth.goal_saved 相除即这条路的成败率（此前完全不可观测）。
+   * 「点了保存但没存成」的各条路径都算，包括前端守卫直接拦下、根本没走到 updateUser 的那种。
+   * 🔴 reason 只收 GOAL_SAVE_FAIL_REASON 的 code，绝不带后端 error message 原文（理由见该枚举）。
+   */
+  'auth.goal_save_failed': {
+    reason: GoalSaveFailReason
+    /** 同 auth.goal_saved：首次设置失败与修改失败是两件事（新用户设不上才是最要命的那类） */
+    isFirstTime: boolean
+  }
   /**
    * 页面浏览 —— 漏斗的分母那一格（「有多少人到过这一页」）。
    *

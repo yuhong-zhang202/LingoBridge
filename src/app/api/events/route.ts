@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 12 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 14 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -24,6 +24,7 @@ import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
   VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE,
+  GOAL_BAND, GOAL_SAVE_FAIL_REASON,
 } from '@/lib/event-schema'
 
 /**
@@ -292,6 +293,49 @@ function sanitizeAuthRegistered(raw: unknown): SafeProps {
   return out
 }
 
+// ── 备考目标保存两个事件的 sanitize（同款：一事件一函数、字段逐个显式列出）──────────────────
+
+/**
+ * auth.goal_saved：备考目标保存成功。
+ *
+ * 🔴【隐私红线】只取 band(枚举串) / hasDate / isFirstTime 三个字段，别的一律不看 ——
+ *   尤其【绝不设任何日期字段】：考试日期是用户的个人备考计划，客户端就算塞 examDate/date
+ *   也进不了库（本函数从不遍历客户端的 key，只按白名单逐个取）。
+ *   band 走 GOAL_BAND 枚举串而非整数：目标分是 0.5 步进的浮点，走数字会被客户端 normalize 的
+ *   Math.round 并档（6.5→7），详见 event-schema.ts 的 GOAL_BAND 注释。
+ * @param  raw  客户端上报的 props
+ * @returns     band(枚举) + hasDate/isFirstTime(布尔)
+ */
+function sanitizeGoalSaved(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const band = pickEnum(o, 'band', GOAL_BAND)
+  if (band !== undefined) out.band = band
+  const hasDate = pickBool(o, 'hasDate')
+  if (hasDate !== undefined) out.hasDate = hasDate
+  const isFirstTime = pickBool(o, 'isFirstTime')
+  if (isFirstTime !== undefined) out.isFirstTime = isFirstTime
+  return out
+}
+
+/**
+ * auth.goal_save_failed：备考目标保存失败。
+ *
+ * 🔴【隐私红线】reason 只放行 GOAL_SAVE_FAIL_REASON 里的 code。客户端若（将来被误改成）
+ *   把 supabase 的 error.message 原样塞进来，在这里一律被丢弃 —— 那种自由文本可能含邮箱。
+ * @param  raw  客户端上报的 props
+ * @returns     reason(枚举) + isFirstTime(布尔)
+ */
+function sanitizeGoalSaveFailed(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const reason = pickEnum(o, 'reason', GOAL_SAVE_FAIL_REASON)
+  if (reason !== undefined) out.reason = reason
+  const isFirstTime = pickBool(o, 'isFirstTime')
+  if (isFirstTime !== undefined) out.isFirstTime = isFirstTime
+  return out
+}
+
 // ── P3 页面浏览的 sanitize ──────────────────────────────────────────────────────────
 
 /**
@@ -334,6 +378,8 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['quota.reached',          { event: 'quota.reached',          sanitize: sanitizeQuotaReached }],
   ['quota.cta',              { event: 'quota.cta',              sanitize: sanitizeQuotaCta }],
   ['auth.registered',        { event: 'auth.registered',        sanitize: sanitizeAuthRegistered }],
+  ['auth.goal_saved',        { event: 'auth.goal_saved',        sanitize: sanitizeGoalSaved }],
+  ['auth.goal_save_failed',  { event: 'auth.goal_save_failed',  sanitize: sanitizeGoalSaveFailed }],
   ['page.view',              { event: 'page.view',              sanitize: sanitizePageView }],
 ])
 
