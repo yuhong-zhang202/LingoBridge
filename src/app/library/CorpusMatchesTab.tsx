@@ -7,7 +7,10 @@
  *           删语料两条路（都真删、都走 deleteCorpus）：
  *           - 桌面：搜索图标右边的多选删除工具栏（复用 useSelectMode，照「词组收藏」同款：选择/全选/删除 + 5s 撤销 Toast）。
  *           - 移动：卡右上角删除入口（ConfirmDialog 二次确认，无 toolbar 槽）。
- *           删语料即解绑：绑定的 anki 卡 corpus_id 经 FK set null 退回题目分析（机制在 DB 层）。
+ *           删语料即解绑：绑定的 anki 卡 corpus_id 置空退回题目分析、卡背（generated_answer + edited_answer）
+ *           一并清空，与删语料行在【同一个事务】里完成（0060 的 delete_corpus_and_clear_cards RPC，机制在 DB 层）。
+ *           ⚠️ 别退回只靠外键：0030 的 on delete set null 只抹 corpus_id、不清卡背，那正是 2026-08-07
+ *           修掉的「界面承诺卡背清空、实际答案还留着」的假承诺（详见 0060 顶注）。
  *           同一语料可绑多题（多个对子）——删任一对子即按 corpusId 移除其全部同源对子。
  *           注意：本 tab 只列已绑对子的语料（corpusId 非空）；未绑对子的语料在此看不到、也删不了。
  * @author   LingoBridge
@@ -116,8 +119,9 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
   const pairsRef = useRef<AnkiCard[]>(pairs)
   pairsRef.current = pairs
 
-  // useSelectMode 真删回调：按 questionId 找对子 → deleteCorpus 真删（清 corpus_point_links 后删 corpus 行；
-  // 绑定的 anki 卡经 FK set null 退回题目分析）。同一语料可绑多题，删成功后按 corpusId 从 pairs 移除全部同源对子
+  // useSelectMode 真删回调：按 questionId 找对子 → deleteCorpus 真删（单事务：清空绑定题卡的卡背 +
+  // corpus_id 置空退回题目分析 + 删 corpus 行，links/matches 由 cascade 清）。同一语料可绑多题（RPC 里
+  // 一次清干净全部同源题卡），删成功后按 corpusId 从 pairs 移除全部同源对子
   //（pairs 引用变化触发 useSelectMode 在非 pending/selecting 帧 reseed，列表天然收敛）。fire-and-forget（失败记日志）。
   const removeFn = useCallback((questionId: string): void => {
     const corpusId = pairsRef.current.find((c) => c.questionId === questionId)?.corpusId
@@ -313,7 +317,9 @@ export default function CorpusMatchesTab({ toolbarSlotRef, onSelectingChange, se
       <ConfirmDialog
         open={pendingDelete !== null}
         title="删除这条语料？"
-        description="删除后，绑定的题卡会退回题目分析（卡背清空）。此操作不可撤销。"
+        // 「含你手动编辑过的内容」是 2026-08-07 补的：删语料同时清 generated_answer 与 edited_answer
+        // （口径见 0060），后者是用户亲手写的、损失更重，不可逆操作的确认框必须让他知情后再点。
+        description="删除后，绑定的题卡会退回题目分析，卡背清空（含你手动编辑过的内容）。此操作不可撤销。"
         danger
         loading={deleting}
         loadingText="删除中…"

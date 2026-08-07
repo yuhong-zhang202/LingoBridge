@@ -213,15 +213,29 @@ export async function listMyObservationCodes(): Promise<string[]> {
 }
 
 /**
- * 删除单条语料，先清关联的 corpus_point_links，再删除语料行
+ * 删除单条语料 ——【单事务原子】：清空所有绑定该语料的题卡的卡背（corpus_id + generated_answer +
+ * edited_answer 一并置空，保留 SRS 进度）+ 删语料行，全部收敛进 0060 的 delete_corpus_and_clear_cards RPC。
+ *
+ *   为什么不再自己拆 DML（2026-08-07 修）：旧实现是「删 corpus_point_links → 删 corpus 行」两条独立调用，
+ *   靠 0030 的外键 on delete set null 收尾。但那个外键【只把 anki_cards.corpus_id 置空，
+ *   generated_answer / edited_answer 原封不动】—— 于是 UI 承诺的「绑定的题卡会退回题目分析（卡背清空）」
+ *   是假的：用户删了自己讲的故事，基于该故事生成的英文答案仍留在题卡上（既骗了用户，也不合规）。
+ *   两条独立 DML 还有原子性缺口，中间失败会留「语料已删卡背还在」/「卡背已清语料还在」的半成品。
+ *   现在这三件事在 plpgsql 里同事务完成，要么全成要么全回滚。
+ *
+ *   越权防护在 DB 侧：RPC 不收 user_id 参数（客户端传什么都不算数），身份取自 JWT 的 auth.uid()，
+ *   且以 security invoker 执行让 corpus / anki_cards 的 RLS 逐行生效。详见 0060 顶注。
+ *
+ *   语义与旧实现一致：删不存在 / 非自己的 id 不报错（命中 0 行），保持幂等；RPC 报错一律抛出，
+ *   绝不静默 —— 调用方（CorpusMatchesTab / MyStoriesTab）据此报「删除失败，请重试」。
+ *
  * @param  id  corpus UUID
+ * @throws     Error —— RPC 调用失败（含迁移未应用时的 PGRST202 函数不存在）
+ * @sideEffect 删语料行 + cascade 清 corpus_point_links / corpus_question_matches + 清绑定题卡卡背
  */
 export async function deleteCorpus(id: string): Promise<void> {
   await ensureSession()
-  const supabase = getSupabase()
-  const { error: linkErr } = await supabase.from('corpus_point_links').delete().eq('corpus_id', id)
-  if (linkErr) throw new Error(`清理语料归类失败：${linkErr.message}`)
-  const { error } = await supabase.from('corpus').delete().eq('id', id)
+  const { error } = await getSupabase().rpc('delete_corpus_and_clear_cards', { p_corpus_id: id })
   if (error) throw new Error(`删除语料失败：${error.message}`)
 }
 

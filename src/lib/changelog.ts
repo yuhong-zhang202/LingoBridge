@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.6',
+    date: '2026-08-08',
+    title: '删除语料时真正清干净',
+    notes: [
+      '删掉一条语料时，用它生成的题卡答案会真的一起清掉——之前只是解除了绑定，内容还留着',
+      '删除确认里现在会说明：你手动编辑过的答案也会一并删除',
+    ],
+  },
+  {
     version: 'v0.10.5',
     date: '2026-08-07',
     title: '修复收藏与练习句子丢失',
