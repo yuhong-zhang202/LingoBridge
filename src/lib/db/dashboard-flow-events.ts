@@ -56,6 +56,10 @@ export const FLOW_EVENT_NAMES = [
   'quota.reached',
   'quota.cta',
   'auth.registered',
+  'auth.goal_saved',
+  'auth.goal_save_failed',
+  'flow.phrase_collected',
+  'flow.phrase_collect_failed',
 ] as const
 
 /** 事件名的中文说明（看板只给 admin 看，仍写人话，免得每次都要回去翻代码） */
@@ -75,6 +79,14 @@ const EVENT_LABEL: Record<string, string> = {
   'quota.reached':          '额度弹层显示',
   'quota.cta':              '额度弹层内点击',
   'auth.registered':        '注册成功',
+  'auth.goal_saved':        '保存备考目标',
+  'auth.goal_save_failed':  '保存备考目标失败',
+  'flow.phrase_collected':  '收藏优化表达',
+  // ⚠️ 看数口径：本格【系统性偏低】，为 0 不代表收藏没出过问题。
+  //    client-events.ts:167 拿不到 token 就丢弃事件，而 /api/events 走 requireUserAllowAnon
+  //    本就要求身份 —— 失败原因里最要命的 session_failed 恰恰就是「没有会话」，那一档很可能
+  //    连上报都发不出去。看到 insert_failed 有量而 session_failed 为 0 时，【不能】推出「会话没问题」。
+  'flow.phrase_collect_failed': '收藏失败（口径偏低，见代码注释）',
 }
 
 /** AI 调用的管线阶段（AI_STAGE 副本；2026-08-03 由 3 段补齐到 8 段 = 全部 AI 路由） */
