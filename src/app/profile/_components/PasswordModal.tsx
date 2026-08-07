@@ -71,7 +71,7 @@ export default function PasswordModal({ email, onClose }: PasswordModalProps): J
           <p className="text-[0.875rem] text-v2-text-primary">密码已更新</p>
         </div>
       ) : (
-        // form + onSubmit：输入框内按 Enter 即可提交（GradientButton 渲染的是 button，默认 type=submit）
+        // form + onSubmit：输入框内按 Enter 即可提交；提交按钮须显式 type="submit"（见下方注释）
         <form onSubmit={(e) => { e.preventDefault(); void handleSave() }}>
           <div className="flex flex-col gap-3.5">
             <div>
@@ -93,8 +93,10 @@ export default function PasswordModal({ email, onClose }: PasswordModalProps): J
 
           {err && <p role="alert" className="text-[0.75rem] text-error mt-2 px-1">{err}</p>}
 
-          {/* 不传 onClick：按钮在 form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
-          <GradientButton disabled={!canSubmit}
+          {/* 必须显式 type="submit"：GradientButton 默认 type="button"（全站 CTA 多在 form 外，默认值防误提交），
+              不写就退化成普通按钮、onSubmit 永不触发＝「点了没反应」。
+              不传 onClick：让点击与 Enter 同走 onSubmit，避免双触发 */}
+          <GradientButton type="submit" disabled={!canSubmit}
             className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed">
             {submitting ? '保存中…' : '保存修改'}
           </GradientButton>

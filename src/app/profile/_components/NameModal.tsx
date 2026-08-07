@@ -68,8 +68,11 @@ export default function NameModal({ currentName, onClose }: NameModalProps): JSX
 
         {err && <p role="alert" className="text-[0.75rem] text-error mt-3 px-1">{err}</p>}
 
-        {/* 不传 onClick：form 内默认 type=submit，点击与 Enter 同走 onSubmit，避免双触发 */}
+        {/* 必须显式 type="submit"：GradientButton 默认 type="button"（全站 CTA 多在 form 外，默认值防误提交），
+            不写就退化成普通按钮、onSubmit 永不触发＝「点了没反应」。
+            不传 onClick：让点击与 Enter 同走 onSubmit，避免双触发 */}
         <GradientButton
+          type="submit"
           disabled={saving}
           loading={saving}
           className="w-full mt-5 py-3 rounded-full text-[0.875rem] font-medium disabled:cursor-not-allowed"
