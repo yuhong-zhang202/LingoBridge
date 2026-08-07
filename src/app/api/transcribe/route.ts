@@ -12,8 +12,8 @@ import { logApiUsage, API_PRICING } from '@/lib/api-logger'
 import { requireUserAllowAnon, authErrorResponse } from '@/lib/api-auth'
 import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
-import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
-import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT, ERROR_KIND_USER_INPUT } from '@/lib/constants'
+import { bumpDailyUsageServer, readDailyUsageServer, readLifetimeUsageServer } from '@/lib/db/corpus-server'
+import { ANON_TRANSCRIBE_LIMIT, ANON_TRANSCRIBE_LIFETIME, REG_TRANSCRIBE_DAILY_LIMIT, ERROR_KIND_USER_INPUT } from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
 import { isAppError, errorLogMeta, errorKindMeta, classifyErrorKind } from '@/types/errors'
 
@@ -169,13 +169,25 @@ export async function POST(req: Request): Promise<NextResponse> {
     // ② 转码成功、真正要调豆包之前，才原子递增并复核 —— 原子递增依旧是并发硬防线。
     // 由此：ASR 之前的失败（转码报错 / 空文件等）天然没计过次，无需任何回滚，也就没有递减带来的并发错乱；
     // 豆包一旦被调用（含 EMPTY_TRANSCRIPT）则计次已落且不退 —— 费用已产生，且防攻击者构造必失败请求刷 ASR 额度。
+    //
+    // 匿名侧额外叠一道【终身总量闸】(ANON_TRANSCRIBE_LIFETIME)：每日额度每天清零，挡不住
+    // 「建完 1 条语料后从素材库反复进练习页、每天领一份新额度、无限期用」，而转写是匿名成本的 94~97%。
+    // 终身闸同样走「两拍」：只读那拍是优化、原子递增后那拍是硬防线，与上面的分工完全一致。
+    // 注册用户不受终身闸约束（口径一字不改），内部账户由 readLifetimeUsageServer 内部豁免。
     const dailyLimit = isAnonymous ? ANON_TRANSCRIBE_LIMIT : REG_TRANSCRIBE_DAILY_LIMIT
-    /** 超额响应：匿名 402(QUOTA_EXCEEDED) 供前端弹试用提示；注册 429（不带 code，不弹配额层）。 */
+    /**
+     * 超额响应：匿名 402(QUOTA_EXCEEDED) 供前端弹试用提示；注册 429（不带 code，不弹配额层）。
+     * 匿名文案「试用次数已用完，请注册后继续」对每日闸与终身闸都成立（终身闸下它甚至更准确），故复用不新造。
+     */
     const overQuotaRes = (): NextResponse => isAnonymous
       ? NextResponse.json({ error: '试用次数已用完，请注册后继续', code: 'QUOTA_EXCEEDED' }, { status: 402 })
       : NextResponse.json({ error: '今日使用次数已达上限，请明天再试' }, { status: 429 })
 
     if (await readDailyUsageServer(userId, 'transcribe') >= dailyLimit) return overQuotaRes()
+    // 终身闸第①拍：用 >= 判（这次还没计，累计已达上限就该挡）。仅匿名读，注册用户连这次查询都不发。
+    if (isAnonymous && await readLifetimeUsageServer(userId, 'transcribe') >= ANON_TRANSCRIBE_LIFETIME) {
+      return overQuotaRes()
+    }
 
     const inputBuf = Buffer.from(await file.arrayBuffer())
     const ext      = mimeToExt(file.type)
@@ -193,6 +205,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       // ② 计次的分界线就在这一行：它下面是花钱的豆包调用，它上面的任何失败都不曾计次。
       const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
       if (dailyCount > dailyLimit) return overQuotaRes()
+      // 终身闸第②拍（硬防线）：读在 bump【之后】，故这次的递增以及并发请求的递增都已计入总和，
+      // 判定用 > 而非 >=（与上面 dailyCount 同口径：值含本次）。挡住时本次已计一次日额度、
+      // 但豆包一次都没被调用 —— 花钱的那一步没发生，这正是本闸唯一在意的事。
+      if (isAnonymous && await readLifetimeUsageServer(userId, 'transcribe') > ANON_TRANSCRIBE_LIFETIME) {
+        return overQuotaRes()
+      }
 
       // 16kHz mono 16-bit PCM: (bytes - 44-byte header) / 32000 ≈ 秒数
       const duration_s = Math.max(0, (wavBuf.length - 44) / 32000)

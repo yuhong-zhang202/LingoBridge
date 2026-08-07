@@ -119,6 +119,48 @@ export async function readDailyUsageServer(userId: string, kind: string): Promis
 }
 
 /**
+ * 只读某用户「某类用量的【终身】累计次数」（跨所有自然日求和，不递增）。
+ * 供匿名转写的终身总量闸使用 —— 每日额度每天清零，挡不住「每天领一份新额度、无限期用下去」。
+ *
+ * 【为什么不需要新表】daily_usage_counts 主键是 (user_id, day, kind)、且全仓从不删除该表的行
+ * （无 delete 调用、无相关 cron），故「终身累计」= 同 user_id + kind 的所有 day 行 count 之和。
+ *
+ * 【非原子】与 readDailyUsageServer 同性质：不加锁，并发下可能读到偏小的值。但调用方在
+ * bumpDailyUsageServer 原子递增【之后】再读一次，读到的和已包含本次及并发的递增，
+ * 最坏只在恰好的时序窗口多放行 1 次，不会系统性失守。
+ *
+ * 【读失败一律按 0 返回（失败开放）】与本模块既有约定一致。理由（两种选择后果不对称）：
+ *   · 失败开放的最坏后果 = 该账号退回改动前的水位（仍受每日 ANON_TRANSCRIBE_LIMIT 限速，
+ *     即 ≤25 次/天），而这正是产品已经承受了几个月、且实测无人利用的风险；
+ *   · 失败关闭的最坏后果 = 一次瞬时读超时，就把「试用次数已用完，请注册后继续」发给
+ *     第一次用产品的匿名用户 —— 文案不可证伪、用户无从重试，直接掐掉唯一的转化主路径。
+ *   一笔钱 vs 一个用户永久流失，选前者。读失败会 warn 出来（见下），便于发现持续性故障。
+ *
+ * @param  userId  requireUserAllowAnon 反查出的用户 id
+ * @param  kind    用量类别（同 bumpDailyUsageServer，如 'transcribe'）
+ * @returns        该用户该类的终身累计次数；无记录 / 读取失败 / 内部账户均返回 0
+ * @sideEffect     service_role 读 daily_usage_counts（绕 RLS，须显式按 user_id 过滤）
+ */
+export async function readLifetimeUsageServer(userId: string, kind: string): Promise<number> {
+  // 内部账户全豁免：与 bumpDailyUsageServer / readDailyUsageServer 同一处收敛。少了这一行，
+  // 产品方自用账户历史累计的转写次数会把自己永久锁死（终身闸没有"明天再来"这条退路）。
+  if (isInternalAccount(userId)) return 0
+  try {
+    const { data, error } = await getSupabaseServer()
+      .from('daily_usage_counts')
+      .select('count')
+      .eq('user_id', userId)
+      .eq('kind', kind)
+    if (error) throw new Error(error.message)
+    // 行数 = 该用户用过此接口的天数（每天至多 1 行），量级极小，在应用层求和即可
+    return ((data as { count: number }[] | null) ?? []).reduce((sum, row) => sum + (row.count ?? 0), 0)
+  } catch (err) {
+    console.warn('[corpus-server] readLifetimeUsageServer 失败，按 0 处理（失败开放，见函数注释）', err)
+    return 0
+  }
+}
+
+/**
  * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
  * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
  * @param  input   source（voice/text）与原始文本

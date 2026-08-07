@@ -15,6 +15,9 @@
  *             error_kind='capacity'（人多稍等、非系统故障，看板据此再从错误率摘出）。
  *           ⑧ 响应码与归因同进退：豆包静音码 20000003 与 EMPTY_TRANSCRIPT 同路回 422（用户输入问题），
  *             其余豆包码保持 500——防止「归因层算 user_input、响应码却回 500 被记成 server_5xx」的看板分叉。
+ *           ⑨【匿名终身转写闸】(ANON_TRANSCRIBE_LIFETIME，2026-08-07 加)：每日额度每天清零，挡不住
+ *             「每天领一份新额度、无限期用」；终身闸同样走两拍（只读早退 + bump 后复核），
+ *             达上限一律 402 QUOTA_EXCEEDED 且【豆包零调用】；注册用户完全不受其影响（连查都不查）。
  * @author   LingoBridge
  * @created  2026-07-20
  */
@@ -50,8 +53,9 @@ jest.mock('@/lib/api-auth', () => ({
 }))
 jest.mock('@/lib/consent-server', () => ({ hasRecordedConsent: jest.fn(() => Promise.resolve(true)) }))
 jest.mock('@/lib/db/corpus-server', () => ({
-  bumpDailyUsageServer: jest.fn(),
-  readDailyUsageServer: jest.fn(),
+  bumpDailyUsageServer:    jest.fn(),
+  readDailyUsageServer:    jest.fn(),
+  readLifetimeUsageServer: jest.fn(),
 }))
 jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown, fn: () => unknown) => fn() }))
 jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
@@ -60,15 +64,16 @@ import { POST } from '@/app/api/transcribe/route'
 import { transcodeToWav } from '@/lib/audio/transcode'
 import { transcribeAudio } from '@/services/transcription'
 import { requireUserAllowAnon } from '@/lib/api-auth'
-import { bumpDailyUsageServer, readDailyUsageServer } from '@/lib/db/corpus-server'
+import { bumpDailyUsageServer, readDailyUsageServer, readLifetimeUsageServer } from '@/lib/db/corpus-server'
 import { logApiUsage } from '@/lib/api-logger'
-import { ANON_TRANSCRIBE_LIMIT, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
+import { ANON_TRANSCRIBE_LIMIT, ANON_TRANSCRIBE_LIFETIME, REG_TRANSCRIBE_DAILY_LIMIT } from '@/lib/constants'
 
 const mockRequireUser = requireUserAllowAnon as jest.MockedFunction<typeof requireUserAllowAnon>
 const mockTranscode   = transcodeToWav as jest.MockedFunction<typeof transcodeToWav>
 const mockTranscribe  = transcribeAudio as jest.MockedFunction<typeof transcribeAudio>
 const mockBump        = bumpDailyUsageServer as jest.MockedFunction<typeof bumpDailyUsageServer>
 const mockRead        = readDailyUsageServer as jest.MockedFunction<typeof readDailyUsageServer>
+const mockLifetime    = readLifetimeUsageServer as jest.MockedFunction<typeof readLifetimeUsageServer>
 
 const gateMock = jest.requireMock('@/lib/concurrency-gate') as {
   __acquire:     jest.Mock
@@ -106,6 +111,11 @@ beforeEach(() => {
   jest.clearAllMocks()
   asUser(false)
   mockRead.mockResolvedValue(0)
+  // 必须 mockReset 而非只靠 clearAllMocks：终身闸的用例用 mockResolvedValueOnce 排两拍的返回值，
+  // 而 clearAllMocks 只清调用记录、【不清 Once 队列】。上一条用例没吃完的 Once 会漏进下一条，
+  // 让「第②拍被删掉」这种真回归也照样绿（实测过一次假绿，故钉在这里）。
+  mockLifetime.mockReset()
+  mockLifetime.mockResolvedValue(0)
   mockBump.mockResolvedValue(1)
   mockTranscode.mockResolvedValue(Buffer.alloc(44 + 32000)) // 约 1 秒的 16kHz WAV
   mockTranscribe.mockResolvedValue('hello world')
@@ -352,6 +362,78 @@ describe('转写额度熔断 · 已超额零成本挡掉', () => {
 
     expect(res.status).toBe(402)
     expect(mockTranscribe).not.toHaveBeenCalled()
+  })
+})
+
+describe('匿名终身转写闸 · 每日额度天天清零，总量闸才封得住「每天领一份新额度」', () => {
+  test('匿名终身累计已达 ANON_TRANSCRIBE_LIFETIME（当日额度是满的）：402 QUOTA_EXCEEDED，且【豆包一次都没被调用】', async () => {
+    asUser(true)
+    mockRead.mockResolvedValue(0)                                   // 新的一天，每日闸放行
+    mockLifetime.mockResolvedValue(ANON_TRANSCRIBE_LIFETIME)
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(402)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'QUOTA_EXCEEDED' }))
+    // 本次改动的核心：花钱的那一步必须没发生（转码 CPU 也一并省下）
+    expect(mockTranscribe).not.toHaveBeenCalled()
+    expect(mockTranscode).not.toHaveBeenCalled()
+    expect(mockBump).not.toHaveBeenCalled()
+    expect(mockLifetime).toHaveBeenCalledWith('u1', 'transcribe')
+  })
+
+  test('匿名终身 24、当日 0：放行到底（上限内的最后一次不能被误挡）', async () => {
+    asUser(true)
+    mockRead.mockResolvedValue(0)
+    // 第①拍读到 24（本次尚未计），第②拍在 bump 之后读到 25（已含本次）→ 25 > 25 为假，放行
+    mockLifetime
+      .mockResolvedValueOnce(ANON_TRANSCRIBE_LIFETIME - 1)
+      .mockResolvedValueOnce(ANON_TRANSCRIBE_LIFETIME)
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ text: 'hello world' })
+    expect(mockTranscribe).toHaveBeenCalled()
+  })
+
+  test('第①拍漏判（读到 0）时，bump 之后的第②拍仍挡得住：402 且 ASR 零调用', async () => {
+    asUser(true)
+    mockRead.mockResolvedValue(0)
+    mockBump.mockResolvedValue(1)                                   // 当日额度充足，只有终身超了
+    mockLifetime
+      .mockResolvedValueOnce(0)                                     // 只读那拍非原子，读到偏小值
+      .mockResolvedValueOnce(ANON_TRANSCRIBE_LIFETIME + 1)          // bump 后复核发现总量已超
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(402)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'QUOTA_EXCEEDED' }))
+    expect(mockTranscribe).not.toHaveBeenCalled()
+  })
+
+  test('注册用户终身累计远超上限（1000 次）：照常放行，且终身闸连查都不查（这条最重要，防误伤）', async () => {
+    asUser(false)
+    mockRead.mockResolvedValue(0)
+    mockLifetime.mockResolvedValue(1000)                            // 就算读到天文数字也不该影响注册用户
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(200)
+    expect(mockTranscribe).toHaveBeenCalled()
+    // 终身闸只对匿名生效：注册侧不发这次查询（既是语义正确，也省一次 DB 往返）
+    expect(mockLifetime).not.toHaveBeenCalled()
+  })
+
+  test('终身读失败（按 0 返回 = 失败开放）：请求照常放行，绝不因读不到而误挡首次试用', async () => {
+    asUser(true)
+    mockRead.mockResolvedValue(0)
+    mockLifetime.mockResolvedValue(0)                               // readLifetimeUsageServer 内部吞异常后的返回值
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(200)
+    expect(mockTranscribe).toHaveBeenCalled()
   })
 })
 
