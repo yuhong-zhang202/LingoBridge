@@ -73,7 +73,9 @@ export default function FeedbackDesktop({
   const decide = (collect: boolean) => {
     const item = remaining[center]
     if (!item) return
-    if (collect) onCollect(cards[item.id])   // 收藏走外壳唯一写入点，本组件不再直接 addSavedPhrase
+    // 收藏走外壳唯一写入点，本组件不再直接 addSavedPhrase；'desktop' 是本视图的埋点来源标识，
+    // 由本调用点自己传（不许由外壳写死，见 event-schema 的 COLLECT_VIEW）
+    if (collect) onCollect(cards[item.id], 'desktop')
     setDecided((prev) => { const n = new Set(prev); n.add(item.id); return n })
   }
 

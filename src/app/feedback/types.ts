@@ -8,6 +8,7 @@
  * @created  2026-07-04
  */
 import type { SessionPolish } from '@/lib/types'
+import type { CollectView } from '@/lib/event-schema'
 
 export interface FeedbackViewProps {
   // ── 共享数据（外壳单源持有，两视图共用） ──
@@ -21,8 +22,12 @@ export interface FeedbackViewProps {
   savedCount: number
   /** 共享数据：卡片日期文案（如 7/4） */
   today: string
-  /** 共享数据：收藏一张卡 —— 仅做 addSavedPhrase（补 id/createdAt）+ 计数，与导航模型解耦，两视图都调 */
-  onCollect: (polish: SessionPolish) => void
+  /**
+   * 共享数据：收藏一张卡 —— 落库（补 id/createdAt）+ 成功才计数 + 失败弹提示，与导航模型解耦，两视图都调。
+   * view 是埋点用的来源视图，【每个调用点各传各的常量】：本页两套视图同时挂载、由断点决定谁可见，
+   * 外壳无从判断点击来自哪套，写死一个值会把两者灌进同一格（口径见 event-schema 的 COLLECT_VIEW）。
+   */
+  onCollect: (polish: SessionPolish, view: CollectView) => void
   /** 共享数据：本视图判定「已全部处理完」时调用，外壳据此清场（ref 守卫只清一次） */
   onAllDone: () => void
   /** 共享数据：回首页 */

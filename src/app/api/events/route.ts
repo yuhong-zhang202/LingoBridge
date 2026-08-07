@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 14 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 16 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -24,7 +24,7 @@ import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
   VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE,
-  GOAL_BAND, GOAL_SAVE_FAIL_REASON,
+  GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_VIEW, COLLECT_FAIL_REASON,
 } from '@/lib/event-schema'
 
 /**
@@ -336,6 +336,51 @@ function sanitizeGoalSaveFailed(raw: unknown): SafeProps {
   return out
 }
 
+// ── 反馈页收藏两个事件的 sanitize（同款：一事件一函数、字段逐个显式列出）─────────────────────
+
+/**
+ * 一场反馈页里收藏条数的上界。本场卡片来自一次练习的星标句子，几十条已属极端，
+ * 取 500 只为挡「客户端被改坏后灌进天文数字」，正常值永远碰不到这条线。
+ */
+const COLLECT_NTH_MAX = 500
+
+/**
+ * flow.phrase_collected：收藏一句优化表达【成功】。
+ *
+ * 🔴【隐私红线】只取 nth(整数) 与 view(枚举) 两个字段，别的一律不看 ——
+ *   被收藏的句子（original / optimized / note）就算客户端塞进来也进不了库：
+ *   本函数从不遍历客户端的 key，只按白名单逐个取，且【永远不许给本事件加任何自由文本字段】。
+ * @param  raw  客户端上报的 props
+ * @returns     nth(整数) + view(枚举)
+ */
+function sanitizePhraseCollected(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const nth = pickInt(o, 'nth', 1, COLLECT_NTH_MAX)
+  if (nth !== undefined) out.nth = nth
+  const view = pickEnum(o, 'view', COLLECT_VIEW)
+  if (view !== undefined) out.view = view
+  return out
+}
+
+/**
+ * flow.phrase_collect_failed：收藏一句优化表达【失败】。
+ *
+ * 🔴【隐私红线】reason 只放行 COLLECT_FAIL_REASON 里的 code。客户端若（将来被误改成）把
+ *   supabase 的 error.message 或那句被收藏的原文塞进来，在这里一律被丢弃。
+ * @param  raw  客户端上报的 props
+ * @returns     reason(枚举) + view(枚举)
+ */
+function sanitizePhraseCollectFailed(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const reason = pickEnum(o, 'reason', COLLECT_FAIL_REASON)
+  if (reason !== undefined) out.reason = reason
+  const view = pickEnum(o, 'view', COLLECT_VIEW)
+  if (view !== undefined) out.view = view
+  return out
+}
+
 // ── P3 页面浏览的 sanitize ──────────────────────────────────────────────────────────
 
 /**
@@ -381,6 +426,8 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['auth.goal_saved',        { event: 'auth.goal_saved',        sanitize: sanitizeGoalSaved }],
   ['auth.goal_save_failed',  { event: 'auth.goal_save_failed',  sanitize: sanitizeGoalSaveFailed }],
   ['page.view',              { event: 'page.view',              sanitize: sanitizePageView }],
+  ['flow.phrase_collected',      { event: 'flow.phrase_collected',      sanitize: sanitizePhraseCollected }],
+  ['flow.phrase_collect_failed', { event: 'flow.phrase_collect_failed', sanitize: sanitizePhraseCollectFailed }],
 ])
 
 export async function POST(req: Request): Promise<NextResponse> {

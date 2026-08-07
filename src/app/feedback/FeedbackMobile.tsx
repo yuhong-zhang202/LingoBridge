@@ -122,8 +122,9 @@ export default function FeedbackMobile({
               >
                 <X size={15} className="text-neutral-mute" />
               </button>
-              {/* 收藏 = 收藏当前卡（共享真源 onCollect）+ 前进到下一张（移动端导航 onSkip），行为与拆分前一致 */}
-              <GradientButton onClick={() => { onCollect(current); onSkip() }} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
+              {/* 收藏 = 收藏当前卡（共享真源 onCollect）+ 前进到下一张（移动端导航 onSkip），行为与拆分前一致。
+                  'mobile' 是本视图的埋点来源标识，由本调用点自己传（不许由外壳写死，见 COLLECT_VIEW） */}
+              <GradientButton onClick={() => { onCollect(current, 'mobile'); onSkip() }} className="flex-1 h-[48px] flex items-center justify-center gap-2 rounded-full">
                 <Heart size={16} className="text-v2-text-secondary" />
                 <span className="text-[0.8125rem] font-semibold text-v2-text-secondary">收藏</span>
               </GradientButton>

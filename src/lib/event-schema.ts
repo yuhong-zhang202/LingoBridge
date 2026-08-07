@@ -217,6 +217,38 @@ export type GoalBand = (typeof GOAL_BAND)[number]
 export const GOAL_SAVE_FAIL_REASON = ['date_before_min', 'update_failed', 'unknown'] as const
 export type GoalSaveFailReason = (typeof GOAL_SAVE_FAIL_REASON)[number]
 
+/**
+ * 「收藏一句优化表达」发生在反馈页的哪一套视图。
+ *
+ * ⚠️【为什么不叫 *_SURFACE】本项目的 surface 一律指「哪个页面」（MIC_SURFACE / QUOTA_SURFACE），
+ *   而这里两个值是【同一个页面】的两套视图：反馈页把移动/桌面两套 DOM 同时挂载、由 lg 断点决定谁可见。
+ *   沿用 surface 这个词会让人以为它是页面枚举，分析时对不上口径。
+ *
+ * ⚠️ 值必须由各视图的收藏按钮【各传各的】（移动端右滑收藏在外壳里发生，由外壳代传 'mobile'）——
+ *   在外壳里写死一个常量会把两套视图灌进同一格，正是 flow.mic_permission 的 surface 吃过的亏。
+ *   这次要答的问题恰恰是「移动端是不是真的更容易收藏失败」，写死就等于答不了。
+ */
+export const COLLECT_VIEW = ['mobile', 'desktop'] as const
+export type CollectView = (typeof COLLECT_VIEW)[number]
+
+/**
+ * 收藏一句优化表达失败的原因 code。
+ *
+ * 🔴【隐私红线】只上报本枚举里的 code：**绝不上报 supabase 的 error.message 原文**（自由文本、
+ *   可能含邮箱等身份信息，且会把取值空间搞成无限维），**更绝不上报被收藏的句子本身**
+ *   （原句/润色句/笔记全是用户原文）。收敛不出来的一律记 'unknown'，宁可粗，不可漏原文。
+ *
+ *   · session_failed = 拿不到可用会话（匿名登录失败 / 浏览器禁用存储 / 鉴权掉了）——压根没走到 insert；
+ *   · insert_failed  = 走到了 insert 但 supabase 返回 error（RLS 拒绝、约束、网络断在这一段）；
+ *   · unknown        = 其余未预期异常（收藏流程自身抛出的意外错误）。
+ *
+ * 【为什么这三档必须分开】线上反馈是「手机里收藏不了，只有电脑上才可以」，两类怀疑对象完全不同：
+ *   session_failed 指向移动端浏览器的存储/隐私模式（匿名会话建不起来），insert_failed 指向网络或库侧。
+ *   混成一格就没法判断该往哪查，等于埋了个只会告诉你「有人失败了」的埋点。
+ */
+export const COLLECT_FAIL_REASON = ['session_failed', 'insert_failed', 'unknown'] as const
+export type CollectFailReason = (typeof COLLECT_FAIL_REASON)[number]
+
 // ── 字段名白名单（match.* 两个事件的 props 全是计数/布尔/内部 id，取值域不是枚举而是数值区间）──────
 
 /** match.view_rendered 的数字字段白名单（全为计数，无原文） */
@@ -352,6 +384,34 @@ export type ClientEventPropsMap = {
     reason: GoalSaveFailReason
     /** 同 auth.goal_saved：首次设置失败与修改失败是两件事（新用户设不上才是最要命的那类） */
     isFirstTime: boolean
+  }
+  /**
+   * 收藏了一句优化表达（反馈页右滑/点「收藏」）——【落库成功之后】才报。
+   *
+   * ⚠️【绝不能报在点击那一刻】点击即报会把失败也算成一次收藏，与 flow.phrase_collect_failed
+   *   相除得到的成功率就永远是 100% —— 那等于把本次要修的那个「计数照加、其实一条没进库」的
+   *   骗用户 bug 原样复制进数据里，而且这回连人都看不见。
+   *
+   * 🔴【隐私】只带序号与视图。被收藏的句子（original / optimized / note）一个字都不许进 props。
+   */
+  'flow.phrase_collected': {
+    /**
+     * 本场第几条成功收藏，1-based（口径 = 本次反馈页停留期间累计成功数，失败不占号）。
+     * 用来看「一场到底收几句」的分布 —— 只需一个整数，不受 normalize 的 Math.round 影响。
+     */
+    nth: number
+    view: CollectView
+  }
+  /**
+   * 收藏失败 —— 与 flow.phrase_collected 相除即这条路的成败率。
+   *
+   * 【为什么非有不可】这条路此前【零埋点】：失败只写 console.error，用户看到的却是「收藏成功」，
+   *   失败率在库里完全不可观测（2026-08-07 之前唯一的发现渠道是用户口头反馈「手机收藏不了」）。
+   * 🔴 reason 只收 COLLECT_FAIL_REASON 的 code，绝不带 error message 原文（理由见该枚举）。
+   */
+  'flow.phrase_collect_failed': {
+    reason: CollectFailReason
+    view: CollectView
   }
   /**
    * 页面浏览 —— 漏斗的分母那一格（「有多少人到过这一页」）。

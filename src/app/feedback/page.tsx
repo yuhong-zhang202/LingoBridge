@@ -1,14 +1,16 @@
 /**
  * @module   FeedbackPage
  * @desc     反馈卡片页外壳 — 唯一真源持有卡片数据与「该单源的」逻辑（唯一一次读暂存、唯一收藏写入点、
- *           唯一 savedCount、唯一清场点），按 lg 断点分发移动/桌面两套视图。
+ *           唯一 savedCount、唯一清场点、唯一 Toast），按 lg 断点分发移动/桌面两套视图。
  *           两视图各自的「导航状态」留在各视图内（移动端 index 单卡、桌面端 center+decided 轮播），
  *           视图判定本视图处理完时回调 onAllDone，外壳据此清场（ref 守卫只清一次）。
+ *           ⚠️ savedCount 只在【落库成功】后加（2026-08-07）：此前无条件累加，收藏失败也照加照翻卡，
+ *           用户以为收藏成功、实际一条没进库。收藏的落库/归因/埋点见同目录 collect.ts。
  * @author   LingoBridge
  * @created  2026-05-15
  */
 'use client'
-import { type JSX, useState, useRef, useEffect, useCallback } from 'react'
+import { type JSX, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useNav } from '@/components/NavProgress'
 import { formatMonthDay } from '@/lib/date'
 import { getSessionPolishes, clearSessionPolishes } from '@/lib/storage'
@@ -18,8 +20,7 @@ import {
   PRACTICE_RECORD_FAILED_MESSAGE,
 } from '@/lib/practice-session-record'
 import Toast from '@/components/Toast'
-import { addSavedPhrase } from '@/lib/db/saved-phrases'
-import { refreshSavedPhrases } from '@/hooks/library-data'
+import { makeCollectHandler } from './collect'
 import type { SessionPolish } from '@/lib/types'
 import FeedbackMobile from './FeedbackMobile'
 import FeedbackDesktop from './FeedbackDesktop'
@@ -42,13 +43,18 @@ export default function FeedbackPage(): JSX.Element {
   // 唯一一次读取本场暂存
   useEffect(() => { setCards(getSessionPolishes()); setLoaded(true) }, [])
 
+  // 本页只有【一条】Toast，两个来源共用同一个 message 状态：打卡没存上 / 收藏没存上。
+  // 为什么合并而不是挂两个 Toast：Toast 是 fixed bottom-6 居中的浮层，两个实例会重叠在同一位置互相压住，
+  // 用户只看得到上面那条、还不知道底下压了什么。合并后「后来的覆盖先前的」，符合「最新那件事最要紧」。
+  // 代价是同时发生时先前那条会被顶掉 —— 两件事各自独立、都不影响用户已优化的句子，可接受。
+  const [toast, setToast] = useState<string | null>(null)
+
   // 打卡记录写失败的告知落点。练习页点「结束」就跳到这里，提示放在那边会被跳转直接冲掉，故收在本页：
   // 重试早于本页挂载就结束 → 挂载时消费标记；晚于挂载才结束 → 事件接住。两条路都指向同一条 Toast。
-  const [recordFailed, setRecordFailed] = useState(false)
   useEffect(() => {
-    if (consumePracticeRecordFailure()) setRecordFailed(true)
+    if (consumePracticeRecordFailure()) setToast(PRACTICE_RECORD_FAILED_MESSAGE)
     // 事件路径也顺手消费掉标记：否则那枚标记会留到下一次进本页，弹一条已经提示过的陈旧提醒。
-    const onFailed = (): void => { consumePracticeRecordFailure(); setRecordFailed(true) }
+    const onFailed = (): void => { consumePracticeRecordFailure(); setToast(PRACTICE_RECORD_FAILED_MESSAGE) }
     window.addEventListener(PRACTICE_RECORD_FAILED_EVENT, onFailed)
     return () => window.removeEventListener(PRACTICE_RECORD_FAILED_EVENT, onFailed)
   }, [])
@@ -58,14 +64,16 @@ export default function FeedbackPage(): JSX.Element {
   const done    = loaded && total > 0 && index >= total   // 移动端 index 模型的完成判定
   const today   = formatMonthDay()
 
-  // 唯一收藏写入点：接收「要收藏的那张卡」，异步落库（id/createdAt 由 DB 生成）并累加计数（与导航模型解耦）。
-  // 写入直接依赖网络，失败仅记日志、不回滚本地计数（离线降级）；成功后失效收藏缓存供素材库读到最新。
-  const onCollect = (polish: SessionPolish): void => {
-    void addSavedPhrase(polish)
-      .then(() => refreshSavedPhrases())
-      .catch((e) => console.error('[feedback] 收藏落库失败', e))
-    setSaved((c) => c + 1)
-  }
+  // 唯一收藏写入点（两视图共用，视图内不许另写一份）：落库成功才加计数，失败弹 Toast 告知用户。
+  // 落库/归因/埋点全在 ./collect 里，本处只接结果 → UI（那边可单测，见 __tests__/collect.test.ts）。
+  // useMemo 空依赖：handler 内部持有「本场第几条」的计数器，重建会把序号清零。
+  const onCollect = useMemo(
+    () => makeCollectHandler({
+      onSaved: () => setSaved((c) => c + 1),
+      onFailed: (message) => setToast(message),
+    }),
+    [],
+  )
 
   // 唯一清场点：某视图判定本视图处理完时调用，ref 守卫保证只清一次（两视图共用此回调）
   const clearedRef = useRef(false)
@@ -85,8 +93,9 @@ export default function FeedbackPage(): JSX.Element {
     isDragging.current = false
     setAnimated(true)
     setOffset((cur) => {
-      // 右滑收藏：走同一收藏真源 onCollect 后前进；左滑仅前进
-      if (cur > 60)  { setTimeout(() => { if (current) onCollect(current); skip(); setAnimated(false); setOffset(0) }, 180); return 500 }
+      // 右滑收藏：走同一收藏真源 onCollect 后前进；左滑仅前进。
+      // 手势收藏发生在外壳里，但它只可能来自移动端视图（桌面端没有拖拽手势），故这里代传 'mobile'。
+      if (cur > 60)  { setTimeout(() => { if (current) onCollect(current, 'mobile'); skip(); setAnimated(false); setOffset(0) }, 180); return 500 }
       if (cur < -60) { setTimeout(() => { skip(); setAnimated(false); setOffset(0) }, 180); return -500 }
       setTimeout(() => setAnimated(false), 180)
       return 0
@@ -122,11 +131,12 @@ export default function FeedbackPage(): JSX.Element {
           <FeedbackDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>
-      {/* 打卡没存上的提示：fixed 浮层，只渲染一次（移动/桌面共用）。比默认 3.5s 长一些 ——
-          这句话要读完两层意思（没存上 / 但句子没事），扫一眼的时间不够。 */}
+      {/* 全页唯一一条 Toast：fixed 浮层，只渲染一次（移动/桌面共用），承载「打卡没存上」与
+          「收藏没存上」两种提示。比默认 3.5s 长一些 —— 两句话都要读完两层意思
+          （没存上 / 后果与还能怎么办），扫一眼的时间不够。 */}
       <Toast
-        message={recordFailed ? PRACTICE_RECORD_FAILED_MESSAGE : null}
-        onDismiss={() => setRecordFailed(false)}
+        message={toast}
+        onDismiss={() => setToast(null)}
         duration={6000}
       />
     </>

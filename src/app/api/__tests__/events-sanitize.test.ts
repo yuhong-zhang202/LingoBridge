@@ -18,6 +18,9 @@
  *           band 只收枚举串（数字会被客户端 normalize 的 Math.round 并档，故服务端连数字都不收）、
  *           reason 只收收敛后的 code —— 【考试日期原文与后端 error message（可能含邮箱）一律不进库】，
  *           这条路客户端直连 supabase updateUser、服务端零痕迹，埋点是唯一观测渠道，props 面必须掐死。
+ *           反馈页收藏补埋点（2026-08-07）追加 flow.phrase_collected / flow.phrase_collect_failed：
+ *           props 只有 nth(整数) + view/reason(枚举)，【被收藏的句子一个字都不许进库】——
+ *           这两条事件就诞生在用户原文旁边，是本文件里 props 面最需要掐死的一对。
  *             · 事件名分发闸：未注册事件名必须 400 且零落库（0053 起 DB CHECK 已放宽为前缀正则，
  *               这里是唯一的真闸）；
  *             · QA 流量标记：严格 === 比对、token 未配时 fail-closed、内部账户为服务端权威来源。
@@ -45,7 +48,7 @@ import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
-import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON } from '@/lib/event-schema'
+import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_FAIL_REASON, COLLECT_VIEW } from '@/lib/event-schema'
 
 const mockLogEvent = logEvent as jest.MockedFunction<typeof logEvent>
 
@@ -144,6 +147,8 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['auth.goal_saved',        { band: '6.5', hasDate: true, isFirstTime: true }],
     ['auth.goal_save_failed',  { reason: 'update_failed', isFirstTime: false }],
     ['page.view',              { route: 'practice_question' }],
+    ['flow.phrase_collected',      { nth: 3, view: 'mobile' }],
+    ['flow.phrase_collect_failed', { reason: 'session_failed', view: 'desktop' }],
   ]
   test.each(CASES)('%s 正例', async (event, props) => {
     await POST(makeEventReq(event, props))
@@ -387,6 +392,56 @@ describe('auth.goal_saved / auth.goal_save_failed · 收敛口径', () => {
   })
 })
 
+// ───────────────────────────────────────────────────────────────────────────────
+// 🔴 反馈页收藏两个事件（2026-08-07）的红线：被收藏的句子一个字都不许进库
+// 这两条事件的 props 面比别处更危险 —— 事件本身就诞生在「用户的句子」旁边，
+// 一旦哪天有人顺手加个 sentence/optimized 字段，泄的就是整句原文。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('flow.phrase_collected / flow.phrase_collect_failed · 收敛口径', () => {
+  test.each([...COLLECT_VIEW].map((v) => [v]))('view=%s 原样放行（漏一档 = 该视图在库里恒空）', async (view) => {
+    await POST(makeEventReq('flow.phrase_collected', { nth: 1, view }))
+    expect(capturedProps()).toEqual({ nth: 1, view })
+  })
+
+  test.each([...COLLECT_FAIL_REASON].map((r) => [r]))('reason=%s 原样放行', async (reason) => {
+    await POST(makeEventReq('flow.phrase_collect_failed', { reason, view: 'mobile' }))
+    expect(capturedProps()).toEqual({ reason, view: 'mobile' })
+  })
+
+  test('reason 枚举外 / 近似值 / supabase error message 原样塞入 → 一律丢弃', async () => {
+    for (const reason of [
+      'Session_failed', 'insert_failed ', 'db_error',
+      '收藏失败：new row violates row-level security policy for user a@b.com', // 后端原文绝不许成为 code
+      0, null,
+    ]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('flow.phrase_collect_failed', { reason, view: 'desktop' }))
+      expect(capturedProps()).toEqual({ view: 'desktop' })
+    }
+  })
+
+  test('nth 只收 1..500 的整数（0 / 负数 / 小数 / 超界 / 字符串数字一律丢）', async () => {
+    for (const nth of [0, -1, 1.5, 501, '3', null]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('flow.phrase_collected', { nth, view: 'mobile' }))
+      expect(capturedProps()).toEqual({ view: 'mobile' })
+    }
+  })
+
+  test('🔴 被收藏的句子（原句/润色句/笔记）塞进任何键都不进库', async () => {
+    await POST(makeEventReq('flow.phrase_collected', {
+      nth: 2, view: 'desktop',
+      original: '我昨天和妈妈吵了一架',
+      optimized: 'I had a row with my mum yesterday',
+      note: '用 row 更地道',
+      phrase: '一句不该进库的话',
+    }))
+    const dumped = JSON.stringify(capturedProps())
+    for (const secret of ['妈妈', 'mum', 'row', '不该进库']) expect(dumped).not.toContain(secret)
+    expect(dumped).toBe('{"nth":2,"view":"desktop"}')
+  })
+})
+
 describe('事件名分发闸 —— 未注册立即 400、绝不落库', () => {
   test.each([
     ['flow.unknown_event'],       // 编造的名字
@@ -443,6 +498,8 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'auth.goal_saved': true,
   'auth.goal_save_failed': true,
   'page.view': true,
+  'flow.phrase_collected': true,
+  'flow.phrase_collect_failed': true,
 }
 
 /** 客户端可上报事件名全集（同款 Record 手法，漏登记即 tsc 报错） */
@@ -461,6 +518,8 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'auth.goal_saved': true,
   'auth.goal_save_failed': true,
   'page.view': true,
+  'flow.phrase_collected': true,
+  'flow.phrase_collect_failed': true,
 }
 
 describe('事件名形态护栏 —— 必须过 0053 的 DB CHECK 正则', () => {
