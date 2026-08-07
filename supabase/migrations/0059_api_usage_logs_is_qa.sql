@@ -1,0 +1,49 @@
+-- -----------------------------------------------------------------------------
+-- Migration : 0059_api_usage_logs_is_qa
+-- Desc      : 给 api_usage_logs 加 is_qa 列：把产品方自测流量标出来，算成本时剔除。
+--             漏斗侧 2026-08-02 已由 0053 给 flow_events 加过同名列并在跑（实测 2503 行里 807 行标了 QA），
+--             成本侧却一直没有：唯一的剔除手段是 isInternalAccount(user_id)，而那份名册里只有产品方的
+--             【注册】账号；产品方用无痕模式自测时每次都是一个全新的匿名 user_id，一个都进不了名册。
+--             结果是每一个用来做决策的成本数字都掺着自测流量，且【掺了多少不可知】。本迁移把成本侧
+--             补齐到与漏斗侧同一水平：字段口径逐条对齐 0053（boolean not null default false），不另起一套。
+--             幂等：add column if not exists，可安全重跑。
+--
+-- ⚠️ is_qa 红线（与 src/lib/qa-flag.ts / qa-traffic.ts 顶注、migration 0053 同文，逐字保留）：
+--    本标记来自客户端可控输入（URL 参数 → localStorage → 请求头），**可伪造**。
+--    **永久禁止**用于额度 / 权限 / 计费 / RLS 判定，只可写入统计列。
+--    额度判定一律走服务端 isInternalAccount(userId)。
+--    一旦把它接上业务闸，「加个 URL 参数就能无限白嫖」立即成立。
+--    ⚠️ 这里的「计费」指【对用户收费/扣额度】。把本列用于「成本看板剔除自测流量」是统计用途，不违反本条；
+--       但绝不许反过来拿它去决定谁该付钱、谁还有几次额度。
+--
+-- ⚠️ 基线起算日：本迁移之前的历史行【无法回溯标记】——谁在什么时候用无痕窗口自测过，事后没有任何依据可判。
+--    加列时 PG 会把已有行一律填成默认值 false（= 当作「不是自测」），那不是判断结果、只是默认值；
+--    真实情况是「未知」。故成本口径的自测剔除只能从本迁移生效日往后算，
+--    【不要把生效日之前的数据并进来做同比】（与 0053 顶注对 flow_events 的那条基线说明同理同措辞）。
+--    生效日在代码侧的唯一真源：src/lib/db/dashboard-shared.ts 的 COST_QA_BASELINE_START —— CI 实际
+--    应用本迁移的日期若与它不符，改那一处（看板口径小字直接读它）。
+--
+-- ⚠️ 刻意【不给 is_qa 建索引】（与 0053 给 flow_events 建 (user_id, created_at desc) 的理由是同一条：
+--    索引按查询模式建，不按新列建）。本列是布尔且绝大多数行为 false，单列索引选择性极差、优化器不会走；
+--    成本查询的过滤主力仍是 created_at（0012 已建 created_at desc 索引）与 user_id（0021 已建部分索引），
+--    is_qa 只是拉回行之后的一个附加谓词。真到需要时再按当时的实际查询计划建，不预先猜。
+--
+-- ⚠️ 刻意【不建任何视图】（同 0053）：视图无 RLS，且 PG 默认 security_invoker=false 会以 owner 身份执行、
+--    绕过底表 RLS；Supabase 的 pg_default_acl 还会自动给 anon 授权，等于凭空开一条匿名直读成本表的路径。
+--
+-- RLS 不动：本表 0012 起即 service_role-only（启用 RLS 且不建 select/update 策略 = 默认拒绝），
+--           0014 又删掉了宽松的 insert 策略。新增列不改变该访问模型，无需新策略、也不新授任何权限。
+--           写入唯一入口仍是 src/lib/api-logger.ts（service_role 绕 RLS）。
+--
+-- ⚠️ 部署顺序：代码与本迁移同批进 main 时，CI 的 db-push 与 Zeabur 构建是并行的。若代码先上线、
+--    迁移还没应用，insert 会因未知列 is_qa 报错 → logApiUsage 内部 try/catch 吞掉（只 console.error、
+--    不阻断用户），表现为【那几分钟的成本行丢失、页面一切正常】。窗口很短但不是零，观察 Zeabur 日志里
+--    的 [ApiLogger] 告警即可确认已恢复。
+--
+-- Created   : 2026-08-07
+-- Note      : 推 main 后由 .github/workflows/db-push.yml 自动应用，无需任何人手动执行。
+-- -----------------------------------------------------------------------------
+
+-- QA 流量标记列（纯统计用，红线见上）。类型/默认值/not null 与 0053 的 flow_events.is_qa 完全一致：
+-- 两张表的同名列口径必须同进同退，否则「漏斗剔了、成本没剔」的错位会以另一种形式再来一遍。
+alter table public.api_usage_logs add column if not exists is_qa boolean not null default false;
