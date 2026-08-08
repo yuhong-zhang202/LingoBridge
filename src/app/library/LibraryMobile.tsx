@@ -36,7 +36,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+export default function LibraryMobile({ cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -54,7 +54,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
       .catch(() => setIsAnon(false))
   }, [])
 
-  const totalCount = stories.length + cards.length + wordsCount + pronCount
+  // 「已攒下 N 条」：语料条数直接用 corpusCount（与下方入口卡同一个数，删语料后一起回落）
+  const totalCount = corpusCount + cards.length + wordsCount + pronCount
   // 题卡 Hero：当季有题即导向刷题（设定是「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
   // （off-season）才走空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态，不给死胡同）。
   const ankiHasCards = ankiSeasonCount > 0
@@ -376,7 +377,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
               </button>
 
               {/* ④ 我的语料（accent 云 · Mic 图标）；瓦片形态下去掉原副标题/ChevronRight，只留 图标+名+计数。
-                  计数是【语料条数】，与上方「已攒下 N 条」的 stories.length 同源，两个数必须一致 */}
+                  计数是【语料条数】corpusCount，与上方「已攒下 N 条」用的是同一个数，不可能打架 */}
               <button
                 type="button"
                 onClick={() => goView('stories')}

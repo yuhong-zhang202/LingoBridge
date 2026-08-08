@@ -49,7 +49,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+function LibraryDesktopContent({ cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -57,7 +57,8 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
   // tab 由 URL 派生（?tab=phrases 等；缺省 → cards），刷新/分享保持
   const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
 
-  const totalCount = stories.length + cards.length + wordsCount + pronCount
+  // 「已攒下 N 条」：语料条数直接用 corpusCount（与下方 tab 胶囊同一个数，删语料后一起回落）
+  const totalCount = corpusCount + cards.length + wordsCount + pronCount
   // 题卡复习入口：当季有题即导刷题（设定「所有题都能刷」，新用户也能直接刷、不再导去题库）；仅当季真 0 题
   // 才空态。入口 href 恒指 /anki/review（review 页对 0 题自有空态）。与移动端 Hero 同范式。
   const ankiHasCards = ankiSeasonCount > 0

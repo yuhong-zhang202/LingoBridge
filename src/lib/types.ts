@@ -74,15 +74,9 @@ export interface PracticedTopic {
   lastPracticedAt: string
 }
 
-export interface MyStory {
-  id: string
-  inputType: 'voice' | 'text'
-  duration?: string
-  content: string
-  matchedCount: number
-  createdAt: string
-  dimension?: '情绪内核' | '人际羁绊' | '空间感知' | '精神栖所' | '成长演进' | '价值底色'
-}
+// ⚠️ 2026-08-08 删除 MyStory（语料展示 VM，字段含 matchedCount / dimension）：唯一消费者 MyStoriesTab
+//    早已零引用，替代品 MyCorpusTab（04efb70）自持数据、用 MyCorpusItem（见 app/library/my-corpus-model.ts）。
+//    素材库首屏现在只要语料条数，不再有「一条语料的展示模型」这个概念留在全局 types。
 
 // ── 题库相关
 /**

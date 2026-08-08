@@ -7,37 +7,27 @@
  */
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { listMyCorpus, getCorpusPointCodes } from '@/lib/db/corpus'
-import { getQuestionCountByObservations } from '@/lib/db/questions'
-import { DIMENSION_LABEL } from '@/lib/constants'
+import { listMyCorpus } from '@/lib/db/corpus'
 import { useSavedPhrases, useSavedWords, useSavedPronunciations } from '@/hooks/library-data'
 import { getDueCount } from '@/lib/db/phrase-cards'
 import { fetchAnkiSummary } from '@/lib/anki/cards-client'
 import { ensureSession } from '@/lib/supabase'
 import { formatRelativeTime } from '@/lib/utils'
-import type { MyStory, CollectedCard, DimensionLabel } from '@/lib/types'
+import type { CollectedCard } from '@/lib/types'
 import type { AnkiHeroSample } from './types'
 import LibraryMobile from './LibraryMobile'
 import LibraryDesktop from './LibraryDesktop'
 
-function codeToLabel(code: string): DimensionLabel | undefined {
-  const prefix = code.split('_')[0] ?? ''
-  if (prefix === 'EMO') return DIMENSION_LABEL.emotion
-  if (prefix === 'REL') return DIMENSION_LABEL.relationship
-  if (prefix === 'SPA') return DIMENSION_LABEL.space
-  if (prefix === 'SPI') return DIMENSION_LABEL.spirit
-  if (prefix === 'GRO') return DIMENSION_LABEL.growth
-  if (prefix === 'VAL') return DIMENSION_LABEL.value
-  return undefined
-}
-
 export default function LibraryPage() {
-  const [stories, setStories]       = useState<MyStory[]>([])
   const [dueCount, setDueCount]     = useState(0)
-  // 语料条数：供「我的语料」tab 胶囊 / hub 入口卡显示。首屏取自下面 fetchStories 的行数
-  // （与页头「已攒下 N 条」里的 stories.length 同一份数据，天然不会打架）；进过 tab 后由 MyCorpusTab 经
-  // onCorpusCountChange 回上报最新语料数（删语料即回落，无需刷新）。
+  // 语料条数：素材库首屏唯一需要的语料信息 —— 页头「已攒下 N 条」的加数 + 「我的语料」入口计数，两处同一个数。
+  // 首屏取 listMyCorpus() 的行数；进过 tab 后由 MyCorpusTab 经 onCorpusCountChange 回上报最新语料数
+  // （删语料即回落，无需刷新）。
   // ⚠️ 2026-08-08 前这里取的是 /api/anki/summary 的 pairCount（对子数），与页头口径不同 —— 别改回去。
+  // ⚠️ 首屏只要这一个数：本页曾把整份语料列表（含逐条 matchedCount / dimension）拉进来，
+  //    为此每条语料要多发 2 个请求（getCorpusPointCodes + getQuestionCountByObservations），
+  //    而唯一消费它们的 MyStoriesTab 早已是零引用孤儿 —— 那 2N 个请求算出的东西一个字都没显示出去。
+  //    2026-08-08 连同该组件一并删除。要恢复「已匹配 N 道题」展示，见 my-corpus.test.tsx 顶部说明。
   const [corpusCount, setCorpusCount] = useState(0)
 
   // 题卡 Hero 数据（Anki 当季题卡入口）。⚠️ 性能：改前为「fetchAnkiCards(1,'all')+fetchAnkiCards(2,'all')
@@ -80,31 +70,10 @@ export default function LibraryPage() {
     [phrases],
   )
 
-  // 拉取「我的语料」并计算每条的匹配题数/主维度（初次加载与批量删除后刷新共用）
-  const fetchStories = useCallback(async (): Promise<MyStory[]> => {
+  /** 首屏语料计数：只数 listMyCorpus() 的行数，一个请求，不再逐条派生任何东西。 */
+  const fetchCorpusCount = useCallback(async (): Promise<number> => {
     const corpus = await listMyCorpus()
-    return Promise.all(
-      corpus.map(async (c) => {
-        let matchedCount = 0
-        let dimension: MyStory['dimension'] = undefined
-        try {
-          const { codes, primaryCode } = await getCorpusPointCodes(c.id)
-          matchedCount = await getQuestionCountByObservations(codes)
-          dimension = primaryCode ? codeToLabel(primaryCode) : undefined
-        } catch (err: unknown) {
-          console.warn('[LibraryPage] 计算语料匹配数失败，保留默认值', err)
-        }
-        return {
-          id: c.id,
-          inputType: c.source,
-          content: c.cleanedText ?? c.rawText,
-          createdAt: formatRelativeTime(c.createdAt),
-          duration: undefined,
-          matchedCount,
-          dimension,
-        }
-      })
-    )
+    return corpus.length
   }, [])
 
   useEffect(() => {
@@ -131,14 +100,14 @@ export default function LibraryPage() {
       }
     })()
 
-    // 我的语料：Supabase 异步读，用于 hub「已攒下 N 条」总计 + 语料入口卡计数（两者同源，口径一致）。
-    // 「我的语料」tab 自持一份数据（它还要并发拉对子），此处只负责首屏的两个数字。
-    fetchStories()
-      .then((list) => { setStories(list); setCorpusCount(list.length) })
-      .catch((e: unknown) => console.error('[LibraryPage] 加载语料失败', e))
-  }, [fetchStories])
+    // 我的语料：Supabase 异步读，用于 hub「已攒下 N 条」总计 + 语料入口卡计数（同一个数，口径必然一致）。
+    // 「我的语料」tab 自持一份数据（它还要并发拉对子），此处只负责首屏这个数字。
+    fetchCorpusCount()
+      .then(setCorpusCount)
+      .catch((e: unknown) => console.error('[LibraryPage] 加载语料计数失败', e))
+  }, [fetchCorpusCount])
 
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange: setCorpusCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
+  const viewProps = { cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange: setCorpusCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
 
   return (
     <>

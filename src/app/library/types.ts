@@ -4,7 +4,7 @@
  * @author   LingoBridge
  * @created  2026-07-04
  */
-import type { MyStory, CollectedCard } from '@/lib/types'
+import type { CollectedCard } from '@/lib/types'
 
 /** 题卡 Hero 展示所需的一句题面样本（当季用户想练的一题）。 */
 export interface AnkiHeroSample {
@@ -13,13 +13,12 @@ export interface AnkiHeroSample {
 }
 
 export interface LibraryViewProps {
-  stories: MyStory[]
   cards: CollectedCard[]
   wordsCount: number
   pronCount: number
   dueCount: number
-  /** 语料条数（listMyCorpus 的行数）—— 供「我的语料」tab 胶囊 / 移动 hub 入口卡计数。
-   *  ⚠️ 口径必须与页头「已攒下 N 条」里的 stories.length 同源：2026-08-08 改版前这里是【对子数】，
+  /** 语料条数（listMyCorpus 的行数）—— 同时供页头「已攒下 N 条」的加数、「我的语料」tab 胶囊 / 移动 hub 入口卡计数。
+   *  ⚠️ 口径：三处共用这一个数，不再各算各的。2026-08-08 改版前 tab 胶囊取的是【对子数】，
    *  于是 hub 说 12 条、入口卡显示 7，同一屏两个数打架，用户一眼看得出。 */
   corpusCount: number
   /** 「我的语料」tab 回上报当前语料数（加载完/删除后），用于徽标即时回落，无需刷新。tab 未挂载时不触发，徽标沿用首屏值。 */

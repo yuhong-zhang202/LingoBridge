@@ -227,7 +227,7 @@ export async function listMyObservationCodes(): Promise<string[]> {
  *   且以 security invoker 执行让 corpus / anki_cards 的 RLS 逐行生效。详见 0060 顶注。
  *
  *   语义与旧实现一致：删不存在 / 非自己的 id 不报错（命中 0 行），保持幂等；RPC 报错一律抛出，
- *   绝不静默 —— 调用方（CorpusMatchesTab / MyStoriesTab）据此报「删除失败，请重试」。
+ *   绝不静默 —— 调用方（MyCorpusTab，2026-08-08 起是唯一一处）据此报「删除失败，请重试」。
  *
  * @param  id  corpus UUID
  * @throws     Error —— RPC 调用失败（含迁移未应用时的 PGRST202 函数不存在）

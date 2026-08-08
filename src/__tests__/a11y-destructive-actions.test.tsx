@@ -140,7 +140,9 @@ describe('C1【结构】规则守卫：SwipeToDelete 的删除按钮不得一按
   it('调用方普查非空（本守卫没有空转）', () => {
     // eslint-disable-next-line no-console -- 覆盖面摘要，跑测试时要能一眼看到守住了哪几处
     console.log(`[a11y 守卫] <SwipeToDelete> 调用方 ${callSites.length} 处：\n  ${callSites.join('\n  ')}`)
-    expect(callSites.length).toBeGreaterThanOrEqual(4)
+    // 下限跟着实际调用方走：2026-08-08 删掉零引用孤儿 MyStoriesTab 后由 4 降为 3
+    // （现为 CollectedCard / SavedWordsTab / PronunciationTab）。本条守的是「普查不空转」，不是具体数量。
+    expect(callSites.length).toBeGreaterThanOrEqual(3)
   })
 
   it('组件内渲染了 ConfirmDialog（确认流程在组件里，调用方不必也不能绕过）', () => {
