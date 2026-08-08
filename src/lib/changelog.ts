@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.7',
+    date: '2026-08-08',
+    title: '删除更稳，读屏更友好',
+    notes: [
+      '左滑删除现在会先问一句再删，不会手一抖就没了',
+      '用读屏或键盘操作时，删除完会明确告诉你结果',
+    ],
+  },
+  {
     version: 'v0.10.6',
     date: '2026-08-08',
     title: '删除语料时真正清干净',

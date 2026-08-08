@@ -1,11 +1,14 @@
 /**
  * @module   Toast
  * @desc     轻量浮层提示 — 底部弹出，3.5s 后自动消失（CSS 动效，无第三方动画库）
+ *           读屏播报不写在本组件的浮层上：这个浮层随消息一起挂载、消息一没就卸载，临时创建的 live 容器
+ *           读屏常常来不及注册，那句话会整条丢失。改为把文案交给根布局里常驻的 A11yAnnouncer 播报。
  * @author   LingoBridge
  * @created  2026-06-06
  */
 'use client'
 import { useEffect, useState } from 'react'
+import { announce } from '@/components/A11yAnnouncer'
 
 interface Props {
   message: string | null
@@ -47,11 +50,15 @@ export default function Toast({ message, onDismiss, duration = 3500 }: Props) {
     return () => clearTimeout(timer)
   }, [message, duration, onDismiss])
 
+  // 交给常驻 live 容器播报（本浮层自身不带 role/aria-live，理由见文件顶注）
+  useEffect(() => {
+    if (message) announce(message)
+  }, [message])
+
   if (!shown) return null
 
   return (
     <div
-      role="alert"
       onClick={onDismiss}
       className={`fixed bottom-6 left-1/2 z-50 w-[calc(100%-48px)] max-w-[380px] bg-surface-inverse text-white text-[0.8125rem] leading-snug rounded-[14px] px-4 py-3 text-center shadow-lg cursor-pointer ${exiting ? 'toast-exit' : 'toast-enter'}`}
     >

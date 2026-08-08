@@ -1,25 +1,49 @@
 /**
  * @module   SwipeToDelete
- * @desc     移动端左滑删除容器 —— 子内容左滑露出红底删除按钮，越过阈值锁定、点删除触发回调。
+ * @desc     移动端左滑删除容器 —— 子内容左滑露出红底删除按钮，越过阈值锁定、点删除弹二次确认后才真删。
  *           带方向锁：首次位移 >6px 时按 |dx|>|dy| 定轴，判定为纵向手势（卡内滚动）则整段忽略横移，
  *           避免卡内滚动时误拖出删除底。
+ *
+ *           两条无障碍约束（2026-08-08 修，改动前对用鼠标的明眼人完全无感，所以一直没被发现）：
+ *           1. 红底删除按钮常驻 DOM、只是被卡片盖住。未滑出时必须既不可聚焦也不被读屏拾取，否则靠 Tab
+ *              导航的用户会在【每一张卡】上撞到一个屏幕上看不见的「删除」。滑出后必须恢复可聚焦，
+ *              不然手势用户反而用不了。
+ *           2. 点删除不能一按即删。确认流程做在本组件内部（而不是甩给调用方），理由见文件末尾。
  * @author   LingoBridge
  * @created  2026-05-20
  */
 'use client'
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
+import ConfirmDialog from '@/components/ConfirmDialog'
+import { announce } from '@/components/A11yAnnouncer'
 
 const DEL_BG = 'linear-gradient(to right, rgba(212,83,79,0.0) 0%, rgba(212,83,79,0.6) 15%, #D4534F 40%)'
+
+// 位移越过这个值就算「删除按钮已经露出来了」，此时才让它进入 Tab 顺序 / 读屏。
+// 与 onTouchEnd 的锁定阈值同数：手指松开时若没到这个位移，卡片会弹回、按钮重新被盖住。
+const REVEALED_PX = -65
 
 interface Props {
   onDelete: () => void
   borderRadius?: number
+  /** 二次确认的说明文案。默认通用措辞；调用方知道删的是什么时应传更具体的一句 */
+  confirmDescription?: string
+  /** 删除后的读屏播报。只写状态，绝不能把语料 / 词组 / 句子原文塞进来 */
+  announceOnDelete?: string
   children: React.ReactNode
 }
 
-export default function SwipeToDelete({ onDelete, borderRadius = 20, children }: Props) {
+export default function SwipeToDelete({
+  onDelete,
+  borderRadius = 20,
+  confirmDescription = '确认删除这一项？此操作不可撤销。',
+  announceOnDelete = '已删除 1 项',
+  children,
+}: Props) {
   const [offset, setOffset] = useState(0)
+  const [confirming, setConfirming] = useState(false)
   const startX = useRef(0)
   const startY = useRef(0)
   const isLocked = useRef(false)
@@ -58,12 +82,31 @@ export default function SwipeToDelete({ onDelete, borderRadius = 20, children }:
     })
   }
 
+  /** 二次确认通过后才真删：调用方回调 + 播报状态 + 把滑出的红底收回 */
+  const handleConfirm = () => {
+    setConfirming(false)
+    onDelete()
+    announce(announceOnDelete)
+    isLocked.current = false
+    setOffset(0)
+  }
+
+  const revealed = offset <= REVEALED_PX
+
   return (
     <div className="relative overflow-hidden" style={{ borderRadius }}>
       <button
+        type="button"
+        // 用 aria-hidden + tabIndex + disabled 三件套，不用 inert：inert 在 React 19 虽已是原生布尔属性，
+        // 但浏览器支持从 Safari 15.5 / Chrome 102 才开始，老设备上写了等于没写、bug 原样保留；
+        // 而这三个属性是全兼容的老资格 —— aria-hidden 挡读屏、tabIndex=-1 出 Tab 顺序、disabled 兜住
+        // 「被程序化聚焦后按回车」这条路。
+        aria-hidden={!revealed}
+        tabIndex={revealed ? 0 : -1}
+        disabled={!revealed}
         className="absolute inset-0 flex items-center justify-end"
         style={{ background: DEL_BG }}
-        onClick={onDelete}
+        onClick={() => setConfirming(true)}
       >
         <div className="w-[130px] flex items-center justify-center gap-1.5 text-white text-[0.875rem] font-medium">
           <Trash2 size={16} />删除
@@ -78,6 +121,35 @@ export default function SwipeToDelete({ onDelete, borderRadius = 20, children }:
       >
         {children}
       </div>
+      {/* portal 到 body：本容器是 overflow-hidden 的卡片外壳、内层还带 transform，弹窗留在里面容易被裁
+          或被别的卡片盖住。confirming 初始为 false，服务端渲染这一路永远走不到 document。 */}
+      {confirming && createPortal(
+        <ConfirmDialog
+          open
+          title="确认删除"
+          description={confirmDescription}
+          danger
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirming(false)}
+        />,
+        document.body,
+      )}
     </div>
   )
 }
+
+/**
+ * 为什么确认流程做在组件内部，而不是把「确认」的责任交给调用方（2026-08-08）
+ *
+ * 取舍：
+ * - 交给调用方（每处自己弹 ConfirmDialog 再调 onDelete）语义更干净，本组件仍是纯手势容器；
+ *   但那要求四个调用方（CollectedCard、MyStoriesTab、SavedWordsTab、PronunciationTab）各改一遍，
+ *   将来第五个调用方忘了接，就又多一个「一按即删」，而且这种漏接静态检查抓不到。
+ * - 做在组件内部则是「默认安全」：任何人 <SwipeToDelete onDelete={...}> 拿到的都是带确认的删除，
+ *   不存在忘记接的可能。代价是文案泛化（组件不知道删的是什么），故留了 confirmDescription /
+ *   announceOnDelete 两个可选 prop 让调用方补具体措辞。
+ *
+ * 选后者。破坏性操作的安全性不该依赖「每个调用方都记得做对」。
+ * 三个 *Tab.tsx 调用方当前正被另一分支改版，本次未改动它们，因此都吃默认文案；
+ * 那边收口后建议逐个补上具体的 confirmDescription（如「确认删除这条语料？」）。
+ */

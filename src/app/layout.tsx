@@ -6,6 +6,7 @@ import UpdateBanner from '@/components/UpdateBanner'
 import StandaloneZoomFix from '@/components/StandaloneZoomFix'
 import { QaBadge } from '@/components/QaBadge'
 import PageViewTracker from '@/components/PageViewTracker'
+import A11yAnnouncer from '@/components/A11yAnnouncer'
 import { NavProvider, NavProgress } from '@/components/NavProgress'
 import { SELF_HEAL_CHUNK_SCRIPT } from './self-heal-chunk'
 import { FONT_SCALE_INIT_SCRIPT } from './font-scale-init'
@@ -101,6 +102,10 @@ export default function RootLayout({
         {/* page.view 埋点：路由变化时报一条「进入了哪个页面」，渲染 null、无 DOM。
             只上报 route 枚举 code，绝不带 pathname 原文与 query（见组件顶注隐私段）。 */}
         <PageViewTracker />
+        {/* 全站常驻读屏播报区：必须挂在这里、随页面一起存在且永不卸载 —— 读屏是提前盯住已有的 live 容器
+            才能在文本变化时朗读，随消息一起被创建的容器往往来不及注册，那句播报会整条丢失。
+            视觉上完全不可见（sr-only），不占布局。 */}
+        <A11yAnnouncer />
       </body>
     </html>
   )
