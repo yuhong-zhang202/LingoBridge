@@ -12,7 +12,7 @@ import TopBar from '@/components/TopBar'
 import TabBar from '@/components/TabBar'
 import Tag from '@/components/Tag'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
-import CorpusMatchesTab from '@/app/library/CorpusMatchesTab'
+import MyCorpusTab from '@/app/library/MyCorpusTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
 import LoginPrompt from '@/app/profile/_components/LoginPrompt'
@@ -26,7 +26,7 @@ import type { LibraryViewProps } from './types'
 type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
 
 const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
-  stories: '语料匹配',
+  stories: '我的语料',
   cards:   '收藏卡片',
   words:   '词组收藏',
   pron:    '发音',
@@ -36,7 +36,7 @@ const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
 const SOFT = '0 8px 24px -8px rgba(180,120,70,0.16), 0 2px 8px rgba(120,90,60,0.05)'
 const SOFT_SM = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
 
-export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+export default function LibraryMobile({ stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const [view, setView] = useState<View>('hub')
   // 二级页内搜索（每个分类独立）：切页/返回即清空，防抖 300ms 下发给对应 tab 组件过滤
   const [mobileQuery, setMobileQuery] = useState('')
@@ -115,7 +115,7 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 relative z-10">
-            {view === 'stories' && <CorpusMatchesTab searchQuery={searchQuery} onCountChange={onCorpusCountChange} />}
+            {view === 'stories' && <MyCorpusTab searchQuery={searchQuery} onCountChange={onCorpusCountChange} />}
             {view === 'cards' && <CollectedCardsTab cards={cards} searchQuery={searchQuery} />}
             {view === 'words' && <SavedWordsTab searchQuery={searchQuery} />}
             {view === 'pron'  && <PronunciationTab searchQuery={searchQuery} />}
@@ -375,7 +375,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                 </div>
               </button>
 
-              {/* ④ 语料匹配（accent 云 · Mic 图标）；瓦片形态下去掉原副标题/ChevronRight，只留 图标+名+计数 */}
+              {/* ④ 我的语料（accent 云 · Mic 图标）；瓦片形态下去掉原副标题/ChevronRight，只留 图标+名+计数。
+                  计数是【语料条数】，与上方「已攒下 N 条」的 stories.length 同源，两个数必须一致 */}
               <button
                 type="button"
                 onClick={() => goView('stories')}
@@ -391,8 +392,8 @@ export default function LibraryMobile({ stories, cards, wordsCount, pronCount, d
                   <Mic2 size={20} className="text-v2-text-secondary relative z-[2]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">语料匹配</p>
-                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{pairCount}</p>
+                  <p className="text-[0.8125rem] font-medium text-v2-text-secondary">我的语料</p>
+                  <p className="text-[1.125rem] font-bold text-v2-text-primary leading-none mt-1">{corpusCount}</p>
                 </div>
               </button>
             </div>

@@ -248,9 +248,11 @@ describe('0060 迁移 SQL · 删语料清卡背的正确性红线', () => {
 })
 
 // ── 三、调用方：删除失败必须让用户看见 ─────────────────────────────────────────
-describe('CorpusMatchesTab · 删除失败不许静默', () => {
+// 2026-08-08 改版：调用方由「语料匹配」tab（CorpusMatchesTab，按对子铺卡）换成「我的语料」tab
+// （MyCorpusTab，一条语料一张卡），确认文案抽到 my-corpus-model.ts。守的东西一条没变。
+describe('MyCorpusTab · 删除失败不许静默', () => {
   const src = readFileSync(
-    join(__dirname, '..', '..', '..', 'app', 'library', 'CorpusMatchesTab.tsx'),
+    join(__dirname, '..', '..', '..', 'app', 'library', 'MyCorpusTab.tsx'),
     'utf8',
   )
 
@@ -259,7 +261,7 @@ describe('CorpusMatchesTab · 删除失败不许静默', () => {
     const start = src.indexOf('const handleConfirmDelete')
     expect(start).toBeGreaterThanOrEqual(0)
     const body = src.slice(start, src.indexOf('\n  }', start))
-    expect(body).toContain('await deleteCorpus(corpusId)')
+    expect(body).toContain('await deleteCorpus(target.id)')
     expect(body).toContain('catch')
     expect(body).toContain("setToast('删除失败，请重试')")
   })
@@ -275,7 +277,13 @@ describe('CorpusMatchesTab · 删除失败不许静默', () => {
   it('确认框文案与新行为相符：点明卡背清空【含用户手动编辑过的内容】', () => {
     // 删语料同时清 generated_answer 与 edited_answer，后者是用户亲手写的、损失更重，
     // 不可逆操作的确认框必须让他知情后再点。文案改软 = 又回到「承诺与行为不符」。
-    expect(src).toContain('卡背清空（含你手动编辑过的内容）')
-    expect(src).toContain('此操作不可撤销')
+    // 文案现在住在 model 层（两条路径共用一份），故守卫跟着挪过去。
+    const model = readFileSync(
+      join(__dirname, '..', '..', '..', 'app', 'library', 'my-corpus-model.ts'),
+      'utf8',
+    )
+    expect(model).toContain('卡背清空（含你手动编辑过的内容）')
+    // 「不可撤销」的措辞由 ux 改成「删除后没法找回」（同一件事，用户话），知情强度不降
+    expect(model).toContain('删除后没法找回')
   })
 })

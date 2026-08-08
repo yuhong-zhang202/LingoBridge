@@ -34,10 +34,11 @@ function codeToLabel(code: string): DimensionLabel | undefined {
 export default function LibraryPage() {
   const [stories, setStories]       = useState<MyStory[]>([])
   const [dueCount, setDueCount]     = useState(0)
-  // 当季对子数（corpusId 非空且已答的卡）：首屏从下方 anki「全部」拉取派生（无新增请求）、与「语料匹配」tab
-  // 的 answered 口径一致，供 tab 胶囊 / hub 徽标显示。进过 tab 后由 CorpusMatchesTab 经 onCorpusCountChange
-  // 回上报最新 pairs.length（删对子即回落，无需刷新）；未进过 tab 则沿用此首屏派生值（hub 一进来即有数）。
-  const [pairCount, setPairCount]   = useState(0)
+  // 语料条数：供「我的语料」tab 胶囊 / hub 入口卡显示。首屏取自下面 fetchStories 的行数
+  // （与页头「已攒下 N 条」里的 stories.length 同一份数据，天然不会打架）；进过 tab 后由 MyCorpusTab 经
+  // onCorpusCountChange 回上报最新语料数（删语料即回落，无需刷新）。
+  // ⚠️ 2026-08-08 前这里取的是 /api/anki/summary 的 pairCount（对子数），与页头口径不同 —— 别改回去。
+  const [corpusCount, setCorpusCount] = useState(0)
 
   // 题卡 Hero 数据（Anki 当季题卡入口）。⚠️ 性能：改前为「fetchAnkiCards(1,'all')+fetchAnkiCards(2,'all')
   // 拉当季全部 ~686 张卡（连 analysis 全文 ~1.3MB）到浏览器再 .length/.filter」，只为算这几个数字，慢在下载。
@@ -45,7 +46,8 @@ export default function LibraryPage() {
   //   - ankiSeasonCount = 当季全部可刷卡片总数（part1+part2+part2 带的 part3 子卡，含默认卡）= 牌堆「全部」张数；
   //   - ankiDueCount    = 已答主卡里到期张数（口径同旧 scope='answered' 到期过滤，不回归）；
   //   - ankiSample      = 已答卡首题优先，否则当季首题；仅当季真 0 题才为 null；
-  //   - pairCount       = 当季已绑语料且已答的对子数（供语料匹配 tab 徽标基数，口径不变）。
+  //   - pairCount       = 当季已绑语料且已答的对子数。⚠️ 2026-08-08 起前端不再消费该字段：
+  //     「我的语料」tab 的计数口径已改为语料数（见下方 corpusCount）。端点仍返回它，未动。
   // 计数口径与旧前端派生逐条一致（见 summary/route.ts）。
   const [ankiSeasonCount, setAnkiSeasonCount] = useState(0)
   const [ankiDueCount, setAnkiDueCount]       = useState(0)
@@ -121,7 +123,6 @@ export default function LibraryPage() {
         const s = await fetchAnkiSummary()
         setAnkiSeasonCount(s.seasonCount)
         setAnkiDueCount(s.dueCount)
-        setPairCount(s.pairCount)
         setAnkiSample(s.sample)
       } catch (e) {
         console.warn('[LibraryPage] 获取题卡概况失败，Hero 走空态', e)
@@ -130,13 +131,14 @@ export default function LibraryPage() {
       }
     })()
 
-    // 我的语料：Supabase 异步读，仅用于 hub「已攒下 N 条」总计（语料匹配 tab 已改为自持对子数据，不再依赖此列表）
+    // 我的语料：Supabase 异步读，用于 hub「已攒下 N 条」总计 + 语料入口卡计数（两者同源，口径一致）。
+    // 「我的语料」tab 自持一份数据（它还要并发拉对子），此处只负责首屏的两个数字。
     fetchStories()
-      .then(setStories)
+      .then((list) => { setStories(list); setCorpusCount(list.length) })
       .catch((e: unknown) => console.error('[LibraryPage] 加载语料失败', e))
   }, [fetchStories])
 
-  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange: setPairCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
+  const viewProps = { stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange: setCorpusCount, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }
 
   return (
     <>

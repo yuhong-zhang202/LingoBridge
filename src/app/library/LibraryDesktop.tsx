@@ -23,7 +23,7 @@ import { getAccount } from '@/lib/auth'
 import CollectedCardsTab from '@/app/library/CollectedCardsTab'
 import SavedWordsTab from '@/components/library/SavedWordsTab'
 import PronunciationTab from '@/components/library/PronunciationTab'
-import CorpusMatchesTab from '@/app/library/CorpusMatchesTab'
+import MyCorpusTab from '@/app/library/MyCorpusTab'
 import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
 import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
@@ -36,7 +36,7 @@ const DECK_SHADOW = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,9
 const TAB_IDS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
 /** 「工具栏走 Portal 槽」的 tab：四个 tab 均由各自组件把多选删除工具栏 Portal 到右侧槽（搜索图标右边）。
- *  语料匹配（stories）的删除语义 = 删语料（deleteCorpus，解绑退回分析），与其余三 tab 的删收藏并列、都真删。
+ *  我的语料（stories）的删除语义 = 删语料（deleteCorpus，解绑退回分析），与其余三 tab 的删收藏并列、都真删。
  *  未列入的 tab 会退到占位「多选删除即将上线」Toast（当前四个全接入，占位分支保留作兜底、实际走不到）。 */
 const SELECTABLE_TABS: readonly Tab[] = ['cards', 'phrases', 'pron', 'stories']
 
@@ -49,7 +49,7 @@ export default function LibraryDesktop(props: LibraryViewProps) {
   )
 }
 
-function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, pairCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
+function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount, corpusCount, onCorpusCountChange, ankiSeasonCount, ankiDueCount, ankiSample, ankiLoading }: LibraryViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -118,7 +118,7 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
     { id: 'cards',   label: '收藏卡片', count: cards.length },
     { id: 'phrases', label: '词组收藏', count: wordsCount },
     { id: 'pron',    label: '发音',     count: pronCount },
-    { id: 'stories', label: '语料匹配', count: pairCount },
+    { id: 'stories', label: '我的语料', count: corpusCount },
   ] as const
 
   return (
@@ -288,9 +288,9 @@ function LibraryDesktopContent({ stories, cards, wordsCount, pronCount, dueCount
         {tab === 'cards'   && <CollectedCardsTab cards={cards} toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'phrases' && <SavedWordsTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
         {tab === 'pron'    && <PronunciationTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} />}
-        {/* 语料匹配 tab（对子展示 + 多选删语料）：自持数据/加载/空态；桌面多选删除工具栏 Portal 到右侧槽，
-            删语料即解绑（绑定的 anki 卡 corpus_id 经 FK set null 退回题目分析）。 */}
-        {tab === 'stories' && <CorpusMatchesTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} onCountChange={onCorpusCountChange} />}
+        {/* 我的语料 tab（一条语料一张卡，绑的题收在卡内 + 多选删语料）：自持数据/加载/筛选/空态；
+            桌面多选删除工具栏 Portal 到右侧槽，删语料即解绑（绑定题卡退回题目分析、卡背清空，走 0060 事务型 RPC）。 */}
+        {tab === 'stories' && <MyCorpusTab toolbarSlotRef={toolbarSlotRef} onSelectingChange={setActiveSelecting} searchQuery={searchQuery} onSearchCountsChange={setActiveCounts} onCountChange={onCorpusCountChange} />}
       </main>
 
       {/* 占位提示 Toast（搜索 / 其他 tab 多选删除「即将上线」）；与 CollectedCardsTab 的 UndoToast 锚点不同，不冲突 */}

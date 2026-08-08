@@ -541,7 +541,8 @@ Accordion：accordionDown，200ms ease-out
 
 ### 卡片样式参考
 
-- 标准信息卡：参考 `library/MyStoriesTab.tsx`（`bg-white rounded-[18px] border border-black/[0.05]`）
+- 标准信息卡：一律用 `<Card>`（`bg-white rounded-[16px] border border-black/[0.05]` + 阴影），参考 `app/library/MyCorpusCard.tsx`
+  （原指引写「参考 MyStoriesTab（`rounded-[18px]`）」，那是 2026-06-17 圆角统一之前的旧值，且 MyStoriesTab 现为全仓零引用的孤儿组件；**圆角一律 16**）
 - 渐变描边主卡：参考 `feedback/page.tsx`（`GRADIENT_BORDER_STYLE_FULL`）
 - 统计数字卡：参考 `library/page.tsx`（渐变外框 + `bg-white rounded-[14px]` 内层）
 
@@ -573,6 +574,7 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
+*2026-08-08：修正「卡片样式参考」里过期的 `rounded-[18px]`（2026-06-17 已全站统一为 16），示例改指 `MyCorpusCard`*
 *2026-07-09：文档页面底色由 `#F8F5F1` 同步为实际代码值 `#FBFAF7`（globals.css / layout.tsx / tailwind `bg-page`·`bg-base` 均为 `#FBFAF7`）；上方 06-16 历史记录保留不改。*
 *2026-06-17：卡片/标签/胶囊/渐变 CTA 统一为 `<Card>`/`<Tag>`/`<Chip>`/`<GradientButton>` 四组件并列为必用；卡片圆角全站统一为 16（删旧 .card 死样式）；示例 v1 色 #444/#AAAAAA 改 v2*
 *2026-06-16：禁用态统一为 `disabled:opacity-50` + `cursor-not-allowed`；删除「按钮禁用态 #EEEEEE」灰底规则*

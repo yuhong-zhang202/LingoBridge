@@ -34,6 +34,9 @@ interface UseSelectMode<T> {
   selectedCount: number
   allSelected: boolean
   pendingCount: number
+  /** 待删项的 id 集合（5s 撤销窗口内）。调用方要在 items 上另算派生计数（如筛选档条数）时，
+   *  必须扣掉这批，否则「卡片已消失、计数还在」。不需要的调用方忽略即可，纯增量。 */
+  pendingIds: Set<string>
   pendingKey: number
   enterSelecting: () => void
   exitSelecting: () => void
@@ -76,6 +79,8 @@ export default function useSelectMode<T>({ initialItems, getId, removeFn, onSele
     return filterFn ? afterPending.filter(filterFn) : afterPending
   }, [items, pending, getId, filterFn])
   const allSelected = visibleItems.length > 0 && selectedIds.size === visibleItems.length
+  // 待删 id 集合：供调用方在 items 上另算派生计数时扣除（引用随 pending 变化，可直接进 useMemo 依赖）
+  const pendingIds = useMemo(() => new Set(pending?.ids ?? []), [pending])
 
   /** 真删一批：持久化 + 从 items 移除 */
   const commitBatch = useCallback((batch: DeleteBatch) => {
@@ -142,6 +147,7 @@ export default function useSelectMode<T>({ initialItems, getId, removeFn, onSele
     selectedCount: selectedIds.size,
     allSelected,
     pendingCount: pending?.ids.length ?? 0,
+    pendingIds,
     pendingKey: pending?.key ?? 0,
     enterSelecting,
     exitSelecting,
