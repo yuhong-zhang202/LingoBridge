@@ -171,11 +171,17 @@ export default function ConfirmDialog({
 }
 
 /**
- * 已知缺口（2026-08-08）
+ * 关闭后焦点归还的边界（2026-08-08 更新）
  *
- * 关闭后的焦点归还只覆盖「触发元素还在 DOM 里」的情况。删除场景里触发它的往往正是那张卡上的删除按钮，
- * 确认后整张卡随即卸载，触发元素不复存在 —— 此时焦点会落回 <body>，键盘用户要从页首重新 Tab。
- * 正确的收尾是把焦点交给幸存的列表容器（tabIndex={-1}）或下一张卡，但那要改各个列表组件
- * （src/components/library/*Tab.tsx、src/app/library/**），本次不在改动范围内。
- * 在补上之前，删除结果靠 A11yAnnouncer 的常驻 live 容器播报，用户至少知道删成功了。
+ * 本组件只负责「触发元素还在 DOM 里」这一种归还。删除场景里触发它的往往正是那张卡上的删除按钮，
+ * 确认后整张卡随即卸载、触发元素不复存在，此时本组件刻意不抢焦点 —— 该由发起删除的那一方接手，
+ * 因为只有它知道「下一张卡是谁」。
+ *
+ * 已接手：SwipeToDelete（左滑删除，覆盖素材库四个调用方）在确认回调里把焦点交给相邻的幸存卡，
+ * 落点规则见 lib/focus-handoff.ts。
+ * 尚未接手（焦点仍会掉回 <body>，键盘用户要从页首重新 Tab）：
+ *   - src/app/library/MyCorpusTab.tsx 移动端卡右上角的删除入口；
+ *   - useSelectMode 的桌面批量删除（确认后工具栏那颗「删除」按钮自己也没了）。
+ * 两处都只需给卡片根元素加 data-delete-item + tabIndex={-1}，再照 SwipeToDelete.handleConfirm 调一次
+ * pickFocusTarget 即可；本次未做是因为那些文件正被别的分支占用。
  */

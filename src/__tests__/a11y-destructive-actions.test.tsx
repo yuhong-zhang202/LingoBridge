@@ -1,13 +1,17 @@
 /**
  * @module   a11y-destructive-actions.test
- * @desc     三条破坏性操作无障碍缺陷的回归守卫（2026-08-08 修复）。三条的共同点是：对用鼠标的明眼人
- *           完全无感，产品方自己怎么点都测不出来 —— 所以必须由测试盯着，不能靠人肉复看。
+ * @desc     五条破坏性操作无障碍缺陷的回归守卫（C1–C3 于 2026-08-08 修，C4–C5 同日补）。五条的共同点是：
+ *           对用鼠标的明眼人完全无感，产品方自己怎么点都测不出来 —— 所以必须由测试盯着，不能靠人肉复看。
  *
  *           C1 隐形删除按钮：SwipeToDelete 的红底删除按钮常驻 DOM、只是被卡片盖住。未滑出时若不摘出
  *              Tab 顺序与读屏，靠键盘导航的用户会在每一张卡上撞到一个看不见的「删除」，回车即真删。
  *           C2 确认框对键盘/读屏用户等于不存在：无初始聚焦 / 无 Tab 陷阱 / 关闭不归还焦点。
  *           C3 live 容器不常驻：读屏要提前盯住已存在的 live 容器才能在文本变化时朗读；随消息一起被
  *              创建的容器往往来不及注册，那句「已删除」会整条丢失。
+ *           C4 删完焦点掉回 <body>：卡片一卸载焦点就没了着落，键盘用户想接着删下一张得从页首重新
+ *              Tab 一遍 —— 删 3 个东西就从头走 3 遍。修法是把焦点交给相邻的幸存卡。
+ *           C5 弹窗第一下反向 Tab 就漏：焦点还在面板本身时按 Shift+Tab，contains 判断为真而又不等于
+ *              首项，原写法直接放行 —— 焦点退到遮罩后面，用户之后按 Tab 都在看不见的东西上转圈。
  *
  *           ⚠️ 本仓库没有 jsdom / testing-library（且本次禁止新增依赖），因此**没有一条断言是真的按下了
  *           Tab 键或回车**。每个 describe 上都标了它守的到底是「行为」还是「结构」：
@@ -24,6 +28,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import SwipeToDelete from '@/components/library/SwipeToDelete'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import A11yAnnouncer, { announce, getAnnouncement, subscribeAnnouncements } from '@/components/A11yAnnouncer'
+import { DELETE_ITEM_ATTR } from '@/lib/focus-handoff'
 
 /** 扫描根目录：本文件在 src/__tests__/ 下，上一级即 src/ */
 const SRC_DIR = path.resolve(__dirname, '..')
@@ -291,6 +296,93 @@ describe('C3【结构】常驻容器真的挂在了根布局上', () => {
     const layout = stripComments(readSrc('app/layout.tsx'))
     expect(layout).toContain('<A11yAnnouncer />')
     expect(layout).toContain("from '@/components/A11yAnnouncer'")
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// C4 —— 删完之后，焦点不许掉回 <body>
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('C4【行为】每张卡都渲染成「能接住焦点的落点」', () => {
+  const markup = renderToStaticMarkup(
+    <SwipeToDelete onDelete={() => {}}><div>卡片内容</div></SwipeToDelete>,
+  )
+  const rootTag = markup.match(/^<div\b[^>]*>/)?.[0] ?? ''
+
+  it('取到了根元素（防止本组断言空转）', () => {
+    expect(rootTag).not.toBe('')
+    expect(rootTag).toContain('overflow-hidden')
+  })
+
+  it(`带 ${DELETE_ITEM_ATTR} 标记 —— 查找落点靠它，标记与常量任一改名都会漏掉整张卡`, () => {
+    // 用常量拼断言而不是写死字符串：组件里写死属性名、查找时用常量，两处只有靠这条断言绑在一起
+    expect(rootTag).toContain(DELETE_ITEM_ATTR)
+  })
+
+  it('带 tabindex="-1" —— 没有它，focus() 是空操作，焦点照样掉回 body；取 -1 是为了不进 Tab 顺序（每张卡多一站空停留）', () => {
+    expect(rootTag).toContain('tabindex="-1"')
+  })
+})
+
+describe('C4【结构】焦点交接的关键代码路径与先后次序', () => {
+  // 焦点、rAF、DOM 查询在无 DOM 的 node 环境里跑不起来，只能守源码。落点【挑得对不对】另有行为测试：
+  // src/lib/__tests__/focus-handoff.test.ts（那部分被刻意抽成纯函数，就是为了能真跑）。
+  const src = stripComments(readSrc('components/library/SwipeToDelete.tsx'))
+  const handler = src.slice(src.indexOf('const handleConfirm'), src.indexOf('const revealed'))
+
+  it('落点在真删【之前】算好 —— 卡片一卸载就再也问不出「我的下一张是谁」', () => {
+    expect(handler).toContain('planFocusHandoff()')
+    expect(handler.indexOf('planFocusHandoff()')).toBeLessThan(handler.indexOf('onDelete()'))
+  })
+
+  it('先播报、后移焦点 —— 反过来读屏正在念的那句会被焦点变化打断，用户只听到其中一件事', () => {
+    expect(handler).toContain('announce(announceOnDelete)')
+    expect(handler.indexOf('announce(announceOnDelete)')).toBeLessThan(handler.indexOf('handoff()'))
+  })
+
+  it('交接排到本次提交之后（rAF）—— 同步移会被 ConfirmDialog 的「焦点归还触发元素」盖掉', () => {
+    expect(src).toMatch(/requestAnimationFrame\(/)
+  })
+
+  it('聚焦前确认落点还在 DOM 里（异步删除等场景下它可能已经没了）', () => {
+    expect(src).toMatch(/document\.body\.contains\(target\)/)
+    expect(src).toMatch(/target\.focus\(\)/)
+  })
+
+  it('落点由 pickFocusTarget 决定，且带可见性过滤 —— 素材库同时挂着移动版与桌面版两份列表，交给藏起来的那份等于焦点凭空消失', () => {
+    expect(src).toMatch(/pickFocusTarget\(items, root, isRendered\)/)
+    expect(src).toMatch(/querySelectorAll<HTMLElement>\(`\[\$\{DELETE_ITEM_ATTR\}\]`\)/)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// C5 —— 弹窗打开后第一下 Shift+Tab 就漏到背景里
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('C5【结构】焦点还在面板本身时按 Shift+Tab，两个弹窗都必须兜住', () => {
+  // 这两个弹窗都是「打开时把焦点移到面板本身」（避免程序化聚焦按钮点亮橙焦点环），于是 active 既在
+  // root 之内、又不等于首个可聚焦项 —— 少了 active === root 这一支，第一下反向 Tab 就把焦点送到
+  // 遮罩后面，之后再按 Tab 都在用户看不见也点不到的东西上转圈，确认不了也取消不了。
+  it.each([
+    ['components/ConfirmDialog.tsx'],
+    ['components/anki/SwapCorpusDialog.tsx'],
+  ])('%s 的反向分支含 active === root', (rel) => {
+    const src = stripComments(readSrc(rel))
+    const branch = src.match(/if \(e\.shiftKey && \([^)]*\)\)/)?.[0] ?? ''
+    expect(branch).not.toBe('')
+    expect(branch).toContain('active === root')
+    // 另两条原有出口不能在补漏时被顺手删掉
+    expect(branch).toContain('active === first')
+    expect(branch).toContain('contains(active)')
+  })
+
+  it.each([
+    ['components/ConfirmDialog.tsx'],
+    ['components/anki/SwapCorpusDialog.tsx'],
+  ])('%s 打开时确实把焦点移到面板本身（否则上一条守的分支根本走不到，等于空转）', (rel) => {
+    const src = stripComments(readSrc(rel))
+    expect(src).toMatch(/panelRef\.current\?\.focus\(\)/)
+    expect(src).toContain('tabIndex={-1}')
   })
 })
 

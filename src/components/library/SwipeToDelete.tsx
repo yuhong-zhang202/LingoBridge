@@ -4,11 +4,13 @@
  *           带方向锁：首次位移 >6px 时按 |dx|>|dy| 定轴，判定为纵向手势（卡内滚动）则整段忽略横移，
  *           避免卡内滚动时误拖出删除底。
  *
- *           两条无障碍约束（2026-08-08 修，改动前对用鼠标的明眼人完全无感，所以一直没被发现）：
+ *           三条无障碍约束（2026-08-08 修，改动前对用鼠标的明眼人完全无感，所以一直没被发现）：
  *           1. 红底删除按钮常驻 DOM、只是被卡片盖住。未滑出时必须既不可聚焦也不被读屏拾取，否则靠 Tab
  *              导航的用户会在【每一张卡】上撞到一个屏幕上看不见的「删除」。滑出后必须恢复可聚焦，
  *              不然手势用户反而用不了。
  *           2. 点删除不能一按即删。确认流程做在本组件内部（而不是甩给调用方），理由见文件末尾。
+ *           3. 删完要把焦点交给幸存的相邻卡，否则卡片一卸载焦点就掉回 <body>，键盘用户想接着删下一张
+ *              得从页首重新 Tab 一遍。落点规则见 lib/focus-handoff.ts，同样做在组件内部、四个调用方白拿。
  * @author   LingoBridge
  * @created  2026-05-20
  */
@@ -18,6 +20,7 @@ import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { announce } from '@/components/A11yAnnouncer'
+import { DELETE_ITEM_ATTR, isRendered, pickFocusTarget } from '@/lib/focus-handoff'
 
 const DEL_BG = 'linear-gradient(to right, rgba(212,83,79,0.0) 0%, rgba(212,83,79,0.6) 15%, #D4534F 40%)'
 
@@ -44,6 +47,7 @@ export default function SwipeToDelete({
 }: Props) {
   const [offset, setOffset] = useState(0)
   const [confirming, setConfirming] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const startY = useRef(0)
   const isLocked = useRef(false)
@@ -82,19 +86,44 @@ export default function SwipeToDelete({
     })
   }
 
-  /** 二次确认通过后才真删：调用方回调 + 播报状态 + 把滑出的红底收回 */
+  /**
+   * 算好本卡被删后的焦点落点，返回「等这一帧 DOM 收拾完再执行」的交接动作。
+   * 必须在真删之前算：卡片一卸载，就再也问不出「我的下一张是谁」了。
+   */
+  const planFocusHandoff = (): (() => void) => {
+    const root = rootRef.current
+    if (!root) return () => {}
+    const items = Array.from(document.querySelectorAll<HTMLElement>(`[${DELETE_ITEM_ATTR}]`))
+    const target = pickFocusTarget(items, root, isRendered)
+    if (!target) return () => {}
+    return () => {
+      // 必须等到本次提交之后：ConfirmDialog 关闭时会把焦点还给触发它的那颗删除按钮，而那颗按钮
+      // 正随本卡一起消失 —— 同步移焦点会被它盖掉，最终还是掉回 <body>。rAF 排在提交与绘制之间。
+      requestAnimationFrame(() => {
+        if (document.body.contains(target)) target.focus()
+      })
+    }
+  }
+
+  /** 二次确认通过后才真删：调用方回调 + 播报状态 + 把滑出的红底收回 + 把焦点交给相邻卡 */
   const handleConfirm = () => {
+    const handoff = planFocusHandoff()
     setConfirming(false)
     onDelete()
+    // 先播报、后移焦点：反过来的话读屏正在朗读的那句会被焦点变化打断，用户只听到其中一件事
     announce(announceOnDelete)
     isLocked.current = false
     setOffset(0)
+    handoff()
   }
 
   const revealed = offset <= REVEALED_PX
 
   return (
-    <div className="relative overflow-hidden" style={{ borderRadius }}>
+    // data-delete-item + tabIndex={-1}：本卡既是「删掉别人之后能接住焦点的落点」，也是别人查找落点时的候选。
+    // tabIndex 取 -1 —— 只允许程序化聚焦，不进 Tab 顺序（进了的话每张卡会多出一站空停留）。
+    // 属性名写死在这里、查找用 DELETE_ITEM_ATTR 常量，两处必须同名；有单测盯着这一致性（改一处会红）。
+    <div ref={rootRef} data-delete-item="" tabIndex={-1} className="relative overflow-hidden" style={{ borderRadius }}>
       <button
         type="button"
         // 用 aria-hidden + tabIndex + disabled 三件套，不用 inert：inert 在 React 19 虽已是原生布尔属性，

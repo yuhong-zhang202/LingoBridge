@@ -78,12 +78,17 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') { e.stopPropagation(); onKeepCurrent(); return }
     if (e.key !== 'Tab') return
+    const root = panelRef.current
+    if (!root) return
     const items = focusables()
     if (items.length === 0) return
     const first = items[0]
     const last = items[items.length - 1]
     const active = document.activeElement
-    if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
+    // active === root 这一支（2026-08-08 补，与 ConfirmDialog 同源）：弹窗刚打开时焦点落在面板本身，
+    // 此刻按 Shift+Tab，root.contains(root) 为真、又不等于 first，原写法直接放行 —— 焦点退到遮罩后面的
+    // 背景里，之后再按 Tab 都在用户既看不见也点不到的东西上转圈，确认不了也取消不了，只能离开页面。
+    if (e.shiftKey && (active === first || active === root || !root.contains(active))) {
       e.preventDefault(); last.focus()
     } else if (!e.shiftKey && active === last) {
       e.preventDefault(); first.focus()
