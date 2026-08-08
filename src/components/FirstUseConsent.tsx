@@ -29,6 +29,7 @@ import { CONSENT_POPUP_TITLE, CONSENT_POPUP_DISCLOSURE } from '@/lib/privacy-cop
 import { hasRecordedConsent, recordConsent, clearConsentCache } from '@/lib/consent'
 import { getSupabase } from '@/lib/supabase'
 import { PAGE_CONTAINER } from '@/lib/constants'
+import { resolveTabFocus } from '@/lib/focus-trap'
 
 // 桌面端(lg+)贴底通栏的内栏：复用全站唯一宽度真源 PAGE_CONTAINER，与 TopNav / 各页内容左右对齐。
 // `contents` 让这几层包裹 div 在 lg 以下不生成盒子（不吃 padding / max-width / margin），
@@ -124,21 +125,30 @@ export default function FirstUseConsent() {
   }
 
   // focus trap：Tab / Shift+Tab 在弹窗内循环，不逸出到背景页（硬闸下背景不可交互）。硬闸不处理 Esc（无关闭）。
+  // 判定本身走 lib/focus-trap.ts 的纯函数（本仓库 jest 无 DOM，逻辑留在组件里就只测得到「代码还在」、
+  // 测不到「判错方向」；ConfirmDialog / SwapCorpusDialog 尚未收编进来，原因见 focus-trap.ts 顶注）：
+  // 本组件此前只判 `active === firstEl`，而弹窗打开时聚焦的是【面板本身】（上面那个 dialogRef.current?.focus()），
+  // 于是「一打开就按 Shift+Tab」两支都不命中 → 焦点退到遮罩后面的背景里再也回不来。这是首次使用的隐私
+  // 硬闸、背景完全不可交互，键盘 / 读屏用户到这一步等于卡死在门口，连产品都进不去。
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Tab') return
-    const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    const root = dialogRef.current
+    if (!root) return
+    const focusables = Array.from(
+      root.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
     )
-    if (!focusables || focusables.length === 0) return
-    const firstEl = focusables[0]
-    const lastEl = focusables[focusables.length - 1]
-    if (e.shiftKey && document.activeElement === firstEl) {
-      e.preventDefault()
-      lastEl.focus()
-    } else if (!e.shiftKey && document.activeElement === lastEl) {
-      e.preventDefault()
-      firstEl.focus()
-    }
+    // 只有 HTMLElement 才 focus 得动；焦点丢在 body 上时 contains 为 false，会被当「已在容器外」拉回来
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const decision = resolveTabFocus<HTMLElement>({
+      focusables,
+      root,
+      active,
+      activeInsideRoot: root.contains(active),
+      shiftKey: e.shiftKey,
+    })
+    if (decision.kind === 'pass') return
+    e.preventDefault()
+    if (decision.kind === 'move') decision.target.focus()
   }
 
   return (
