@@ -67,7 +67,10 @@ try {
   c('匿名可签同意 /api/consent 200', cs.status === 200, `status=${cs.status}`)
 
   // ── 3) 预置当日计数到上限（等价于已用掉 5 次，省掉 5 次真实 AI 调用）──
-  const today = new Date().toISOString().slice(0, 10)
+  // 日桶按东八区（迁移 0062 起 RPC 写 `(now() at time zone 'Asia/Shanghai')::date`）。
+  // 这里若还用 UTC 日期，香港 00:00–08:00 跑本探针会预置到隔壁桶：RPC 另开新桶从 1 数起，
+  // 第 6 次请求不会被 402 拦，探针报一次并不存在的「额度闸失效」。
+  const today = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const { error: upErr } = await admin.from('anon_restructure_counts')
     .upsert({ user_id: uid, day: today, count: ANON_LIMIT }, { onConflict: 'user_id,day' })
   c(`预置 anon_restructure_counts=${ANON_LIMIT}（迁移 0013 的表可写）`, !upErr, upErr?.message ?? `day=${today}`)

@@ -9,16 +9,13 @@
 import 'server-only'
 
 import { getSupabaseServer } from '../supabase-server'
-
-/** 当月 1 日 0 点（本地时区）的 ISO 字符串，作为月度计数的下界（与客户端 practice-sessions 同逻辑）。 */
-function monthStartISO(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
-}
+import { quotaMonthStartISO } from '../quota-period'
 
 /**
- * 统计某用户本月「复练」次数（is_review = true，created_at >= 当月 1 日）。
+ * 统计某用户本月「复练」次数（is_review = true，created_at >= 东八区当月 1 日）。
  * service_role 绕 RLS，故须显式按 user_id 过滤（不能依赖 auth.uid()）。
+ * 月界与客户端 countReviewPracticeThisMonth 共用 quotaMonthStartISO（东八区），
+ * 两端逐字同口径 —— 服务端此前跟随容器时区，与设备时区的客户端每月初会错开 8 小时。
  * @param  userId  requireUser 反查出的当前用户 id
  * @returns        本月复练次数
  * @throws         Error —— 查询出错
@@ -29,7 +26,7 @@ export async function countReviewPracticeThisMonthServer(userId: string): Promis
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('is_review', true)
-    .gte('created_at', monthStartISO())
+    .gte('created_at', quotaMonthStartISO())
   if (error) throw new Error(`读取复练次数失败：${error.message}`)
   return count ?? 0
 }

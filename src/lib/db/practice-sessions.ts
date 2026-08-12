@@ -5,18 +5,13 @@
  * @created  2026-06-04
  */
 import { getSupabase, ensureSession } from '../supabase'
+import { quotaMonthStartISO } from '../quota-period'
 
 /**
  * 雅思"复练"月额度（自然月）。设计值 10（2026-07-25 内测前已从自测临时值 100 调回）。
  * 与 STORY_MONTHLY_LIMIT（corpus.ts）一并调回。
  */
 export const IELTS_MONTHLY_LIMIT = 10
-
-/** 当月 1 日 0 点（本地时区）的 ISO 字符串，作为月度计数的下界。 */
-function monthStartISO(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
-}
 
 /**
  * 记录一次练习完成，显式传 user_id（表无 default auth.uid()）
@@ -53,8 +48,9 @@ export async function getPracticeCount(): Promise<number> {
 }
 
 /**
- * 统计当月「复练」次数（is_review = true，created_at >= 当月 1 日）。
- * 用于触发"雅思练习额度用完"。
+ * 统计当月「复练」次数（is_review = true，created_at >= 东八区当月 1 日）。
+ * 用于触发"雅思练习额度用完"。月界走 quotaMonthStartISO —— 与服务端
+ * countReviewPracticeThisMonthServer 共用同一份实现，前后端不再各按各的时区分月。
  */
 export async function countReviewPracticeThisMonth(): Promise<number> {
   await ensureSession()
@@ -62,7 +58,7 @@ export async function countReviewPracticeThisMonth(): Promise<number> {
     .from('practice_sessions')
     .select('*', { count: 'exact', head: true })
     .eq('is_review', true)
-    .gte('created_at', monthStartISO())
+    .gte('created_at', quotaMonthStartISO())
   if (error) throw new Error(`读取复练次数失败：${error.message}`)
   return count ?? 0
 }

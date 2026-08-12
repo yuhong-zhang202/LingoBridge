@@ -9,17 +9,15 @@ import 'server-only'
 
 import { getSupabaseServer } from '../supabase-server'
 import { isInternalAccount } from '../internal-accounts'
+import { quotaDayKey, quotaMonthStartISO } from '../quota-period'
 import { mapCorpusRow, type CorpusRow } from './corpus'
 import type { Corpus, CorpusSource } from '../types'
 
-/** 当月 1 日 0 点（本地时区）的 ISO 字符串（与客户端 corpus 版同逻辑）。 */
-function monthStartISO(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
-}
-
 /**
  * 统计某用户本月创建的语料数。service_role 绕 RLS，故须显式按 user_id 过滤（不能依赖 auth.uid()）。
+ * 月界走 quotaMonthStartISO（东八区）—— 与客户端 countCorpusThisMonth 同一份实现。
+ * 此前服务端跟随容器时区、客户端跟随设备时区，每月 1 日头 8 小时两端不同月：
+ * 客户端已进新月显示「0 / 10」，服务端还在上月直接 402，用户拿到一个点了必然失败的按钮。
  * @param  userId  requireUser 反查出的当前用户 id
  * @returns        本月语料数
  * @throws         Error —— 查询出错
@@ -29,7 +27,7 @@ export async function countCorpusThisMonthServer(userId: string): Promise<number
     .from('corpus')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .gte('created_at', monthStartISO())
+    .gte('created_at', quotaMonthStartISO())
   if (error) throw new Error(`读取本月语料数失败：${error.message}`)
   return count ?? 0
 }
@@ -52,6 +50,7 @@ export async function countCorpusForUserServer(userId: string): Promise<number> 
 
 /**
  * 原子递增某用户「今日整理次数」并返回递增后的值（含本次）。用于匿名 restructure 当日额度。
+ * 「今日」由 RPC 按**东八区**判定（迁移 0062）—— 与全站「明天会自动恢复」的文案同口径。
  * @param  userId  requireUserAllowAnon 反查出的用户 id
  * @returns        递增后的当日计数
  * @throws         Error —— RPC 出错
@@ -66,6 +65,8 @@ export async function bumpAnonRestructureTodayServer(userId: string): Promise<nu
 /**
  * 原子递增某用户「今日某类用量」并返回递增后的值（含本次）。通用每日计数，
  * 供 practice/polish/pronounce/transcribe 等付费接口判匿名试用上限与注册熔断上限。
+ * 「今日」由 RPC 按**东八区**判定（迁移 0062，写 `(now() at time zone 'Asia/Shanghai')::date`）：
+ * 日界 = 香港 00:00，与文案「明天会自动恢复」一致；改动前是 UTC 日界，用户要等到早上 8 点。
  * @param  userId  requireUserAllowAnon 反查出的用户 id
  * @param  kind    用量类别（practice / polish / pronounce / transcribe）
  * @returns        递增后的当日该类计数
@@ -101,8 +102,9 @@ export async function readDailyUsageServer(userId: string, kind: string): Promis
   // bump。与 bumpDailyUsageServer 一起构成日额度层的完整一处收敛。
   if (isInternalAccount(userId)) return 0
   try {
-    // day 列由 RPC 用 Postgres current_date 写入（库时区 UTC），故这里同样取 UTC 日期对齐口径
-    const today = new Date().toISOString().slice(0, 10)
+    // day 列由 RPC 按东八区写入（迁移 0062），故这里必须同样取东八区日期键：
+    // 两边差一个口径，香港 00:00–08:00 就会去读一个不存在的桶（旧代码正是如此，读到 0 后放行）。
+    const today = quotaDayKey()
     const { data, error } = await getSupabaseServer()
       .from('daily_usage_counts')
       .select('count')
@@ -124,6 +126,8 @@ export async function readDailyUsageServer(userId: string, kind: string): Promis
  *
  * 【为什么不需要新表】daily_usage_counts 主键是 (user_id, day, kind)、且全仓从不删除该表的行
  * （无 delete 调用、无相关 cron），故「终身累计」= 同 user_id + kind 的所有 day 行 count 之和。
+ * 也正因是求和，2026-08-12 的日界东八区化（迁移 0062）不影响本函数：日桶怎么切分不改变增量总数，
+ * 切换当天最多多出一行新桶，各行仍各计各的 —— 终身闸不会因为改日界被放开。
  *
  * 【非原子】与 readDailyUsageServer 同性质：不加锁，并发下可能读到偏小的值。但调用方在
  * bumpDailyUsageServer 原子递增【之后】再读一次，读到的和已包含本次及并发的递增，

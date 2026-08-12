@@ -110,7 +110,8 @@ export default function AnalysisMobile({
           </>
         )}
         {/* 当日上限（429）：必须排在 error 分支之前，且不给「重试」——重试只会再撞 429。
-            文案只说「明天恢复」不写具体时刻：服务端计次日界是 UTC 还是本地未核实，不精确化。 */}
+            文案说「明天恢复」现已成立：日界自迁移 0062 起是东八区 00:00（见 lib/quota-period），
+            与用户理解的「明天」同一时刻。此前是 UTC 日界、实际要等到香港早上 8 点，那时这句话是假的。 */}
         {!loading && dailyLimitHit && (
           <EmptyState
             title="操作太频繁，今天先歇歇吧"

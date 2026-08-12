@@ -6,6 +6,7 @@
  */
 
 import { getSupabase, ensureSession } from '../supabase'
+import { quotaMonthStartISO } from '../quota-period'
 import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 
 /**
@@ -14,21 +15,18 @@ import type { Corpus, CorpusSource, CorpusStatus } from '../types'
  */
 export const STORY_MONTHLY_LIMIT = 10
 
-/** 当月 1 日 0 点（本地时区）的 ISO 字符串。 */
-function monthStartISO(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString()
-}
-
 /**
  * 统计当月创建的语料数（RLS 自动按当前用户过滤），用于触发故事链路月额度。
+ * 月界走 quotaMonthStartISO（东八区，与服务端 countCorpusThisMonthServer 同一份实现）——
+ * 此前这里用 `new Date().getMonth()` 跟随**设备**时区、服务端跟随**容器**时区，
+ * 每月 1 日的头 8 小时两端不同月，会渲染出「本月额度已用完」配「0 / 10」进度条的自相矛盾界面。
  */
 export async function countCorpusThisMonth(): Promise<number> {
   await ensureSession()
   const { count, error } = await getSupabase()
     .from('corpus')
     .select('*', { count: 'exact', head: true })
-    .gte('created_at', monthStartISO())
+    .gte('created_at', quotaMonthStartISO())
   if (error) throw new Error(`读取本月语料数失败：${error.message}`)
   return count ?? 0
 }
