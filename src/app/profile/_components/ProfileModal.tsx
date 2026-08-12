@@ -11,10 +11,7 @@ import { type JSX, useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import Card from '@/components/Card'
 import { cn } from '@/lib/utils'
-
-/** 焦点陷阱的可聚焦元素选择器（弹窗内容无隐藏可聚焦项，不做可见性过滤） */
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 
 interface ProfileModalProps {
   title: string
@@ -55,7 +52,7 @@ export default function ProfileModal({ title, onClose, children, className }: Pr
       }
       if (e.key !== 'Tab') return
       // Tab/Shift+Tab 在弹窗内循环；焦点意外落到弹窗外时也拉回环内
-      const nodes = dialog.querySelectorAll<HTMLElement>(FOCUSABLE)
+      const nodes = dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
       if (nodes.length === 0) { e.preventDefault(); dialog.focus(); return }
       const first = nodes[0]
       const last = nodes[nodes.length - 1]

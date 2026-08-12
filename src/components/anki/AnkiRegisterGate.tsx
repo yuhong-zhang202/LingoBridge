@@ -12,6 +12,7 @@ import { useEffect, useRef } from 'react'
 import { useNav } from '@/components/NavProgress'
 import Orb from '@/components/Orb'
 import GradientButton from '@/components/GradientButton'
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 
 interface Props {
   /** 关闭（点遮罩 / Esc / 「再看看」）：回到当前页，用户输入与匹配结果均不受影响。 */
@@ -26,7 +27,7 @@ export default function AnkiRegisterGate({ onClose }: Props) {
   const focusables = (): HTMLElement[] => {
     const root = panelRef.current
     if (!root) return []
-    return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
+    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
   }
 
   // 打开即把焦点移入首个 CTA：键盘/读屏用户否则仍停在被遮罩的背景页上。

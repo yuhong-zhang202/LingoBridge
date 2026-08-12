@@ -26,6 +26,7 @@ import { ANON_CORPUS_LIMIT } from '@/lib/constants'
 import { countCorpusThisMonth, STORY_MONTHLY_LIMIT } from '@/lib/db/corpus'
 import { countReviewPracticeThisMonth, IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import { track } from '@/lib/client-events'
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 import type { QuotaCta, QuotaSurface } from '@/lib/event-schema'
 
 interface QuotaLineProps {
@@ -104,7 +105,7 @@ export default function QuotaReached({ variant, surface, asOverlay, onClose, cla
   const focusables = (): HTMLElement[] => {
     const root = panelRef.current
     if (!root) return []
-    return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
+    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
   }
 
   // 挂载即报「额度弹层显示了」= 转化漏斗里「被拦住的人数」那一格（分母）。

@@ -11,6 +11,7 @@
 'use client'
 import { useEffect, useId, useRef } from 'react'
 import GradientButton from '@/components/GradientButton'
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -103,7 +104,7 @@ export default function ConfirmDialog({
     if (e.key !== 'Tab') return
     const root = panelRef.current
     if (!root) return
-    const items = Array.from(root.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'))
+    const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
     if (items.length === 0) { e.preventDefault(); return }
     const first = items[0]
     const last = items[items.length - 1]

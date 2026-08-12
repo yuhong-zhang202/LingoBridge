@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react'
 import Card from '@/components/Card'
 import Tag from '@/components/Tag'
 import GradientButton from '@/components/GradientButton'
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 
 interface Props {
   /** 当前已绑语料（409 响应 currentCorpus）。summary 为 null 时降级中性占位。 */
@@ -67,7 +68,7 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
   const focusables = (): HTMLElement[] => {
     const root = panelRef.current
     if (!root) return []
-    return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])'))
+    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
   }
 
   // 焦点移入【面板本身】而非首个按钮：程序化 focus 到按钮会点亮全局 :focus-visible 橙焦点环，
@@ -81,7 +82,10 @@ export default function SwapCorpusDialog({ currentCorpus, newCorpus, swapping, o
     const root = panelRef.current
     if (!root) return
     const items = focusables()
-    if (items.length === 0) return
+    // 换语料进行中，主 CTA（GradientButton loading→disabled）与「保留当前」同时 disabled，候选集会是空的。
+    // 此时必须拦下 Tab 而不是放行：放行 = 把焦点送进被遮罩盖住的背景页。没有落点可给就原地不动。
+    // （与 ConfirmDialog 同形；判定纯函数 resolveTabFocus 对空集给的也是 block。）
+    if (items.length === 0) { e.preventDefault(); return }
     const first = items[0]
     const last = items[items.length - 1]
     const active = document.activeElement

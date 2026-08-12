@@ -30,6 +30,10 @@ import { hasRecordedConsent, recordConsent, clearConsentCache } from '@/lib/cons
 import { getSupabase } from '@/lib/supabase'
 import { PAGE_CONTAINER } from '@/lib/constants'
 import { resolveTabFocus } from '@/lib/focus-trap'
+// 刻意分成两行 import：src/lib/__tests__/focus-trap.test.ts 的既有结构守卫逐字匹配上面那行，
+// 合并成 `import { FOCUSABLE_SELECTOR, resolveTabFocus }` 会让它变红 —— 而「实施者改守卫让自己的
+// 改动通过」是红线。合并留给下次修那条守卫的人一并做。
+import { FOCUSABLE_SELECTOR } from '@/lib/focus-trap'
 
 // 桌面端(lg+)贴底通栏的内栏：复用全站唯一宽度真源 PAGE_CONTAINER，与 TopNav / 各页内容左右对齐。
 // `contents` 让这几层包裹 div 在 lg 以下不生成盒子（不吃 padding / max-width / margin），
@@ -134,9 +138,7 @@ export default function FirstUseConsent() {
     if (e.key !== 'Tab') return
     const root = dialogRef.current
     if (!root) return
-    const focusables = Array.from(
-      root.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
-    )
+    const focusables = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
     // 只有 HTMLElement 才 focus 得动；焦点丢在 body 上时 contains 为 false，会被当「已在容器外」拉回来
     const active = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const decision = resolveTabFocus<HTMLElement>({
