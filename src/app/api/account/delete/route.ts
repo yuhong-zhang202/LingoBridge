@@ -66,7 +66,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     // consent_records（0022）同意记录：删号=撤回同意（决策5），本表硬删（决策4）；user_id 无外键、无跨表依赖，位置随意。
     // anki_generation_jobs（0031）/ anki_cards（0030）：两表本靠 profiles 的 on delete cascade 兜底，但按同款「防御性
     //   显式删、不单赌 cascade」纳入枚举防未来 FK 漂移。顺序：先删 jobs（其 card_id → anki_cards on delete cascade）再删 cards。
-    for (const table of ['corpus_match_snapshots', 'flow_events', 'consent_records', 'anki_generation_jobs', 'anki_cards', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
+    // review_events（0046）闪卡复习流水：与 flow_events 同为无原文的行为埋点，同口径随删号清除。
+    //   ⚠️ 这张表【曾经两头落空】——建表时照 0022 的「不信 FK cascade」纪律没挂外键，却漏了纪律的后半截
+    //   （加进本清单），于是注销用户的 uuid 会永久留库、再无机制会清（审计 2026-08-06 P1-5，实测 142 行/11 人）。
+    //   0061 已补 user_id → auth.users on delete cascade 作【第二道闸】，但这里的显式删仍是第一道：
+    //   与本清单其余各表同款「不单赌线上 FK」纪律，且错误不吞（同 api_usage_logs 那段的理由——
+    //   残留的是指向已注销自然人的库内标识符，不接受静默失败）。无跨表依赖，位置随意。
+    for (const table of ['corpus_match_snapshots', 'flow_events', 'review_events', 'consent_records', 'anki_generation_jobs', 'anki_cards', 'corpus', 'phrase_cards', 'feedback', 'practice_sessions'] as const) {
       const { error } = await admin.from(table).delete().eq('user_id', userId)
       if (error) throw error
     }

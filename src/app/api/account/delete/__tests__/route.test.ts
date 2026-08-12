@@ -5,7 +5,8 @@
  *           ② 同意审计顺序：consent_audit 必须【先写、后删 consent_records】，写失败即中止删号；
  *           ③ 费用日志去标识化失败【不再被静默吞掉】——失败即中止，绝不留指向已注销自然人的 uuid；
  *           ④ beta_allowlist 按邮箱删残留行，且邮箱须在 admin.deleteUser【之前】取得；
- *           ⑤ 头像清理分页取满，不漏掉第 100 条之后的公开人脸照片。
+ *           ⑤ 头像清理分页取满，不漏掉第 100 条之后的公开人脸照片；
+ *           ⑥ review_events 必须在删除清单里——它曾漏出删号链路，注销用户 uuid 永久留库。
  * @author   LingoBridge
  * @created  2026-07-18
  */
@@ -201,6 +202,24 @@ describe('删号 · beta_allowlist 邮箱残留', () => {
 
     expect(res.status).toBe(200)
     expect(ops).not.toContain('delete:beta_allowlist')
+  })
+})
+
+describe('删号 · review_events 埋点残留（审计 P1-5）', () => {
+  test('删除清单里必须有 review_events（漏了=注销用户 uuid 永久留库，再无机制会清）', async () => {
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(200)
+    expect(ops).toContain('delete:review_events')
+  })
+
+  test('删 review_events 失败 → 500 且不删账号（不吞异常，同费用日志纪律）', async () => {
+    tableErrors['delete:review_events'] = { message: 'boom' }
+
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(500)
+    expect(deleteUserMock).not.toHaveBeenCalled()
   })
 })
 
