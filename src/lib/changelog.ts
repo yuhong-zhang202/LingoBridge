@@ -22,6 +22,15 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     // 版本号用 semver（vX.Y.Z）：isNewerVersion / 铃铛红点按段数值比较，不能用日期串（NaN 会破坏红点）。
     // 首页公告卡（ChangelogAnnouncement）只取 CHANGELOG[0] 主动弹一次；每次发版有用户可见改动时在此加新条。
+    version: 'v0.10.9',
+    date: '2026-08-12',
+    title: '隐私说明请你再确认一次',
+    notes: [
+      '隐私说明里补充了「你的数据存放在哪里」，所以会请你重新确认一次同意——不是出错了',
+      '你的练习记录、收藏和语料都不受影响，确认后照常用',
+    ],
+  },
+  {
     version: 'v0.10.8',
     date: '2026-08-08',
     title: '素材库能看到你讲过的每段经历了',
