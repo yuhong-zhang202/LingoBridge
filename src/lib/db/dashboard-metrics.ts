@@ -7,6 +7,13 @@
  *           后半为 2026-08-04 看板重设计新增的两个表级读取帮手（fetchCohortReturns / fetchPageViewStats，
  *           聚合逻辑抽成纯函数可单测）。每个 fetcher 独立自降级（内部 try/catch、失败返 null），
  *           绝不 reject 拖垮主看板；与 route 的主 Promise.all 并发跑。
+ *
+ *   ⚠️ 2026-08-12：上面两个表级 fetcher 原本各自手写分页、跑满页数上限【直接退出】——没有标志位、
+ *      没有日志，把不完整数据交给聚合。分页按 created_at 升序，被截掉的永远是【最新那批】，
+ *      于是失真方向恒定偏低：回访/浏览看起来在跌，实际是新数据被丢了，而且没有任何人会知道。
+ *      现统一改调 dashboard-shared 的 fetchAllRows（本项目唯一的分页范式），触顶时置 truncated
+ *      并一路带到 UI 明说「偏低」。与 fetchUserAnonFlags 的千行护栏同一条纪律：
+ *      【宁可把「这个数不完整」摆在脸上，也绝不静默交付半份数据】。
  * @author   LingoBridge
  * @created  2026-07-31
  */
@@ -14,7 +21,9 @@ import 'server-only'
 import type { getSupabaseServer } from '@/lib/supabase-server'
 import { isInternalAccount } from '@/lib/internal-accounts'
 import { flowWindowStart } from '@/lib/db/dashboard-flow-events'
-import { r2 } from '@/lib/db/dashboard-shared'
+// fetchAllRows / PAGE_SIZE / MAX_PAGES 是本项目【唯一】的 PostgREST 分页范式（含判停不变式与触顶标志），
+// 下面两个表级 fetcher 一律走它，不再各写一套（见本文件顶注 2026-08-12 那段）。
+import { r2, fetchAllRows, PAGE_SIZE, MAX_PAGES } from '@/lib/db/dashboard-shared'
 
 /** service_role 客户端类型（route 传入，RPC 内 security definer 读 auth.users） */
 type SupabaseServer = ReturnType<typeof getSupabaseServer>
@@ -449,12 +458,21 @@ export type CohortDayStat = {
   /** 注册日之后（注册日+1 起）任意一天有 flow_events 的人数（注册当天的活动不算「回来」） */
   totalReturned: number
 }
-/** cohort 整块结果 */
-export type CohortReturns = {
+/** cohort 的【纯聚合】结果（不含取数元信息，故 aggregateCohortReturns 可单测、签名不变） */
+export type CohortAggregate = {
   /** 近 7 天里【有注册】的日子，新到旧 */
   days: CohortDayStat[]
   /** 近 7 天里无注册的天数（UI 合并成一行「其余 N 天无新注册」） */
   emptyDays: number
+}
+/** cohort 整块结果 = 聚合结果 + 取数完整性标志（前端消费的形状） */
+export type CohortReturns = CohortAggregate & {
+  /**
+   * true = 取数触顶（注册名册分页或 flow_events 分页任一跑满上限），本块【所有人数偏低】：
+   * 分页按 created_at 升序，被截掉的永远是最新那批 → 注册分母与回访分子同向少算。
+   * ⚠️ 绝不静默：置真时 route 打错误日志、UI 明说「偏低」（见 CohortReturnTable）。
+   */
+  truncated: boolean
 }
 
 /**
@@ -467,13 +485,14 @@ export type CohortReturns = {
  * @param regUsers  取数窗口内的真注册用户（真注册过滤在取数侧已做；本函数再剔内部账户）
  * @param flowRows  取数窗口内的 flow_events 行
  * @param now       当前时刻（可注入，便于测试日界与「待满 1 天」）
- * @returns         近 7 天 cohort 统计（有注册的日子新到旧 + 无注册天数）
+ * @returns         近 7 天 cohort 统计（有注册的日子新到旧 + 无注册天数）；
+ *                  取数完整性标志 truncated 不在此产生，由 fetchCohortReturns 组装
  */
 export function aggregateCohortReturns(
   regUsers: readonly CohortRegUser[],
   flowRows: readonly CohortFlowRow[],
   now: Date,
-): CohortReturns {
+): CohortAggregate {
   const todayNum = hkDayNumOf(now.getTime())
 
   // 每人的活跃日集合（东八区日序号）：剔 QA、剔内部账户、剔无归属行
@@ -526,20 +545,21 @@ export function aggregateCohortReturns(
 const LIST_USERS_PER_PAGE = 200
 const LIST_USERS_MAX_PAGES = 10
 
-/** flow_events 分页参数（与 dashboard-flow-events 同护栏：每页须严格小于 PostgREST db-max-rows，
- *  裸查会被静默截断到 1000 行 —— 见 api/dashboard/route.ts 顶注教训）；cohort 与页面聚合两处共用 */
-const FLOW_PAGE_SIZE = 500
-const FLOW_MAX_PAGES = 100
-
 /**
  * 取「新注册的人还回来吗」整块数据：真注册用户（近 8 天）× flow_events（近 8 天），内存 join。
  * ⚠️ 真注册口径与 0043/0044 RPC 完全一致（auth.users 非匿名·有邮箱），但读取路径用 service_role 的
  *    auth admin listUsers 而非 profiles —— profiles 表无 email/is_anonymous 列、含匿名各一行，
  *    无法表达「真注册」（正是此前注册数虚高的教训）；本轮无迁移，不新建 RPC。
  * 任一查询失败即整块降级返 null（前端显「暂不可用」），绝不拖垮主看板。
+ *
+ * 【取数完整性（2026-08-12）】两条取数各有一个页数上限，跑满即意味着数据不完整：
+ *   · 注册名册跑满 LIST_USERS_MAX_PAGES → 注册分母偏低；
+ *   · flow_events 跑满 fetchAllRows 的 MAX_PAGES → 回访分子偏低（被截掉的永远是最新那批）。
+ * 两者【合并成同一个 truncated】返回：对看板读者而言结论一样（这块数字偏低、别当真实值），
+ * 分开只会让 UI 多两种说法而无助于判断。触顶的正解不是调大上限，而是把聚合下推到 DB 端。
  * @param supabase  service_role 客户端（admin listUsers 需 service_role；flow_events 无 select 策略）
  * @param now       当前时刻（可注入，便于测试）
- * @returns         cohort 统计；不可用时 null
+ * @returns         cohort 统计（含 truncated）；不可用时 null
  */
 export async function fetchCohortReturns(
   supabase: SupabaseServer,
@@ -547,8 +567,11 @@ export async function fetchCohortReturns(
 ): Promise<CohortReturns | null> {
   try {
     const cutoffTs = now.getTime() - COHORT_FETCH_DAYS * DAY_MS
-    // 1) 真注册用户（近 8 天）：分页拉 auth 用户，按 非匿名·有邮箱·窗口内 过滤
+    // 1) 真注册用户（近 8 天）：分页拉 auth 用户，按 非匿名·有邮箱·窗口内 过滤。
+    //    listUsers 是 GoTrue admin API（不是 PostgREST），套不上 fetchAllRows，故仍手写循环——
+    //    但判停/触顶语义与之逐字对齐：不满一页 = 到底；循环自然结束 = 触顶（regTruncated 保持 true）。
     const regUsers: CohortRegUser[] = []
+    let regTruncated = true
     for (let page = 1; page <= LIST_USERS_MAX_PAGES; page++) {
       const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: LIST_USERS_PER_PAGE })
       if (error) return null
@@ -558,26 +581,31 @@ export async function fetchCohortReturns(
         if (!u.created_at || Date.parse(u.created_at) < cutoffTs) continue
         regUsers.push({ id: u.id, createdAt: u.created_at })
       }
-      if (data.users.length < LIST_USERS_PER_PAGE) break
+      if (data.users.length < LIST_USERS_PER_PAGE) { regTruncated = false; break }
     }
-    // 2) flow_events 近 8 天（回访信号）：走既有分页模式（PostgREST 裸查静默截断 1000 行，见 route 顶注）
-    const flowRows: CohortFlowRow[] = []
+    // 2) flow_events 近 8 天（回访信号）：走 fetchAllRows（含触顶标志），不再手写分页。
+    //    `.not('user_id','is',null)` 是【与下方 aggregateCohortReturns 逐字等价的下推】（SQL
+    //    `user_id IS NOT NULL` ≡ 聚合里的 `if (row.user_id == null) continue`），口径一字不动，
+    //    只为少拉无用行、把触顶点推远；JS 侧同名过滤刻意保留做双保险。
+    //    ⚠️ 刻意【不】按 event 过滤：本块口径是「回来 = 当日有任意使用记录（含仅浏览）」（产品方拍板，
+    //       UI 口径小字同款措辞）。只取 page.view 之类会漏掉「有动作但没上报浏览」的人（page.view 本身
+    //       已知有缺口：未建会话的新访客不上报），那是【改口径】、且同样是恒定偏低，正是本次要消灭的东西。
+    //    ⚠️ 也刻意【不】下推 is_qa：flow_events 虽有该列，但 dashboard-qa-exclusion 那条守卫把
+    //       「is_qa 过滤只套 api_usage_logs」锁成了边界，动它要另行论证；QA 行在扩量期占比只降不升，
+    //       对「防触顶」的边际收益本就很小。JS 侧照旧剔 QA，口径不受影响。
     const sinceIso = new Date(cutoffTs).toISOString()
-    for (let page = 0; page < FLOW_MAX_PAGES; page++) {
-      const from = page * FLOW_PAGE_SIZE
-      const { data, error } = await supabase
-        .from('flow_events')
-        .select('user_id, created_at, is_qa')
-        .gte('created_at', sinceIso)
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, from + FLOW_PAGE_SIZE - 1)
-      if (error) return null
-      const batch = (data ?? []) as CohortFlowRow[]
-      for (const row of batch) flowRows.push(row)
-      if (batch.length < FLOW_PAGE_SIZE) break
+    const flowRes = await fetchAllRows<CohortFlowRow>(() => supabase
+      .from('flow_events')
+      .select('user_id, created_at, is_qa')
+      .gte('created_at', sinceIso)
+      .not('user_id', 'is', null)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true }))
+    if (flowRes.error) return null
+    return {
+      ...aggregateCohortReturns(regUsers, flowRes.data, now),
+      truncated: regTruncated || flowRes.truncated,
     }
-    return aggregateCohortReturns(regUsers, flowRows, now)
   } catch {
     return null
   }
@@ -624,39 +652,49 @@ export function aggregatePageViews(rows: readonly PageViewRow[]): PageViewStat[]
     .sort((a, b) => b.views - a.views || a.route.localeCompare(b.route))
 }
 
+/** 「哪些页面被用得多」整块结果：统计 + 取数完整性标志 */
+export type PageViewStats = {
+  /** 按打开次数降序的页面统计 */
+  stats: PageViewStat[]
+  /**
+   * true = 分页触顶，本块【打开次数与人数均偏低】：分页按 created_at 升序，被截掉的永远是最新那批。
+   * ⚠️ 绝不静默：置真时 route 打错误日志、UI 明说「偏低」（见 PageActivityList）。
+   */
+  truncated: boolean
+}
+
 /**
  * 取「哪些页面被用得多」整块数据：窗口内 flow_events 的 page.view 行，route 聚合次数 + 人数去重。
  * 窗口起点与主看板区间同口径（东八区日界，复用 flowWindowStart）。查询失败降级返 null。
+ * 取数走 fetchAllRows（2026-08-12 起）：跑满页数上限时置 truncated 交给 UI 明说，绝不静默少报。
+ * ⚠️ 本条【没有】可下推的等价过滤：user_id 为空的行不计人数但要计打开次数（剔了就改口径）；
+ *    is_qa 不下推的理由见 fetchCohortReturns 内同款注释（守卫把该过滤锁在 api_usage_logs 上）。
+ *    行数只能靠 event='page.view' 这一条既有过滤压（它本就是本块口径的一部分，不是新加的）。
  * @param supabase    service_role 客户端
  * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
  * @param now         当前时刻（可注入，便于测试）
- * @returns           页面统计（打开次数降序）；不可用时 null
+ * @returns           页面统计（打开次数降序）+ truncated；不可用时 null
  */
 export async function fetchPageViewStats(
   supabase: SupabaseServer,
   windowDays: number,
   now: Date = new Date(),
-): Promise<PageViewStat[] | null> {
+): Promise<PageViewStats | null> {
   try {
     const start = flowWindowStart(now, windowDays)
-    const rows: PageViewRow[] = []
-    for (let page = 0; page < FLOW_MAX_PAGES; page++) {
-      const from = page * FLOW_PAGE_SIZE
-      const { data, error } = await supabase
-        .from('flow_events')
-        .select('user_id, props, is_qa')
-        .eq('event', 'page.view')
-        .gte('created_at', start.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, from + FLOW_PAGE_SIZE - 1)
-      if (error) return null
-      const batch = (data ?? []) as PageViewRow[]
-      for (const row of batch) rows.push(row)
-      if (batch.length < FLOW_PAGE_SIZE) break
-    }
-    return aggregatePageViews(rows)
+    const res = await fetchAllRows<PageViewRow>(() => supabase
+      .from('flow_events')
+      .select('user_id, props, is_qa')
+      .eq('event', 'page.view')
+      .gte('created_at', start.toISOString())
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true }))
+    if (res.error) return null
+    return { stats: aggregatePageViews(res.data), truncated: res.truncated }
   } catch {
     return null
   }
 }
+
+/** 分页触顶时给日志用的一句人话（route 与本模块共用，免得两处措辞各写一遍） */
+export const TRUNCATION_LOG_HINT = `分页触顶（${MAX_PAGES} 页 × ${PAGE_SIZE} 行），最新那批数据被丢弃、计数偏低；该把聚合下推到 DB 端了`

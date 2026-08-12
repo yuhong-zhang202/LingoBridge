@@ -104,8 +104,11 @@ type DashboardData = {
   fakeEmptyPending: boolean
   fakeEmptyThreshold: number
   // ── 用户区扩充（2026-08-04 方案 §四）：近 7 天注册回访 + 窗口页面浏览聚合；null = 读取失败降级 ──
+  // cohortReturns 自带 truncated；页面浏览的同名标志单列成 pageViewsTruncated（数组塞不下标志位）。
+  // 两者语义都是【取数触顶、这块数字偏低】，与金额那条 dataTruncated 平级但各自独立、不要合并。
   cohortReturns: CohortReturns | null
   pageViewStats: PageViewStat[] | null
+  pageViewsTruncated: boolean
   phaseLatency: PhaseLatency[]
   latencyTrend: TrendPhase[]
   latencyCutoff: string
@@ -632,7 +635,7 @@ export default function DashboardPage() {
           {/* 新注册的人还回来吗（固定近 7 天注册分组，只显人数分子/分母） */}
           <CohortReturnTable cohort={data.cohortReturns} />
           {/* 哪些页面被用得多（窗口 page.view 聚合；防 UV 误读见组件顶注） */}
-          <PageActivityList stats={data.pageViewStats} windowDays={windowDays} />
+          <PageActivityList stats={data.pageViewStats} truncated={data.pageViewsTruncated} windowDays={windowDays} />
           {/* 离开页分布：暂缓项占位（埋点满 14 天且周活跃 ≥ 5 人再上，方案 §八记录在案） */}
           <div className="flex mt-3">
             <PendingPlaceholder title="离开页分布"

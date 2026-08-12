@@ -8,6 +8,7 @@
  *           数据不足降级：窗口 0 行 → 虚线占位框；有数但埋点未满 7 天 → 顶部常驻事实陈述行（muted 非告警色）。
  *           默认列前 8，其余收进「展开全部 N 个页面」（<details> 默认收起、非受控）。
  *           类型与 lib/db/dashboard-metrics 的 PageViewStat 手工对齐（server-only 模块不进客户端）。
+ *           2026-08-12 增：truncated=true（取数触顶）时在列表上方常驻警示行，明说次数/人数【偏低】。
  * @author   LingoBridge
  * @created  2026-08-04
  */
@@ -70,11 +71,28 @@ function PageRow({ stat, max }: { stat: PageViewStat; max: number }) {
 }
 
 /**
+ * 取数触顶提示（样式逐字照抄 FlowHealthBlocks 的 TruncatedAlert：role="alert" + 11px 错误色）。
+ * 【必须说方向】分页按时间升序、被截掉的永远是最新那批 → 恒定偏低，绝不会偏高；
+ * 只说「数据不全」会让人以为两个方向都有可能，进而把「某页面在降温」当成真事。
+ */
+function TruncatedNotice() {
+  return (
+    <div role="alert" className="text-[0.6875rem] text-error mb-2 leading-relaxed">
+      {/* 整句写成一行：JSX 里换行会被折成一个空格，中文标点后跟空格很难看 */}
+      <span aria-hidden="true">⚠️</span> 取数触顶：最新那批数据被丢弃，下列打开次数与人数【均偏低】（不会偏高），页面之间的排序也可能因此失真。
+    </div>
+  )
+}
+
+/**
  * 页面活跃列表
  * @param stats       /api/dashboard 的 pageViewStats 字段；null = 读取失败降级
+ * @param truncated   /api/dashboard 的 pageViewsTruncated：true = 取数触顶、次数与人数均偏低
  * @param windowDays  当前区间天数（口径小字用）
  */
-export default function PageActivityList({ stats, windowDays }: { stats: PageViewStat[] | null; windowDays: number }) {
+export default function PageActivityList({ stats, truncated, windowDays }: {
+  stats: PageViewStat[] | null; truncated: boolean; windowDays: number
+}) {
   // 埋点积累天数（东八区，含上线当天）：满 7 天后事实陈述行自动消失
   const daysCollected = Math.floor((Date.now() - PAGE_VIEW_LAUNCH_TS) / DAY_MS) + 1
   const max = stats?.reduce((m, s) => Math.max(m, s.views), 0) ?? 0
@@ -87,6 +105,9 @@ export default function PageActivityList({ stats, windowDays }: { stats: PageVie
         <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">哪些页面被用得多</h2>
         <span className="text-[0.6875rem] text-v2-text-muted">近 {windowDays} 天 · 打开次数 / 用过的人</span>
       </div>
+
+      {/* 触顶提示放在列表【之前】：数字的可信度是读列表的前提，放脚注里等于没说 */}
+      {truncated && <TruncatedNotice />}
 
       {stats == null && (
         <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">页面浏览数据暂时读取失败，刷新页面重试。</div>
