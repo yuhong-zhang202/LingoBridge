@@ -31,6 +31,14 @@
  *           取值（保留=false / 新题=true），角标语义不变。空库全量导入的期望 newSeasonTotal = total_rows。
  *           非空库请勿用 --seed-all（会绕过旧行匹配、可能产生重复）。
  *
+ *           【Part2 题面完整性守卫（2026-08-12 追加）】计划算完、任何备份/写库动作之前，校验
+ *           「即将写入的 Part2 行」的题面还含不含约束段；不合格直接 exit(1)，一个字节都不写。
+ *           守的是 questionFace 那场事故的【数据入口】：约束（You should say 后面的 bullet）只存在于
+ *           question_text ← c.cue_text；一旦上游 cue_text 退化成裸标题、或与 title 映射反了，
+ *           代码侧一行没改、questionFace 的 11 条断言全绿，而模型看到的题面照样丢约束 → Part2 静默虚高
+ *           一整季（线上判据与盲标表题面同源、两边一起偏，金标分数看不出异常）。
+ *           判据与处置说明见 scripts/lib/season-cue-guard.ts（含查存量退化数据的只读 SQL）。
+ *
  *           运行：npm run import:season [-- --apply] [-- --seed-all]
  *           底层：npx tsx --conditions=react-server --env-file=.env.local scripts/import-season.ts
  * @author   LingoBridge
@@ -40,6 +48,12 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import {
+  findPart2FaceViolations,
+  formatPart2FaceViolations,
+  type Part2Face,
+  type Part2FaceViolation,
+} from './lib/season-cue-guard'
 
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 
@@ -388,7 +402,34 @@ function planCounts(plan: Plan): {
   return { p1Delete, p1Insert, p2Update, p2NewCard, p3Delete, p3Insert, newSeasonTotal }
 }
 
-function printReport(doc: SeedDoc, plan: Plan): void {
+/**
+ * 取出【本次真正会写进 DB 的】Part2 题面，交题面完整性守卫校验。
+ *
+ * 刻意取计划里映射【之后】的字段（set / cardRow），而不是原始 JSON 的 c.cue_text：
+ * 只有这样才抓得住「question_text 与 cue_card_title 被映射反了」——那种错只发生在 cardRow 那一步，
+ * 拿原始 JSON 校验永远看不出来。两条写入路径都要覆盖：保留卡原地 UPDATE + 新建卡 INSERT。
+ * （幂等跳过 / 未匹配跳过的卡本次不写库，不在校验范围内，免得为不写的数据误拦导入。）
+ *
+ * @param  plan  buildPlan 的产物
+ * @returns      待写入 Part2 题面清单（顺序：先保留卡更新，后新建卡）
+ */
+function collectPart2Faces(plan: Plan): Part2Face[] {
+  const faces: Part2Face[] = []
+  for (const u of plan.cardUpdates) {
+    faces.push({ title: u.set.cue_card_title ?? '', cueText: u.set.question_text })
+  }
+  for (const nc of plan.newCards) {
+    faces.push({ title: nc.cardRow.cue_card_title ?? '', cueText: nc.cardRow.question_text })
+  }
+  return faces
+}
+
+function printReport(
+  doc: SeedDoc,
+  plan: Plan,
+  faces: readonly Part2Face[],
+  faceViolations: readonly Part2FaceViolation[],
+): void {
   const c = planCounts(plan)
   const m = doc.metadata
 
@@ -437,6 +478,17 @@ function printReport(doc: SeedDoc, plan: Plan): void {
   console.log(`  ── 命中数异常（${abnormal.length} 项，P2 期望恰好 1 / P1 期望≥1）`)
   if (abnormal.length === 0) console.log('    ✓ 全部保留项命中数正常')
   for (const r of abnormal) console.log(`    ⚠ [${r.kind}] 「${r.from}」→「${r.to}」：命中 ${r.hits}`)
+
+  console.log('\n## 校验（Part2 题面完整性 —— 约束丢了就不许写库）')
+  console.log(`  受检题面：${faces.length} 张（保留卡更新 ${c.p2Update} + 新建卡 ${c.p2NewCard}）`)
+  if (faces.length === 0) {
+    console.log('  · 本次无 Part2 待写入，跳过')
+  } else if (faceViolations.length === 0) {
+    console.log('  ✓ 题面均含约束段（You should say …），未见退化成裸标题')
+  } else {
+    console.log(`  ✗ ${faceViolations.length} 张题面丢了约束 → 本次导入将被拒绝（详情见末尾拦截信息）`)
+    for (const v of faceViolations) console.log(`    ✗ 「${v.title}」[${v.kind}]`)
+  }
 
   console.log('\n## 校验（对照 JSON metadata）')
   console.log(`  本次将写入 season=${NEW_SEASON} 行合计：${c.newSeasonTotal}`)
@@ -578,7 +630,19 @@ async function main(): Promise<void> {
   }
 
   const plan = buildPlan(doc, questions, seedAll)
-  printReport(doc, plan)
+
+  // Part2 题面完整性守卫：先把完整报告打出来（dry-run 时人要看得到全貌），再硬拦截。
+  // 拦截点在备份与任何写库动作【之前】——失败时一个字节都不会落库、也不会留下半截备份文件。
+  // dry-run 同样 exit(1)：换季的正常流程是先 dry-run 再 --apply，问题就该在 dry-run 这一步炸出来。
+  const part2Faces = collectPart2Faces(plan)
+  const faceViolations = findPart2FaceViolations(part2Faces)
+
+  printReport(doc, plan, part2Faces, faceViolations)
+
+  if (faceViolations.length > 0) {
+    console.error(`\n✗ ${formatPart2FaceViolations(faceViolations)}`)
+    process.exit(1)
+  }
 
   if (!applyMode) {
     const c = planCounts(plan)
