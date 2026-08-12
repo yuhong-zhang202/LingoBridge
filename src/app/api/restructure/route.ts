@@ -16,6 +16,7 @@ import { hasRecordedConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpAnonRestructureTodayServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_RESTRUCTURE_LIMIT, REG_RESTRUCTURE_DAILY_LIMIT, MIN_CORPUS_CHARS } from '@/lib/constants'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 import { isTooShortForCorpus } from '@/lib/utils'
 
 // 输入上限：整理是按字数估算 token 计费的付费调用，限长防止单请求刷高 token 成本
@@ -47,6 +48,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (rawText.length > MAX_RAW_TEXT_LENGTH) {
       return NextResponse.json({ error: '内容过长，请分段提交（上限 3000 字）' }, { status: 400 })
     }
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 紧贴下面的额度闸、在计次之前：被熔断拦下的请求没调 AI，不该白扣一次整理额度。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
     // 匿名试用整理次数：原子递增当日计数，超上限即 402（原子递增放 AI 调用前，攻击者刷失败也计数、防绕过）。
     if (isAnonymous) {
       const n = await bumpAnonRestructureTodayServer(userId)

@@ -29,6 +29,7 @@ import {
   ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
 } from '@/lib/constants'
 import { env } from '@/lib/env-server'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 
 /** 故事正文 → sha256 十六进制哈希，作为存档失效判定（正文一字未变则命中读档、不重算）。 */
 function storyHash(text: string): string {
@@ -144,6 +145,10 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       // 读档命中：直接用存档结果，不跑模型、不刷 corpus_question_matches 反查表、不记 usage（无模型调用=无成本）。
       result = cached
     } else {
+      // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+      // 与下面的计次同在 `!cached` 分支内、且在它之前：读档命中零成本不该被拦，被熔断拦下的也不该扣次数。
+      const budgetDenied = await requireGlobalBudget(isAnonymous)
+      if (budgetDenied) return budgetDenied
       // 服务端硬防线：仅「真要跑模型」这一路计次，且在任何 AI 调用之前——超额时不产生任何 AI 费用。
       // 刻意放在读档命中判定【之后】：命中存档不跑模型、零成本，用户重看已匹配结果不该被扣次数。
       // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。与 practice 同范式。
@@ -362,6 +367,9 @@ async function handleStreaming(req: Request): Promise<Response> {
     // 配额硬防线：仅「真要跑模型」这一路计次，且在任何 AI 调用之前——放在读档判定之后（命中存档零成本、不计次）。
     // 匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429。与 handleBuffered 同口径，早退返回普通 JSON。
     if (!cached) {
+      // 全局预算熔断：与 handleBuffered 同口径同位置（`!cached` 分支内、计次之前），早退返回普通 JSON、不开流。
+      const budgetDenied = await requireGlobalBudget(isAnonymous)
+      if (budgetDenied) return budgetDenied
       const dailyCount = await bumpDailyUsageServer(userId, 'matching')
       if (isAnonymous ? dailyCount > ANON_MATCHING_LIMIT : dailyCount > REG_MATCHING_DAILY_LIMIT) {
         return isAnonymous

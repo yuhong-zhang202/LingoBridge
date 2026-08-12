@@ -16,6 +16,7 @@ import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer, readDailyUsageServer, readLifetimeUsageServer } from '@/lib/db/corpus-server'
 import { ANON_TRANSCRIBE_LIMIT, ANON_TRANSCRIBE_LIFETIME, REG_TRANSCRIBE_DAILY_LIMIT, ERROR_KIND_USER_INPUT } from '@/lib/constants'
 import { createConcurrencyGate, type GateRejectReason } from '@/lib/concurrency-gate'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 import { isAppError, errorLogMeta, errorKindMeta, classifyErrorKind } from '@/types/errors'
 
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
@@ -164,6 +165,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (file.size > MAX_AUDIO_BYTES) {
       return NextResponse.json({ error: '录音文件过大，请分段录制' }, { status: 400 })
     }
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 位置紧贴下面的额度闸、在任何计次/转码/ASR 之前 —— 被它拦下的请求一分钱没花、也不该被扣次数。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
     // ——— 额度闸分两拍 ———
     // 目标：「没出字就别扣次数」与「已经花了钱就必须扣次数」同时成立。
     // ① 只读早退：已超额的请求立刻挡掉，连转码 CPU 都不浪费（只读值非原子，仅作优化，失败按 0 放行）。

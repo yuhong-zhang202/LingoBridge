@@ -16,6 +16,7 @@ import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { ANON_PRONOUNCE_LIMIT, REG_PRONOUNCE_DAILY_LIMIT } from '@/lib/constants'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 
 export async function POST(req: Request): Promise<NextResponse> {
   const t0 = Date.now()
@@ -39,6 +40,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (intended.length > 100 || heard.length > 100 || (context !== undefined && context.length > 500)) {
       return NextResponse.json({ error: '内容过长，请精简后再试' }, { status: 400 })
     }
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 紧贴下面的额度闸、在计次之前：被熔断拦下的请求没调 AI，不该白扣一次发音提示额度。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
     // 服务端硬防线：先计次再调 AI。匿名超上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code）。
     const dailyCount = await bumpDailyUsageServer(userId, 'pronounce')
     if (isAnonymous ? dailyCount > ANON_PRONOUNCE_LIMIT : dailyCount > REG_PRONOUNCE_DAILY_LIMIT) {

@@ -19,6 +19,7 @@ import { bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { isInternalAccount } from '@/lib/internal-accounts'
 import { IELTS_MONTHLY_LIMIT } from '@/lib/db/practice-sessions'
 import { ANON_PRACTICE_TURN_LIMIT, REG_PRACTICE_DAILY_LIMIT } from '@/lib/constants'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 import type { PracticeScaffold, PracticeMessage } from '@/lib/types'
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -48,6 +49,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     const messages: PracticeMessage[] = rawMessages.map((m) =>
       typeof m.content === 'string' && m.content.length > 2000 ? { ...m, content: m.content.slice(0, 2000) } : m,
     )
+
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 紧贴下面的额度闸、在计次之前：被熔断拦下的请求没调 AI，不该白扣一轮对话额度。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
 
     // 服务端硬防线：每次调用先计次（放在 scaffold 分支之前，伪造 scaffold 也无法绕过），且在任何 AI 调用之前。
     // 匿名超每日轮次上限 → 402(QUOTA_EXCEEDED)；注册超熔断上限 → 429（不带 code，不触发配额弹层）。

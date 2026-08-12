@@ -28,6 +28,7 @@ import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/li
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { ANON_PHRASES_LIMIT, REG_PHRASES_DAILY_LIMIT } from '@/lib/constants'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 // 缓存口径与 /api/analysis 共用一份（同表同哈希，差一字节就互相永不命中且静默）。详见 analysis-cache 顶注。
 import { sanitizeLevel, contentHashOf, hashMatchesStoryAnyLevel } from '@/lib/analysis-cache'
 
@@ -110,6 +111,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     // 越权防护：storyId 属他人语料则 403（storyId 缺省时走通用词组，无需校验）
     if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 位置紧贴下面的额度闸（在计次之前）：被熔断拦下的请求没调 AI，不该白扣一次换词额度。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
 
     // 服务端硬防线：计次在任何 AI 调用之前——超额时不产生任何 AI 费用。
     // 与 /api/analysis 同理（可反复调），位置同样选在入参校验后、读故事/取题之前。

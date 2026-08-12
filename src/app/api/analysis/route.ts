@@ -25,6 +25,7 @@ import { requireConsent } from '@/lib/consent-server'
 import { createConcurrencyGate } from '@/lib/concurrency-gate'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { DIMENSION_LABEL, ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT } from '@/lib/constants'
+import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 // 缓存口径（level 收敛 + content_hash 构造）与 /api/analysis/phrases 共用一份：两路读写同一张
 // corpus_question_analyses，哈希差一个字节就互相永不命中，且失效是静默的。详见 analysis-cache 顶注。
 import { sanitizeLevel, contentHashOf } from '@/lib/analysis-cache'
@@ -97,6 +98,12 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     }
     // 越权防护：storyId 属他人语料则 403（storyId 缺省时走通用分析，无需校验）
     if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
+    // 位置与下面的额度闸同一处（在它之前）：该闸「命中缓存也照扣次」的口径本就是本路由既有的判断，
+    // 熔断沿用它，不在这条路由上另做一套「哪些算数」的判断。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
 
     // 服务端硬防线：计次在任何 AI 调用之前——超额时不产生任何 AI 费用。
     // 本路由可传任意 questionId 反复调，是最易被脚本刷的一跳。
@@ -307,6 +314,10 @@ async function handleStreaming(req: Request): Promise<Response> {
     const isPrefetch = reqBody.prefetch === true         // 仅影响预取闸 + 成本归因，绝不影响计数/同意/越权（同 handleBuffered）
     if (!questionId) return NextResponse.json({ error: '缺少 questionId' }, { status: 400 })
     if (storyId) await assertCorpusOwner(userId, storyId)
+
+    // 全局预算熔断：与 handleBuffered 同口径同位置（在 bump 之前），超额早退普通 JSON、不开流。
+    const budgetDenied = await requireGlobalBudget(isAnonymous)
+    if (budgetDenied) return budgetDenied
 
     // 配额硬防线：与 handleBuffered 同口径同位置——无条件 bump（命中缓存也照扣次），超额早退普通 JSON、不开流。
     const dailyCount = await bumpDailyUsageServer(userId, 'analysis')
