@@ -35,6 +35,13 @@ interface GoldSet {
 /** 导出的单个候选题（已随 matchByStory 按 relevanceScore 降序） */
 interface CandidateExport {
   questionId: string
+  /**
+   * 归一化英文全 face 锚 = normalizeFace(questionFace(q).en)。
+   * 用途：ranking 金标锚从 questionId（迁库/UUID 重生成即失配）改为 faceKey 的结构改造第一步——
+   *       纯加字段，现有按 questionId 的算分 join 与四闸门口径一字不变（依据：产品方 2026-08-02 拍板）。
+   * 命根：口径必须与 scripts/eval/dump-season-facekeys.mjs 侧字节一致（同 questionFace + 同 normalizeFace）。
+   */
+  faceKey: string
   part: 1 | 2 | 3
   questionEn: string
   questionZh: string
@@ -159,6 +166,15 @@ function bucketOf(score: number | null): Bucket {
   return 'hidden'
 }
 
+/**
+ * 归一化题面文本为 faceKey：压平空白 + trim + 转小写。
+ * ⚠️ 字节级复刻 src/services/ranking.ts:270 的 normalizeFace（该函数未导出、且属产品代码不宜为脚本改动）。
+ *    两处实现必须逐字符相同，否则 faceKey 锚定错位。dump-season-facekeys.mjs 侧须用完全相同的算法。
+ */
+function normalizeFace(s: string): string {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
 /** Markdown 表格单元格安全化：转义竖线、压平换行 */
 function cell(s: string): string {
   return s.replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ').trim()
@@ -206,6 +222,7 @@ async function main(): Promise<void> {
       const face = questionFace(q)
       return {
       questionId: q.id,
+      faceKey: normalizeFace(face.en),
       part: q.part,
       questionEn: face.en,
       questionZh: face.zh,

@@ -53,7 +53,8 @@
       "Bash(git branch*)",
       "Bash(mkdir *)",
       "Bash(mv *)",
-      "Bash(rm *)"
+      "Bash(rm *)",
+      "Bash(npm run db:push)"
     ],
     "deny": [
       "Bash(sudo *)"

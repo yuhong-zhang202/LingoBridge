@@ -1,14 +1,22 @@
 /**
  * @module   run-ranking-score
- * @desc     重排环节算分脚本 —— 读【重排金标 ranking.v1.json】+【run-ranking 导出的 JSON】，
+ * @desc     重排环节算分脚本 —— 读【重排金标 ranking.v3.json】+【run-ranking 导出的 JSON】，
  *           按「AI 档 × 金标档」推导 4 个上线闸门指标（首屏精确率 / 虚高率 / 可见区档位命中率 / 埋没率）
  *           + 参考指标（4×4 混淆矩阵 / NDCG@5 / Kendall τ / 稳定性）+ 诊断（虚高榜·埋没榜·分观察点·
  *           金标未召回项·金标缺口项）。纯离线计算，不调网络、不跑链路。
- *           运行：npm run eval:ranking:score -- --export=results/ranking-XXX.json [--gold=...] [--k=5]
+ *           运行：npm run eval:ranking:score -- --export=results/ranking-XXX.json [--gold=...] [--snapshot=...] [--k=5]
  *                多轮稳定性：--export=a.json,b.json,c.json（首个用于闸门指标，≥2 个才算稳定性）
  *           底层：npx tsx scripts/eval/run-ranking-score.ts
  * @author   LingoBridge
  * @created  2026-07-15
+ *
+ * ━━━ 2026-08-02 faceKey 锚改造(台账 123 · 产品方拍板) ━━━
+ * 金标↔候选的 join 从 questionId 改【faceKey(归一化英文全 face)】。理由:2026-07-22 迁新加坡库
+ * `import:season --seed-all` 使全部题目 UUID 重生成 → 按 questionId 锚的金标每次迁库整体失配。
+ * faceKey 由题面决定、跨迁库稳定。questionId 降级为报告可读性面包屑,不再参与 join。
+ * 命中不了的两分(否则红线3 误爆): gold.faceKey ∉ 本轮候选但 ∈ 季度快照 = 真漏召回(正当红线3);
+ * gold.faceKey ∉ 快照 = 锚失效(报警告、不算红线3)。多命中(两候选同 faceKey,题库重题)不静默选,告警暴露。
+ * v3 金标含 goldBucket=null 的隐藏缓标条:它们是当季候选(不算漏召回),但不参与任何档位闸门计算。
  *
  * 口径（务必对照第 2 节指标体系）：
  *   AI 档由分数映射：≥85 高 / ≥60 中 / ≥40 低 / <40 隐藏 / null 未打分(unscored，重排降级)。
@@ -37,8 +45,13 @@ const GRADE: Record<Tier, number> = { 高: 3, 中: 2, 低: 1, 隐藏: 0 }
 /** 标注归属区：visible=可见区全标(权重1)；hidden_sampled=隐藏区1/5抽样(算分时按抽样率还原) */
 type Zone = 'visible' | 'hidden_sampled'
 
-/** 金标：一条故事对若干候选题的档位标注 */
-interface GoldLabel { questionId: string; goldBucket: Tier; zone: Zone; note?: string }
+/**
+ * 金标：一条故事对若干候选题的档位标注。
+ * faceKey = 归一化英文全 face,是 2026-08-02 起金标↔候选 join 的唯一锚(台账 123)。
+ * questionId 保留仅作报告面包屑,不参与 join(迁库即失配)。
+ * goldBucket = null 表示【隐藏缓标】(v3 隐藏区抽样待标·本季缓)——是当季候选,但不参与任何档位闸门。
+ */
+interface GoldLabel { questionId: string; faceKey: string; goldBucket: Tier | null; zone: Zone; note?: string }
 interface GoldStory { storyId: string; countInAccuracy: boolean; labels: GoldLabel[] }
 interface GoldSet {
   version: string
@@ -52,6 +65,7 @@ interface GoldSet {
 /** run-ranking 导出的候选题（子集，只取算分要用的字段） */
 interface CandidateExport {
   questionId: string
+  faceKey: string   // 归一化英文全 face,join 锚(2026-08-02)。questionId 仅面包屑
   part: 1 | 2 | 3
   questionEn: string
   questionZh: string
@@ -73,13 +87,22 @@ interface RankingExport {
 interface CliOptions {
   exports: string[]        // 一或多份导出 JSON 路径（首个用于闸门指标）
   goldPath: string
+  snapshotPath: string     // 季度 faceKey 全量快照（区分「真漏召回」vs「锚失效」）
   k: number                // NDCG@K 的 K
+}
+
+/** 季度 faceKey 全量快照（scripts/eval/results/season-facekeys-YYYY-MM.json 的子集） */
+interface SeasonSnapshot {
+  season: string
+  items: { questionId: string; part: number; faceKey: string }[]
 }
 
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DEFAULT_GOLD = join(__dirname, 'golden', 'ranking.v1.json')
+const DEFAULT_GOLD = join(__dirname, 'golden', 'ranking.v3.json')
+// 季度 faceKey 快照默认路径。换季重跑时用 --snapshot= 指向新季快照。
+const DEFAULT_SNAPSHOT = join(__dirname, 'results', 'season-facekeys-2026-05.json')
 const RESULTS_DIR = join(__dirname, 'results')
 /**
  * 金标缺口告警：**非零即报**（BASELINE v3 · 2026-07-17）。
@@ -102,22 +125,25 @@ const GAP_WARN_COUNT = 0
 function parseArgs(argv: string[]): CliOptions {
   let exports: string[] = []
   let goldPath = DEFAULT_GOLD
+  let snapshotPath = DEFAULT_SNAPSHOT
   let k = 5
   for (const arg of argv) {
     if (arg.startsWith('--export=')) {
       exports = arg.slice('--export='.length).split(',').map((s) => s.trim()).filter((s) => s !== '')
     } else if (arg.startsWith('--gold=')) {
       goldPath = arg.slice('--gold='.length).trim()
+    } else if (arg.startsWith('--snapshot=')) {
+      snapshotPath = arg.slice('--snapshot='.length).trim()
     } else if (arg.startsWith('--k=')) {
       const n = Number.parseInt(arg.slice('--k='.length), 10)
       if (!Number.isFinite(n) || n < 1) throw new Error(`--k 需为 ≥1 的整数，收到：${arg}`)
       k = n
     } else {
-      throw new Error(`未知参数：${arg}（支持 --export=a.json[,b.json] / --gold=path / --k=N）`)
+      throw new Error(`未知参数：${arg}（支持 --export=a.json[,b.json] / --gold=path / --snapshot=path / --k=N）`)
     }
   }
   if (exports.length === 0) throw new Error('缺少 --export=<导出JSON路径>（可逗号分隔多份用于稳定性）')
-  return { exports, goldPath, k }
+  return { exports, goldPath, snapshotPath, k }
 }
 
 /** 文件名安全时间戳 */
@@ -166,56 +192,95 @@ function cell(s: string): string {
 
 // ── 对齐：金标 × 导出 ───────────────────────────────────────────────────────────
 
-/** 一条对齐后的「金标—AI」配对（金标有标、且本轮召回到） */
+/** 一条对齐后的「金标—AI」配对（金标有标、且本轮召回到；仅非 null 档位入 pairs） */
 interface Pair {
   storyId: string
   isOutOfScope: boolean
-  questionId: string
+  faceKey: string        // join 锚
+  questionId: string     // 面包屑（本轮导出侧的库内 UUID），仅供报告可读
   pointName: string
   questionZh: string
   reason: string | null
   score: number | null
   ai: AiTier
-  gold: Tier
-  zone: Zone      // 标注归属区，决定还原权重
+  gold: Tier             // 只有非 null 档位入 pairs，故此处恒为四档之一
+  zone: Zone             // 标注归属区，决定还原权重
 }
 
 interface AlignResult {
-  pairs: Pair[]                 // 金标有 & 本轮召回到（含 unscored）
-  goldNotRecalled: { storyId: string; questionId: string; goldBucket: Tier }[]  // 金标有、本轮没召回
+  pairs: Pair[]                 // 金标非 null 档位 & 本轮唯一召回到（含 unscored）；档位闸门只用它
+  // 真漏召回（红线3 正当来源）：金标非 null，faceKey ∉ 本轮候选，但 ∈ 季度快照
+  goldNotRecalled: { storyId: string; faceKey: string; questionId: string; goldBucket: Tier }[]
+  // 锚失效（告警、不算红线3）：金标非 null，faceKey 既 ∉ 本轮候选，也 ∉ 季度快照
+  anchorInvalid: { storyId: string; faceKey: string; questionId: string; goldBucket: Tier }[]
+  // 多命中（题库重题·告警，不静默选）：一条金标 faceKey 命中同故事内 ≥2 条候选
+  multiHit: { storyId: string; faceKey: string; goldBucket: Tier | null; hitCount: number; scores: (number | null)[] }[]
+  // 隐藏缓标召回情况（诊断，不入档位分母）：goldBucket=null 的条目
+  nullRecalled: number          // null 缓标·本轮召回到（不算档位、不算漏召回）
+  nullNotRecalled: number       // null 缓标·本轮未召回（不算红线3，仅诊断）
   goldGapVisible: { storyId: string; questionId: string; questionZh: string; score: number }[] // 召回可见、金标没标
   storiesGoldMissing: string[]  // 金标有该故事、但导出里没有（故事本身 error/未跑）
 }
 
 /**
- * 把首份导出与金标对齐，产出配对 + 三类诊断项。
- * @param gold    金标集
- * @param exp     首份导出（用于闸门指标）
+ * 把首份导出与金标对齐，产出配对 + 诊断项。**join 锚 = faceKey（2026-08-02 台账 123）**。
+ * @param gold      金标集（v3，含 faceKey + goldBucket 可为 null 的隐藏缓标）
+ * @param exp       首份导出（用于闸门指标）
+ * @param snapFaces 季度 faceKey 全量快照的 faceKey 集，用于区分「真漏召回」与「锚失效」
  */
-function align(gold: GoldSet, exp: RankingExport): AlignResult {
+function align(gold: GoldSet, exp: RankingExport, snapFaces: Set<string>): AlignResult {
   const storyById = new Map(exp.stories.map((s) => [s.storyId, s]))
   const pairs: Pair[] = []
   const goldNotRecalled: AlignResult['goldNotRecalled'] = []
+  const anchorInvalid: AlignResult['anchorInvalid'] = []
+  const multiHit: AlignResult['multiHit'] = []
   const goldGapVisible: AlignResult['goldGapVisible'] = []
   const storiesGoldMissing: string[] = []
+  let nullRecalled = 0
+  let nullNotRecalled = 0
 
   for (const gs of gold.items) {
     const story = storyById.get(gs.storyId)
     if (!story) { storiesGoldMissing.push(gs.storyId); continue }
 
-    const candById = new Map(story.candidates.map((c) => [c.questionId, c]))
-    const labeledIds = new Set(gs.labels.map((l) => l.questionId))
+    // faceKey → 同故事内候选列表（可能 >1 = 题库重题，多命中）
+    const candByFace = new Map<string, CandidateExport[]>()
+    for (const c of story.candidates) {
+      const arr = candByFace.get(c.faceKey)
+      if (arr) arr.push(c); else candByFace.set(c.faceKey, [c])
+    }
+    // 已标 faceKey 集（含 null 缓标）——用于「可见未标缺口」判定：缓标条已被标（只是缓），不算缺口
+    const labeledFaces = new Set(gs.labels.map((l) => l.faceKey))
 
-    // 金标每条标注 → 找导出候选
+    // 金标每条标注 → 按 faceKey 找导出候选
     for (const lb of gs.labels) {
-      const c = candById.get(lb.questionId)
-      if (!c) { goldNotRecalled.push({ storyId: gs.storyId, questionId: lb.questionId, goldBucket: lb.goldBucket }); continue }
+      const hits = candByFace.get(lb.faceKey) ?? []
+
+      if (hits.length > 1) {
+        // 多命中：不静默选，告警暴露（题库重题）。同时不入 pairs，避免任意选一条污染档位统计。
+        multiHit.push({ storyId: gs.storyId, faceKey: lb.faceKey, goldBucket: lb.goldBucket, hitCount: hits.length, scores: hits.map((c) => c.relevanceScore) })
+        if (lb.goldBucket === null) nullRecalled++
+        continue
+      }
+
+      if (hits.length === 0) {
+        // 未召回：按 null 与否 + 是否在快照分流
+        if (lb.goldBucket === null) { nullNotRecalled++; continue }        // 缓标未召回：不算红线3
+        if (snapFaces.has(lb.faceKey)) goldNotRecalled.push({ storyId: gs.storyId, faceKey: lb.faceKey, questionId: lb.questionId, goldBucket: lb.goldBucket })  // 真漏召回
+        else anchorInvalid.push({ storyId: gs.storyId, faceKey: lb.faceKey, questionId: lb.questionId, goldBucket: lb.goldBucket })  // 锚失效：告警
+        continue
+      }
+
+      // 唯一命中
+      const c = hits[0]
+      if (lb.goldBucket === null) { nullRecalled++; continue }             // 缓标召回：不入档位分母
       // zone 以金标记录为准（=标注当轮的抽样归属）；缺失则按当前分数兜底推断，并保证与 AI 隐藏定义一致
       const zone: Zone = lb.zone ?? (c.relevanceScore !== null && c.relevanceScore < SCORE_MID ? 'hidden_sampled' : 'visible')
       pairs.push({
         storyId: gs.storyId,
         isOutOfScope: story.isOutOfScope,
-        questionId: lb.questionId,
+        faceKey: lb.faceKey,
+        questionId: c.questionId,
         pointName: c.pointName,
         questionZh: c.questionZh,
         reason: c.relevanceReason,
@@ -226,9 +291,9 @@ function align(gold: GoldSet, exp: RankingExport): AlignResult {
       })
     }
 
-    // 导出里「可见（≥SCORE_MID 或 unscored）却没金标」的候选 → 缺口，提示补标
+    // 导出里「可见（≥SCORE_MID 或 unscored）却没金标」的候选 → 缺口，提示补标（按 faceKey 判是否已标）
     for (const c of story.candidates) {
-      if (labeledIds.has(c.questionId)) continue
+      if (labeledFaces.has(c.faceKey)) continue
       const visible = c.relevanceScore === null || c.relevanceScore >= SCORE_MID
       if (visible) {
         goldGapVisible.push({
@@ -241,7 +306,7 @@ function align(gold: GoldSet, exp: RankingExport): AlignResult {
     }
   }
 
-  return { pairs, goldNotRecalled, goldGapVisible, storiesGoldMissing }
+  return { pairs, goldNotRecalled, anchorInvalid, multiHit, nullRecalled, nullNotRecalled, goldGapVisible, storiesGoldMissing }
 }
 
 
@@ -441,23 +506,27 @@ function kendallTau(pairs: Pair[]): { value: number | null; storiesCounted: numb
   return { value: count > 0 ? sum / count : null, storiesCounted: count }
 }
 
-/** 稳定性（参考）：对多份导出，取「金标有标 & 每份都召回到 & 每份都打分」的对，看 AI 档跨轮是否全一致 */
+/**
+ * 稳定性（参考）：对多份导出，取「金标非 null 有标 & 每份都唯一召回到 & 每份都打分」的对，看 AI 档跨轮是否全一致。
+ * join 锚 = faceKey（2026-08-02）；缓标(null)不参与；多命中(≥2)当缺失跳过（不静默选）。
+ */
 function stability(gold: GoldSet, exps: RankingExport[]): { value: number | null; agreed: number; total: number } {
   if (exps.length < 2) return { value: null, agreed: 0, total: 0 }
-  const goldPairs: { storyId: string; questionId: string }[] = []
-  for (const gs of gold.items) if (gs.countInAccuracy) for (const l of gs.labels) goldPairs.push({ storyId: gs.storyId, questionId: l.questionId })
+  const goldPairs: { storyId: string; faceKey: string }[] = []
+  for (const gs of gold.items) if (gs.countInAccuracy) for (const l of gs.labels) if (l.goldBucket !== null) goldPairs.push({ storyId: gs.storyId, faceKey: l.faceKey })
 
-  const tierIn = (exp: RankingExport, storyId: string, qid: string): AiTier | null => {
+  const tierIn = (exp: RankingExport, storyId: string, faceKey: string): AiTier | null => {
     const s = exp.stories.find((x) => x.storyId === storyId)
-    const c = s?.candidates.find((x) => x.questionId === qid)
-    if (!c) return null
-    return aiTierOf(c.relevanceScore)
+    if (!s) return null
+    const hits = s.candidates.filter((x) => x.faceKey === faceKey)
+    if (hits.length !== 1) return null   // 未召回或多命中：跳过
+    return aiTierOf(hits[0].relevanceScore)
   }
 
   let agreed = 0
   let total = 0
   for (const gp of goldPairs) {
-    const tiers = exps.map((e) => tierIn(e, gp.storyId, gp.questionId))
+    const tiers = exps.map((e) => tierIn(e, gp.storyId, gp.faceKey))
     if (tiers.some((t) => t === null || t === 'unscored')) continue  // 任一轮缺失/降级则跳过
     total++
     if (tiers.every((t) => t === tiers[0])) agreed++
@@ -473,7 +542,11 @@ function main(): void {
   const exps = opts.exports.map((p) => JSON.parse(readFileSync(p, 'utf-8')) as RankingExport)
   const primary = exps[0]
 
-  const aligned = align(gold, primary)
+  // 季度 faceKey 全量快照 → faceKey 集，用于区分「真漏召回(∈快照)」与「锚失效(∉快照)」
+  const snapshot = JSON.parse(readFileSync(opts.snapshotPath, 'utf-8')) as SeasonSnapshot
+  const snapFaces = new Set(snapshot.items.map((i) => i.faceKey))
+
+  const aligned = align(gold, primary, snapFaces)
 
   // 隐藏区候选总数 N_hidden（计入闸门的故事，来自导出，全量已知）——埋没率还原的分母基。
   const gateStoryIds = new Set(gold.items.filter((g) => g.countInAccuracy).map((g) => g.storyId))
@@ -550,8 +623,12 @@ function buildReport(
   con.push(`- NDCG@${opts.k}：${ndcgStr}（${ndcg.storiesCounted} 故事）｜Kendall τ：${tauStr}｜稳定性：${stabStr}`)
   con.push(`- 因重排降级(unscored)排除：${g.unscoredExcluded} 对`)
   con.push('')
-  con.push('### 金标覆盖（A 端到端固有：上游变动会衰减）')
-  con.push(`- 金标未召回项：${aligned.goldNotRecalled.length}｜金标缺口项(可见未标)：${aligned.goldGapVisible.length}｜缺口率：${(gap.gapRatio * 100).toFixed(1)}%`)
+  con.push('### 金标覆盖（faceKey 锚 · A 端到端固有：上游变动会衰减）')
+  con.push(`- 真漏召回(红线3·非null∉候选∈快照)：${aligned.goldNotRecalled.length}｜锚失效(告警·∉快照)：${aligned.anchorInvalid.length}｜多命中(题库重题·告警)：${aligned.multiHit.length}`)
+  con.push(`- 隐藏缓标(null)：召回 ${aligned.nullRecalled}｜未召回 ${aligned.nullNotRecalled}（均不入档位闸门、不算红线3）`)
+  con.push(`- 金标缺口项(可见未标)：${aligned.goldGapVisible.length}｜缺口率：${(gap.gapRatio * 100).toFixed(1)}%`)
+  if (aligned.multiHit.length > 0) con.push(`  ⚠ 多命中 ${aligned.multiHit.length} 条：一条金标 faceKey 命中同故事内 ≥2 候选（题库重题），不静默选、已排除出档位统计，请核题库去重。`)
+  if (aligned.anchorInvalid.length > 0) con.push(`  ⚠ 锚失效 ${aligned.anchorInvalid.length} 条：金标 faceKey 既不在本轮候选、也不在季度快照 → 金标锚过时，不算红线3，请核 faceKey 口径/换季刷新。`)
   if (gap.gapWarn) con.push(`  ⚠ 金标缺口 ${aligned.goldGapVisible.length} 条（非零即报）：本轮可见区有金标没标过的题，请按本轮导出补标后重算。规模上限由红线 ranking_gold_gap_max 卡。`)
   if (aligned.storiesGoldMissing.length > 0) con.push(`- ⚠ 金标有、导出缺的故事（error/未跑）：${aligned.storiesGoldMissing.join(', ')}`)
 
@@ -644,15 +721,32 @@ function buildReport(
   }
   md.push('')
 
-  md.push('## 四、金标覆盖（A 端到端固有风险：上游变动 → 覆盖衰减）')
+  md.push('## 四、金标覆盖（faceKey 锚 · A 端到端固有风险：上游变动 → 覆盖衰减）')
   md.push('')
   md.push(`- **金标缺口**：${aligned.goldGapVisible.length} 条（可见未标 ${aligned.goldGapVisible.length} / 可见共 ${gap.gapDenom} = ${(gap.gapRatio * 100).toFixed(1)}%；**可见 = 仅高/中**，口径已于 v3 修正）${gap.gapWarn ? ' ⚠ 非零 → 该补标' : ''}`)
-  md.push(`- **金标未召回项**（金标有、本轮没召回，移交召回评估）：${aligned.goldNotRecalled.length}`)
+  md.push(`- **隐藏缓标(null)**：召回 ${aligned.nullRecalled}｜未召回 ${aligned.nullNotRecalled}（v3 隐藏区抽样待标·本季缓；不入档位闸门、不算红线3）`)
+  md.push(`- **真漏召回**（红线3 正当来源：金标非 null，faceKey ∉ 本轮候选但 ∈ 季度快照）：${aligned.goldNotRecalled.length}`)
   if (aligned.goldNotRecalled.length > 0) {
     md.push('')
-    md.push('| 故事 | 题id | 金标档 |')
+    md.push('| 故事 | faceKey | 金标档 |')
     md.push('|---|---|---|')
-    for (const x of aligned.goldNotRecalled) md.push(`| ${x.storyId} | ${cell(x.questionId)} | ${x.goldBucket} |`)
+    for (const x of aligned.goldNotRecalled) md.push(`| ${x.storyId} | ${cell(x.faceKey)} | ${x.goldBucket} |`)
+  }
+  md.push('')
+  md.push(`- **锚失效**（告警，不算红线3：金标 faceKey 既 ∉ 本轮候选、也 ∉ 季度快照 → 金标锚过时/换季刷新未跟上）：${aligned.anchorInvalid.length}`)
+  if (aligned.anchorInvalid.length > 0) {
+    md.push('')
+    md.push('| 故事 | faceKey | 金标档 |')
+    md.push('|---|---|---|')
+    for (const x of aligned.anchorInvalid) md.push(`| ${x.storyId} | ${cell(x.faceKey)} | ${x.goldBucket} |`)
+  }
+  md.push('')
+  md.push(`- **多命中**（告警，不静默选：一条金标 faceKey 命中同故事内 ≥2 候选，题库重题 → 已排除出档位统计，请核题库去重）：${aligned.multiHit.length}`)
+  if (aligned.multiHit.length > 0) {
+    md.push('')
+    md.push('| 故事 | faceKey | 命中数 | 各候选分 | 金标档 |')
+    md.push('|---|---|---|---|---|')
+    for (const x of aligned.multiHit) md.push(`| ${x.storyId} | ${cell(x.faceKey)} | ${x.hitCount} | ${x.scores.map((s) => s ?? '—').join(' / ')} | ${x.goldBucket ?? '缓标null'} |`)
   }
   md.push('')
   md.push(`- **金标缺口项明细**（本轮可见、金标没标 → 补标对象）：${aligned.goldGapVisible.length}`)
@@ -688,7 +782,11 @@ function buildReport(
     coverage: {
       goldGapRatio: gap.gapRatio,
       goldGapWarn: gap.gapWarn,
-      goldNotRecalled: aligned.goldNotRecalled,
+      goldNotRecalled: aligned.goldNotRecalled,   // 真漏召回（红线3）
+      anchorInvalid: aligned.anchorInvalid,       // 锚失效（告警，不算红线3）
+      multiHit: aligned.multiHit,                 // 多命中（题库重题·告警）
+      nullRecalled: aligned.nullRecalled,         // 隐藏缓标召回（不入档位）
+      nullNotRecalled: aligned.nullNotRecalled,   // 隐藏缓标未召回（不算红线3）
       goldGapVisible: aligned.goldGapVisible,
       storiesGoldMissing: aligned.storiesGoldMissing,
     },

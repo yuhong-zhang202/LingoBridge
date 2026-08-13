@@ -1,0 +1,12 @@
+# 重排金标 · 第一批标注清单（40 条 · 分层抽样）
+# 来源：全量导出 ranking-2026-07-15T19-56-48-672Z.json → 分层选批
+# 生成脚本：scripts/eval（全量 eval:ranking → 选 40 → eval:ranking --blind --only=<下列>）
+# 盲标产物：scripts/eval/results/ranking-2026-07-15T20-02-04-318Z-盲标表.md（+ 同名 -gold-scaffold.json）
+#
+# 维度均衡：emotion 7 / relationship 7 / space 7 / spirit 7 / growth 6 / value 6（value 全集仅 6，已全取）
+# 边界覆盖：可见=0 全含（S019 S020 S024 S025 S079 S080）；邻居兜底 16 条；noMatch/viaSecondary 本集为 0
+# 待标规模：178 行（可见 122 + 隐藏抽样 56，实测抽样率≈0.30，算分用实测 S=188/56≈3.36 还原）
+#
+# --only 参数（逗号分隔，可直接复制）：
+
+S016,S017,S019,S020,S024,S025,S037,S040,S041,S044,S045,S046,S047,S051,S056,S057,S060,S061,S062,S063,S064,S065,S066,S067,S072,S074,S075,S079,S080,S083,S084,S085,S086,S090,S091,S092,S093,S094,S095,S096

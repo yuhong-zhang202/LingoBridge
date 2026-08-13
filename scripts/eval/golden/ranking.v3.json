@@ -1,0 +1,1495 @@
+{
+ "version": "v3-2026-05-faceKey",
+ "anchor": "faceKey(归一化英文全face)",
+ "bucketRubric": "高=原样能答;中=挪重心/换场景/习惯套单次;低=得换故事;隐藏=答非所问",
+ "annotator": "主会话草标+产品方逐行审(2026-08-02)",
+ "note": "faceKey锚·换季补标;可见区人工盲标53+faceKey结转+隐藏82缓标(null)",
+ "items": [
+  {
+   "storyId": "S016",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S017",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S019",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "102296c9-74a5-481a-adde-eb5d3eb763ce",
+     "faceKey": "do you like listening to others singing?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "67fa195e-9fd5-4bce-820d-79235d75c9e3",
+     "faceKey": "have you taken any music classes?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "a2e99ca5-d49f-4cf7-93a2-7b877043d88a",
+     "faceKey": "do you listen to music while doing other things?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "daf475b0-0549-471a-8f56-946bdfa2d301",
+     "faceKey": "when would you use headphones?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "c23c9d8a-9e51-4f6b-b193-03748e9a2cbb",
+     "faceKey": "a tv or online program you watched recently — describe a tv show/online program you have watched recently you should say: what it is what it is about how often you watch it and explain how you feel about it",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S020",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "334c61c5-6d98-400e-8600-b0902d31eae1",
+     "faceKey": "what do you hate doing in the evening?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "38666de0-b1b7-413f-926b-a639c54275b5",
+     "faceKey": "what is your morning routine?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "44bbd4b8-bdb2-476a-ad39-2a1cbcc01c6f",
+     "faceKey": "do you often go to bed late or early?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "8793385a-7327-4c03-b4e2-235b39c64c0b",
+     "faceKey": "what did you do in the evening when you were little? why?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b193cc2f-cce0-4411-bab1-5555a79f1d9f",
+     "faceKey": "what part of your day do you like best?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "dcd4b859-17db-4343-92dc-de2b1a70b3e7",
+     "faceKey": "a time you got up early — describe a time when you got up early you should say: when it was what you did why you got up early and how you felt about it",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S024",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "21859c09-05ce-4a43-b4ad-2e411a49a453",
+     "faceKey": "do you prefer to wear comfortable and casual clothes or smart clothes?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "73f97184-cf5b-497d-8ac5-21be978113b4",
+     "faceKey": "do you like looking at yourself in the mirror? how often?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b4438361-d3fb-45fd-b525-1f2ce4077b6f",
+     "faceKey": "what kind of clothes do you like to wear?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "e83db7e0-ebe3-4c97-b927-0168cf9e213c",
+     "faceKey": "do you spend a lot of time choosing clothes?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S025",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "21859c09-05ce-4a43-b4ad-2e411a49a453",
+     "faceKey": "do you prefer to wear comfortable and casual clothes or smart clothes?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "73f97184-cf5b-497d-8ac5-21be978113b4",
+     "faceKey": "do you like looking at yourself in the mirror? how often?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "a6e4cdbf-22c5-401f-aae2-cb883931a8f5",
+     "faceKey": "do you like wearing t-shirts?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "b4438361-d3fb-45fd-b525-1f2ce4077b6f",
+     "faceKey": "what kind of clothes do you like to wear?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "e83db7e0-ebe3-4c97-b927-0168cf9e213c",
+     "faceKey": "do you spend a lot of time choosing clothes?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S037",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "3b9b4dd4-0ef9-4d95-b02c-cd72fceee909",
+     "faceKey": "a time someone helped you solve a problem — describe a time when a person did something to help you solve a problem you should say: who the person is what the problem was how he/she helped you and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S040",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "5f10847d-4550-4a8e-a710-251422c31e7d",
+     "faceKey": "do you like animals?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "9a6a63db-d7c1-472e-95f1-ef03012131dd",
+     "faceKey": "did you want to keep a pet when you were young?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "e5dffbe0-bee7-4867-8ee8-7c3a4d0be5f1",
+     "faceKey": "what's your favourite animal? why?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "2e052278-3eeb-44ea-894a-9874c64f3c2b",
+     "faceKey": "have you ever had a pet before?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    }
+   ]
+  },
+  {
+   "storyId": "S041",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "5f10847d-4550-4a8e-a710-251422c31e7d",
+     "faceKey": "do you like animals?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "e5dffbe0-bee7-4867-8ee8-7c3a4d0be5f1",
+     "faceKey": "what's your favourite animal? why?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "中",
+     "note": " [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "f6687b59-a0e2-4774-b272-1de646938b3c",
+     "faceKey": "where do you prefer to keep your pet, indoors or outdoors?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": " [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "2e052278-3eeb-44ea-894a-9874c64f3c2b",
+     "faceKey": "have you ever had a pet before?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": " [结转自v1·faceKey锚]"
+    }
+   ]
+  },
+  {
+   "storyId": "S044",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "3b9b4dd4-0ef9-4d95-b02c-cd72fceee909",
+     "faceKey": "a time someone helped you solve a problem — describe a time when a person did something to help you solve a problem you should say: who the person is what the problem was how he/she helped you and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "d97ba19a-fd92-461e-907f-94e8a25b01ac",
+     "faceKey": "giving advice — describe a time when you gave advice to others you should say: when it was to whom you gave the advice what the advice was and explain why you gave the advice",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S045",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "3b9b4dd4-0ef9-4d95-b02c-cd72fceee909",
+     "faceKey": "a time someone helped you solve a problem — describe a time when a person did something to help you solve a problem you should say: who the person is what the problem was how he/she helped you and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S046",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "a19b7a50-50ac-4843-a16b-84da76d8e4db",
+     "faceKey": "do you think you are good at choosing gifts?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "6d03ce5b-f52c-4aed-b8a1-898a05d25af6",
+     "faceKey": "a childhood friend — describe a friend from your childhood you should say: who he/she is where and how you met each other what you often did together and explain what made you like him/her",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b3f95a4f-342c-4461-a6ed-50c70ed1dde8",
+     "faceKey": "a friend who loves drawing — describe a friend of yours who loves drawing/painting you should say: how you knew him/her what he/she is like how often he/she draws and explain why you think he/she likes drawing",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S047",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "4dc58ea6-44cc-4cba-a6c8-89c2f65faaef",
+     "faceKey": "what gift have you received recently?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "796021a9-4957-4c11-a891-a2c947a1dbd7",
+     "faceKey": "a time you were proud — describe a time when you felt proud of a family member you should say: when it happened who the person is what the person did and explain why you felt proud of him/her",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "6d03ce5b-f52c-4aed-b8a1-898a05d25af6",
+     "faceKey": "a childhood friend — describe a friend from your childhood you should say: who he/she is where and how you met each other what you often did together and explain what made you like him/her",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S051",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "700f57eb-be90-4abd-ba3e-c659ee9533c4",
+     "faceKey": "did you enjoy traveling by car when you were a kid?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "78bdd890-1810-4eaa-929f-ab974ec1fdec",
+     "faceKey": "do you walk a lot?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    }
+   ]
+  },
+  {
+   "storyId": "S056",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1180b1ac-4f13-4ee9-babd-fde92fc12039",
+     "faceKey": "do you prefer views in your own country or in other countries?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "15297e8a-538a-44be-8fb6-3549b1220137",
+     "faceKey": "do you prefer the mountains or the sea?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "51b38c2d-0d49-42b1-9f75-4446f8e28f3a",
+     "faceKey": "do you prefer views in urban areas or rural areas?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "b1ff6c94-8d28-4866-8a70-c9ab3bc72ee0",
+     "faceKey": "what are the most beautiful sights you have seen while traveling?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    }
+   ]
+  },
+  {
+   "storyId": "S057",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "8d5ec408-42e9-4dd3-b353-cf7d0d5357d8",
+     "faceKey": "do you prefer the mountains or the sea?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "c3a0bffc-2bec-4339-95e7-8a51eec86a5d",
+     "faceKey": "do you like to take scenery pictures?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "低",
+     "note": " [结转自v1·faceKey锚]"
+    }
+   ]
+  },
+  {
+   "storyId": "S060",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1a5690d2-47d7-4f94-8cce-db444ad6b0a1",
+     "faceKey": "do you like science fiction movies? why?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "3054a89f-a67b-43c9-9d54-f8cbfe2d834a",
+     "faceKey": "are there any parks you want to go to in the future?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "51b38c2d-0d49-42b1-9f75-4446f8e28f3a",
+     "faceKey": "do you prefer views in urban areas or rural areas?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "62ecd1f5-472f-458c-8a52-01b1c2d5ed00",
+     "faceKey": "do you look out the window at the scenery when travelling by bus or car?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "b1ff6c94-8d28-4866-8a70-c9ab3bc72ee0",
+     "faceKey": "what are the most beautiful sights you have seen while traveling?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": "隐藏",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "c3a0bffc-2bec-4339-95e7-8a51eec86a5d",
+     "faceKey": "do you like to take scenery pictures?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S061",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1180b1ac-4f13-4ee9-babd-fde92fc12039",
+     "faceKey": "do you prefer views in your own country or in other countries?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "1707651d-b9be-4a60-ba38-d3ccc84ac34b",
+     "faceKey": "do you want to go into outer space in the future?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "3054a89f-a67b-43c9-9d54-f8cbfe2d834a",
+     "faceKey": "are there any parks you want to go to in the future?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "3da7cd6c-74c0-44bd-90d0-7d03d2441888",
+     "faceKey": "what do you like to do when visiting a park?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "51b38c2d-0d49-42b1-9f75-4446f8e28f3a",
+     "faceKey": "do you prefer views in urban areas or rural areas?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "8d5ec408-42e9-4dd3-b353-cf7d0d5357d8",
+     "faceKey": "do you prefer the mountains or the sea?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "b1ff6c94-8d28-4866-8a70-c9ab3bc72ee0",
+     "faceKey": "what are the most beautiful sights you have seen while traveling?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "继承自 ranking.v1（题面未变，勿改） [结转自v1·faceKey锚]"
+    },
+    {
+     "questionId": "b952f667-31d9-41f1-9cfe-e9c8bd01f425",
+     "faceKey": "how are the parks today different from those you visited as a kid?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S062",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "21d400ba-0c93-48b8-9b89-a782ec24361a",
+     "faceKey": "would you prefer to play in a personal garden or public garden?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "3da7cd6c-74c0-44bd-90d0-7d03d2441888",
+     "faceKey": "what do you like to do when visiting a park?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "51b38c2d-0d49-42b1-9f75-4446f8e28f3a",
+     "faceKey": "do you prefer views in urban areas or rural areas?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "54700c38-6c2e-4039-a3ce-908643f638ea",
+     "faceKey": "do you want to know more about outer space?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b1ff6c94-8d28-4866-8a70-c9ab3bc72ee0",
+     "faceKey": "what are the most beautiful sights you have seen while traveling?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "c3a0bffc-2bec-4339-95e7-8a51eec86a5d",
+     "faceKey": "do you like to take scenery pictures?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "47dafafa-40ff-477b-8a8f-8e5573d8c49c",
+     "faceKey": "a person who grows plants — describe a person who loves to grow plants (e.g. vegetables, flowers) at home or in the garden you should say: who this person is what plants he/she grows how he/she grows the plants and explain why he/she loves growing plants",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S063",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1180b1ac-4f13-4ee9-babd-fde92fc12039",
+     "faceKey": "do you prefer views in your own country or in other countries?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "21d400ba-0c93-48b8-9b89-a782ec24361a",
+     "faceKey": "would you prefer to play in a personal garden or public garden?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "4cbf83e0-6d8e-4159-882a-00dacba0d251",
+     "faceKey": "have you seen an unforgettable and beautiful view or scenery?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "51b38c2d-0d49-42b1-9f75-4446f8e28f3a",
+     "faceKey": "do you prefer views in urban areas or rural areas?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "54700c38-6c2e-4039-a3ce-908643f638ea",
+     "faceKey": "do you want to know more about outer space?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "8d5ec408-42e9-4dd3-b353-cf7d0d5357d8",
+     "faceKey": "do you prefer the mountains or the sea?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b1ff6c94-8d28-4866-8a70-c9ab3bc72ee0",
+     "faceKey": "what are the most beautiful sights you have seen while traveling?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "47dafafa-40ff-477b-8a8f-8e5573d8c49c",
+     "faceKey": "a person who grows plants — describe a person who loves to grow plants (e.g. vegetables, flowers) at home or in the garden you should say: who this person is what plants he/she grows how he/she grows the plants and explain why he/she loves growing plants",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S064",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1e2a0905-5f9a-413f-bfa4-e3c57bfb43d8",
+     "faceKey": "do you prefer scanning or detailed reading?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "2c89bb79-aa70-4e89-9268-125f223e3e7a",
+     "faceKey": "do you think going to the cinema is a good way to spend time with friends?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d31d9afc-fcf0-45ea-accf-3cdaa51c1b2f",
+     "faceKey": "do you prefer to watch films at home or in the cinema?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "f33997cc-ec41-45c2-96c2-f00db6e23b0e",
+     "faceKey": "why do some people like speed reading?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S065",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "635f674a-bdad-46f8-8fa3-25b48229aefe",
+     "faceKey": "do you prefer to read on paper or on a screen?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "7a4d7def-a286-4f40-a43c-4038dd1b1093",
+     "faceKey": "how often do you watch films?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "f33997cc-ec41-45c2-96c2-f00db6e23b0e",
+     "faceKey": "why do some people like speed reading?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "11132ad3-8218-44f2-bbd4-023c80b95fb2",
+     "faceKey": "a story — describe a story (e.g. a fairy tale, etc.) you have read you should say: what it is about when you read it whether you liked it and explain what you have learned from it",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S066",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "1e2a0905-5f9a-413f-bfa4-e3c57bfb43d8",
+     "faceKey": "do you prefer scanning or detailed reading?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "bcaa3975-38ae-45bb-b821-be38f3f386a9",
+     "faceKey": "do you often go to the cinema with your friends?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d31d9afc-fcf0-45ea-accf-3cdaa51c1b2f",
+     "faceKey": "do you prefer to watch films at home or in the cinema?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "11132ad3-8218-44f2-bbd4-023c80b95fb2",
+     "faceKey": "a story — describe a story (e.g. a fairy tale, etc.) you have read you should say: what it is about when you read it whether you liked it and explain what you have learned from it",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S067",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "2c89bb79-aa70-4e89-9268-125f223e3e7a",
+     "faceKey": "do you think going to the cinema is a good way to spend time with friends?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "7a4d7def-a286-4f40-a43c-4038dd1b1093",
+     "faceKey": "how often do you watch films?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b3758f69-7776-4a02-952e-356e48a99da5",
+     "faceKey": "did you ever go to the cinema alone as a child?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "11132ad3-8218-44f2-bbd4-023c80b95fb2",
+     "faceKey": "a story — describe a story (e.g. a fairy tale, etc.) you have read you should say: what it is about when you read it whether you liked it and explain what you have learned from it",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "c23c9d8a-9e51-4f6b-b193-03748e9a2cbb",
+     "faceKey": "a tv or online program you watched recently — describe a tv show/online program you have watched recently you should say: what it is what it is about how often you watch it and explain how you feel about it",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S072",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "5c08c364-96ae-4898-b720-94efc02c26b5",
+     "faceKey": "do you think it is important to wear a watch? why?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "62d568bb-d93d-4948-89c5-7b04a3a560fd",
+     "faceKey": "do you wear a watch?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "65b27ff9-60e6-43f9-9dc9-6540dd90ae5b",
+     "faceKey": "have you ever got a watch as a gift?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "2a97c0d5-0a61-4d3f-bd10-d508df463e34",
+     "faceKey": "something you can't live without — describe something that you can't live without(not a computer/phone) you should say: what it is what you do with it how it helps you in your life and explain why you can't live without it",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "73a7c2a3-b11a-47b7-bc62-9f3276f87473",
+     "faceKey": "an important old thing in family — describe something important that has been kept in your you should say: what it is when your family had it how your family got it and explain why it is important to your family",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S074",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "14c8a304-599d-45e4-a445-fc9d20f9bd25",
+     "faceKey": "do you use headphones?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "27183252-8ed2-4d72-8eef-8e7eef85c327",
+     "faceKey": "have you ever watched a sports game in a stadium?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "2bb92f18-7a44-497b-9d9c-62acda80f678",
+     "faceKey": "what kinds of websites are popular in your country?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "31ad3bd7-4826-4da1-b105-6fa5e250b321",
+     "faceKey": "do you think you spend too much time on social media?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "448a0ad3-4436-4fa8-9801-6a46761211ee",
+     "faceKey": "what is your favourite website?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "5428e9c0-1961-4875-854e-f3b9c3f64604",
+     "faceKey": "how do your friends get news?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "9ce211ab-d8d4-42eb-913a-77c51bbd32a8",
+     "faceKey": "what do people often do on social media?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "9d4cc79d-fe69-4b89-a090-ed7e013fef03",
+     "faceKey": "what kinds of websites do you often visit?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "cbba503b-1a38-47ee-acbb-d914697f678c",
+     "faceKey": "when did you start using social media?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "daf475b0-0549-471a-8f56-946bdfa2d301",
+     "faceKey": "when would you use headphones?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "e6a38c78-4b81-489f-bfcf-e824f9a3d9ff",
+     "faceKey": "are there any changes to the websites you often visit?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "e857f612-99a0-4ca1-b447-5f80cda76559",
+     "faceKey": "do your friends use social media?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "66a0a556-6406-4510-b643-9313aadd56da",
+     "faceKey": "an interesting video — describe an interesting video you should say: when and where you watched it what it is about why you watched it and explain how you feel about it",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d559d1f9-8933-48c0-ba5e-37a12051adaa",
+     "faceKey": "an app — describe a program or app on your computer or phone you should say: what it is when/how you use it where you found it and explain how you feel about it",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S075",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "10af0d71-2115-421a-b137-91097fb2a13a",
+     "faceKey": "do you like to watch live sports games?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "21094008-b525-4a7b-82da-fcd5dfc81c43",
+     "faceKey": "have you ever posted anything on social media?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "31ad3bd7-4826-4da1-b105-6fa5e250b321",
+     "faceKey": "do you think you spend too much time on social media?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "448a0ad3-4436-4fa8-9801-6a46761211ee",
+     "faceKey": "what is your favourite website?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "47d57332-4fdb-4415-beb6-2a464bc819d6",
+     "faceKey": "do you prefer to watch sports games alone or with a group of friends?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "7542cf5f-8c5d-4abb-9f70-8209e0d3e606",
+     "faceKey": "would you like to have your own website?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "99f05f01-e77c-43f7-9666-bf1cba269ce2",
+     "faceKey": "what have you learned from websites that help with your life or studies?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "9d4cc79d-fe69-4b89-a090-ed7e013fef03",
+     "faceKey": "what kinds of websites do you often visit?",
+     "zone": "visible",
+     "part": 1,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "d5a47d50-e1d8-481c-9002-d56c07976258",
+     "faceKey": "do you often talk with your friends about the news?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "e6a38c78-4b81-489f-bfcf-e824f9a3d9ff",
+     "faceKey": "are there any changes to the websites you often visit?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d559d1f9-8933-48c0-ba5e-37a12051adaa",
+     "faceKey": "an app — describe a program or app on your computer or phone you should say: what it is when/how you use it where you found it and explain how you feel about it",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S079",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "a42dad1a-2157-47df-b21c-4bab35c468a6",
+     "faceKey": "which science subject is interesting to you?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b718981f-b2b7-4bea-8ffc-92e9dbd5196c",
+     "faceKey": "can you fix things?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "f18e4c74-2b72-4ee7-97f6-c38f85f13f5e",
+     "faceKey": "what kinds of interesting things have you done with science?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "e406d832-6912-4a5e-a274-624b427c1a79",
+     "faceKey": "a person who learned a skill — describe one of your friends who learned something you should say: who he/she is what he/she learned why he/she learned this and explain whether it would be easier to learn from a teacher",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S080",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "9aed33f9-b3e5-4d46-b3dc-92e97a3119d6",
+     "faceKey": "do you think it is necessary for people to learn to fix things?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "b03d21a9-eee0-41a5-b67a-5452b0eac60d",
+     "faceKey": "do you like watching science tv programs?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "f18e4c74-2b72-4ee7-97f6-c38f85f13f5e",
+     "faceKey": "what kinds of interesting things have you done with science?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "e406d832-6912-4a5e-a274-624b427c1a79",
+     "faceKey": "a person who learned a skill — describe one of your friends who learned something you should say: who he/she is what he/she learned why he/she learned this and explain whether it would be easier to learn from a teacher",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S083",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "dbc416b2-772c-46ef-a5c3-2f64ae21bef4",
+     "faceKey": "a time you changed an important opinion — describe a time when you changed an important opinion of yours you should say: when you changed your opinion what the original opinion was why you changed it and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "中",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S084",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "dbc416b2-772c-46ef-a5c3-2f64ae21bef4",
+     "faceKey": "a time you changed an important opinion — describe a time when you changed an important opinion of yours you should say: when you changed your opinion what the original opinion was why you changed it and explain how you felt about the experience",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S085",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "50fd966d-e039-4019-9c81-a450098e5614",
+     "faceKey": "can you remember the dreams you had?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "a74ab52d-491f-4f19-aa68-28203cc9858c",
+     "faceKey": "do you think you are an ambitious person?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "dbc416b2-772c-46ef-a5c3-2f64ae21bef4",
+     "faceKey": "a time you changed an important opinion — describe a time when you changed an important opinion of yours you should say: when you changed your opinion what the original opinion was why you changed it and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S086",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "10e856bf-7462-417f-8d23-57dcc0ccff3f",
+     "faceKey": "do you share your dreams with others?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "6b05d6ba-1d98-4568-9c2b-cd0ebd081f6f",
+     "faceKey": "what is your dream job?",
+     "zone": "hidden_sampled",
+     "part": 1,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "dbc416b2-772c-46ef-a5c3-2f64ae21bef4",
+     "faceKey": "a time you changed an important opinion — describe a time when you changed an important opinion of yours you should say: when you changed your opinion what the original opinion was why you changed it and explain how you felt about the experience",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S090",
+   "countInAccuracy": true,
+   "labels": []
+  },
+  {
+   "storyId": "S091",
+   "countInAccuracy": true,
+   "labels": []
+  },
+  {
+   "storyId": "S092",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "9148347e-e5fe-4edd-9a94-1d088f2528f0",
+     "faceKey": "a plan you changed recently — describe a plan that you had to change recently you should say: when this happened what made you change the plan what the new plan was and how you felt about the change",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d0faa824-2268-493f-bb6a-089bb4f691d5",
+     "faceKey": "an important decision — describe an important decision that you made you should say: what the decision was how you made your decision what the results of the decision were and explain why it was important",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S093",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "d97ba19a-fd92-461e-907f-94e8a25b01ac",
+     "faceKey": "giving advice — describe a time when you gave advice to others you should say: when it was to whom you gave the advice what the advice was and explain why you gave the advice",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  },
+  {
+   "storyId": "S094",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "9148347e-e5fe-4edd-9a94-1d088f2528f0",
+     "faceKey": "a plan you changed recently — describe a plan that you had to change recently you should say: when this happened what made you change the plan what the new plan was and how you felt about the change",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    },
+    {
+     "questionId": "d0faa824-2268-493f-bb6a-089bb4f691d5",
+     "faceKey": "an important decision — describe an important decision that you made you should say: what the decision was how you made your decision what the results of the decision were and explain why it was important",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S095",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "9148347e-e5fe-4edd-9a94-1d088f2528f0",
+     "faceKey": "a plan you changed recently — describe a plan that you had to change recently you should say: when this happened what made you change the plan what the new plan was and how you felt about the change",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "低",
+     "note": "人工盲标2026-08-02"
+    },
+    {
+     "questionId": "d0faa824-2268-493f-bb6a-089bb4f691d5",
+     "faceKey": "an important decision — describe an important decision that you made you should say: what the decision was how you made your decision what the results of the decision were and explain why it was important",
+     "zone": "visible",
+     "part": 2,
+     "goldBucket": "高",
+     "note": "人工盲标2026-08-02"
+    }
+   ]
+  },
+  {
+   "storyId": "S096",
+   "countInAccuracy": true,
+   "labels": [
+    {
+     "questionId": "25cc895e-b021-4c9a-9462-67a53f08b475",
+     "faceKey": "a time you worked in a group — describe a time when you worked in a group you should say: what you did who you worked with what problems you faced and explain why you worked in the group",
+     "zone": "hidden_sampled",
+     "part": 2,
+     "goldBucket": null,
+     "note": "隐藏待标·本季缓"
+    }
+   ]
+  }
+ ]
+}
