@@ -8,19 +8,27 @@ MODE=${1:-full}
 RUNS=3; [ "$MODE" = "quick" ] && RUNS=1
 echo "=== 回归守卫 | 模式:$MODE ==="
 
-echo "--- [1/3] 萃取 (R=$RUNS) ---"
-npm run eval:extraction -- --runs=$RUNS
-echo "--- [2/3] 匹配+重排 (全量导出) ---"
-npm run eval:ranking
-# TODO 未来环节接入点(有eval后取消注释):
-# npm run eval:analysis
-# npm run eval:practice
-# npm run eval:restructure
+# ⛔ 2026-08-02:scoreonly 模式 = 对【既有导出】只跑算分+对比基线,零模型调用(不花 AI 额度)。
+#   动机:铁律5(改红线后用既有导出跑对比块自验)+ R=3 需对 3 份预生成盲标导出逐份 score。
+#   用法: RANKING_EXPORT=scripts/eval/results/ranking-XXX.json bash scripts/eval/loop/regression-all.sh scoreonly
+#   除跳过萃取/重排生成外,其余(算分 + 下方 python 对比块)与 full 完全一致。
+if [ "$MODE" = "scoreonly" ]; then
+  LATEST_RANKING=${RANKING_EXPORT:?scoreonly 模式需设 RANKING_EXPORT=<导出路径>}
+  [ -f "$LATEST_RANKING" ] || { echo "❌ 导出不存在: $LATEST_RANKING"; exit 1; }
+else
+  echo "--- [1/3] 萃取 (R=$RUNS) ---"
+  npm run eval:extraction -- --runs=$RUNS
+  echo "--- [2/3] 匹配+重排 (全量导出) ---"
+  npm run eval:ranking
+  # TODO 未来环节接入点(有eval后取消注释):
+  # npm run eval:analysis
+  # npm run eval:practice
+  # npm run eval:restructure
 
-# 重排算分:导出只产候选,不产质量分。不跑这步=测不到重排判断力。
-# 必须显式传 --export=<最新导出>,脚本本身不猜文件。
-echo "--- [3/3] 重排算分 (对金标) ---"
-LATEST_RANKING=$(python3 -c "
+  # 重排算分:导出只产候选,不产质量分。不跑这步=测不到重排判断力。
+  # 必须显式传 --export=<最新导出>,脚本本身不猜文件。
+  echo "--- [3/3] 重排算分 (对金标) ---"
+  LATEST_RANKING=$(python3 -c "
 import glob, re, sys
 # 只认真导出: ranking-<ISO时间戳>.json。排除 -gold-scaffold / ranking-score-* / ranking-v2-scaffold-*
 fs = [f for f in glob.glob('scripts/eval/results/ranking-*.json')
@@ -28,6 +36,7 @@ fs = [f for f in glob.glob('scripts/eval/results/ranking-*.json')
 if not fs: sys.exit('找不到重排导出')
 print(sorted(fs)[-1])
 ")
+fi
 echo "导出: $LATEST_RANKING"
 npm run eval:ranking:score -- --export="$LATEST_RANKING"
 
@@ -70,14 +79,27 @@ if f:
 # ⛔ 2026-07-17:上面这句被证伪。6 条金标补裁(中→低)后,高11/故事40/labels148 三条【全程静音】,
 #    而 has_hm 从 16 掉到 11(−31%)——红线5 的分母整个换了一遍。断言锁的是它列出的那三个数,
 #    不是「金标没变」。故补 金标中总数 / has_hm故事数 两条(后者是红线5 的分母本身)。
-gold = json.load(open('scripts/eval/golden/ranking.v1.json'))
-gold_map = {it['storyId']: {l['questionId']: l['goldBucket'] for l in it['labels']}
+# ⛔ 2026-08-02 faceKey 锚改造(台账 123):金标读 v3、gold_map 以 faceKey 为 key(不再 questionId)。
+#    理由:迁新加坡库 UUID 重生成使 questionId 锚整体失配。faceKey 由题面决定、跨迁库稳定。
+#    v3 含 goldBucket=None 的隐藏缓标条(本季缓标·85 条):它们是当季候选,不算漏召回、也不入任何档位红线;
+#    下面所有档位计数(高/中/低/隐藏)对 None 天然不匹配、自动排除。has_hm 亦只认 高/中。
+gold = json.load(open('scripts/eval/golden/ranking.v3.json'))
+gold_map = {it['storyId']: {l['faceKey']: l['goldBucket'] for l in it['labels']}
             for it in gold['items'] if it.get('countInAccuracy', True)}
+# 季度 faceKey 全量快照:区分「真漏召回(∈快照,正当红线3)」与「锚失效(∉快照,告警不算红线3)」。
+_snap = json.load(open('scripts/eval/results/season-facekeys-2026-05.json'))
+snap_faces = {i['faceKey'] for i in _snap['items']}
+
+def cand_by_face(st):
+    """故事内 faceKey → 候选列表(可能 >1 = 题库重题,多命中)。"""
+    d = {}
+    for c in (st.get('candidates') or []):
+        d.setdefault(c['faceKey'], []).append(c)
+    return d
 # ⛔ 2026-07-17 当夜:S056/aee49959 中→低(产品方裁决)→ S056 失去唯一的金标中 → 离开 has_hm。
 #    中 20→19、has_hm 11→10,而高11/故事40/labels148 三条【依旧一声不响】。
 #    **这是这两条断言第一次真正咬住东西**——它们 2026-07-17 新增的理由就是堵这个洞。
-# 低/隐藏两条(新增):现有四条能推出「低+隐藏=118」,推不出 67/51 的拆分,
-#    而红线7A 的论域正是隐藏那 51 条。不锁它,7A 的语义会随金标改版无声漂掉。
+# 低/隐藏两条:现有四条能推出「低+隐藏」和,推不出拆分,而红线7A 的论域正是隐藏那批。不锁它,7A 语义会无声漂掉。
 gold_high_total = sum(1 for qs in gold_map.values() for b in qs.values() if b == '高')
 gold_mid_total = sum(1 for qs in gold_map.values() for b in qs.values() if b == '中')
 gold_low_total = sum(1 for qs in gold_map.values() for b in qs.values() if b == '低')
@@ -108,11 +130,14 @@ for name, got, want in [('金标高总数', gold_high_total, BASE['gold_high_tot
 # 逐字段取舍(设计官):收 storyId/questionId(身份)+goldBucket(红线论域)+countInAccuracy(40故事闸门);
 #   不收 note(判例文字,收了每次写判例都 FAIL)、不收 version/revisionNote/annotator(元数据)、不收 zone(只驱动埋没率HT权重)。
 # 实测:改全部 note → digest 不变;保桶置换(S074/f9119694 隐藏→低 + S066/2b5fd475 低→隐藏)→ 7bcc85d74ac5886f。
+# ⛔ 2026-08-02:身份字段 questionId → faceKey(台账 123 · 拍板②)。否则每次迁库 UUID 变都误触发互锁 FAIL。
+#    line = f"{sid}|{cia}|{faceKey}|{goldBucket}";隐藏缓标条 goldBucket=None → 渲染 "None"(收进 digest,
+#    这样把缓标改成任何实档都会正确触发重钉)。cia=True → "True"。字节以本 Python f-string 为准。
 _digest_lines = []
 for _it in gold['items']:
     _sid, _cia = _it['storyId'], _it.get('countInAccuracy', True)
     for _l in _it['labels']:
-        _digest_lines.append((_sid, _l['questionId'], f"{_sid}|{_cia}|{_l['questionId']}|{_l['goldBucket']}"))
+        _digest_lines.append((_sid, _l['faceKey'], f"{_sid}|{_cia}|{_l['faceKey']}|{_l['goldBucket']}"))
 _digest_lines.sort(key=lambda x: (x[0], x[1]))          # ← 排序在哈希之前(约束2)
 _gold_core_digest = hashlib.sha256('\n'.join(x[2] for x in _digest_lines).encode()).hexdigest()[:16]
 _gold_core_want = BASE['gold_digest_core_assert']
@@ -164,7 +189,8 @@ for name, got, want in [('金标故事内候选数', cand_in_gold, BASE['candida
 # 293(计数)看不见「换掉一条候选、总数不变」,digest 看得见。与 293 并存,不替换。
 # ⚠️ 它「稳」的主语(不许犯坑⑯):六轮恒定的原因是金标40故事 primaryPoint 六轮全部恒定——
 #    是实测运气不是构造性恒真(S051 的 secondary 就在漂,只是没改变候选集)。动了就该重钉,不是永不动。
-_cand_lines = sorted((st['storyId'], c['questionId'])
+# ⛔ 2026-08-02:候选身份字段 questionId → faceKey(同 core digest 理由)。line = f"{sid}|{faceKey}"。
+_cand_lines = sorted((st['storyId'], c['faceKey'])
                      for st in gold_stories for c in (st.get('candidates') or []))
 _cand_digest = hashlib.sha256('\n'.join(f"{s}|{q}" for s, q in _cand_lines).encode()).hexdigest()[:16]
 _cand_want = BASE['candidates_in_gold_stories_digest']
@@ -206,12 +232,32 @@ def visible(c):
     return s is not None and s >= SCORE_MID
 
 # ── 红线4 · noMatch ──────────────────────────────────────────────────────────
-check_max('红线4 noMatch', d['summary']['noMatch'], BASE['ranking_nomatch_max'])
+# ⛔ 2026-08-02 口径收窄(产品方逐字拍板:「noMatch 只数金标 40、排除 S090/S091 这种零候选占位故事」)。
+#   旧口径读 d['summary']['noMatch'] = run-ranking 对【全 100 故事】的 noMatch 计数,与本项目
+#   「按故事数算的指标,分母必须是金标覆盖故事」原则不一致(台账012/019)——noMatch 是最后一个漏网的。
+#   新口径两步:(1) 只在金标 40 内数(gold_stories 已是金标覆盖故事);(2) 排除【零 labels 占位故事】。
+#   为什么用「零 labels」而非「零候选」作排除判据:noMatch 语义本身即「零候选」,若按零候选排除 → noMatch 恒 0(退化)。
+#   零 labels 故事 = 金标对该故事没标任何题(gold_map[sid] 为空 dict)——那里本就无金标可召回,新库召回空
+#   不是「召回塌方」,是「无物可召」。实测金标全量核查:零 labels 故事恰 = {S090, S091},与拍板点名一致。
+#   反之:一个【有 labels】的金标故事若 noMatch=true(含仅 null 缓标的故事,如 S016),那是真·召回塌方,计入。
+_nomatch_stories = [st['storyId'] for st in gold_stories
+                    if st.get('noMatch') and gold_map.get(st['storyId'])]
+_nomatch = len(_nomatch_stories)
+check_max('红线4 noMatch(收窄:金标40内·排零labels占位)', _nomatch, BASE['ranking_nomatch_max'],
+          f"  命中:{_nomatch_stories or '(无)'}  [旧全100口径 summary.noMatch={d.get('summary', {}).get('noMatch')}]")
 
 # ── 红线1 · 召回率(分子:AI高∩金标高 的条目数;分母:金标高总数,金标定死) ──────
-hit = [(st['storyId'], c['questionId']) for st in gold_stories for c in (st.get('candidates') or [])
-       if (score_of(c) is not None and score_of(c) >= SCORE_HIGH)
-       and gold_map[st['storyId']].get(c['questionId']) == '高']
+# ⛔ 2026-08-02:join 改 faceKey。遍历【金标高 label】而非候选,并要求 faceKey 在故事内【唯一命中】——
+#    多命中(题库重题)不静默取一条充数,当作未唯一命中跳过(另由多命中告警暴露),避免虚增命中数。
+hit = []
+for st in gold_stories:
+    _cbf = cand_by_face(st)
+    for _face, _b in gold_map[st['storyId']].items():
+        if _b != '高':
+            continue
+        _cs = _cbf.get(_face, [])
+        if len(_cs) == 1 and score_of(_cs[0]) is not None and score_of(_cs[0]) >= SCORE_HIGH:
+            hit.append((st['storyId'], _face))
 check_min('红线1 召回率命中数', len(hit), BASE['ranking_recall_hit_min'],
           f"  [{len(hit)}/{gold_high_total} = {len(hit)/gold_high_total*100:.1f}%]")
 
@@ -221,11 +267,37 @@ check_min('红线2 首屏可用故事数', len(usable), BASE['ranking_firstscree
           f"  [{len(usable)}/{len(gold_map)} = {len(usable)/len(gold_map)*100:.1f}%]")
 
 # ── 红线3 · 金标未召回数(取代已废除的「召回精度」) ───────────────────────────
-recalled = {(st['storyId'], c['questionId']) for st in gold_stories for c in (st.get('candidates') or [])}
-not_recalled = [(s, q, b) for s, qs in gold_map.items() for q, b in qs.items() if (s, q) not in recalled]
-check_max('红线3 金标未召回数', len(not_recalled), BASE['ranking_gold_not_recalled_max'])
+# ⛔ 2026-08-02 faceKey 锚(台账 123 · 拍板③):
+#   · 只有【非 null 档位】的 label 才计红线3(缓标 None 是当季候选、不算漏召回)。
+#   · faceKey ∉ 本轮候选 但 ∈ 季度快照 = 【真漏召回】(正当红线3)。
+#   · faceKey 既 ∉ 候选、也 ∉ 快照 = 【锚失效】(金标锚过时/换季刷新未跟上)→ 告警,不算红线3。
+#   · 一条 faceKey 命中同故事内 ≥2 候选 = 【多命中·题库重题】→ 不静默选,单列告警。
+not_recalled, anchor_invalid, multi_hit = [], [], []
+for st in gold_stories:
+    _cbf = cand_by_face(st)
+    for _face, _b in gold_map[st['storyId']].items():
+        _cs = _cbf.get(_face, [])
+        if len(_cs) >= 2:
+            multi_hit.append((st['storyId'], _face, _b, [score_of(c) for c in _cs]))
+        if _b is None:
+            continue                      # 缓标:不算红线3
+        if len(_cs) >= 1:
+            continue                      # 已召回(含多命中,另行告警)
+        if _face in snap_faces:
+            not_recalled.append((st['storyId'], _face, _b))     # 真漏召回
+        else:
+            anchor_invalid.append((st['storyId'], _face, _b))   # 锚失效
+check_max('红线3 金标未召回数(真漏·非null∉候选∈快照)', len(not_recalled), BASE['ranking_gold_not_recalled_max'])
 for s, q, b in not_recalled[:10]:
-    report.append(f"    ↳ 未召回 {s} {q[:8]} 金标={b}")
+    report.append(f"    ↳ 真漏召回 {s} {q[:40]} 金标={b}")
+report.append(f"    ↳ 锚失效 {len(anchor_invalid)} 条(∉快照,不算红线3,金标锚过时/换季刷新未跟上):")
+for s, q, b in anchor_invalid[:10]:
+    warns.append('锚失效')
+    report.append(f"        ⚠️ {s} {q[:40]} 金标={b}")
+report.append(f"    ↳ 多命中 {len(multi_hit)} 条(题库重题,一条金标 faceKey 命中同故事 ≥2 候选,不静默选):")
+for s, q, b, scs in multi_hit[:10]:
+    warns.append('多命中题库重题')
+    report.append(f"        ⚠️ {s} {q[:40]} 金标={b} 各候选分={scs} —— 请核题库去重")
 
 # ── 红线5 · 真丢【集合包含】(金标有高/中,却全部候选<60 → 用户看到空屏) ──────
 # 2026-07-17 钉板:钉 true_loss ⊆ {S051},不钉计数。
@@ -260,14 +332,16 @@ report.append(f"    ↳ 正确空屏 {len(correct_empty)} 个 —— 【不设�
               f"——降它最省事的办法是放宽阈值,那是刷分。』")
 
 # ── 红线6 · 金标缺口项数(金标没标的新题冒进可见区) ───────────────────────────
-gap = [(st['storyId'], c['questionId']) for st in gold_stories for c in (st.get('candidates') or [])
-       if visible(c) and c['questionId'] not in gold_map[st['storyId']]]
+# ⛔ 2026-08-02:「未标」判定改按 faceKey——缓标(None)的 faceKey 也在 gold_map 里(值为 None),
+#    故缓标候选不会被误判为缺口(它已被标,只是本季缓标)。缺口 = faceKey 根本不在金标 label 里。
+gap = [(st['storyId'], c['questionId'], c['faceKey']) for st in gold_stories for c in (st.get('candidates') or [])
+       if visible(c) and c['faceKey'] not in gold_map[st['storyId']]]
 check_max('红线6 金标缺口项数', len(gap), BASE['ranking_gold_gap_max'])
 if gap:
     warns.append('金标缺口非零')
     report.append(f"    ⚠️ 缺口非零 → 该补标(告警口径已改为【非零即报】,取代旧的10%阈值):")
-    for s, q in gap[:10]:
-        report.append(f"    ↳ 可见未标 {s} {q[:8]}")
+    for s, q, face in gap[:10]:
+        report.append(f"    ↳ 可见未标 {s} {face[:40]}")
 
 # ── 红线7A · 隐藏档冒进可见区(金标=隐藏 且 AI≥60 的【条目】集合,必须为空) ─────
 # 一道「答非所问」的题冒进可见区 = 产品不变式 #1(不许骗)的直接违反。
@@ -280,19 +354,30 @@ if gap:
 #     除 S074/f91 外,隐藏档 51 条每轮最高分 [40,35,40,55,40,40],六轮最高 55 → 距 60 线仅 5 分。
 #     **误 FAIL 风险实测存在,不是零。** 接受它的理由与红线5 同(误FAIL 只触发复跑协议),但论证强度弱一个数量级。
 # 刷分推演:想刷它 = 压低隐藏档 = 正是我们要的。**这条线不可刷。**
-hidden_inf = [(st['storyId'], c['questionId']) for st in gold_stories for c in (st.get('candidates') or [])
-              if visible(c) and gold_map[st['storyId']].get(c['questionId']) == '隐藏']
-_hid_allowed = set(tuple(x.split('/')) for x in BASE['ranking_hidden_inflation_subset_of'])
-_hid_got = {(s, q[:8]) for s, q in hidden_inf}
+# ⛔ 2026-08-02:join 改 faceKey,遍历【金标隐藏 label】,要求唯一命中(多命中另行告警)。
+#    论域从 v1 的隐藏 51 条,变为 v3 的隐藏 1 条已标(其余 85 条隐藏抽样为缓标 None,不入 7A 论域)。
+#    ⚠️⚠️ subset_of 的成员集是【产品判断】,本次 faceKey 改造【不改其值】(仍为 []),仅改 join 口径。
+#         论域已变——旧成员格式为 'S0xx/questionId[:8]'(库内 UUID),v3 若需非空成员应改 faceKey 格式;
+#         当前值 [] 无成员,格式无冲突。是否仍取 [] 由产品方确认(见 BASELINE.json 待确认项)。
+hidden_inf = []
+for st in gold_stories:
+    _cbf = cand_by_face(st)
+    for _face, _b in gold_map[st['storyId']].items():
+        if _b != '隐藏':
+            continue
+        _cs = _cbf.get(_face, [])
+        if len(_cs) == 1 and visible(_cs[0]):
+            hidden_inf.append((st['storyId'], _face, score_of(_cs[0])))
+_hid_allowed = set(BASE['ranking_hidden_inflation_subset_of'])   # faceKey 成员集(当前 [])
+_hid_got = {f"{s}/{face}" for s, face, _ in hidden_inf}
 _hid_out = _hid_got - _hid_allowed
 _hid_ok = not _hid_out
-report.append(f"红线7A 隐藏档冒进可见区: {sorted('/'.join(x) for x in _hid_got)} "
-              f"(必须 ⊆ {sorted('/'.join(x) for x in _hid_allowed) or '∅'}) {'PASS' if _hid_ok else 'FAIL'}")
+report.append(f"红线7A 隐藏档冒进可见区: {sorted(f'{s}/{face[:30]}' for s, face, _ in hidden_inf)} "
+              f"(必须 ⊆ {sorted(_hid_allowed) or '∅'}) {'PASS' if _hid_ok else 'FAIL'}")
 if not _hid_ok:
     fails.append('红线7A 隐藏档冒进可见区')
-    for s, q in sorted(hidden_inf):
-        sc_ = next(score_of(c) for c in gold_stories_by_id[s]['candidates'] if c['questionId'] == q)
-        report.append(f"    ❌ {s} {q[:8]} 金标=隐藏(答非所问) 却得 {sc_} 分 → 冒进可见区"
+    for s, face, sc_ in sorted(hidden_inf):
+        report.append(f"    ❌ {s} {face[:40]} 金标=隐藏(答非所问) 却得 {sc_} 分 → 冒进可见区"
                       f" —— 违反产品不变式 #1(不许骗)")
     report.append(f"    ⚠️ 本条【当前基线自己 FAIL】是产品方明知并选择的:『承认当前不合格,先修再钉』。")
     report.append(f"       修的是 S074/f9119694 的标定,**不是这条红线**。不许放宽它来换绿。")
@@ -302,16 +387,19 @@ if not _hid_ok:
 if BASE.get('ranking_gold_high_margin_watch'):
     report.append("  ── 金标高余量观察(离85线的距离;不作PASS/FAIL) ──")
     for st in gold_stories:
-        for q, b in gold_map[st['storyId']].items():
+        _cbf = cand_by_face(st)          # 2026-08-02:按 faceKey 取候选
+        for face, b in gold_map[st['storyId']].items():
             if b != '高': continue
-            m = [score_of(c) for c in (st.get('candidates') or []) if c['questionId'] == q]
-            s = m[0] if m else None
+            cs = _cbf.get(face, [])
+            if len(cs) != 1:
+                report.append(f"    {st['storyId']} {face[:30]}  {'多命中' if len(cs) > 1 else '未召回/未打分'}  ❌"); continue
+            s = score_of(cs[0])
             if s is None:
-                report.append(f"    {st['storyId']} {q[:8]}  未召回/未打分  ❌"); continue
+                report.append(f"    {st['storyId']} {face[:30]}  未打分  ❌"); continue
             margin = s - SCORE_HIGH
             flag = '  ⚠️ 贴线' if 0 <= margin <= 2 else ('  ❌ 未进高档' if margin < 0 else '')
             if flag: warns.append(f"余量 {st['storyId']}")
-            report.append(f"    {st['storyId']} {q[:8]}  分数 {s}  余量 {margin:+d}{flag}")
+            report.append(f"    {st['storyId']} {face[:30]}  分数 {s}  余量 {margin:+d}{flag}")
 
 # ── 观察项 · 虚高构成(设计官拒绝钉板,主会话接受;三样缺一则本条无意义) ────────
 # 六轮 [6,6,8,8,11,7]:按 n=3 最坏值会钉 ≤8,而轮5 是 11 → 当场 FAIL。
@@ -321,20 +409,23 @@ if BASE.get('ranking_gold_high_margin_watch'):
 # (3) 的理由:≥80 六轮恒 4,**极差 0 是假的** —— 3 条恒定 + 1 个轮换位(S096/S016/S044/S061/S096)。
 #   『如果我不做构成核对,我会提「≥80 虚高六轮恒 4,钉 ≤4,极差 0,超稳」——那会是
 #     首屏精确率 50.0/50.0/50.0 的字面复现,只是这次写提案的人是我。』
-infl = sorted([(st['storyId'], c['questionId'][:8], score_of(c)) for st in gold_stories
+# ⛔ 2026-08-02:join 改 faceKey,金标档由 gold_map[story][faceKey] 直接取(不再 startswith 猜 questionId)。
+#    ⚠️ _观察_虚高历史并集_条目 是 v1 库时代的 'storyId/questionId[:8]',与 faceKey 不可比——(2) 的「本轮新增」
+#       在换季首轮会把全部条目判为新(历史并集失配),这是预期的:该并集需按 faceKey 在 v3 下重新累积(观察项,不 FAIL)。
+infl = sorted([(st['storyId'], c['faceKey'], score_of(c)) for st in gold_stories
                for c in (st.get('candidates') or [])
-               if visible(c) and gold_map[st['storyId']].get(c['questionId']) in ('低', '隐藏')],
+               if visible(c) and gold_map[st['storyId']].get(c['faceKey']) in ('低', '隐藏')],
               key=lambda x: -x[2])
 _hist = set(BASE.get('_观察_虚高历史并集_条目', []))
 report.append("  ── 观察:虚高构成(🔴 不作PASS/FAIL —— 并集未收敛,不钉板) ──")
-report.append(f"    (1) 虚高计数: {len(infl)}  [六轮实测 6/6/8/8/11/7,不设线]  构成:")
-for s, q, sc_ in infl:
-    report.append(f"        {s}/{q}  {sc_}分  金标={gold_map[s].get(next(k for k in gold_map[s] if k.startswith(q)))}")
-_new = [f"{s}/{q}" for s, q, _ in infl if f"{s}/{q}" not in _hist]
-report.append(f"    (2) 本轮新增(历史 {len(_hist)} 条并集里从未见过): {_new or '无'}"
+report.append(f"    (1) 虚高计数: {len(infl)}  [v1 六轮 6/6/8/8/11/7,v3 换季不可比·重新累积中]  构成:")
+for s, face, sc_ in infl:
+    report.append(f"        {s}/{face[:30]}  {sc_}分  金标={gold_map[s].get(face)}")
+_new = [f"{s}/{face[:30]}" for s, face, _ in infl if f"{s}/{face}" not in _hist]
+report.append(f"    (2) 本轮新增(历史 {len(_hist)} 条并集里从未见过,⚠️ 历史为 v1 questionId 口径·换季首轮全判新): {_new or '无'}"
               f"  ← 并集增长曲线的在线版,**是判断收敛的唯一途径**")
 for cut in (80, 85):
-    sub = [f"{s}/{q}({sc_})" for s, q, sc_ in infl if sc_ >= cut]
+    sub = [f"{s}/{face[:24]}({sc_})" for s, face, sc_ in infl if sc_ >= cut]
     report.append(f"    (3) ≥{cut} 虚高: {len(sub)} 条 —— 构成 {sub or '无'}"
                   f"  ⚠️ 极差 0/1 是假的(3恒定+1轮换),**必须看构成不看计数**")
 

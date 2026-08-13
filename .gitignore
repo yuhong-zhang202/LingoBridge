@@ -71,6 +71,5 @@ ds-bundle/
 网站/
 design-reference/
 UI /
-# vercel/：Vercel 时代遗留，内含账号恢复码（secret）。项目已改用 Zeabur。
-# ⚠️ gitignore 只挡 git，挡不住打包 / 网盘同步 / git add -f —— 该目录应移出仓库目录。
-vercel/
+# ⚠️ 顶部 /vercel/ 已覆盖该目录（内含账号恢复码 secret）；gitignore 只挡 git，
+#    挡不住打包 / 网盘同步 / git add -f —— 该目录应移出仓库目录。
