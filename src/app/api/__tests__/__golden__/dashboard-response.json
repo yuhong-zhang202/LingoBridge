@@ -1,0 +1,3524 @@
+{
+  "7d": {
+    "feedback": {
+      "handledSupported": false,
+      "unhandled": [],
+      "handled": [],
+      "unhandledCount": 0,
+      "handledCount": 0,
+      "loadFailed": true
+    },
+    "allTimeCost": 1.6,
+    "allTimeCalls": 3,
+    "monthCost": 1.1,
+    "monthLabel": "8月",
+    "monthCalls": 2,
+    "monthChange": 120,
+    "todayCost": 1.1,
+    "todayCalls": 5,
+    "registeredActiveToday": 0,
+    "anonSessionsToday": 1,
+    "practiceNew": 1,
+    "practiceReview": 1,
+    "practiceTotal": 2,
+    "todayFailuresByPhase": [
+      {
+        "phase": "教练对话",
+        "count": 1
+      }
+    ],
+    "todayFailuresTotal": 1,
+    "emptyRecordingToday": 1,
+    "newRegistrationsToday": 1,
+    "newRegistrationsWindow": 3,
+    "newRegistrationsPending": false,
+    "avgDailyCalls": 0.71,
+    "p50Latency": 2500,
+    "p95Latency": 2950,
+    "errorRate": 20,
+    "avgDailyCost": 0.16,
+    "failedCost": 0.2,
+    "estimateRatio": 18.18,
+    "dailyBudget": 20,
+    "serviceTotals": [
+      {
+        "service": "doubao_asr",
+        "name": "豆包 ASR",
+        "color": "#D4875A",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_flash",
+        "name": "千问 Qwen",
+        "color": "#7BA699",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_plus",
+        "name": "千问 Plus",
+        "color": "#6FA8C8",
+        "cost": 0,
+        "calls": 0
+      }
+    ],
+    "phaseTotals": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "cost": 0.4,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "cost": 0.3,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "cost": 0.2,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "coach",
+        "name": "教练对话",
+        "cost": 0.15,
+        "calls": 1,
+        "errors": 1,
+        "errorCost": 0.15,
+        "errorRate": 100
+      },
+      {
+        "phase": "transcribe",
+        "name": "语音转写",
+        "cost": 0.05,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0.05,
+        "errorRate": 0
+      }
+    ],
+    "userTotals": [
+      {
+        "userId": "11111111-1111-4111-8111-111111111111",
+        "isAnonymous": false,
+        "cost": 1.1,
+        "calls": 1
+      },
+      {
+        "userId": "22222222-2222-4222-8222-222222222222",
+        "isAnonymous": true,
+        "cost": 0.45,
+        "calls": 1
+      }
+    ],
+    "anonymousCost": 0.45,
+    "loggedInCost": 1.1,
+    "userIdentityPending": false,
+    "dailyData": [
+      {
+        "date": "8/4",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/5",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/6",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/7",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/8",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/9",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/10",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 1.1
+      }
+    ],
+    "dailyFailures": [
+      {
+        "date": "8/4",
+        "failures": 0
+      },
+      {
+        "date": "8/5",
+        "failures": 0
+      },
+      {
+        "date": "8/6",
+        "failures": 0
+      },
+      {
+        "date": "8/7",
+        "failures": 0
+      },
+      {
+        "date": "8/8",
+        "failures": 0
+      },
+      {
+        "date": "8/9",
+        "failures": 0
+      },
+      {
+        "date": "8/10",
+        "failures": 1
+      }
+    ],
+    "engagementTrend": [
+      {
+        "date": "8/4",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/5",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/6",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/7",
+        "activeUsers": 0,
+        "practiceSessions": 1,
+        "newReg": null
+      },
+      {
+        "date": "8/8",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/9",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/10",
+        "activeUsers": 0,
+        "practiceSessions": 2,
+        "newReg": null
+      }
+    ],
+    "retention": {
+      "d1Rate": 0.4,
+      "d1N": 10,
+      "d7Rate": 0.2,
+      "d7N": 10
+    },
+    "retentionPending": false,
+    "activation": {
+      "registeredTotal": 9,
+      "activatedTotal": 5,
+      "cohortTotal": 8,
+      "cohortActivated": 4
+    },
+    "activationPending": false,
+    "weeklyRetention": {
+      "w1N": 8,
+      "w1Ret": 3,
+      "w1Rate": 0.375
+    },
+    "weeklyRetentionPending": false,
+    "windowCoreActive": 2,
+    "windowCoreApprox": true,
+    "activePending": false,
+    "fakeEmpty": {
+      "rate": 0,
+      "n": 1,
+      "fakeCount": 0
+    },
+    "fakeEmptyPending": false,
+    "fakeEmptyThreshold": 0.15,
+    "cohortReturns": {
+      "days": [
+        {
+          "dateLabel": "8/4",
+          "registered": 1,
+          "d1Pending": false,
+          "d1Returned": 0,
+          "totalReturned": 1
+        }
+      ],
+      "emptyDays": 6,
+      "truncated": false
+    },
+    "pageViewStats": [
+      {
+        "route": "library",
+        "views": 2,
+        "users": 2
+      },
+      {
+        "route": "home",
+        "views": 1,
+        "users": 1
+      }
+    ],
+    "pageViewsTruncated": false,
+    "phaseLatency": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "p50": 3000,
+        "p90": 3000,
+        "max": 3000,
+        "calls": 1
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "p50": 2500,
+        "p90": 2500,
+        "max": 2500,
+        "calls": 1
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "p50": 900,
+        "p90": 900,
+        "max": 900,
+        "calls": 1
+      }
+    ],
+    "latencyTrend": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "days": [
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 3000,
+            "p90": 3000,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "days": [
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 2500,
+            "p90": 2500,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "days": [
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 900,
+            "p90": 900,
+            "calls": 1
+          }
+        ]
+      }
+    ],
+    "latencyCutoff": "2026-07-21",
+    "latencyWarnMs": 30000,
+    "todayStatus": {
+      "todayFailures": 1,
+      "avgDailyFailures7": 0.14,
+      "avgDailyCost7": 0.16,
+      "slowestPhase": {
+        "name": "练习转写",
+        "p90": 3000
+      }
+    },
+    "hourlyData": [
+      {
+        "hour": "0:00",
+        "calls": 0
+      },
+      {
+        "hour": "1:00",
+        "calls": 0
+      },
+      {
+        "hour": "2:00",
+        "calls": 5
+      },
+      {
+        "hour": "3:00",
+        "calls": 0
+      },
+      {
+        "hour": "4:00",
+        "calls": 0
+      },
+      {
+        "hour": "5:00",
+        "calls": 0
+      },
+      {
+        "hour": "6:00",
+        "calls": 0
+      },
+      {
+        "hour": "7:00",
+        "calls": 0
+      },
+      {
+        "hour": "8:00",
+        "calls": 0
+      },
+      {
+        "hour": "9:00",
+        "calls": 0
+      },
+      {
+        "hour": "10:00",
+        "calls": 0
+      },
+      {
+        "hour": "11:00",
+        "calls": 0
+      },
+      {
+        "hour": "12:00",
+        "calls": 0
+      },
+      {
+        "hour": "13:00",
+        "calls": 0
+      },
+      {
+        "hour": "14:00",
+        "calls": 0
+      },
+      {
+        "hour": "15:00",
+        "calls": 0
+      },
+      {
+        "hour": "16:00",
+        "calls": 0
+      },
+      {
+        "hour": "17:00",
+        "calls": 0
+      },
+      {
+        "hour": "18:00",
+        "calls": 0
+      },
+      {
+        "hour": "19:00",
+        "calls": 0
+      },
+      {
+        "hour": "20:00",
+        "calls": 0
+      },
+      {
+        "hour": "21:00",
+        "calls": 0
+      },
+      {
+        "hour": "22:00",
+        "calls": 0
+      },
+      {
+        "hour": "23:00",
+        "calls": 0
+      }
+    ],
+    "recentLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "costlyLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "failedLogs": [
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        },
+        "userIdShort": "22222222",
+        "isAnonymous": true
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        },
+        "userIdShort": "11111111",
+        "isAnonymous": false
+      }
+    ],
+    "dataTruncated": false,
+    "costQaBaselineStart": "2026-08-08"
+  },
+  "14d": {
+    "feedback": {
+      "handledSupported": false,
+      "unhandled": [],
+      "handled": [],
+      "unhandledCount": 0,
+      "handledCount": 0,
+      "loadFailed": true
+    },
+    "allTimeCost": 1.6,
+    "allTimeCalls": 3,
+    "monthCost": 1.1,
+    "monthLabel": "8月",
+    "monthCalls": 2,
+    "monthChange": 120,
+    "todayCost": 1.1,
+    "todayCalls": 5,
+    "registeredActiveToday": 0,
+    "anonSessionsToday": 1,
+    "practiceNew": 1,
+    "practiceReview": 1,
+    "practiceTotal": 2,
+    "todayFailuresByPhase": [
+      {
+        "phase": "教练对话",
+        "count": 1
+      }
+    ],
+    "todayFailuresTotal": 1,
+    "emptyRecordingToday": 1,
+    "newRegistrationsToday": 1,
+    "newRegistrationsWindow": 3,
+    "newRegistrationsPending": false,
+    "avgDailyCalls": 0.36,
+    "p50Latency": 2500,
+    "p95Latency": 2950,
+    "errorRate": 20,
+    "avgDailyCost": 0.08,
+    "failedCost": 0.2,
+    "estimateRatio": 18.18,
+    "dailyBudget": 20,
+    "serviceTotals": [
+      {
+        "service": "doubao_asr",
+        "name": "豆包 ASR",
+        "color": "#D4875A",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_flash",
+        "name": "千问 Qwen",
+        "color": "#7BA699",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_plus",
+        "name": "千问 Plus",
+        "color": "#6FA8C8",
+        "cost": 0,
+        "calls": 0
+      }
+    ],
+    "phaseTotals": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "cost": 0.4,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "cost": 0.3,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "cost": 0.2,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "coach",
+        "name": "教练对话",
+        "cost": 0.15,
+        "calls": 1,
+        "errors": 1,
+        "errorCost": 0.15,
+        "errorRate": 100
+      },
+      {
+        "phase": "transcribe",
+        "name": "语音转写",
+        "cost": 0.05,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0.05,
+        "errorRate": 0
+      }
+    ],
+    "userTotals": [
+      {
+        "userId": "11111111-1111-4111-8111-111111111111",
+        "isAnonymous": false,
+        "cost": 1.1,
+        "calls": 1
+      },
+      {
+        "userId": "22222222-2222-4222-8222-222222222222",
+        "isAnonymous": true,
+        "cost": 0.45,
+        "calls": 1
+      }
+    ],
+    "anonymousCost": 0.45,
+    "loggedInCost": 1.1,
+    "userIdentityPending": false,
+    "dailyData": [
+      {
+        "date": "7/28",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/29",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/30",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/31",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/1",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/2",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/3",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/4",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/5",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/6",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/7",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/8",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/9",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/10",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 1.1
+      }
+    ],
+    "dailyFailures": [
+      {
+        "date": "7/28",
+        "failures": 0
+      },
+      {
+        "date": "7/29",
+        "failures": 0
+      },
+      {
+        "date": "7/30",
+        "failures": 0
+      },
+      {
+        "date": "7/31",
+        "failures": 0
+      },
+      {
+        "date": "8/1",
+        "failures": 0
+      },
+      {
+        "date": "8/2",
+        "failures": 0
+      },
+      {
+        "date": "8/3",
+        "failures": 0
+      },
+      {
+        "date": "8/4",
+        "failures": 0
+      },
+      {
+        "date": "8/5",
+        "failures": 0
+      },
+      {
+        "date": "8/6",
+        "failures": 0
+      },
+      {
+        "date": "8/7",
+        "failures": 0
+      },
+      {
+        "date": "8/8",
+        "failures": 0
+      },
+      {
+        "date": "8/9",
+        "failures": 0
+      },
+      {
+        "date": "8/10",
+        "failures": 1
+      }
+    ],
+    "engagementTrend": [
+      {
+        "date": "7/28",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/29",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/30",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/31",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/1",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/2",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/3",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/4",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/5",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/6",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/7",
+        "activeUsers": 0,
+        "practiceSessions": 1,
+        "newReg": null
+      },
+      {
+        "date": "8/8",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/9",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/10",
+        "activeUsers": 0,
+        "practiceSessions": 2,
+        "newReg": null
+      }
+    ],
+    "retention": {
+      "d1Rate": 0.4,
+      "d1N": 10,
+      "d7Rate": 0.2,
+      "d7N": 10
+    },
+    "retentionPending": false,
+    "activation": {
+      "registeredTotal": 9,
+      "activatedTotal": 5,
+      "cohortTotal": 8,
+      "cohortActivated": 4
+    },
+    "activationPending": false,
+    "weeklyRetention": {
+      "w1N": 8,
+      "w1Ret": 3,
+      "w1Rate": 0.375
+    },
+    "weeklyRetentionPending": false,
+    "windowCoreActive": 2,
+    "windowCoreApprox": true,
+    "activePending": false,
+    "fakeEmpty": {
+      "rate": 0,
+      "n": 1,
+      "fakeCount": 0
+    },
+    "fakeEmptyPending": false,
+    "fakeEmptyThreshold": 0.15,
+    "cohortReturns": {
+      "days": [
+        {
+          "dateLabel": "8/4",
+          "registered": 1,
+          "d1Pending": false,
+          "d1Returned": 0,
+          "totalReturned": 1
+        }
+      ],
+      "emptyDays": 6,
+      "truncated": false
+    },
+    "pageViewStats": [
+      {
+        "route": "library",
+        "views": 2,
+        "users": 2
+      },
+      {
+        "route": "home",
+        "views": 1,
+        "users": 1
+      }
+    ],
+    "pageViewsTruncated": false,
+    "phaseLatency": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "p50": 3000,
+        "p90": 3000,
+        "max": 3000,
+        "calls": 1
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "p50": 2500,
+        "p90": 2500,
+        "max": 2500,
+        "calls": 1
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "p50": 900,
+        "p90": 900,
+        "max": 900,
+        "calls": 1
+      }
+    ],
+    "latencyTrend": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "days": [
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 3000,
+            "p90": 3000,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "days": [
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 2500,
+            "p90": 2500,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "days": [
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 900,
+            "p90": 900,
+            "calls": 1
+          }
+        ]
+      }
+    ],
+    "latencyCutoff": "2026-07-21",
+    "latencyWarnMs": 30000,
+    "todayStatus": {
+      "todayFailures": 1,
+      "avgDailyFailures7": 0.14,
+      "avgDailyCost7": 0.16,
+      "slowestPhase": {
+        "name": "练习转写",
+        "p90": 3000
+      }
+    },
+    "hourlyData": [
+      {
+        "hour": "0:00",
+        "calls": 0
+      },
+      {
+        "hour": "1:00",
+        "calls": 0
+      },
+      {
+        "hour": "2:00",
+        "calls": 5
+      },
+      {
+        "hour": "3:00",
+        "calls": 0
+      },
+      {
+        "hour": "4:00",
+        "calls": 0
+      },
+      {
+        "hour": "5:00",
+        "calls": 0
+      },
+      {
+        "hour": "6:00",
+        "calls": 0
+      },
+      {
+        "hour": "7:00",
+        "calls": 0
+      },
+      {
+        "hour": "8:00",
+        "calls": 0
+      },
+      {
+        "hour": "9:00",
+        "calls": 0
+      },
+      {
+        "hour": "10:00",
+        "calls": 0
+      },
+      {
+        "hour": "11:00",
+        "calls": 0
+      },
+      {
+        "hour": "12:00",
+        "calls": 0
+      },
+      {
+        "hour": "13:00",
+        "calls": 0
+      },
+      {
+        "hour": "14:00",
+        "calls": 0
+      },
+      {
+        "hour": "15:00",
+        "calls": 0
+      },
+      {
+        "hour": "16:00",
+        "calls": 0
+      },
+      {
+        "hour": "17:00",
+        "calls": 0
+      },
+      {
+        "hour": "18:00",
+        "calls": 0
+      },
+      {
+        "hour": "19:00",
+        "calls": 0
+      },
+      {
+        "hour": "20:00",
+        "calls": 0
+      },
+      {
+        "hour": "21:00",
+        "calls": 0
+      },
+      {
+        "hour": "22:00",
+        "calls": 0
+      },
+      {
+        "hour": "23:00",
+        "calls": 0
+      }
+    ],
+    "recentLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "costlyLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "failedLogs": [
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        },
+        "userIdShort": "22222222",
+        "isAnonymous": true
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        },
+        "userIdShort": "11111111",
+        "isAnonymous": false
+      }
+    ],
+    "dataTruncated": false,
+    "costQaBaselineStart": "2026-08-08"
+  },
+  "30d": {
+    "feedback": {
+      "handledSupported": false,
+      "unhandled": [],
+      "handled": [],
+      "unhandledCount": 0,
+      "handledCount": 0,
+      "loadFailed": true
+    },
+    "allTimeCost": 1.6,
+    "allTimeCalls": 3,
+    "monthCost": 1.1,
+    "monthLabel": "8月",
+    "monthCalls": 2,
+    "monthChange": 120,
+    "todayCost": 1.1,
+    "todayCalls": 5,
+    "registeredActiveToday": 0,
+    "anonSessionsToday": 1,
+    "practiceNew": 1,
+    "practiceReview": 1,
+    "practiceTotal": 2,
+    "todayFailuresByPhase": [
+      {
+        "phase": "教练对话",
+        "count": 1
+      }
+    ],
+    "todayFailuresTotal": 1,
+    "emptyRecordingToday": 1,
+    "newRegistrationsToday": 1,
+    "newRegistrationsWindow": 3,
+    "newRegistrationsPending": false,
+    "avgDailyCalls": 0.17,
+    "p50Latency": 2500,
+    "p95Latency": 2950,
+    "errorRate": 20,
+    "avgDailyCost": 0.04,
+    "failedCost": 0.2,
+    "estimateRatio": 18.18,
+    "dailyBudget": 20,
+    "serviceTotals": [
+      {
+        "service": "doubao_asr",
+        "name": "豆包 ASR",
+        "color": "#D4875A",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_flash",
+        "name": "千问 Qwen",
+        "color": "#7BA699",
+        "cost": 0,
+        "calls": 0
+      },
+      {
+        "service": "qwen_plus",
+        "name": "千问 Plus",
+        "color": "#6FA8C8",
+        "cost": 0,
+        "calls": 0
+      }
+    ],
+    "phaseTotals": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "cost": 0.4,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "cost": 0.3,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "cost": 0.2,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0,
+        "errorRate": 0
+      },
+      {
+        "phase": "coach",
+        "name": "教练对话",
+        "cost": 0.15,
+        "calls": 1,
+        "errors": 1,
+        "errorCost": 0.15,
+        "errorRate": 100
+      },
+      {
+        "phase": "transcribe",
+        "name": "语音转写",
+        "cost": 0.05,
+        "calls": 1,
+        "errors": 0,
+        "errorCost": 0.05,
+        "errorRate": 0
+      }
+    ],
+    "userTotals": [
+      {
+        "userId": "11111111-1111-4111-8111-111111111111",
+        "isAnonymous": false,
+        "cost": 1.1,
+        "calls": 1
+      },
+      {
+        "userId": "22222222-2222-4222-8222-222222222222",
+        "isAnonymous": true,
+        "cost": 0.45,
+        "calls": 1
+      }
+    ],
+    "anonymousCost": 0.45,
+    "loggedInCost": 1.1,
+    "userIdentityPending": false,
+    "dailyData": [
+      {
+        "date": "7/12",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/13",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/14",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/15",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/16",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/17",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/18",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/19",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/20",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/21",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/22",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/23",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/24",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/25",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/26",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/27",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/28",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/29",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/30",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "7/31",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/1",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/2",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/3",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/4",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/5",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/6",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/7",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/8",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/9",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 0
+      },
+      {
+        "date": "8/10",
+        "doubao_asr": 0,
+        "qwen_flash": 0,
+        "qwen_plus": 0,
+        "total": 1.1
+      }
+    ],
+    "dailyFailures": [
+      {
+        "date": "7/12",
+        "failures": 0
+      },
+      {
+        "date": "7/13",
+        "failures": 0
+      },
+      {
+        "date": "7/14",
+        "failures": 0
+      },
+      {
+        "date": "7/15",
+        "failures": 0
+      },
+      {
+        "date": "7/16",
+        "failures": 0
+      },
+      {
+        "date": "7/17",
+        "failures": 0
+      },
+      {
+        "date": "7/18",
+        "failures": 0
+      },
+      {
+        "date": "7/19",
+        "failures": 0
+      },
+      {
+        "date": "7/20",
+        "failures": 0
+      },
+      {
+        "date": "7/21",
+        "failures": 0
+      },
+      {
+        "date": "7/22",
+        "failures": 0
+      },
+      {
+        "date": "7/23",
+        "failures": 0
+      },
+      {
+        "date": "7/24",
+        "failures": 0
+      },
+      {
+        "date": "7/25",
+        "failures": 0
+      },
+      {
+        "date": "7/26",
+        "failures": 0
+      },
+      {
+        "date": "7/27",
+        "failures": 0
+      },
+      {
+        "date": "7/28",
+        "failures": 0
+      },
+      {
+        "date": "7/29",
+        "failures": 0
+      },
+      {
+        "date": "7/30",
+        "failures": 0
+      },
+      {
+        "date": "7/31",
+        "failures": 0
+      },
+      {
+        "date": "8/1",
+        "failures": 0
+      },
+      {
+        "date": "8/2",
+        "failures": 0
+      },
+      {
+        "date": "8/3",
+        "failures": 0
+      },
+      {
+        "date": "8/4",
+        "failures": 0
+      },
+      {
+        "date": "8/5",
+        "failures": 0
+      },
+      {
+        "date": "8/6",
+        "failures": 0
+      },
+      {
+        "date": "8/7",
+        "failures": 0
+      },
+      {
+        "date": "8/8",
+        "failures": 0
+      },
+      {
+        "date": "8/9",
+        "failures": 0
+      },
+      {
+        "date": "8/10",
+        "failures": 1
+      }
+    ],
+    "engagementTrend": [
+      {
+        "date": "7/12",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/13",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/14",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/15",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/16",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/17",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/18",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/19",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/20",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/21",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/22",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/23",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/24",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/25",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/26",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/27",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/28",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/29",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/30",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "7/31",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/1",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/2",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/3",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/4",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/5",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/6",
+        "activeUsers": 0,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/7",
+        "activeUsers": 0,
+        "practiceSessions": 1,
+        "newReg": null
+      },
+      {
+        "date": "8/8",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/9",
+        "activeUsers": null,
+        "practiceSessions": 0,
+        "newReg": null
+      },
+      {
+        "date": "8/10",
+        "activeUsers": 0,
+        "practiceSessions": 2,
+        "newReg": null
+      }
+    ],
+    "retention": {
+      "d1Rate": 0.4,
+      "d1N": 10,
+      "d7Rate": 0.2,
+      "d7N": 10
+    },
+    "retentionPending": false,
+    "activation": {
+      "registeredTotal": 9,
+      "activatedTotal": 5,
+      "cohortTotal": 8,
+      "cohortActivated": 4
+    },
+    "activationPending": false,
+    "weeklyRetention": {
+      "w1N": 8,
+      "w1Ret": 3,
+      "w1Rate": 0.375
+    },
+    "weeklyRetentionPending": false,
+    "windowCoreActive": 2,
+    "windowCoreApprox": true,
+    "activePending": false,
+    "fakeEmpty": {
+      "rate": 0,
+      "n": 1,
+      "fakeCount": 0
+    },
+    "fakeEmptyPending": false,
+    "fakeEmptyThreshold": 0.15,
+    "cohortReturns": {
+      "days": [
+        {
+          "dateLabel": "8/4",
+          "registered": 1,
+          "d1Pending": false,
+          "d1Returned": 0,
+          "totalReturned": 1
+        }
+      ],
+      "emptyDays": 6,
+      "truncated": false
+    },
+    "pageViewStats": [
+      {
+        "route": "library",
+        "views": 2,
+        "users": 2
+      },
+      {
+        "route": "home",
+        "views": 1,
+        "users": 1
+      }
+    ],
+    "pageViewsTruncated": false,
+    "phaseLatency": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "p50": 3000,
+        "p90": 3000,
+        "max": 3000,
+        "calls": 1
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "p50": 2500,
+        "p90": 2500,
+        "max": 2500,
+        "calls": 1
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "p50": 900,
+        "p90": 900,
+        "max": 900,
+        "calls": 1
+      }
+    ],
+    "latencyTrend": [
+      {
+        "phase": "transcribe_practice",
+        "name": "练习转写",
+        "days": [
+          {
+            "date": "7/12",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/13",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/14",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/15",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/16",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/17",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/18",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/19",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/20",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/21",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/22",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/23",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/24",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/25",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/26",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/27",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 3000,
+            "p90": 3000,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "analysis",
+        "name": "侧重点分析",
+        "days": [
+          {
+            "date": "7/12",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/13",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/14",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/15",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/16",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/17",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/18",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/19",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/20",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/21",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/22",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/23",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/24",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/25",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/26",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/27",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 2500,
+            "p90": 2500,
+            "calls": 1
+          }
+        ]
+      },
+      {
+        "phase": "matching",
+        "name": "匹配",
+        "days": [
+          {
+            "date": "7/12",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/13",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/14",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/15",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/16",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/17",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/18",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/19",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/20",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/21",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/22",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/23",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/24",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/25",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/26",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/27",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/28",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/29",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/30",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "7/31",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/1",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/2",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/3",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/4",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/5",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/6",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/7",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/8",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/9",
+            "p50": null,
+            "p90": null,
+            "calls": 0
+          },
+          {
+            "date": "8/10",
+            "p50": 900,
+            "p90": 900,
+            "calls": 1
+          }
+        ]
+      }
+    ],
+    "latencyCutoff": "2026-07-21",
+    "latencyWarnMs": 30000,
+    "todayStatus": {
+      "todayFailures": 1,
+      "avgDailyFailures7": 0.14,
+      "avgDailyCost7": 0.16,
+      "slowestPhase": {
+        "name": "练习转写",
+        "p90": 3000
+      }
+    },
+    "hourlyData": [
+      {
+        "hour": "0:00",
+        "calls": 0
+      },
+      {
+        "hour": "1:00",
+        "calls": 0
+      },
+      {
+        "hour": "2:00",
+        "calls": 5
+      },
+      {
+        "hour": "3:00",
+        "calls": 0
+      },
+      {
+        "hour": "4:00",
+        "calls": 0
+      },
+      {
+        "hour": "5:00",
+        "calls": 0
+      },
+      {
+        "hour": "6:00",
+        "calls": 0
+      },
+      {
+        "hour": "7:00",
+        "calls": 0
+      },
+      {
+        "hour": "8:00",
+        "calls": 0
+      },
+      {
+        "hour": "9:00",
+        "calls": 0
+      },
+      {
+        "hour": "10:00",
+        "calls": 0
+      },
+      {
+        "hour": "11:00",
+        "calls": 0
+      },
+      {
+        "hour": "12:00",
+        "calls": 0
+      },
+      {
+        "hour": "13:00",
+        "calls": 0
+      },
+      {
+        "hour": "14:00",
+        "calls": 0
+      },
+      {
+        "hour": "15:00",
+        "calls": 0
+      },
+      {
+        "hour": "16:00",
+        "calls": 0
+      },
+      {
+        "hour": "17:00",
+        "calls": 0
+      },
+      {
+        "hour": "18:00",
+        "calls": 0
+      },
+      {
+        "hour": "19:00",
+        "calls": 0
+      },
+      {
+        "hour": "20:00",
+        "calls": 0
+      },
+      {
+        "hour": "21:00",
+        "calls": 0
+      },
+      {
+        "hour": "22:00",
+        "calls": 0
+      },
+      {
+        "hour": "23:00",
+        "calls": 0
+      }
+    ],
+    "recentLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "costlyLogs": [
+      {
+        "id": "r1",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.3,
+        "latency_ms": 900,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "matching",
+          "cost_source": "actual"
+        }
+      },
+      {
+        "id": "r2",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.2,
+        "latency_ms": 2500,
+        "status": "success",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "analysis",
+          "cost_source": "estimate"
+        }
+      },
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": true,
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "user_id": "11111111-1111-4111-8111-111111111111",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        }
+      },
+      {
+        "id": "r5",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "doubao",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.4,
+        "latency_ms": 3000,
+        "status": "success",
+        "user_id": "22222222-2222-4222-8222-222222222222",
+        "is_anonymous": false,
+        "metadata": {
+          "phase": "transcribe_practice",
+          "cost_source": "actual"
+        }
+      }
+    ],
+    "failedLogs": [
+      {
+        "id": "r3",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.05,
+        "latency_ms": 4000,
+        "status": "error",
+        "metadata": {
+          "phase": "transcribe",
+          "error_kind": "user_input",
+          "audio": {
+            "peak": 0.002,
+            "durMs": 1500,
+            "bytes": 900
+          }
+        },
+        "userIdShort": "22222222",
+        "isAnonymous": true
+      },
+      {
+        "id": "r4",
+        "created_at": "2026-08-09T18:00:00.000Z",
+        "service": "qwen",
+        "endpoint": "/chat",
+        "usage_amount": 100,
+        "usage_unit": "token",
+        "estimated_cost_cny": 0.15,
+        "latency_ms": 1800,
+        "status": "error",
+        "metadata": {
+          "phase": "coach",
+          "error_code": "429",
+          "error_message": "rate limited",
+          "logId": "L4"
+        },
+        "userIdShort": "11111111",
+        "isAnonymous": false
+      }
+    ],
+    "dataTruncated": false,
+    "costQaBaselineStart": "2026-08-08"
+  }
+}
