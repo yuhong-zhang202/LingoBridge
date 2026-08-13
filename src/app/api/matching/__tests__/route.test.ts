@@ -52,6 +52,7 @@ import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { logErr } from '@/lib/log'
 import { RANKING_ALGO_VERSION } from '@/lib/constants'
+import { __resetMatchInflightForTest } from '@/lib/matching-inflight'
 
 const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchByStory>
 const mockGetSnapshot    = getMatchSnapshotServer as jest.MockedFunction<typeof getMatchSnapshotServer>
@@ -129,6 +130,8 @@ let cqmUpsert: jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
+  // 单飞是进程内状态：用例之间必须清，否则上一条用例没跑完的那趟会被下一条搭上（假绿）
+  __resetMatchInflightForTest()
   ;(env as { matchSnapshotEnabled: boolean }).matchSnapshotEnabled = true
 
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
@@ -548,5 +551,197 @@ describe('POST /api/matching · 成本记账的 QA 标记', () => {
     expect(mockLogApiUsage).toHaveBeenCalledWith(expect.objectContaining({
       status: 'error', is_qa: true, user_id: 'u1', is_anonymous: false,
     }))
+  })
+})
+
+/**
+ * 并发单飞（2026-08-12，审计 P1-3）—— 守的是【花钱那步只发生一次】，不是「两边返回值一样」。
+ * 生产实测 131 个跑过匹配的语料里 4 个跑了两趟，其中 3 次两趟相隔 0.25s / 6.8s / 14.5s（均小于单趟耗时）
+ * ＝ 快照的读与写之间没有锁。本组用「把第一趟钉在飞行中」的手法复现那个窗口。
+ *
+ * 每条都同时断言 bumpDailyUsageServer 的次数：单飞【只去掉重复的模型调用】，绝不去掉任何一个请求
+ * 自己该过的额度计次（熔断闸与它同位置，一并守住）。
+ */
+describe('POST /api/matching · 同语料并发单飞', () => {
+  /** 一个可手动放行的 Promise，用来把「一趟正在飞」钉住 */
+  function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void; reject: (e: unknown) => void } {
+    let resolve!: (v: T) => void
+    let reject!: (e: unknown) => void
+    const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+    return { promise, resolve, reject }
+  }
+  /** 让队列跑空，确保后发的请求已经走到单飞那一步 */
+  async function tick(): Promise<void> {
+    await new Promise((r) => setTimeout(r, 0))
+  }
+
+  test('C1. 阻塞路并发两次同 corpusId：matchByStory 只被调一次，两边同结果，第二个标 servedFrom=joined', async () => {
+    const gate = deferred<FunnelMatchResult>()
+    mockMatchByStory.mockImplementation(() => gate.promise)
+
+    const p1 = POST(makeReq('c1'))
+    const p2 = POST(makeReq('c1'))
+    await tick()
+
+    // 核心：两个请求都已越过额度闸进到「要跑模型」那一步，而模型只被调了一次
+    expect(mockBumpDaily).toHaveBeenCalledTimes(2)
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)
+
+    gate.resolve(makeResult('fresh'))
+    const [b1, b2] = await Promise.all([
+      p1.then((r) => r.json() as Promise<FunnelMatchResult & { servedFrom: string }>),
+      p2.then((r) => r.json() as Promise<FunnelMatchResult & { servedFrom: string }>),
+    ])
+
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)
+    expect(b1.questions.map((q) => q.id)).toEqual(['q-fresh'])
+    expect(b2.questions.map((q) => q.id)).toEqual(['q-fresh'])
+    expect([b1.servedFrom, b2.servedFrom].sort()).toEqual(['fresh', 'joined'])
+    // 记账只能有 leader 那两条（萃取 + 重排）；搭车者补记 = 记一笔没花的钱
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    // 留档/写档也只做一次（同一份结果写两遍只是白费往返）
+    expect(mockUpsertSnapshot).toHaveBeenCalledTimes(1)
+    expect(cqmUpsert).toHaveBeenCalledTimes(1)
+    // 埋点两个请求各发一条，但只有 leader 那条是 fresh —— 离线口径按 fresh 算分布，不会把同一趟数两遍
+    const servedFroms = mockLogEvent.mock.calls.map(([a]) => (a.props as { served_from: string }).served_from)
+    expect(servedFroms.sort()).toEqual(['fresh', 'joined'])
+  })
+
+  test('C2. 流式路并发两次：模型只调一次，晚到的那条流照样拿到完整 meta → question → done', async () => {
+    const gate = deferred<void>()
+    const r = makeResult('fresh')
+    mockMatchByStory.mockImplementation(async (_text, usage) => {
+      usage?.onMeta?.({ primary: r.primary, secondary: r.secondary, matchedViaSecondary: false, matchedViaNeighbor: false, candidateCount: 1 })
+      await gate.promise            // 第二个请求在这个窗口里进来（正是生产那 3 次的形状）
+      for (const q of r.questions) usage?.onItem?.(q)
+      return r
+    })
+
+    const res1 = await POST(makeStreamReq('c1'))
+    await tick()
+    const res2 = await POST(makeStreamReq('c1'))   // meta 已发生之后才加入 → 靠回放补齐
+    await tick()
+
+    expect(mockBumpDaily).toHaveBeenCalledTimes(2)
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)
+
+    gate.resolve()
+    const [f1, f2] = await Promise.all([readSSE(res1), readSSE(res2)])
+
+    for (const frames of [f1, f2]) {
+      expect(frames[0].event).toBe('meta')
+      // 各一帧，不多不少：leader 既是「跑的人」又是「订阅者」，扇出实现若把它算两遍就会重复发帧
+      expect(frames.filter((f) => f.event === 'meta')).toHaveLength(1)
+      expect(frames.filter((f) => f.event === 'question')).toHaveLength(1)
+      expect(frames[frames.length - 1].event).toBe('done')
+      expect((frames[frames.length - 1].data as { questions: { id: string }[] }).questions.map((q) => q.id)).toEqual(['q-fresh'])
+    }
+    const dtoSources = [f1, f2].map((f) => (f[f.length - 1].data as { servedFrom: string }).servedFrom)
+    expect(dtoSources.sort()).toEqual(['fresh', 'joined'])
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+    expect(mockUpsertSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  test('C3. 流式在飞时前端降级重发 ?stream=0：搭同一趟，模型仍只调一次', async () => {
+    const gate = deferred<FunnelMatchResult>()
+    mockMatchByStory.mockImplementation(() => gate.promise)
+
+    const res1 = await POST(makeStreamReq('c1'))
+    await tick()
+    const p2 = POST(makeReq('c1'))
+    await tick()
+
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)
+    gate.resolve(makeResult('fresh'))
+
+    const [frames, body] = await Promise.all([
+      readSSE(res1),
+      p2.then((r) => r.json() as Promise<FunnelMatchResult & { servedFrom: string }>),
+    ])
+    expect(frames[frames.length - 1].event).toBe('done')
+    expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
+    expect(body.servedFrom).toBe('joined')
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
+  })
+
+  test('C4. 不同 corpusId 并发：各跑各的，互不阻塞（两趟都要真跑）', async () => {
+    const g1 = deferred<FunnelMatchResult>()
+    const g2 = deferred<FunnelMatchResult>()
+    mockMatchByStory
+      .mockImplementationOnce(() => g1.promise)
+      .mockImplementationOnce(() => g2.promise)
+
+    const p1 = POST(makeReq('c1'))
+    const p2 = POST(makeReq('c2'))
+    await tick()
+    expect(mockMatchByStory).toHaveBeenCalledTimes(2)
+
+    // c2 先完成即可返回，不必等 c1（若被误串成一条队，这里会挂住）
+    g2.resolve(makeResult('two'))
+    const b2 = (await (await p2).json()) as FunnelMatchResult & { servedFrom: string }
+    expect(b2.questions.map((q) => q.id)).toEqual(['q-two'])
+    expect(b2.servedFrom).toBe('fresh')
+
+    g1.resolve(makeResult('one'))
+    const b1 = (await (await p1).json()) as FunnelMatchResult & { servedFrom: string }
+    expect(b1.questions.map((q) => q.id)).toEqual(['q-one'])
+    expect(b1.servedFrom).toBe('fresh')
+    expect(mockLogApiUsage).toHaveBeenCalledTimes(4)   // 两趟各两条账
+  })
+
+  test('C5. 读档命中不进单飞：并发两次全是 cache（零模型、零计次），行为与改动前一字不变', async () => {
+    mockGetSnapshot.mockResolvedValue({ result: makeResult('cache'), storyHash: HASH, algoVersion: RANKING_ALGO_VERSION })
+
+    const [r1, r2] = await Promise.all([POST(makeReq('c1')), POST(makeReq('c1'))])
+    const b1 = (await r1.json()) as FunnelMatchResult & { servedFrom: string }
+    const b2 = (await r2.json()) as FunnelMatchResult & { servedFrom: string }
+
+    // 两个都是 cache（若读档也被圈进单飞，第二个会变成 joined）
+    expect(b1.servedFrom).toBe('cache')
+    expect(b2.servedFrom).toBe('cache')
+    expect(b1.questions.map((q) => q.id)).toEqual(['q-cache'])
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+    expect(mockBumpDaily).not.toHaveBeenCalled()
+    expect(mockLogApiUsage).not.toHaveBeenCalled()
+  })
+
+  test('C7. 同语料有一趟在飞时，读档命中的请求不排队：当场返回 cache，不等那趟跑完', async () => {
+    const gate = deferred<FunnelMatchResult>()
+    mockMatchByStory.mockImplementation(() => gate.promise)
+
+    const p1 = POST(makeReq('c1'))     // 未命中 → 起一趟并把它钉在飞行中
+    await tick()
+    // 此刻另一个请求读到了存档（leader 尚未写档，故这里显式给一份，模拟已有档的重访）
+    mockGetSnapshot.mockResolvedValue({ result: makeResult('cache'), storyHash: HASH, algoVersion: RANKING_ALGO_VERSION })
+
+    // 若单飞被放到「包住整个 handler」那一层，这一行会一直等到 gate 放行 → 用例超时变红
+    const b2 = (await (await POST(makeReq('c1'))).json()) as FunnelMatchResult & { servedFrom: string }
+    expect(b2.servedFrom).toBe('cache')
+    expect(b2.questions.map((q) => q.id)).toEqual(['q-cache'])
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)   // 读档那次没有再起一趟
+
+    gate.resolve(makeResult('fresh'))
+    await p1
+  })
+
+  test('C6. 第一趟失败：搭车者跟着失败（不各自重跑），槽位清干净——下一次请求重新跑一趟', async () => {
+    const gate = deferred<FunnelMatchResult>()
+    mockMatchByStory.mockImplementation(() => gate.promise)
+
+    const p1 = POST(makeReq('c1'))
+    const p2 = POST(makeReq('c1'))
+    await tick()
+    gate.reject(new Error('重排上游 5xx'))
+
+    const [r1, r2] = await Promise.all([p1, p2])
+    expect(r1.status).toBe(500)
+    expect(r2.status).toBe(500)
+    expect(mockMatchByStory).toHaveBeenCalledTimes(1)   // 失败不许放大成两趟
+
+    // 槽位已清：下一次是全新一趟（拿不到那个已失败的 Promise）
+    mockMatchByStory.mockResolvedValue(makeResult('fresh'))
+    const r3 = await POST(makeReq('c1'))
+    expect(r3.status).toBe(200)
+    expect(mockMatchByStory).toHaveBeenCalledTimes(2)
   })
 })
