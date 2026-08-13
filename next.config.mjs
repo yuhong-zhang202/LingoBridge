@@ -1,10 +1,51 @@
 import withPWAInit from "@ducanh2912/next-pwa";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
 
 // Next15 会因 home 目录下存在其它 lockfile 而误推断 workspace root；显式钉死为本项目目录，
 // 让下面 outputFileTracingIncludes 的相对路径从项目根解析。
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * 构建时烘焙「这份产物是哪个 commit」，供 /api/version 返回。
+ *
+ * 为什么要有：2026-08-13 排查部署失败时，/api/version 只返回 changelog 版本号，而版本号只在
+ * 有用户可见改动时才 bump —— 于是「线上到底跑没跑上我刚推的那次」根本答不出来，只能靠试录音
+ * 反推，白绕一轮。SHA 让这个问题变成一次 curl。
+ *
+ * ⚠️ 三层取值 + 绝不抛错：本改动的全部目的就是让部署更省心，它自己【绝不能】成为构建失败的
+ *    新来源（同日已因 ffmpeg 安装脚本连挂三次）。故：
+ *      1. 环境变量优先 —— 平台若提供（或将来手动配）就用它，无需 .git；
+ *      2. 退而读 git —— Zeabur 构建容器是否带 .git 未经证实，读得到就用；
+ *      3. 兜底 'unknown' —— 【故意不伪造】。宁可显示 unknown 让人知道这条路没通，
+ *         也不能返回一个看似合理其实对不上的值，那比没有更坏。
+ *    execFileSync 而非 execSync：不起 shell，无参数拼接注入面。
+ *
+ * @returns {string} 短 SHA（7 位）或 'unknown'
+ */
+function resolveBuildCommit() {
+  const fromEnv =
+    process.env.BUILD_COMMIT ||
+    process.env.ZEABUR_GIT_COMMIT_SHA ||
+    process.env.GIT_COMMIT_SHA ||
+    process.env.SOURCE_COMMIT;
+  if (fromEnv) return fromEnv.trim().slice(0, 7);
+  try {
+    return execFileSync("git", ["rev-parse", "--short=7", "HEAD"], {
+      cwd: __dirname,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 5000,
+    }).trim();
+  } catch {
+    // 无 .git / 无 git 可执行文件 / 超时 —— 一律降级，不影响构建
+    return "unknown";
+  }
+}
+
+const BUILD_COMMIT = resolveBuildCommit();
+const BUILT_AT = new Date().toISOString();
 
 /**
  * 全站安全响应头（审计 P1-4：生产站六个头全缺，删号按钮可被 clickjacking）。
@@ -68,6 +109,9 @@ async function securityHeaders() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // 构建时把 commit / 构建时刻烘焙进产物，供 /api/version 读取（见上方 resolveBuildCommit）。
+  // 走 env 而非运行时读 git：运行容器不一定有 .git，且这两个值本就该固化在产物里。
+  env: { BUILD_COMMIT, BUILT_AT },
   allowedDevOrigins: ['192.168.0.209'],
   // 不发 x-powered-by: Next.js —— 白送攻击者框架指纹，没有任何功能价值
   poweredByHeader: false,
