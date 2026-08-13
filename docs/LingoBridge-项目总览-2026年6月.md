@@ -68,7 +68,7 @@ yuhong-zhang202/LingoBridge
 
 **Supabase**：
 - 项目 ID：`jzoxnxgbvshiwctwvrwd`（2026-07 迁自旧库 `tvdzkcnnszjynzzvtptk`）
-- 区域：ap-southeast-1 (Singapore)（原 eu-central-1 / Frankfurt，已迁，见 交接文档/Supabase迁移-法兰克福到新加坡.md）
+- 区域：ap-southeast-1 (Singapore)（原 eu-central-1 / Frankfurt，已迁；迁移经过见 `docs/交接-统一交接稿-2026-07-25.md`）
 - 数据库：PostgreSQL
 
 ---

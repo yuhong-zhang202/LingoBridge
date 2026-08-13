@@ -64,4 +64,13 @@ ds-bundle/
 临时/
 准确率/
 头像/
-交接文档/prompt-给Anki会话-登记交接与待办.md
+
+# ── 设计稿 / 原型 / 素材，不入库（2026-08-13 清出 19.4MB 后立此闸）────────────
+# 这三处曾把 19.4MB 非产品文件带进仓库（src/ 全部才 3.5MB），且 网站/ 里还躺过
+# 一整个嵌套的 Next.js demo app。设计稿与原型请放仓库【目录之外】。
+网站/
+design-reference/
+UI /
+# vercel/：Vercel 时代遗留，内含账号恢复码（secret）。项目已改用 Zeabur。
+# ⚠️ gitignore 只挡 git，挡不住打包 / 网盘同步 / git add -f —— 该目录应移出仓库目录。
+vercel/
