@@ -3,6 +3,11 @@
  * @desc     POST 接口：按 corpusId 服务端读取整理后故事 → 萃取观察点 → 返回真实匹配题目（故事正文不进 URL）。
  *           匹配结果按 corpusId 冻结存档：命中（存档存在 且 story_hash 一致 且 algo_version 一致）直接读档返回、
  *           不跑模型；未命中/失效才重算并落档 —— 消除「刷新匹配页看到不同高/中/低」的漂浮。
+ *
+ *           存档解决的是【已经跑完之后】的重复；【同时在跑】的重复由 matching-inflight 的进程内单飞兜（2026-08-12）：
+ *           快照的读与写之间没有锁，第二个并发请求读档必然未命中 → 生产实测 3.1% 的语料跑了两趟。单飞只包住
+ *           「真花钱的那一段」（runMatchOnce 内的 matchByStory），鉴权/同意/归属/熔断/计次一律各请求各过一遍，
+ *           读档命中路径一步都不进单飞。搭车成功的请求 servedFrom='joined'：不记 usage、不写档、不刷反查表。
  * @author   LingoBridge
  * @created  2026-06-03
  */
@@ -30,6 +35,16 @@ import {
 } from '@/lib/constants'
 import { env } from '@/lib/env-server'
 import { requireGlobalBudget } from '@/lib/global-budget-breaker'
+import { runMatchOnce, matchRunKey } from '@/lib/matching-inflight'
+
+/**
+ * 本次结果的来源：
+ *  · fresh  —— 本请求自己跑了模型（花了钱）；
+ *  · cache  —— 命中匹配存档，零模型调用；
+ *  · joined —— 搭上了同一条语料**正在飞**的那一趟（进程内单飞），本请求零模型调用。
+ * 离线口径只在 fresh 上算分布/假空率 —— joined 与 cache 同样不该被重复计数（同一趟只该被算一次）。
+ */
+type ServedFrom = 'fresh' | 'cache' | 'joined'
 
 /** 故事正文 → sha256 十六进制哈希，作为存档失效判定（正文一字未变则命中读档、不重算）。 */
 function storyHash(text: string): string {
@@ -137,7 +152,8 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
 
     let result: FunnelMatchResult
-    const servedFrom: 'fresh' | 'cache' = cached ? 'cache' : 'fresh'
+    // 非 const：搭上别人在飞那趟（单飞 follower）时改判 'joined'，见下方 leader 分支
+    let servedFrom: ServedFrom = cached ? 'cache' : 'fresh'
     // 响应前必须落地、但互不依赖的后置任务（留档 / 记账 / 埋点）。
     // 全部先「发出去」再统一 await：见下方 Promise.all 处的错误处理纪律说明。
     const afterTasks: Promise<unknown>[] = []
@@ -175,29 +191,45 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       let rankingUsage: LLMUsage | null = null
       let extractionMs = 0
       let rankingMs = 0
-      result = await runWithRawLogContext({ userId, corpusId }, () =>
-        matchByStory(cleanedText, {
-          onExtraction: (u) => { extractionUsage = u },
-          onRanking: (u) => { rankingUsage = u },
-          onExtractionLatency: (ms) => { extractionMs = ms },
-          onRankingLatency: (ms) => { rankingMs = ms },
-        }),
+      // 单飞只包住这一段（真花钱的那趟）。onMeta/onItem 照传：本路自己不发帧，但同一趟可能有个
+      // 流式请求搭在上面，它要靠这两个回调拿增量帧。leader=false 即「搭车成功」，模型一次没调。
+      const { result: runResult, leader } = await runMatchOnce(
+        matchRunKey(corpusId, hash),
+        {},
+        (emit) => runWithRawLogContext({ userId, corpusId }, () =>
+          matchByStory(cleanedText, {
+            onExtraction: (u) => { extractionUsage = u },
+            onRanking: (u) => { rankingUsage = u },
+            onExtractionLatency: (ms) => { extractionMs = ms },
+            onRankingLatency: (ms) => { rankingMs = ms },
+            onMeta: emit.onMeta,
+            onItem: emit.onItem,
+          }),
+        ),
       )
-      // 持久化匹配结果供反查；写库失败不阻断匹配返回（.catch 必须留着：台账 115 记过它曾静默失败很久）
-      afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
-      // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
-      // 机制①重排整体降级（rankingDegraded：候选存在但重排一分没产出）不写档——降级=瞬时失败，
-      // 冻进快照会让前端降级态的「重试」命中降级档、永不重跑重排，重试形同虚设。跳过写档后，重试重发
-      // /api/matching 即未命中→重新跑重排。该守卫只影响机制①这个零频分支，正常结果的写档行为一字不变。
-      if (!result.rankingDegraded) {
-        afterTasks.push(
-          upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
-            .catch((e) => logErr('[matching snapshot upsert]', e)),
-        )
-      }
+      result = runResult
 
-      // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
-      pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa: isQaRequest(req, userId) })
+      if (leader) {
+        // 持久化匹配结果供反查；写库失败不阻断匹配返回（.catch 必须留着：台账 115 记过它曾静默失败很久）
+        afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
+        // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
+        // 机制①重排整体降级（rankingDegraded：候选存在但重排一分没产出）不写档——降级=瞬时失败，
+        // 冻进快照会让前端降级态的「重试」命中降级档、永不重跑重排，重试形同虚设。跳过写档后，重试重发
+        // /api/matching 即未命中→重新跑重排。该守卫只影响机制①这个零频分支，正常结果的写档行为一字不变。
+        if (!result.rankingDegraded) {
+          afterTasks.push(
+            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+              .catch((e) => logErr('[matching snapshot upsert]', e)),
+          )
+        }
+
+        // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
+        pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa: isQaRequest(req, userId) })
+      } else {
+        // 搭车成功：模型一次没调，这些全归 leader 做。
+        // 记账绝不能补一份（那是记一笔没花的钱）；留档/写快照由 leader 用同一份结果落地，重复写只是白费往返。
+        servedFrom = 'joined'
+      }
     }
     // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
@@ -291,7 +323,7 @@ function sseFrame(event: string, data: unknown): Uint8Array {
  * 抽了 props 公共函数，容易误以为「口径已经统一了」，而 isQa 根本不在这个函数的管辖范围内。
  * 新增/修改任何外层字段时，请三处一起改，别只看这个函数。
  */
-function matchResultEventProps(result: FunnelMatchResult, servedFrom: 'fresh' | 'cache'): Record<string, unknown> {
+function matchResultEventProps(result: FunnelMatchResult, servedFrom: ServedFrom): Record<string, unknown> {
   return {
     primaryCode: result.primary?.pointCode ?? null,
     secondaryCode: result.secondary?.pointCode ?? null,
@@ -313,7 +345,7 @@ async function buildStreamDto(
   result: FunnelMatchResult,
   userId: string,
   isAnonymous: boolean,
-  servedFrom: 'fresh' | 'cache',
+  servedFrom: ServedFrom,
 ): Promise<unknown> {
   let savedIds = new Set<string>()
   if (!isAnonymous && result.questions.length > 0) {
@@ -418,34 +450,48 @@ async function handleStreaming(req: Request): Promise<Response> {
           let rankingUsage: LLMUsage | null = null
           let extractionMs = 0
           let rankingMs = 0
-          const result = await runWithRawLogContext({ userId, corpusId }, () =>
-            matchByStory(cleanedText, {
-              onExtraction: (u) => { extractionUsage = u },
-              onRanking: (u) => { rankingUsage = u },
-              onExtractionLatency: (ms) => { extractionMs = ms },
-              onRankingLatency: (ms) => { rankingMs = ms },
+          // 单飞（进程内、按 corpusId+storyHash）：同一条语料在飞时不发第二趟模型调用。
+          // 本路把「发帧」当订阅口交给单飞：自己是 leader 时帧由自己这趟产出，搭车时由 leader 那趟扇出
+          // （晚到者先回放已发生的 meta/question，再续收后续增量），故两种角色下前端看到的帧序完全一致。
+          const { result, leader } = await runMatchOnce(
+            matchRunKey(corpusId, hash),
+            {
               onMeta: (meta) => safeEnqueue(sseFrame('meta', meta)),
               onItem: (q) => safeEnqueue(sseFrame('question', q)),
-            }),
+            },
+            (emit) => runWithRawLogContext({ userId, corpusId }, () =>
+              matchByStory(cleanedText, {
+                onExtraction: (u) => { extractionUsage = u },
+                onRanking: (u) => { rankingUsage = u },
+                onExtractionLatency: (ms) => { extractionMs = ms },
+                onRankingLatency: (ms) => { rankingMs = ms },
+                onMeta: emit.onMeta,
+                onItem: emit.onItem,
+              }),
+            ),
           )
 
           // 流结束后落地：persist / snapshot / usage(萃取+重排) / match.result 埋点。
           // 与 handleBuffered 逐字同款（字段/职责一字不变），差别仅在时机：从「响应前」挪到「所有帧发完后」。
+          // 搭车（leader=false）时模型一次没调：留档/写档/记账全归 leader，本请求只发帧 + 标 served_from='joined'。
           const afterTasks: Promise<unknown>[] = []
-          afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
-          // 机制①降级不写档（与 handleBuffered 同守卫）：冻进快照会让前端降级态的「重试」命中降级档、
-          // 永不重跑重排。跳过后重试重发即未命中→重新跑重排。只影响零频降级分支，正常写档不变。
-          if (!result.rankingDegraded) {
-            afterTasks.push(
-              upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
-                .catch((e) => logErr('[matching snapshot upsert]', e)),
-            )
+          const servedFrom: ServedFrom = leader ? 'fresh' : 'joined'
+          if (leader) {
+            afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
+            // 机制①降级不写档（与 handleBuffered 同守卫）：冻进快照会让前端降级态的「重试」命中降级档、
+            // 永不重跑重排。跳过后重试重发即未命中→重新跑重排。只影响零频降级分支，正常写档不变。
+            if (!result.rankingDegraded) {
+              afterTasks.push(
+                upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+                  .catch((e) => logErr('[matching snapshot upsert]', e)),
+              )
+            }
+            pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa })
           }
-          pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa })
-          afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, 'fresh') }))
+          afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, servedFrom) }))
           await Promise.all(afterTasks)
 
-          const dto = await buildStreamDto(result, userId, isAnonymous, 'fresh')
+          const dto = await buildStreamDto(result, userId, isAnonymous, servedFrom)
           safeEnqueue(sseFrame('done', dto))
           safeClose()
         } catch (e) {
