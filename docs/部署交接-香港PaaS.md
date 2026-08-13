@@ -60,7 +60,9 @@
 | `ANKI_DRAIN_SECRET` | **Anki 题卡必配**：drain 端点鉴权秘钥。值须 == DB 侧 `_anki_drain_config.drain_secret`（cowork 2026-07-25 已生成并存库，值另发）。**不配则 drain 恒 401、入队的卡片永不生成**。设完须重启实例让 env 生效 |
 
 **别配**：`LLM_RAW_LOG_DIR`（留证已改数据库）、`LLM_DEBUG`（生产已物理禁用）、`RANKING_DIMENSIONAL`（默认关）、`MATCH_SNAPSHOT_ENABLED`（默认开，仅回滚设 `0`）。
-**ffmpeg**：VPS 跑完整 Node（`next start`），`ffmpeg-static` 在 `node_modules` 天然可用，无需额外配置。
+**可选**：`FFMPEG_PATH` —— 显式指定 ffmpeg 二进制路径，优先级最高（`FFMPEG_PATH` > `ffmpeg-static` > 系统 `ffmpeg`）。**平时不用配**；只有当 `ffmpeg-static` 的二进制下载再次被网络掐断（见 §10「二次事故」）、而镜像里另有可用 ffmpeg 时才配它。⚠️ 配了就不再降级：指到不存在的文件会让转写直接报 `FFMPEG_BINARY_MISSING`。
+
+**ffmpeg**：VPS 跑完整 Node（`next start`），`ffmpeg-static` 在 `node_modules` 天然可用，正常情况无需额外配置。
 
 ### 5.1 Anki 题卡 · drain 定时触发（2026-07-25 补）
 Anki 卡背生成靠后台队列 + drain 端点，**必须有东西周期性触发 drain，否则卡片永不生成**。已用 **DB 侧 pg_cron + pg_net**（迁移 `0040_anki_drain_cron`，已应用生产库）：每 2 分钟 POST `/api/anki/generate/drain`，秘钥/URL 存 RLS 锁死的 `_anki_drain_config`（cowork 已配）。端点幂等（`FOR UPDATE SKIP LOCKED`），与任何额外触发源并发安全。
@@ -99,7 +101,46 @@ Zeabur 构建机的 npm 出于安全**默认拦截依赖的安装脚本**（日�
 - **修复（已生效；配置在 Zeabur、不在仓库）**：服务「环境变量」里加一条——
   `ZBPACK_INSTALL_COMMAND = npm install && node node_modules/ffmpeg-static/install.js`
   装完依赖后显式跑一次 ffmpeg-static 下载脚本，二进制进镜像，构建 + 运行时（语音转写）都可用。
-- **可选加固（cowork 已备好，未 push）**：把 `transcode.ts` 的 ffmpeg 检查改为惰性解析（`FFMPEG_PATH` > ffmpeg-static > 系统 ffmpeg），即便脚本再被拦也不会让构建失败。产品方可自行 push 到 `main`。
+- ~~**可选加固（cowork 已备好，未 push）**~~ → **2026-08-12 已实施**（下面「二次事故」）。
+
+#### 🔴 同一根因二次出事（2026-08-12）：连续 3 次部署失败
+上面那条 `ZBPACK_INSTALL_COMMAND` 只保证「脚本会被执行」，保不了「脚本能下载成功」。这次构建日志：
+
+```
+#9 [5/6] RUN npm install && node node_modules/ffmpeg-static/install.js
+#9 16.88 Error: socket hang up   code: 'ECONNRESET'
+#9 ERROR: ... exit code: 1
+```
+
+#### 🔴 根因定位（先看这段，别照抄上一次的结论）
+
+`npm install` 成功，挂在**香港机器拉 GitHub Releases 被掐**。
+
+**⚠️ 注意失败发生在哪一步**：`#9 ERROR ... exit code: 1` 说明挂的是 **Docker 的 `RUN` 这一步本身**——
+`node install.js` 下载失败、返回非零退出码，于是整个镜像构建终止，**根本没走到 `next build`**。
+所以这次失败**与 `transcode.ts` 无关**，与上一次（2026-07-19）虽同源于「二进制没下来」，但**失败机制不同**。
+
+**A/B 实测（2026-08-13 复核）**：同一份 `node_modules`、同样把 `node_modules/ffmpeg-static/ffmpeg` 物理移走 + `rm -rf .next` 冷构建，**只换代码版本**：
+
+| 代码版本 | 二进制缺失时 `npm run build` |
+|---|---|
+| 顶层解析（改动前） | ❌ **失败**：`Failed to collect page data for /api/transcribe` |
+| 惰性解析（改动后） | ✅ 通过（exit 0，49 页全出） |
+
+⇒ 结论：§10 上面记的那条「顶层 throw 让构建失败」的机制**至今仍然复现**。
+
+> ⚠️ 本节曾一度记成「两版都通过、机制已不复现」，那是对照组没真正复现改动前状态所致，**已更正**。
+> 别据此把 `transcode.ts` 的解析挪回模块顶层 —— 惰性化同时是下面第 1 步 `|| true` 兜底方案**能成立的前提**：
+> 允许安装脚本失败而不炸构建，前提是二进制缺失时构建本身不会挂。
+
+#### 修复怎么做（两步，缺一不可）
+
+1. **⚠️ Zeabur 侧（真正的修复，必须做，cowork 改不了、要在控制台改）**：把 `ZBPACK_INSTALL_COMMAND` 改成**下载失败也不阻断安装**，例如
+   `npm install && (node node_modules/ffmpeg-static/install.js || true)`
+   否则**下次网络再被掐，部署照样失败**——代码怎么改都救不了，因为那一步在构建之前。
+2. **代码侧（已随本分支实施，属加固而非修复）**：`transcode.ts` 的二进制解析改为**惰性**（第一次真要转码时才解析并缓存），顺序 `FFMPEG_PATH` > `ffmpeg-static` > 系统 `ffmpeg`；失败语义不变（`FFMPEG_NOT_FOUND` / `FFMPEG_BINARY_MISSING`），只是时机从 import 推迟到调用。它的价值是：第 1 步加了 `|| true` 之后，二进制可能真的不在镜像里，此时**其余功能照常上线、只有转写报错**，且运维可用 `FFMPEG_PATH` 指到别处救场。守卫测试 `src/lib/audio/__tests__/transcode-lazy-binary.test.ts`。
+
+- **⚠️ 仍要注意**：以上两步都只保「构建能过、别的功能能用」，**保不住转写功能本身**。二进制真没下来时转写会报 `FFMPEG_NOT_FOUND`。**每次部署后请实测一次录音转写**，别只看构建绿。
 
 ### 海外访问（如柏林：慢 / 白屏）
 实测：服务器 CPU≈0%、内存≈471MB/2GB（都很闲，**非服务器瓶颈**）；慢在**腾讯云香港 ↔ 欧洲的国际线路**（首次访问还叠加了证书/路由初始化）。
@@ -170,6 +211,10 @@ done
 
 排队实现是**进程内信号量**（`src/lib/concurrency-gate.ts`），并发上限 4、队列 20、超时 15s。第二轮压测已验证：8 并发全部成功、零 `45000292`。
 
+> 2026-08-12 补：转写链路上其实有**两道**闸，各对齐一种资源，别混为一谈（混过一次，见审计 P1-2）——
+> **ASR 闸**对齐豆包配额（并发 4）、**转码闸**对齐本机 CPU 核数（并发 2 = 本实例 vCPU 数，队列 20、超时 10s）。
+> 两道闸对扩容的反应**正好相反**，见下表。
+
 ⚠️ **但这个闸门只在单进程内有效。** 一旦把 Zeabur 实例数从 1/1 扩到 2：
 
 ```
@@ -186,7 +231,11 @@ done
 
 | 机制 | 实现 | 扩到 N 实例后 |
 |---|---|---|
-| 豆包 ASR 并发闸 | `src/lib/concurrency-gate.ts` 进程内信号量 | ❌ **失效** —— 各数各的，N×4 会撞豆包上限 5。必须先改跨实例共享 |
+| 豆包 ASR 并发闸 | `src/lib/concurrency-gate.ts` 进程内信号量（在 `api/transcribe/route.ts` 建 `asrGate`，并发 4） | ❌ **失效** —— 各数各的，N×4 会撞豆包上限 5。必须先改跨实例共享 |
+| ffmpeg 转码闸 | 同一个信号量实现（在 `api/transcribe/route.ts` 建 `transcodeGate`，并发 2） | ✅ **仍然正确** —— 它守的是**本机 CPU**，而 CPU 本来就是每个实例各有一份，各数各的正是对的（扩到 N 实例 = N 台机各限各的核）。**唯一的前置条件是「常数 = 该实例的 vCPU 数」**：换更大机型（如 4vCPU）必须同步把这个 2 改掉，否则一半的核闲着；反过来若把实例缩到 1vCPU 而没改，就是 2 倍超卖 |
 | 全局预算熔断 | `src/lib/global-budget-breaker.ts` 进程内缓存 + DB 端聚合 | ⚠️ **仍有效、但变钝** —— 判定真源是 DB（`global_ai_cost_today_cny`），各实例读的是同一个和，所以全局止损不会失守；退化只在于各实例各有一个 TTL 窗口，「触线到停住」之间的超支上界要乘以 N（单实例估算 ≈ ¥1，见该模块顶注）。可以先扩容再优化，不像并发闸那样是硬阻塞项 |
 
-⇒ 判断标准：**看它的真源在进程里还是在 DB 里**。在进程里 = 扩容前必须改；在 DB 里 = 扩容后只是窗口变宽。
+⇒ 判断标准：**看它守的那个上限的真源在哪**——
+> - 真源在**上游/外部**（豆包配额、第三方限额）→ 进程内计数扩容即失守，**扩容前必须改**成跨实例共享；
+> - 真源在 **DB**（全站累计花费）→ 仍有效，扩容后只是窗口变宽，可以先扩再优化；
+> - 真源在**本机**（CPU 核数、本地磁盘）→ 每实例各限一份**正好是对的**，扩容不影响；但常数写死了机器规格，**换机型时必须跟着改**。

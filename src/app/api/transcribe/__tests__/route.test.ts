@@ -4,8 +4,11 @@
  *           ① ASR 前失败（转码报错）→ 一次都没计（等价于回滚，且无需递减、无并发风险）；
  *           ② ASR 已被调用后失败（含 EMPTY_TRANSCRIPT）→ 照常计次，不退（费用已产生，且防构造必失败请求刷额度）；
  *           ③ 已超额 → 402/429 且既不转码也不调 ASR。全部依赖 mock，不碰真实 DB / ffmpeg / 豆包。
- *           另守卫 ASR 并发闸接线：闸门参数、排队被拒 → 503 ASR_BUSY，以及
+ *           另守卫【两道】并发闸的接线：闸门参数、任一闸排队被拒 → 503 ASR_BUSY，以及
  *           ④【排队超时绝不扣次数】—— 等待发生在计次之前，超时用户一次都不该被扣。
+ *           ⑩ 2026-08-12（审计 P1-2）起拆成两道闸：转码闸对齐 CPU 核数(2)、ASR 闸对齐豆包配额(4)，
+ *             本文件钉「接线顺序」（CPU 名额必须在排 ASR 队之前归还），闸门真实限流能力见
+ *             同目录 concurrency-gates.test.ts（用真闸门跑并发）。
  *           另守卫失败记账口径：⑤ EMPTY_TRANSCRIPT 打 metadata.error_kind='user_input' 且按真实时长记费
  *           （看板据此从错误率摘出、但保留在失败成本里）；其余失败记 0。
  *           ⑥ 无论成功/失败，metadata 始终带 phase（2026-07-25 补埋点，让转写故障按环节归位）；
@@ -23,21 +26,30 @@
  */
 jest.mock('server-only', () => ({}))
 
-// 闸门本体行为由 lib/__tests__/concurrency-gate.test.ts 覆盖；这里只替身化，用来精确制造
-// 「队列满 / 等待超时」两种拒绝，避免在路由层堆 25 个并发请求。
+// 闸门本体行为由 lib/__tests__/concurrency-gate.test.ts 覆盖；两道闸【真的限住了多少并发】由
+// __tests__/concurrency-gates.test.ts 用真闸门覆盖。这里只替身化，用来精确制造「队列满 / 等待超时」
+// 两种拒绝，避免在本文件堆并发请求。
+// ⚠️ 路由按固定顺序建两道闸：① 转码闸（CPU）② ASR 闸（豆包配额）。替身按创建顺序分派，
+//    让两道闸各有独立的 acquire/release，才能分别断言「谁拒的、谁的名额被还了」。
 // 替身内联在工厂里：路由模块在 import 阶段就会构造闸门，此刻外层 const 尚在 TDZ，引用不到。
 jest.mock('@/lib/concurrency-gate', () => {
-  const acquire  = jest.fn()
-  const release  = jest.fn()
+  const transcodeAcquire = jest.fn()
+  const transcodeRelease = jest.fn()
+  const asrAcquire       = jest.fn()
+  const asrRelease       = jest.fn()
   const createdWith: unknown[] = []
+  const byOrder = [transcodeAcquire, asrAcquire]
   return {
     createConcurrencyGate: (options: unknown) => {
+      const acquire = byOrder[createdWith.length] ?? asrAcquire
       createdWith.push(options)
       return { acquire, activeCount: 0, queuedCount: 0 }
     },
-    __acquire:     acquire,
-    __release:     release,
-    __createdWith: createdWith,
+    __transcodeAcquire: transcodeAcquire,
+    __transcodeRelease: transcodeRelease,
+    __asrAcquire:       asrAcquire,
+    __asrRelease:       asrRelease,
+    __createdWith:      createdWith,
   }
 })
 
@@ -76,9 +88,11 @@ const mockRead        = readDailyUsageServer as jest.MockedFunction<typeof readD
 const mockLifetime    = readLifetimeUsageServer as jest.MockedFunction<typeof readLifetimeUsageServer>
 
 const gateMock = jest.requireMock('@/lib/concurrency-gate') as {
-  __acquire:     jest.Mock
-  __release:     jest.Mock
-  __createdWith: unknown[]
+  __transcodeAcquire: jest.Mock
+  __transcodeRelease: jest.Mock
+  __asrAcquire:       jest.Mock
+  __asrRelease:       jest.Mock
+  __createdWith:      unknown[]
 }
 
 /**
@@ -120,8 +134,9 @@ beforeEach(() => {
   mockTranscode.mockResolvedValue(Buffer.alloc(44 + 32000)) // 约 1 秒的 16kHz WAV
   mockTranscribe.mockResolvedValue('hello world')
   ;(logApiUsage as jest.Mock).mockResolvedValue(undefined)
-  // 默认：闸门不拥堵，立刻放行
-  gateMock.__acquire.mockResolvedValue({ ok: true, release: gateMock.__release })
+  // 默认：两道闸都不拥堵，立刻放行
+  gateMock.__transcodeAcquire.mockResolvedValue({ ok: true, release: gateMock.__transcodeRelease })
+  gateMock.__asrAcquire.mockResolvedValue({ ok: true, release: gateMock.__asrRelease })
 })
 
 describe('转写计次时机 · ASR 之前失败 → 不计次（等价回滚）', () => {
@@ -437,19 +452,22 @@ describe('匿名终身转写闸 · 每日额度天天清零，总量闸才封得
   })
 })
 
-describe('ASR 并发闸 · 排队被拒绝', () => {
-  test('闸门参数钉死：并发 2（生产 2vCPU，ffmpeg CPU 密集，并发超核数反而互拖 + 挤占 SSR）/ 队列 20 / 等待 15s', () => {
+describe('两道并发闸 · 参数、拒绝路径与名额归还', () => {
+  test('闸门参数钉死：① 转码闸 2（=生产实例 vCPU 数）/20/10s，② ASR 闸 4（豆包限额 5 留 1 余量）/20/15s', () => {
     // createdWith 在模块加载时写入，clearAllMocks 不会清空（它是普通数组，不是 jest.fn）
+    // ⚠️ 两个数各自对齐一种资源，别再互串（2026-08-06 审计 P1-2：ASR 闸曾被按「ffmpeg 吃 CPU」的理由压到 2，
+    //    结果豆包吞吐白砍一半、转码反而没人限）。改任一常数前先回答「我在限哪种资源」。
     expect(gateMock.__createdWith).toEqual([
-      { maxConcurrent: 2, maxQueue: 20, maxWaitMs: 15_000 },
+      { maxConcurrent: 2, maxQueue: 20, maxWaitMs: 10_000 },   // 转码闸 ← CPU 核数
+      { maxConcurrent: 4, maxQueue: 20, maxWaitMs: 15_000 },   // ASR 闸 ← 豆包并发配额
     ])
   })
 
   test.each([
     ['队列已满', 'queue_full'],
     ['等待超时', 'timeout'],
-  ])('%s：503 + code=ASR_BUSY，且【一次都不计次】、不调 ASR', async (_label, reason) => {
-    gateMock.__acquire.mockResolvedValue({ ok: false, reason })
+  ])('ASR 闸 %s：503 + code=ASR_BUSY，且【一次都不计次】、不调 ASR', async (_label, reason) => {
+    gateMock.__asrAcquire.mockResolvedValue({ ok: false, reason })
 
     const res = await POST(audioReq())
 
@@ -461,31 +479,75 @@ describe('ASR 并发闸 · 排队被拒绝', () => {
     expect(mockBump).not.toHaveBeenCalled()
     expect(mockTranscribe).not.toHaveBeenCalled()
     // 被拒时没有拿到名额，自然也不该归还
-    expect(gateMock.__release).not.toHaveBeenCalled()
+    expect(gateMock.__asrRelease).not.toHaveBeenCalled()
   })
 
-  test('拿到名额后无论成功还是抛错，release 都必须被调用（否则名额永久泄漏）', async () => {
-    await POST(audioReq())
-    expect(gateMock.__release).toHaveBeenCalledTimes(1)
+  test.each([
+    ['队列已满', 'queue_full'],
+    ['等待超时', 'timeout'],
+  ])('转码闸 %s：503 + code=ASR_BUSY，且【连 ffmpeg 都没进】、不计次、不调 ASR', async (_label, reason) => {
+    gateMock.__transcodeAcquire.mockResolvedValue({ ok: false, reason })
 
-    gateMock.__release.mockClear()
+    const res = await POST(audioReq())
+
+    // 复用 ASR_BUSY 码而非新造：对用户是同一件事（人多稍等），前端已有专属文案与自动重试；
+    // 新造码会掉进「转写失败」兜底，把「等一下就好」说成「产品坏了」。
+    expect(res.status).toBe(503)
+    expect(await res.json()).toEqual(expect.objectContaining({ code: 'ASR_BUSY' }))
+    expect(res.headers.get('Retry-After')).toBe('5')
+    // 转码闸的排队同样在计次之前：被它拦下的请求一分钱没花、一次没扣，连 CPU 都没烧
+    expect(mockTranscode).not.toHaveBeenCalled()
+    expect(mockBump).not.toHaveBeenCalled()
+    expect(mockTranscribe).not.toHaveBeenCalled()
+    expect(gateMock.__transcodeRelease).not.toHaveBeenCalled()
+    // 转码闸先拒了，压根不该去排 ASR 的队
+    expect(gateMock.__asrAcquire).not.toHaveBeenCalled()
+  })
+
+  test('拿到名额后无论成功还是抛错，两道闸的 release 都必须被调用（否则名额永久泄漏）', async () => {
+    await POST(audioReq())
+    expect(gateMock.__transcodeRelease).toHaveBeenCalledTimes(1)
+    expect(gateMock.__asrRelease).toHaveBeenCalledTimes(1)
+
+    gateMock.__transcodeRelease.mockClear()
+    gateMock.__asrRelease.mockClear()
     mockTranscribe.mockRejectedValue(new Error('上游超时'))
     await POST(audioReq())
-    expect(gateMock.__release).toHaveBeenCalledTimes(1)
+    expect(gateMock.__transcodeRelease).toHaveBeenCalledTimes(1)
+    expect(gateMock.__asrRelease).toHaveBeenCalledTimes(1)
   })
 
-  test('闸门只包住 ASR，不包转码：acquire 发生在转码之后', async () => {
+  test('转码报错时 CPU 名额照样归还（ffmpeg 挂了不该把闸门越关越死）', async () => {
+    mockTranscode.mockRejectedValue(new Error('ffmpeg 挂了'))
+
+    const res = await POST(audioReq())
+
+    expect(res.status).toBe(500)
+    expect(gateMock.__transcodeRelease).toHaveBeenCalledTimes(1)
+    // 转码就失败了，ASR 那道闸连排都不该排
+    expect(gateMock.__asrAcquire).not.toHaveBeenCalled()
+  })
+
+  test('两道闸首尾相接、互不重叠：CPU 名额在【排 ASR 队之前】就还掉，计次仍紧贴 ASR', async () => {
     const order: string[] = []
     mockTranscode.mockImplementation(async () => { order.push('transcode'); return Buffer.alloc(44) })
-    gateMock.__acquire.mockImplementation(async () => { order.push('acquire'); return { ok: true, release: gateMock.__release } })
+    gateMock.__transcodeAcquire.mockImplementation(async () => {
+      order.push('cpu-acquire')
+      return { ok: true, release: () => { order.push('cpu-release') } }
+    })
+    gateMock.__asrAcquire.mockImplementation(async () => {
+      order.push('asr-acquire')
+      return { ok: true, release: gateMock.__asrRelease }
+    })
     mockBump.mockImplementation(async () => { order.push('bump'); return 1 })
     mockTranscribe.mockImplementation(async () => { order.push('asr'); return 'ok' })
 
     const res = await POST(audioReq())
 
     expect(res.status).toBe(200)
-    // 转码是本机 CPU、不占豆包并发；排队必须在计次之前，计次仍紧贴 ASR
-    expect(order).toEqual(['transcode', 'acquire', 'bump', 'asr'])
+    // ⚠️ 'cpu-release' 必须排在 'asr-acquire' 之前：攥着 CPU 名额去排 ASR 的队 = 把两道闸串成一道，
+    //    ASR 并发会被转码上限（2）反向卡死，正是 P1-2 要修掉的病。
+    expect(order).toEqual(['cpu-acquire', 'transcode', 'cpu-release', 'asr-acquire', 'bump', 'asr'])
   })
 
   test('豆包仍返回 45000292（并发超限）：归到 503 ASR_BUSY，而非误报「转写失败」', async () => {

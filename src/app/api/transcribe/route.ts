@@ -22,22 +22,46 @@ import { isAppError, errorLogMeta, errorKindMeta, classifyErrorKind } from '@/ty
 // 音频体积上限（对齐 ENGINEERING §9 的 10MB 规则），挡超大文件刷 ASR 成本
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
-// ——— 豆包 ASR 并发闸 ———
+// ——— 两个并发闸：一个对齐 CPU 核数，一个对齐豆包配额，必须分开 ———
+// 一次转写依次吃两种毫不相干的资源，各自的上限来自两个不同的地方：
+//   · ffmpeg 转码 → 吃【本机 CPU】，上限 = 本实例核数（生产腾讯云香港 2vCPU/2GB，见 docs/部署交接-香港PaaS.md §2）
+//   · 豆包 ASR   → 吃【上游并发配额】，上限 = 火山引擎控制台限额 5（与本机多少核毫无关系）
+// 合成一个闸两个方向都错：按核数限，豆包吞吐被白白砍掉一半；按配额限，ffmpeg 根本没人管 ——
+// 几十个并发上传能把 2 核超卖十几倍，同进程的 Next SSR 跟着一起卡（不只录音，首页/题库/看板全遭殃）。
+// ⚠️ 2026-08-06 审计 P1-2 抓到的正是这个错配：闸只圈住 ASR，注释给的理由却是「ffmpeg 吃 CPU、超核数会互抢」——
+//    两句话各自都对、叠起来是错的，结果被限的是豆包（本可 4 被压成 2），该限的转码一个都没限。
+//    ⇒ 动下面任何一个常数前，先回答「我在限哪种资源、那个资源的上限写在哪」。
+// ⚠️ 两个闸都是进程内状态：ASR 闸多实例会失效，转码闸多实例仍正确（CPU 本来就是每实例一份）——
+//    差别与扩容影响见 lib/concurrency-gate 顶部说明与 docs/部署交接-香港PaaS.md §12 扩容前置清单。
+
+// ——— 闸①：ffmpeg 转码闸（对齐本机 CPU 核数）———
+//   · 并发 2 —— 等于生产实例的 vCPU 数。转码是纯 CPU 密集，开到核数以上不会更快，只会让每个任务互抢时间片
+//     一起变慢，还挤占同进程的 Next SSR。⚠️ 换机型（例如升到 4vCPU）必须同步改这个数，否则要么闲置核、要么超卖。
+//   · 队列 20 / 等待 10s —— 转码本身极快（lib/audio/transcode 记的实测：2.5 小时音频 6 秒，约 1500 倍实时；
+//     真实录音 p50 46s / p99 207s，即便按 VPS 比开发机慢几倍折算，单次也在 1 秒级），2 个名额的吞吐远高于
+//     下游 ASR 闸的 ≈1.33 req/s。所以这道闸正常流量下几乎不排队，只在突发/攻击时兜底封住超卖；
+//     20 个排队按最保守估算也能在 10s 内消化完。等更久没意义 —— 后面还有 ASR 闸最多 15s 的等待要叠上去。
+const TRANSCODE_MAX_CONCURRENT = 2
+const TRANSCODE_MAX_QUEUE      = 20
+const TRANSCODE_MAX_WAIT_MS    = 10_000
+const transcodeGate = createConcurrencyGate({
+  maxConcurrent: TRANSCODE_MAX_CONCURRENT,
+  maxQueue:      TRANSCODE_MAX_QUEUE,
+  maxWaitMs:     TRANSCODE_MAX_WAIT_MS,
+})
+
+// ——— 闸②：豆包 ASR 并发闸（对齐上游并发配额）———
 // 火山引擎控制台实测：「录音文件识别大模型·极速版」并发限额 = 5（增购需付费，产品方 2026-07-20 决定不买、改排队）。
 // 超限时豆包直接返回错误码 45000292，用户刚录的那段话白费。故在服务端自行把并发压在上限内、超出的排队。
 //
 // 三个参数的取值依据（L3 压测：单次转写 P50 约 2.8–3.4s，8 并发时 5 成功 3 失败）：
 //   · 并发 4 —— 不取满 5。我方 release 的时刻早于豆包服务端计数回落，取满 5 仍会因时序抖动撞限；留 1 个余量。
+//     ⚠️ 这个数只跟豆包配额有关，跟本机几核无关（曾被误压到 2，见上面 P1-2）。
 //   · 队列 20 —— 吞吐 ≈ 4 / 3s ≈ 1.33 req/s，排在第 20 位约需等 15s，正好与下面的等待上限对齐：
 //     队列再长也只是让人白等到超时，没有意义。绝不无界排队（否则高峰期耗尽连接、拖垮整个服务）。
-//   · 等待 15s —— 转写本身约 3s，再等 15s 已是体验下限。全链路 15(排队) + 10(转码) + 30(ASR 超时) ≈ 55s，
+//   · 等待 15s —— 转写本身约 3s，再等 15s 已是体验下限。全链路 10(转码排队) + 1(转码) + 15(ASR 排队) + 30(ASR 超时)，
 //     仅为「各环节上限相加」的参考量、非硬上限：真实超时上限 = Zeabur 网关超时（下方 maxDuration 在 Zeabur 不生效，见其注释）。
-//
-// ⚠️ 进程内状态，多实例失效 —— 详见 lib/concurrency-gate 顶部说明。
-// 并发数=2：生产为腾讯云香港 2vCPU/2GB，ffmpeg 转码是 CPU 密集型；并发数超过物理核数会让每个转码任务
-// 都变慢（互抢 CPU），还会挤占同进程的 Next SSR，拖慢同时段所有请求。压到 2（=核数）让每个任务跑满一核、
-// 不互相拖累。队列(20)/等待上限(15s)不动：闸变窄后排队时间会变长，但 15s 上限仍足够兜底。
-const ASR_MAX_CONCURRENT = 2
+const ASR_MAX_CONCURRENT = 4
 const ASR_MAX_QUEUE      = 20
 const ASR_MAX_WAIT_MS    = 15_000
 const asrGate = createConcurrencyGate({
@@ -98,11 +122,26 @@ function parseAudioSignals(form: FormData): AudioSignals | null {
 
 /** 「人多」的三种来源：本地队列满 / 本地等待超时 / 仍被豆包判并发超限 */
 type BusyReason = GateRejectReason | 'upstream_limit'
+/** 是哪一环挤住了：转码闸（CPU 排满）/ ASR 闸（豆包配额排满）/ 上游豆包直接判超限。只进日志，不回传客户端 */
+type BusySource = 'transcode_gate' | 'asr_gate' | 'doubao_upstream'
+
+/** 日志用的闸门参数（出问题时一眼看出是哪道闸、上限多少），两道闸各一份 */
+const GATE_LIMITS: Record<BusySource, { maxConcurrent: number; maxQueue: number } | null> = {
+  transcode_gate:  { maxConcurrent: TRANSCODE_MAX_CONCURRENT, maxQueue: TRANSCODE_MAX_QUEUE },
+  asr_gate:        { maxConcurrent: ASR_MAX_CONCURRENT,       maxQueue: ASR_MAX_QUEUE },
+  doubao_upstream: null,   // 上游拒的，本地闸门参数与之无关，写进日志只会误导
+}
 
 /**
- * 「服务繁忙」响应（队列满 / 等待超时 / 上游并发超限）
+ * 「服务繁忙」响应（转码闸排满 / ASR 闸队列满或等待超时 / 上游并发超限）
+ * @param source  哪一环挤住了，仅用于服务端日志定位，不回传给客户端
  * @param reason  繁忙来源，仅用于服务端日志定位，不回传给客户端
  * @returns       503 + code=ASR_BUSY
+ *
+ * 为什么转码闸拒绝也回 code=ASR_BUSY（而不新造一个码）：
+ *   对用户是同一件事 ——「人多，稍等几秒」，且前端已按此码做了专属文案与自动重试
+ *   （useVoiceStorySubmit / practice 页按 Retry-After 重试）。新造码只会让转码排队落进
+ *   「转写失败」兜底分支，把「等一下就好」说成「产品坏了」。要区分是哪道闸，看服务端日志的 source。
  *
  * 为什么是 503 而不是 429/500：
  *   · 429 在本接口已被「注册用户每日额度用尽」占用，复用会让前端分不清「你用超了」和「大家都在用」；
@@ -110,8 +149,8 @@ type BusyReason = GateRejectReason | 'upstream_limit'
  *   503 语义就是「服务暂时过载」，配 Retry-After 提示客户端稍后重试。
  *   前端按 code=ASR_BUSY 给「人多，稍等几秒再说一次」的专属文案。
  */
-function busyRes(reason: BusyReason): NextResponse {
-  logErr('[transcribe API] ASR 并发闸拒绝', { reason, maxConcurrent: ASR_MAX_CONCURRENT, maxQueue: ASR_MAX_QUEUE })
+function busyRes(source: BusySource, reason: BusyReason): NextResponse {
+  logErr('[transcribe API] 并发闸拒绝', { source, reason, ...(GATE_LIMITS[source] ?? {}) })
   return NextResponse.json(
     { error: '现在使用的人有点多，请稍等几秒再试一次', code: 'ASR_BUSY' },
     { status: 503, headers: { 'Retry-After': '5' } },
@@ -197,16 +236,31 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     const inputBuf = Buffer.from(await file.arrayBuffer())
     const ext      = mimeToExt(file.type)
-    const wavBuf   = await transcodeToWav(inputBuf, ext)
+
+    // ——— 闸① 只包住 ffmpeg 这一段（对齐 CPU）———
+    // 拿不到名额就排队，排不上/等太久回 503「人多」——总好过让 25 个 ffmpeg 同时抢 2 核，
+    // 那会把整个进程（含所有页面的 SSR）一起拖慢，而不只是拖慢录音功能。
+    // ⚠️ 排队同样【必须在计次之前】（与下面 ASR 闸同一条纪律）：这里被拒的请求一次都没计、一分钱没花。
+    const cpuSlot = await transcodeGate.acquire()
+    if (!cpuSlot.ok) return busyRes('transcode_gate', cpuSlot.reason)
+    let wavBuf: Buffer
+    try {
+      wavBuf = await transcodeToWav(inputBuf, ext)
+    } finally {
+      // ⚠️ CPU 名额必须在这里就还掉，【绝不能】攥着它去排 ASR 的队：
+      //    攥着等于把两道闸串成一道，ASR 并发会被转码的上限（2）反向卡死 —— 那正是 P1-2 要修掉的病。
+      //    转码一结束 CPU 就闲了，名额立刻让给下一个等着转码的人。
+      cpuSlot.release()
+    }
     // 构造 WAV Blob 传给 transcription 层，令其 resolveFormat 得到 "wav"
     const wavBlob  = new Blob([new Uint8Array(wavBuf)], { type: 'audio/wav' })
 
-    // ——— 并发闸只包住豆包调用这一段 ———
-    // 转码是本机 CPU、不占豆包并发配额，绝不能圈进来（圈进来白白拉低吞吐）。
+    // ——— 闸② 只包住豆包调用这一段（对齐上游配额）———
+    // 转码已在闸① 里做完并还了名额，绝不能圈进这道闸（圈进来 = 拿豆包配额去限 CPU，白白拉低 ASR 吞吐）。
     // ⚠️ 排队【必须在计次之前】：排队等待与超时都发生在花钱之前，等超时的用户一次都没扣，
     //    否则「排了队、还超时、还被扣次数」= 白扣，不可接受。名额到手之后才计次，计次点依旧紧贴 ASR。
     const slot = await asrGate.acquire()
-    if (!slot.ok) return busyRes(slot.reason)
+    if (!slot.ok) return busyRes('asr_gate', slot.reason)
     try {
       // ② 计次的分界线就在这一行：它下面是花钱的豆包调用，它上面的任何失败都不曾计次。
       const dailyCount = await bumpDailyUsageServer(userId, 'transcribe')
@@ -280,7 +334,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       // 兜底：即便排了队，我方 release 与豆包服务端计数回落之间仍有时序窗口，偶发仍会撞并发限额。
       // 45000292 = 豆包并发超限，与队列满/超时是同一件事（人多），归到同一个 ASR_BUSY 分支，
       // 别让它变成「转写失败」把锅甩给产品。不自动重试的取舍见交付说明。
-      if (e.code === DOUBAO_CONCURRENCY_LIMIT_CODE) return busyRes('upstream_limit')
+      if (e.code === DOUBAO_CONCURRENCY_LIMIT_CODE) return busyRes('doubao_upstream', 'upstream_limit')
       // EMPTY_TRANSCRIPT（录到了音但没有可用人声）与豆包静音码 20000003（纯静音、豆包直接判无人声）
       // 都是用户输入问题、不是服务端故障，用 422 而非 500：语义上「请求格式没问题、内容无法处理」正是 422。
       // 两码必须同路——classifyErrorKind（types/errors.ts）早已把两者都归 user_input，响应码若只认前者，
