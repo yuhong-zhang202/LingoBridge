@@ -2,6 +2,11 @@
  * @module   api/dashboard
  * @desc     GET /api/dashboard?range=7d|14d|30d — 聚合 api_usage_logs，返回看板所需全部统计。
  *           聚合类查询一律经 fetchAllRows 分页拉全量，绝不裸查（PostgREST 会静默截断到 1000 行）。
+ *
+ *   【文件边界】2026-08-14 纯结构拆分：十条表查询搬到 `lib/db/dashboard-queries`，聚合计算按主题
+ *   搬到 `lib/db/dashboard-{cost,today,trends,health}`（逐字未改、只换位置），本文件只剩
+ *   【鉴权 → 并发发起取数（RPC + 表查询）→ 编排计算 → 组装响应】。各口径注释随各自的计算搬过去了。
+ *
  * @author   LingoBridge
  * @created  2026-06-04
  */
@@ -9,7 +14,6 @@ import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
-import { ERROR_KIND_USER_INPUT } from '@/lib/constants'
 // 看板指标 RPC 读取帮手（各自独立自降级、RPC 缺失/出错返 null）——从本文件抽出以守 <1000 行红线（见该模块头注释）。
 import {
   fetchRetention, fetchRegistration, fetchDailyRegistrations, fetchActiveRegistered,
@@ -23,43 +27,28 @@ import {
 // 「有新反馈吗」待办清单读取（未处理全量 + 已处理近 20）：同样抽出成帮手守 <1000 行红线；
 // 三态自降级（迁移 0055 未跑 → 近 7 天只读；读表异常 → loadFailed），绝不让主看板 500。
 import { fetchDashboardFeedback } from '@/lib/db/dashboard-feedback'
+// 十条表查询 + 分页/截断处理 + 行归一化（查询定义逐字搬出，见该模块头注释）。
+import { fetchDashboardTables } from '@/lib/db/dashboard-queries'
+// ── 四个聚合模块：金额 / 今日 / 每日序列 / 健康信号。全是纯函数，口径注释随计算一并搬过去了。──
+import {
+  computeCostCards, computeRangeStats, computeServiceTotals, computePhaseTotals,
+} from '@/lib/db/dashboard-cost'
+import { computeTodayIdentity, computeTodayPractice, computeTodayFailures } from '@/lib/db/dashboard-today'
+import {
+  buildDayBuckets, computeDailyData, computeDailyFailures, computeEngagement, computeHourlyData,
+} from '@/lib/db/dashboard-trends'
+import { computeFakeEmpty, computeLatency, computeTodayStatus } from '@/lib/db/dashboard-health'
 
 import {
-  AttribRow,
-  CostRow,
-  DAILY_BUDGET_CNY,
   COST_QA_BASELINE_START,
-  EXCLUDE_INTERNAL_BY_ID,
-  EXCLUDE_INTERNAL_BY_USER,
-  EXCLUDE_QA_TRAFFIC,
-  FAILED_LOG_N,
+  DAILY_BUDGET_CNY,
   FAKE_EMPTY_PEAK_THRESHOLD,
-  FailedRow,
   HK_OFFSET_MS,
   LATENCY_CUTOFF_LABEL,
-  LATENCY_CUTOFF_TS,
   LATENCY_WARN_MS,
-  MAX_PAGES,
-  PAGE_SIZE,
-  PHASE_META,
-  PracticeRow,
-  ProfileRow,
-  RangeRow,
-  RecentRow,
-  SERVICE_META,
-  TOP_COST_N,
   TOP_USER_N,
-  TREND_PHASE_N,
-  TodayRow,
-  fetchAllRows,
-  hkDayKey,
   hkDayStartUtc,
-  isSystemError,
   parseRange,
-  percentile,
-  r2,
-  resolvePhase,
-  todayPhaseName,
 } from '@/lib/db/dashboard-shared'
 
 /**
@@ -124,174 +113,24 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 与主查询并发、自带降级；null = 迁移未跑/出错/结果疑似被截断 → 下方逐字回退旧标记口径并置 pending。
     const userFlagsPromise = fetchUserAnonFlags(supabase)
 
-    // ── 10 条并行查询 ──
-    // 前 5 条 + practice/profiles 两条是【聚合类】：结果集大小随数据量无上限增长，必须分页拉全量（见 fetchAllRows）。
-    // 其余 3 条是【榜单类】：自带 .limit()，天然在 1000 行以内，直接查即可。
-    // ⚠️ 八条 api_usage_logs 查询【逐条】套两个排除过滤，缺一条那张卡/那张图就掺着自测流量：
-    //    · .or(EXCLUDE_INTERNAL_BY_USER) —— 内部账户（产品方的注册号）；
-    //    · .not(...EXCLUDE_QA_TRAFFIC)   —— QA 自测流量（0059 的 is_qa，专治无痕模式的匿名自测号）。
-    //    两者【同一档】、都只作用于成本口径；NULL 行两边都刻意保留（理由见各自常量注释）。
-    //    practice_sessions / profiles 两条不套 QA 过滤：那两张表没有 is_qa 列（套了直接查询报错）。
-    const [allTimeRes, monthRes, lastMonthRes, todayRes, rangeRes, recentRes, costlyRes, failedRes, practiceRes, profilesRes] = await Promise.all([
-      // 全时段：既算累计总花费卡，又供「按用户成本 Top-N」按 user_id 归因，故一并取归属列。
-      // 这条永不设时间下界、行数只增不减，是最先撞 1000 行上限、也是少报最严重的一条。
-      fetchAllRows<AttribRow>(() => supabase
-        .from('api_usage_logs')
-        .select('estimated_cost_cny, user_id, is_anonymous')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      fetchAllRows<CostRow>(() => supabase
-        .from('api_usage_logs')
-        .select('estimated_cost_cny')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .gte('created_at', monthStart.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      fetchAllRows<CostRow>(() => supabase
-        .from('api_usage_logs')
-        .select('estimated_cost_cny')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .gte('created_at', lastMonthStart.toISOString())
-        .lt('created_at', monthStart.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      fetchAllRows<TodayRow>(() => supabase
-        .from('api_usage_logs')
-        .select('estimated_cost_cny, user_id, is_anonymous, status, service, metadata')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .gte('created_at', todayStart.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      fetchAllRows<RangeRow>(() => supabase
-        .from('api_usage_logs')
-        .select('service, estimated_cost_cny, latency_ms, status, created_at, metadata, user_id, is_anonymous')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .gte('created_at', rangeStartDate.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      supabase
-        .from('api_usage_logs')
-        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .order('created_at', { ascending: false })
-        .limit(30),
-      // 最贵 Top-N（全时段按成本降序）：时间序的"最近调用"抓不到某次异常昂贵，需独立按成本排。
-      supabase
-        .from('api_usage_logs')
-        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .order('estimated_cost_cny', { ascending: false })
-        .limit(TOP_COST_N),
-      // 失败明细（区间内 status='error'，时间倒序）：每日失败柱图的下钻出口。
-      // 刻意【不】在 SQL 层摘掉 user_input —— 明细表要能看到"这条失败到底是哪一类"，
-      // 由前端按 error_kind 列展示；柱图的计数口径才只数系统故障（与 errorRate 一致）。
-      // 另取 user_id + is_anonymous（S4 告警四件套①「带影响者」）：返回前截前 8 位，完整 id 不出接口。
-      supabase
-        .from('api_usage_logs')
-        .select('id, created_at, service, endpoint, usage_amount, usage_unit, estimated_cost_cny, latency_ms, status, metadata, user_id, is_anonymous')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .not(...EXCLUDE_QA_TRAFFIC)
-        .eq('status', 'error')
-        .gte('created_at', rangeStartDate.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(FAILED_LOG_N),
-      // 练习场次（区间内）：今日新练/复练拆分取其今日子集、每日趋势场次取全区间，一次查询两用。
-      fetchAllRows<PracticeRow>(() => supabase
-        .from('practice_sessions')
-        .select('is_review, created_at')
-        .or(EXCLUDE_INTERNAL_BY_USER)
-        .gte('created_at', rangeStartDate.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-      // 今日新增注册：profiles 今日 created_at 计数。只取 id，隐私红线 —— 绝不 join 邮箱/姓名。
-      fetchAllRows<ProfileRow>(() => supabase
-        .from('profiles')
-        .select('id')
-        .or(EXCLUDE_INTERNAL_BY_ID)
-        .gte('created_at', todayStart.toISOString())
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true })),
-    ])
-
-    const firstErr = allTimeRes.error ?? monthRes.error ?? lastMonthRes.error
-      ?? todayRes.error ?? rangeRes.error ?? recentRes.error ?? costlyRes.error ?? failedRes.error
-      ?? practiceRes.error ?? profilesRes.error
-    if (firstErr) {
-      return NextResponse.json({ error: firstErr.message }, { status: 500 })
+    // ── 十条表查询（前 5 条 + practice/profiles 是聚合类，分页拉全量；其余 3 条自带 limit）──
+    // 查询定义与两个排除过滤（内部账户 / QA 自测流量）逐条见 dashboard-queries 模块。
+    const tables = await fetchDashboardTables(supabase, { monthStart, lastMonthStart, todayStart, rangeStartDate })
+    if (tables.error) {
+      return NextResponse.json({ error: tables.error.message }, { status: 500 })
     }
-
-    // 分页触顶 = 数据不完整、看板在少报。绝不静默：打日志 + 随响应返回标记。
-    const dataTruncated = allTimeRes.truncated || monthRes.truncated
-      || lastMonthRes.truncated || todayRes.truncated || rangeRes.truncated
-      || practiceRes.truncated || profilesRes.truncated
-    if (dataTruncated) {
-      logErr('[dashboard API]', new Error(
-        `api_usage_logs 分页触顶（${MAX_PAGES} 页 × ${PAGE_SIZE} 行），统计已被截断、金额偏低；该把汇总下推到 DB 端了`,
-      ))
-    }
-
-    const allRows = allTimeRes.data
-    const mRows   = monthRes.data
-    const lmRows  = lastMonthRes.data
-    const tdRows  = todayRes.data
-    const rngRows = rangeRes.data
-    const practiceRows     = practiceRes.data
-    const profilesTdRows   = profilesRes.data
-    const recent  = (recentRes.data ?? []) as RecentRow[]
-    const costly  = (costlyRes.data ?? []) as RecentRow[]
-    // 失败明细带影响者（S4①）：服务端截 user_id 前 8 位（辨识够用、完整 id 不出接口），匿名标记随行。
-    const failed  = ((failedRes.data ?? []) as FailedRow[]).map(({ user_id, is_anonymous, ...rest }) => ({
-      ...rest,
-      userIdShort: user_id ? user_id.slice(0, 8) : null,
-      isAnonymous: is_anonymous,
-    }))
+    const { allRows, mRows, lmRows, tdRows, rngRows, practiceRows, profilesTdRows,
+      recent, costly, failed, dataTruncated } = tables
 
     // ── 三张费用卡 ──
-    const allTimeCost   = r2(allRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
-    const allTimeCalls  = allRows.length
-    const monthCost     = r2(mRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
-    const monthCalls    = mRows.length
-    // 「本月」标签取【东八区月份】（与 monthCost 的 monthStart 同源 nowHk.getUTCMonth）——
-    // 修客户端 new Date().getMonth() 的时区错标：跨月又跨时区时（如东八区已 8 月、浏览器本地仍 7 月），
-    // 客户端月份会把「本月(8月)」错标成「7月」。标签必须服务端算、与数字口径一致。
-    const monthLabel    = `${nowHk.getUTCMonth() + 1}月`
-    const lastMonthCost = lmRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
-    const monthChange   = lastMonthCost > 0
-      ? r2((monthCost - lastMonthCost) / lastMonthCost * 100)
-      : null
-    const todayCost  = r2(tdRows.reduce((s, r) => s + r.estimated_cost_cny, 0))
-    const todayCalls = tdRows.length
+    const { allTimeCost, allTimeCalls, monthCost, monthCalls, monthLabel, monthChange, todayCost, todayCalls }
+      = computeCostCards({ allRows, mRows, lmRows, tdRows, nowHk })
 
-    // ── 今日活跃（注册）与匿名试用会话数 ──
-    // 先把今日每个 user_id 按 is_anonymous 标记归成匿名 / 注册（同一 user_id 只要有一条 is_anonymous=true
-    // 即整体标匿名），再各自去重计数。user_id 为空的行（老行/无归属）无法归到人，跳过。此处两个计数是：
-    //   · anonSessionsToday    = COUNT(DISTINCT 匿名 user_id)   —— 是「去重身份」不是去重真人：
-    //     匿名 user_id 按设备持久（同一设备重复访问仍是同一 id、会被去重），但同一真人换设备 / 清缓存会分到
-    //     新 id，故它高估真人数（非唯一真人）、绝不与注册活跃相加。前端措辞据此写「去重身份·按设备持久·非唯一真人」。
-    //     匿名无权威表可依，维持此标记口径不变。
-    //   · registeredActiveFallback = COUNT(DISTINCT 非匿名 user_id) —— 仅作【降级兜底】：
-    //     注册活跃的权威值改由 0045 RPC（读 auth.users）算，见下方 registeredActiveToday。
-    //     旧口径靠 api_usage_logs.is_anonymous 标记，而该标记正是旧 stale JWT bug 会写错的不可靠字段。
-    const todayUserAnon = new Map<string, boolean>()
-    for (const row of tdRows) {
-      if (row.user_id == null) continue
-      const prev = todayUserAnon.get(row.user_id) ?? false
-      todayUserAnon.set(row.user_id, prev || row.is_anonymous === true)
-    }
-    let registeredActiveFallback = 0
-    let anonSessionsToday        = 0
-    for (const isAnon of todayUserAnon.values()) {
-      if (isAnon) anonSessionsToday++
-      else        registeredActiveFallback++
-    }
+    // ── 今日经营口径（活跃/匿名会话数、练习新练复练、故障按环节、空录音）──
+    const { registeredActiveFallback, anonSessionsToday } = computeTodayIdentity(tdRows)
+    const { practiceNew, practiceReview, practiceTotal }  = computeTodayPractice(practiceRows, todayStart)
+    const { todayFailuresByPhase, todayFailuresTotal, emptyRecordingToday } = computeTodayFailures(tdRows)
+
     // 今日活跃·注册【三级降级】：核心活跃(0047 权威) → 活跃注册(0045) → is_anonymous 标记去重(registeredActiveFallback)。
     // activeMap = 前两级中最先可用者的每日映射；两级 RPC 皆 null 时走 fallback。取当天格。
     // 匿名会话数（anonSessionsToday）不变——匿名本就"非唯一真人"、无权威表可依，维持旧标记口径。
@@ -304,28 +143,6 @@ export async function GET(req: Request): Promise<NextResponse> {
       ? (activeMap.get(todayBucketKey) ?? 0)
       : registeredActiveFallback
 
-    // ── 今日练习场次（新练 / 复练拆分）：practice_sessions 今日子集，按 is_review 分。 ──
-    const todayTsForPractice = todayStart.getTime()
-    const practiceTdRows   = practiceRows.filter(r => new Date(r.created_at).getTime() >= todayTsForPractice)
-    const practiceReview   = practiceTdRows.filter(r => r.is_review).length
-    const practiceNew      = practiceTdRows.length - practiceReview
-    const practiceTotal    = practiceTdRows.length
-
-    // ── 今日系统故障按环节 + 空录音（不算故障）──
-    // 只数系统故障（isSystemError，与顶部错误率同口径）；按环节名分组降序。
-    // emptyRecordingToday 单列：空录音是用户输入问题（error_kind=user_input），钱花了但服务是好的，不算故障。
-    const todayFailPhaseMap = new Map<string, number>()
-    for (const row of tdRows) {
-      if (!isSystemError(row)) continue
-      const name = todayPhaseName(row)
-      todayFailPhaseMap.set(name, (todayFailPhaseMap.get(name) ?? 0) + 1)
-    }
-    const todayFailuresByPhase = Array.from(todayFailPhaseMap.entries())
-      .map(([phase, count]) => ({ phase, count }))
-      .sort((a, b) => b.count - a.count)
-    const todayFailuresTotal  = todayFailuresByPhase.reduce((s, p) => s + p.count, 0)
-    const emptyRecordingToday = tdRows.filter(r => r.metadata?.error_kind === ERROR_KIND_USER_INPUT).length
-
     // ── 今日新增注册（真注册口径优先）──
     // 真注册 = auth.users 非匿名·有邮箱（get_registration_stats RPC）。原 profiles 计数把匿名也算进来、虚高
     // （实测 7/28 profiles 13 / 真注册 3）。RPC 未接入（迁移未跑）时回退 profiles 计数并置 pending，
@@ -334,93 +151,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     const newRegistrationsToday   = registration ? registration.todayCount : profilesTdRows.length
     const newRegistrationsPending = registration === null
 
-    // ── 迷你统计（基于 range 窗口） ──
-    const successRows = rngRows.filter(r => r.status === 'success')
-    const avgDailyCalls = r2(rngRows.length / rangeDays)
-    // ⚠️ latency 口径断点 2026-07-20（fc0dbb8）：此前 matching 的 extraction / ranking 两条日志
-    //    latency_ms 【都】写请求总耗时（同一个时长记两遍），之后才改成各自分段实测。
-    //    故 range 窗口跨越 2026-07-20 时，avgLatency / p95Latency 是新旧两种口径的混合值，
-    //    会显得"性能突然变好了一半"——那是口径修正，不是真的变快。历史行不追溯改写。
-    // 用【中位数】而非均值：同一环节的延迟随输入长度能差 3 倍，均值谁也不代表；
-    // 中位数答"典型一次要等多久"，配合 p95 答"最坏能有多坏"，两个数才拼得出体感。
-    const p50Latency    = percentile(successRows.map(r => r.latency_ms), 50)
-    // p95 延迟：均值藏长尾，p95 才暴露偶发慢请求。只算成功调用（失败常瞬时返回，混入会拉低）。
-    const p95Latency    = percentile(successRows.map(r => r.latency_ms), 95)
-    // 错误率只算系统故障：用户输入问题（空录音等）不是故障，混进来会淹没真实故障信号。见 isSystemError。
-    const errorRate     = rngRows.length > 0
-      ? r2(rngRows.filter(isSystemError).length / rngRows.length * 100)
-      : 0
-    const rangeCost     = rngRows.reduce((s, r) => s + r.estimated_cost_cny, 0)
-    const avgDailyCost  = r2(rangeCost / rangeDays)
-    // 失败成本（白烧）：状态为 error 的调用仍可能已消耗 token（如 ranking 失败前已产出部分输出）。
-    // 汇总一个总额，配合按环节失败率定位"钱花了但没拿到结果"的环节。
-    // ⚠️ 口径刻意与 errorRate 不同：这里【全量】统计 error 行，用户输入问题（空录音）同样计入 ——
-    //    豆包被调用过、音频被处理过，钱是真花了。摘出错误率不等于当作没花钱。
-    const failedCost    = r2(rngRows.filter(r => r.status === 'error').reduce((s, r) => s + r.estimated_cost_cny, 0))
-
-    // ── 假空率（区间窗口）：空录音里"采到了声音却转写空"的占比 ──
-    // 空录音 = error_kind=user_input（EMPTY_TRANSCRIPT / 豆包静音 20000003，见 transcribe route）。
-    // 只把带 audio 采集信号（口径生效后）的空录音计入分母：老数据无 audio 字段，无从判真伪，排除不误算。
-    //   · 假空 = peak ≥ 阈值（采到真实声音却转写空 → 疑似采集/上传/ASR 问题）
-    //   · 真空 = peak < 阈值（用户真没出声，良性）
-    // n（分母）为 0（区间内无带信号的空录音）→ 置 null + pending，前端保留「待接入」，不显误导的 0%。
-    const emptyAudioRows = rngRows.filter(r =>
-      r.metadata?.error_kind === ERROR_KIND_USER_INPUT
-      && r.metadata.audio != null
-      && typeof r.metadata.audio.peak === 'number')
-    const fakeEmptyN     = emptyAudioRows.length
-    const fakeEmptyCount = emptyAudioRows.filter(r => (r.metadata!.audio!.peak as number) >= FAKE_EMPTY_PEAK_THRESHOLD).length
-    const fakeEmptyPending = fakeEmptyN === 0
-    const fakeEmpty = fakeEmptyPending
-      ? null
-      : { rate: r2(fakeEmptyCount / fakeEmptyN * 100), n: fakeEmptyN, fakeCount: fakeEmptyCount }
-
-    // ── 估算占比（本期成本 X% 为估算）：cost_source='estimate' 的成本 ÷ 本期总成本 ──
-    // 缺 cost_source 的行（如 transcribe，按真实时长计）不计入估算，避免高估估算占比。
-    const estimateCost = rngRows
-      .filter(r => r.metadata?.cost_source === 'estimate')
-      .reduce((s, r) => s + r.estimated_cost_cny, 0)
-    const estimateRatio = rangeCost > 0 ? r2(estimateCost / rangeCost * 100) : 0
-
-    // ── 按服务分组 ──
-    const serviceTotals = Object.keys(SERVICE_META).map(svc => {
-      const rows = rngRows.filter(r => r.service === svc)
-      return {
-        service: svc,
-        name:    SERVICE_META[svc].name,
-        color:   SERVICE_META[svc].color,
-        cost:    r2(rows.reduce((s, r) => s + r.estimated_cost_cny, 0)),
-        calls:   rows.length,
-      }
-    })
-
-    // ── 按环节成本 + 按环节失败率（哪个环节最贵 / 哪个环节在失败）：按 metadata.phase 聚合，降序 ──
-    // errors/errorCost 让"部分失败白烧"在 phase 级可见：如 matching 中 extraction 成功记账后 ranking 失败，
-    // extraction 有成本、error 行落在对应 phase（无 phase 的失败归 other），错误率一眼可辨是哪环节在漏。
-    // errors 与顶部 errorRate 同口径（只数系统故障），否则顶部 3% 而 other 环节 60% 会自相矛盾、没法下钻；
-    // errorCost 则与 failedCost 同口径（全量 error 行），两者刻意不同 —— 一个问"哪坏了"，一个问"钱哪去了"。
-    const phaseMap = new Map<string, { cost: number; calls: number; errors: number; errorCost: number }>()
-    for (const row of rngRows) {
-      // resolvePhase：豆包无 phase 兜底成 transcribe，消灭「其他」桶（成本块/失败块都读 phaseTotals）。
-      const key = resolvePhase(row) ?? 'other'
-      const cur = phaseMap.get(key) ?? { cost: 0, calls: 0, errors: 0, errorCost: 0 }
-      cur.cost += row.estimated_cost_cny
-      cur.calls += 1
-      if (isSystemError(row)) cur.errors += 1
-      if (row.status === 'error') cur.errorCost += row.estimated_cost_cny
-      phaseMap.set(key, cur)
-    }
-    const phaseTotals = Array.from(phaseMap.entries())
-      .map(([phase, v]) => ({
-        phase,
-        name:      PHASE_META[phase] ?? phase,
-        cost:      r2(v.cost),
-        calls:     v.calls,
-        errors:    v.errors,
-        errorCost: r2(v.errorCost),
-        errorRate: v.calls > 0 ? r2(v.errors / v.calls * 100) : 0,
-      }))
-      .sort((a, b) => b.cost - a.cost)
+    // ── 区间口径：迷你统计 / 假空率 / 按服务 / 按环节 ──
+    const { avgDailyCalls, p50Latency, p95Latency, errorRate, avgDailyCost, failedCost, estimateRatio }
+      = computeRangeStats(rngRows, rangeDays)
+    const { fakeEmpty, fakeEmptyPending } = computeFakeEmpty(rngRows)
+    const serviceTotals = computeServiceTotals(rngRows)
+    const phaseTotals   = computePhaseTotals(rngRows)
 
     // ── 按用户成本 Top-N（谁烧最多）+ 匿名/登录成本占比 ──
     // 归因口径：按 user_id（UUID）分组累计全时段成本，降序取前 N（烧最多在最前）。
@@ -447,66 +183,14 @@ export async function GET(req: Request): Promise<NextResponse> {
     const userIdentityPending = userFlags === null
     const { userTotals, anonymousCost, loggedInCost } = aggregateUserCosts(allRows, userFlags, TOP_USER_N)
 
-    // ── 每日趋势（rangeDays 天，升序，按东八区分桶） ──
-    const dailyMap = new Map<string, Record<string, number>>()
-    for (const row of rngRows) {
-      const key = hkDayKey(row.created_at)
-      if (!dailyMap.has(key)) dailyMap.set(key, {})
-      const entry = dailyMap.get(key)!
-      entry[row.service] = (entry[row.service] ?? 0) + row.estimated_cost_cny
-      entry['total']     = (entry['total']     ?? 0) + row.estimated_cost_cny
-    }
-    // 区间内每一天的「分桶键 + 展示标签」骨架：费用趋势、每日失败、耗时趋势三处共用同一套日期轴，
-    // 各自单独生成的话，某天无数据时三张图的横轴会错位对不上。
-    const dayBuckets = Array.from({ length: rangeDays }, (_, i) => {
-      const hk = new Date(rangeStartDate.getTime() + i * 24 * 60 * 60 * 1000 + HK_OFFSET_MS)
-      return {
-        key:   `${hk.getUTCFullYear()}-${hk.getUTCMonth()}-${hk.getUTCDate()}`,
-        date:  `${hk.getUTCMonth() + 1}/${hk.getUTCDate()}`,
-      }
-    })
-    const dailyData = dayBuckets.map(({ key, date }) => {
-      const entry = dailyMap.get(key) ?? {}
-      return {
-        date,
-        doubao_asr:    r2(entry['doubao_asr']    ?? 0),
-        qwen_flash:    r2(entry['qwen_flash']    ?? 0),
-        qwen_plus:     r2(entry['qwen_plus']     ?? 0),
-        total:         r2(entry['total']         ?? 0),
-      }
-    })
+    // ── 每日序列（费用趋势 / 失败 / 参与度共用同一套日期轴，勿各算各的）──
+    const dayBuckets    = buildDayBuckets(rangeStartDate, rangeDays)
+    const dailyData     = computeDailyData(rngRows, dayBuckets)
+    const dailyFailures = computeDailyFailures(rngRows, dayBuckets)
+    // 每日新增注册映射（RPC 并发结果）：null = 迁移未跑/出错，下方 newReg 整条置 null，前端降级不画该线。
+    const dailyReg = await dailyRegPromise
+    const { engagementTrend, windowActiveSet } = computeEngagement({ rngRows, practiceRows, dayBuckets, activeMap, dailyReg })
 
-    // ── 每日失败次数（rangeDays 天，与 dailyData 同一日期轴） ──
-    // 口径【只数系统故障】，与顶部 errorRate 一致：空录音之类的用户输入问题混进来会淹掉真故障，
-    // 而这张图存在的唯一意义就是"哪天真的坏了"。金额口径的 failedCost 仍是全量 error，两者刻意不同。
-    const failureMap = new Map<string, number>()
-    for (const row of rngRows) {
-      if (!isSystemError(row)) continue
-      const key = hkDayKey(row.created_at)
-      failureMap.set(key, (failureMap.get(key) ?? 0) + 1)
-    }
-    const dailyFailures = dayBuckets.map(({ key, date }) => ({ date, failures: failureMap.get(key) ?? 0 }))
-
-    // ── 每日参与度趋势（活跃人数 + 练习场次 + 新增注册，与 dailyData 同一日期轴）──
-    // 活跃人数【三级降级】：核心活跃(0047)→活跃注册(0045)→is_anonymous 标记去重。每天取 activeMap 当天格；
-    //   activeMap 为 null（两级 RPC 皆缺失/出错）→ 回退旧 is_anonymous 标记去重（activeUsersByDay），不 500。
-    //   刻意只数注册、不掺匿名——掺进来会与「匿名绝不和注册相加」的产品口径打架，且匿名会话数每天暴涨会淹没真实活跃。
-    // 练习场次：每天 practice_sessions 计数（新练+复练合计）。
-    // 新增注册：每天真注册数（get_daily_registrations RPC，0044；口径 = auth.users 非匿名·有邮箱）。
-    //   dailyReg 为 null（迁移未跑/RPC 出错）时该字段整条置 null，前端不渲染这条线（不画全 0 线误导）。
-    // windowActiveSet：窗口内【核心活跃三级降级第 3 级】的去重人数（漏斗③）——注册用户在窗口内任一天有 AI 环节
-    //   活动即计。⚠️ 仅覆盖 api_usage_logs 信号：0047 的 per-day RPC 无法在 JS 侧跨天去重成「窗口去重」，故窗口
-    //   聚合值只能由 rngRows 现算（这也正是活跃口径的第 3 级降级源，恒可算、绝不拖垮看板）。见响应处 windowCoreActive。
-    const activeUsersByDay = new Map<string, Set<string>>()
-    const windowActiveSet  = new Set<string>()
-    for (const row of rngRows) {
-      if (row.is_anonymous !== false || row.user_id == null) continue   // 只计注册（is_anonymous=false）且能归属的行
-      windowActiveSet.add(row.user_id)
-      const key = hkDayKey(row.created_at)
-      const set = activeUsersByDay.get(key)
-      if (set) set.add(row.user_id)
-      else activeUsersByDay.set(key, new Set([row.user_id]))
-    }
     // 窗口核心活跃去重人数（漏斗③主数字）：优先 0047 标量 RPC（全 7 信号·DB 侧窗口去重、值准）；
     // null（迁移未跑/出错）→ 回退 windowActiveSet.size（rngRows 现算的 AI-only 近似，恒可算保底）。
     const windowCoreRpc = await windowCorePromise
@@ -517,97 +201,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     // 核心活跃「三级全失败」标记：两级每日权威 RPC 皆不可用时置真，前端漏斗③改走降级态（口径不可信）。
     // 至少一级 RPC 可用则 false。⚠️ 与 windowCoreApprox 正交：前者判每日口径链健康、后者判③标量是否走近似。
     const activePending = coreActive == null && activeReg == null
-    const practiceByDay = new Map<string, number>()
-    for (const row of practiceRows) {
-      const key = hkDayKey(row.created_at)
-      practiceByDay.set(key, (practiceByDay.get(key) ?? 0) + 1)
-    }
-    // 每日新增注册映射（RPC 并发结果）：null = 迁移未跑/出错，下方 newReg 整条置 null，前端降级不画该线。
-    const dailyReg = await dailyRegPromise
-    const engagementTrend = dayBuckets.map(({ key, date }) => ({
-      date,
-      // 活跃人数：三级降级——activeMap（核心活跃 0047 → 活跃注册 0045）可用时取当天格；
-      // null（两级 RPC 皆缺失/出错）回退旧标记去重 activeUsersByDay。
-      activeUsers:      activeMap ? (activeMap.get(key) ?? 0) : (activeUsersByDay.get(key)?.size ?? 0),
-      practiceSessions: practiceByDay.get(key) ?? 0,
-      newReg:           dailyReg ? (dailyReg.get(key) ?? 0) : null,
-    }))
 
-    // ── 各环节耗时（分布 + 趋势）──
-    // 只取成功调用（失败常瞬时返回，混入会把 P50 拉低成假象）且只取口径断点之后的行（见 LATENCY_CUTOFF_TS）。
-    const latencyRows = rngRows.filter(r =>
-      r.status === 'success' && new Date(r.created_at).getTime() >= LATENCY_CUTOFF_TS)
-
-    const latencyByPhase = new Map<string, number[]>()
-    for (const row of latencyRows) {
-      const key = row.metadata?.phase ?? 'other'
-      const arr = latencyByPhase.get(key)
-      if (arr) arr.push(row.latency_ms)
-      else latencyByPhase.set(key, [row.latency_ms])
-    }
-    // 按 P90 降序：要看的是"最坏体验有多坏"，最慢的排最上面。刻意【不给均值列】——
-    // 同一环节不同输入的延迟能差 3 倍，均值谁也不代表，给了只会被当成"正常水平"误读。
-    const phaseLatency = Array.from(latencyByPhase.entries())
-      .map(([phase, ms]) => ({
-        phase,
-        name:  PHASE_META[phase] ?? phase,
-        p50:   percentile(ms, 50),
-        p90:   percentile(ms, 90),
-        max:   Math.round(ms.reduce((m, v) => Math.max(m, v), 0)),
-        calls: ms.length,
-      }))
-      .sort((a, b) => b.p90 - a.p90)
-
-    // 耗时趋势：只画最慢的前 N 个环节，且一次只让前端画一个环节的 P50/P90 双线（见 PhaseLatencyPanel）。
-    // 断点之前的日子给 null 而非 0 —— 0 会被画成"那几天延迟为零"的假谷底，null 让折线直接断开。
-    const latencyTrend = phaseLatency.slice(0, TREND_PHASE_N).map(p => {
-      const perDay = new Map<string, number[]>()
-      for (const row of latencyRows) {
-        if ((row.metadata?.phase ?? 'other') !== p.phase) continue
-        const key = hkDayKey(row.created_at)
-        const arr = perDay.get(key)
-        if (arr) arr.push(row.latency_ms)
-        else perDay.set(key, [row.latency_ms])
-      }
-      return {
-        phase: p.phase,
-        name:  p.name,
-        days:  dayBuckets.map(({ key, date }) => {
-          const ms = perDay.get(key)
-          return ms && ms.length > 0
-            ? { date, p50: percentile(ms, 50), p90: percentile(ms, 90), calls: ms.length }
-            : { date, p50: null, p90: null, calls: 0 }
-        }),
-      }
-    })
-
-    // ── 今日状况条（顶部"一眼看出今天有没有出事"）──
-    // 时间窗【固定近 7 日】、不随区间选择器变：判断"今天是不是异常"要跟一个稳定的近期基线比，
-    // 基线跟着区间一起漂移的话，切到 30 天就会因为均值被稀释而看不出今天的异常。
-    // rangeDays 最小值就是 7，故 rngRows 必然覆盖得到这 7 天。
-    const last7StartTs = todayStart.getTime() - 6 * 24 * 60 * 60 * 1000
-    const last7Rows    = rngRows.filter(r => new Date(r.created_at).getTime() >= last7StartTs)
-    const todayRowsInRange = rngRows.filter(r => new Date(r.created_at).getTime() >= todayStart.getTime())
-    const slowest = phaseLatency[0] ?? null
-    const todayStatus = {
-      todayFailures:     todayRowsInRange.filter(isSystemError).length,
-      avgDailyFailures7: r2(last7Rows.filter(isSystemError).length / 7),
-      avgDailyCost7:     r2(last7Rows.reduce((s, r) => s + r.estimated_cost_cny, 0) / 7),
-      slowestPhase:      slowest ? { name: slowest.name, p90: slowest.p90 } : null,
-    }
-
-    // ── 今日小时分布（从 rngRows 中筛 today，按东八区取小时桶） ──
-    const todayTs  = todayStart.getTime()
-    const hourlyMap = new Map<number, number>()
-    for (const row of rngRows) {
-      if (new Date(row.created_at).getTime() < todayTs) continue
-      const h = new Date(new Date(row.created_at).getTime() + HK_OFFSET_MS).getUTCHours()
-      hourlyMap.set(h, (hourlyMap.get(h) ?? 0) + 1)
-    }
-    const hourlyData = Array.from({ length: 24 }, (_, h) => ({
-      hour:  `${h}:00`,
-      calls: hourlyMap.get(h) ?? 0,
-    }))
+    // ── 各环节耗时（分布 + 趋势）/ 今日状况条 / 今日小时分布 ──
+    const { phaseLatency, latencyTrend } = computeLatency(rngRows, dayBuckets)
+    const todayStatus = computeTodayStatus({ rngRows, todayStart, phaseLatency })
+    const hourlyData  = computeHourlyData(rngRows, todayStart)
 
     // 留存 RPC 结果（与主查询并发、自带降级）：null = 迁移未跑/出错，前端显降级态。
     const retention = await retentionPromise
