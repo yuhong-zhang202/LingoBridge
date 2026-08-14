@@ -475,8 +475,12 @@ export function deriveQuotaWall(row: QuotaWallRow): QuotaWallStats {
 }
 
 /**
- * 取额度墙统计（RPC get_quota_wall_stats，0064）。窗口固定 7 天，【不随看板 range 变】——
- * 口径由产品方锁死（撞墙窗口与观察期都是 7 天），跟随 range 就是改口径。
+ * 取额度墙统计（RPC get_quota_wall_stats，0064）。【不随看板 range 变】——两个窗口都由产品方
+ * 锁死，跟随 range 就是改口径：
+ *   · 撞墙窗口 **30 天**（产品方 2026-08-14 拍板由 7 改 30）
+ *   · 观察期    **7 天**（撞墙后 7×24 小时内是否注册 / 是否沉默）
+ * ⚠️ 这两个数【刻意不同】，别为了"看起来一致"把 30 改回 7 —— 两个窗口都取 7 天时
+ *    平均只走完一半观察期，转化率被稀释到接近真值的一半。全文见 0064 的拍板段。
  * 迁移未跑 / RPC 出错时返回 null，route 置 pending、前端标「降级中」。
  * @param supabase  service_role 客户端
  * @returns         额度墙统计；不可用时 null

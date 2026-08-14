@@ -13,8 +13,10 @@ import DailyFailureChart from '@/components/dashboard/DailyFailureChart'
 import RecentCallsTable from '@/components/dashboard/RecentCallsTable'
 import PhaseLatencyPanel from '@/components/dashboard/PhaseLatencyPanel'
 import { AiOutcomeBlock } from '@/components/dashboard/FlowHealthBlocks'
+import FailureImpactBlock from '@/components/dashboard/FailureImpactBlock'
 import { ANCHOR_FAILURE_DETAIL, ANCHOR_LATENCY } from '@/lib/dashboard-verdict'
 import type { FlowHealthState } from '@/hooks/useFlowHealth'
+import type { GrowthState, GrowthUsageResponse } from '@/hooks/useGrowthMetrics'
 import { formatCny } from '@/lib/format-cost'
 import { phaseDisplayName, PendingPlaceholder } from './shared'
 import type { DashboardData, PhaseTotal } from './types'
@@ -82,10 +84,12 @@ function FakeEmptyStat({ fakeEmpty, threshold }: { fakeEmpty: NonNullable<Dashbo
  * @param incidentSubtitle  收起态 summary 的常驻结论数字（本期失败 + 该我们修）
  * @param rangeFailures     本期系统故障次数（区间口径，摘要行用）
  * @param oursTotal         flow_events「该我们修」桶合计；flow 未到/失败时 null，摘要行省略该段
+ * @param usage             使用与故障三态（本区只消费 failureImpact 一块）
  */
-export default function IncidentSection({ data, flow, rangeBadge, incidentSubtitle, rangeFailures, oursTotal }: {
+export default function IncidentSection({ data, flow, rangeBadge, incidentSubtitle, rangeFailures, oursTotal, usage }: {
   data: DashboardData; flow: FlowHealthState; rangeBadge: string
   incidentSubtitle: string; rangeFailures: number; oursTotal: number | null
+  usage: GrowthState<GrowthUsageResponse>
 }) {
   return (<>
     {/* ③ 出事了吗（defaultOpen 数据驱动：今日有计费失败才默认展开，结论条会点名）：
@@ -107,6 +111,8 @@ export default function IncidentSection({ data, flow, rangeBadge, incidentSubtit
         <AiOutcomeBlock state={flow} />
         {/* 块B「哪个环节在失败」：只列有失败的环节 + 白烧成本（计费口径）；无失败整块不渲染 */}
         <PhaseFailureBreakdown phases={data.phaseTotals} failedCost={data.failedCost} />
+        {/* 每类故障波及多少人（0065 口径）：次数之外补上「影响面」，无归属的行照实说无归属、不显 0 人 */}
+        <FailureImpactBlock state={usage} />
         {/* 失败明细表：仅本期有失败时渲染（删空表，方案 §五）；锚点包裹 = 结论条失败 chip 与
             「该我们修」格下钻的共同落点 */}
         {data.failedLogs.length > 0 && (

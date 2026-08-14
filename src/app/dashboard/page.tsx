@@ -2,11 +2,12 @@
 /**
  * @module   dashboard/page
  * @desc     Admin 经营看板（2026-08-04 重设计稿）— 顶部「今日结论条」（今天有没有事要处理）
- *           + Hero 三卡（今日新增注册/核心活跃/练习场次，今日口径）+ 五个问句式折叠区（所选区间口径）。
+ *           + Hero 三卡（今日新增注册/核心活跃/练习场次，今日口径）+ 七个问句式折叠区（所选区间口径）。
  *           不含 TabBar/TopBar，仅管理员可见。
  *
- *   【信息架构】折叠区顺序按产品方拍板优先级钉死：有新反馈吗 → 用户走到哪 → 出事了吗 →
- *   钱花在哪 → 看板自己还准吗。刻意不做「有事时物理位置提前」的动态排序（单人日读用户会形成
+ *   【信息架构】折叠区顺序按产品方拍板优先级钉死（2026-08-15 改版后共七区）：有新反馈吗 →
+ *   用户走到哪 → 谁留下了 → 用户在用什么 → 出事了吗 → 钱花在哪 → 看板自己还准吗。
+ *   刻意不做「有事时物理位置提前」的动态排序（单人日读用户会形成
  *   位置记忆，跳变破坏可预期性）；有事的引导由结论条锚点承担。各区收起态 summary 带常驻结论数字。
  *   「出事了吗」的 defaultOpen 数据驱动（今日有计费失败才默认展开），open 走惰性 useState
  *   只算一次模式（见 CollapsibleSection 顶注）。
@@ -23,10 +24,13 @@ import HeroMetrics    from '@/components/dashboard/HeroMetrics'
 import TodayVerdictBar from '@/components/dashboard/TodayVerdictBar'
 import { groupEvents } from '@/components/dashboard/FlowHealthBlocks'
 import { useFlowHealth } from '@/hooks/useFlowHealth'
+import { useGrowthFunnel, useGrowthCohorts, useGrowthUsage } from '@/hooks/useGrowthMetrics'
 import { apiFetch } from '@/lib/api-client'
 import type { DashboardData } from './_sections/types'
 import FeedbackSection  from './_sections/FeedbackSection'
 import UsersSection     from './_sections/UsersSection'
+import RetentionSection from './_sections/RetentionSection'
+import FeatureSection   from './_sections/FeatureSection'
 import IncidentSection  from './_sections/IncidentSection'
 import CostSection      from './_sections/CostSection'
 import SelfCheckSection from './_sections/SelfCheckSection'
@@ -52,6 +56,11 @@ export default function DashboardPage() {
   // 客户端埋点观测（flow_events 口径）：父层拉一次，同时喂「出事了吗」的 AI 结局分布
   // 与「看板自己还准吗」的埋点自检两块——各自 fetch 会是必然的双份请求（<details> 收起也照样 mount）
   const flow = useFlowHealth(range)
+  // 产品增长指标（0064/0065 三条子路由）：同样父层各拉一次，喂给②③④⑤四个区
+  // （usage 一份要同时喂④「用户在用什么」与⑤「出事了吗」的故障影响面）。
+  const growthFunnel  = useGrowthFunnel(range)
+  const growthCohorts = useGrowthCohorts(range)
+  const growthUsage   = useGrowthUsage(range)
 
   useEffect(() => {
     const ac = new AbortController()
@@ -80,13 +89,24 @@ export default function DashboardPage() {
   const hasRangeData = !!data && data.dailyData.some(d => d.total > 0)
 
   // ── 各区收起态 summary 的常驻结论数字（方案 §一骨架）──
-  // ①区：本期系统故障次数（区间口径）+ flow_events「该我们修」桶（同为区间口径，两者同源可并列；
+  // ⑤区「出事了吗」：本期系统故障次数（区间口径）+ flow_events「该我们修」桶（同为区间口径，两者同源可并列；
   //      它刻意不进「今日」口径的结论条，理由见 dashboard-verdict 顶注）。flow 未到/失败时省略该段。
   const rangeFailures = data?.dailyFailures.reduce((s, d) => s + d.failures, 0) ?? 0
   const fh = flow.data
   const oursTotal = fh ? fh.aiCall.reduce((s, st) => s + st.ourSide, 0) : null
   const incidentSubtitle = `本期失败 ${rangeFailures} 次${oursTotal != null ? ` · 该我们修 ${oursTotal}` : ''}`
-  // ④区：埋点事件健康一句话（复用 FlowSelfCheckBlock 的 groupEvents，保证判定同式）。
+  // ②区：七步漏斗的两端（建号 → 拿到反馈卡），漏斗未到/降级时退回静态说明。
+  //      刻意只取首尾两个数、不在 summary 里放转化率：跨源窗口下的整链转化率没有稳定含义。
+  const gf = growthFunnel.data?.funnel ?? null
+  const usersSubtitle = gf && gf.steps.length > 0
+    ? `建号 ${gf.steps[0].users} 人 → 拿到反馈卡 ${gf.steps[gf.steps.length - 1].users} 人`
+    : '七步主线漏斗 · 质量注脚 · 额度墙'
+  // ③区：窗口内来过的人 + 其中核心活跃（同一批 0065 口径，可并列；不与主看板那批相减）
+  const gs = growthCohorts.data?.segments ?? null
+  const retentionSubtitle = gs
+    ? `窗口来过 ${gs.segmentBase} 人 · 核心活跃 ${gs.coreActive} 人`
+    : 'W1 留存 · 粘性 · 分层'
+  // ⑦区：埋点事件健康一句话（复用 FlowSelfCheckBlock 的 groupEvents，保证判定同式）。
   //      只数红档 dead；灰档「待首次触发」不是异常、不进告警数。flow 未到时退回静态说明。
   const eventGroups = fh ? groupEvents(fh.eventCounts) : null
   const selfCheckSubtitle = fh && eventGroups
@@ -162,15 +182,27 @@ export default function DashboardPage() {
         <div className="text-[0.625rem] text-v2-text-muted mb-3">
           上方三数卡＝今日（东八区日历边界）；下方各区＝所选区间（{RANGE_LABEL[range]}）。
         </div>
+        {/* Hero 两个数的口径必须写出来，写在这里而不是卡上（三卡本次不动）：
+            「核心活跃」不写清就会被当成"打开过 App 的人"，匿名会话不写清就会被人加进注册活跃里。 */}
+        <div className="text-[0.625rem] text-v2-text-muted mb-3 leading-relaxed">
+          今日核心活跃口径 —— 需调用 AI / 复习闪卡 / 收藏任一，纯浏览不计入；
+          匿名会话数是去重身份（按设备持久、非唯一真人），绝不与注册活跃相加。
+        </div>
 
-        {/* ── 五个问句式折叠区：顺序按产品方拍板的优先级钉死，勿调（理由见本文件顶注「信息架构」）。
+        {/* ── 七个问句式折叠区：顺序按产品方拍板的优先级钉死，勿调（理由见本文件顶注「信息架构」）。
             各区的 JSX 与局部逻辑分别落在 _sections/ 下的同名文件，这里只负责编排与传参。 */}
         <FeedbackSection data={data} />
 
-        <UsersSection data={data} rangeBadge={rangeBadge} windowDays={windowDays} />
+        <UsersSection data={data} funnel={growthFunnel} rangeBadge={rangeBadge}
+          windowDays={windowDays} subtitle={usersSubtitle} />
+
+        <RetentionSection data={data} cohorts={growthCohorts} rangeBadge={rangeBadge} subtitle={retentionSubtitle} />
+
+        <FeatureSection usage={growthUsage} rangeBadge={rangeBadge} />
 
         <IncidentSection data={data} flow={flow} rangeBadge={rangeBadge}
-          incidentSubtitle={incidentSubtitle} rangeFailures={rangeFailures} oursTotal={oursTotal} />
+          incidentSubtitle={incidentSubtitle} rangeFailures={rangeFailures} oursTotal={oursTotal}
+          usage={growthUsage} />
 
         <CostSection data={data} rangeBadge={rangeBadge} windowDays={windowDays} hasRangeData={hasRangeData}
           selectedService={selectedService} setSelected={setSelected} />

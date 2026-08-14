@@ -14,7 +14,7 @@ import CollapsibleSection from '@/components/dashboard/CollapsibleSection'
 import CostCards from '@/components/dashboard/CostCards'
 import CostTrendChart from '@/components/dashboard/CostTrendChart'
 import CostBreakdown from '@/components/dashboard/CostBreakdown'
-import { ANCHOR_COST } from '@/lib/dashboard-verdict'
+import { ANCHOR_COST, isCostWarn } from '@/lib/dashboard-verdict'
 import { formatCny } from '@/lib/format-cost'
 import { phaseDisplayName } from './shared'
 import type { DashboardData, PhaseTotal, UserTotal } from './types'
@@ -152,11 +152,16 @@ export default function CostSection({ data, rangeBadge, windowDays, hasRangeData
   data: DashboardData; rangeBadge: string; windowDays: number; hasRangeData: boolean
   selectedService: string | null; setSelected: (s: string | null) => void
 }) {
+  // 收起态只留一行结论：本月花了多少 + 有没有超预算。判据复用结论条的 isCostWarn（同一把尺，
+  // 不另写一个"超没超"的判断——两处各写一份必然出现 summary 说没超、结论条说超了）。
+  // 措辞点明是【今日】对【日预算】：本项目没有月预算，写成笼统的「未超预算」会被当成月度结论。
+  const costWarn = isCostWarn(data.todayCost, data.todayStatus.avgDailyCost7, data.dailyBudget)
+  const costSummary = `本月 ${formatCny(data.monthCost)} · ${costWarn ? '今日超日预算' : '今日未超日预算'}`
   return (<>
-    {/* ④ 钱花在哪（默认收起）：费用卡 · 趋势 · 按服务 / 环节 / 用户 · 单价参考。
-        锚点包裹：结论条成本黄灯 chip 的落点；summary 常驻「今日 ¥x · 本月 ¥y」（撤 Hero 成本卡的去向）。 */}
+    {/* ⑥ 钱花在哪（默认收起）：费用卡 · 趋势 · 按服务 / 环节 / 用户 · 单价参考。
+        锚点包裹：结论条成本黄灯 chip 的落点；summary 常驻一行结论（撤 Hero 成本卡的去向）。 */}
     <div id={ANCHOR_COST} tabIndex={-1}>
-    <CollapsibleSection title="钱花在哪" subtitle={`今日 ${formatCny(data.todayCost)} · 本月 ${formatCny(data.monthCost)}`}
+    <CollapsibleSection title="钱花在哪" subtitle={costSummary}
       rangeBadge={rangeBadge}>
       {/* 本月 + 累计（+ 今日）费用卡：日历口径（USD 副行与汇率脚注已删，方案 §六瘦身） */}
       <CostCards data={data} />
