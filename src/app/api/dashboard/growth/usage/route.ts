@@ -18,6 +18,7 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 import { parseRange } from '@/lib/db/dashboard-shared'
 import { fetchFeatureUsage, fetchFailureImpact } from '@/lib/db/dashboard-growth-usage'
+import { tabViewBaselineInfo } from '@/lib/db/dashboard-growth-shared'
 
 /**
  * 取使用矩阵与故障影响面。
@@ -54,6 +55,11 @@ export async function GET(req: Request): Promise<NextResponse> {
       // ① 功能使用矩阵（10 行，自带 page.tab_view 起算日与偏差说明）
       featureUsage,
       featureUsagePending: featureUsage === null,
+      // page.tab_view 起算日与本窗口的关系。crossesBaseline=true ⇒ 矩阵里 tabViewBased 的五行
+      // 【不是「没人用」而是「还没开始统计」】，UI 必须显文字占位而不是 0
+      //（范式同 CohortReturnTable 的 PendingCell「待满 1 天」，那里的原话是「绝不显 0 冒充流失」）。
+      // 由服务端算：判「窗口早于起算日」要折东八区日界，客户端再算一份必然在跨日那几小时分歧。
+      tabViewBaseline: tabViewBaselineInfo(new Date(), windowDays),
       // ② 每类故障的去重影响用户数。
       //    ⚠️ 各环节 affectedUsers 相加 ≠ totalAffectedUsers（同一人可能在多环节踩到故障）。
       failureImpact,

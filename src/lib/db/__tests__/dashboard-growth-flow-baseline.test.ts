@@ -19,7 +19,7 @@
  */
 jest.mock('server-only', () => ({}))
 
-import { flowBaselineInfo, FLOW_BASELINE_START } from '@/lib/db/dashboard-growth-shared'
+import { flowBaselineInfo, tabViewBaselineInfo, FLOW_BASELINE_START } from '@/lib/db/dashboard-growth-shared'
 
 /** 起算日 = 东八区 2026-08-02 00:00 = UTC 2026-08-01T16:00Z */
 const BASELINE_UTC = '2026-08-01T16:00:00.000Z'
@@ -72,5 +72,29 @@ describe('flowBaselineInfo · 埋点起算日与窗口的关系', () => {
     const r = flowBaselineInfo(new Date('2026-08-09T12:00:00.000Z'), 7)
     expect(r.crossesBaseline).toBe(false)
     expect(r.effectiveDays).toBe(r.windowTotalDays)
+  })
+})
+
+describe('tabViewBaselineInfo · page.tab_view 起算日（2026-08-14）', () => {
+  it('起算日当天 → 不跨界', () => {
+    const r = tabViewBaselineInfo(new Date('2026-08-14T12:00:00.000Z'), 0)
+    expect(r.baselineStart).toBe('2026-08-14')
+    expect(r.crossesBaseline).toBe(false)
+  })
+
+  it('【上线初期的真实场景】30 天窗口 → 跨界，有效天数仅 1（不是 31）', () => {
+    // 香港 2026-08-14 20:00；窗口 07-15~08-14，而 tab 埋点当天才上线
+    const r = tabViewBaselineInfo(new Date('2026-08-14T12:00:00.000Z'), 30)
+    expect(r.crossesBaseline).toBe(true)
+    expect(r.windowTotalDays).toBe(31)
+    expect(r.effectiveDays).toBe(1)
+  })
+
+  it('与 flow 版是两套独立起算日（改一个不该影响另一个）', () => {
+    const now = new Date('2026-08-14T12:00:00.000Z')
+    expect(tabViewBaselineInfo(now, 30).baselineStart).toBe('2026-08-14')
+    expect(flowBaselineInfo(now, 30).baselineStart).toBe('2026-08-02')
+    // 同一窗口下两者有效天数不同 —— 混用会让功能矩阵与漏斗各说各话
+    expect(tabViewBaselineInfo(now, 30).effectiveDays).not.toBe(flowBaselineInfo(now, 30).effectiveDays)
   })
 })

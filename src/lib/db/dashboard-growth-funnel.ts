@@ -45,6 +45,33 @@ const FUNNEL_STEP_LABEL: Record<string, string> = {
   feedback_card:    '拿到反馈卡',
 }
 
+/**
+ * 每一步读的是【表】还是【埋点】—— 决定该步在跨越埋点起算日的窗口里可不可信。
+ *
+ * 【为什么必须由后端给，不许 UI 侧自己写一份】UI 若自抄一份 step→source 映射，
+ * 它与 0064 的 SQL 会各自漂移，而漂移**不报任何错**：只会让「跨源不可比」标错格
+ * —— 把可信的一级标成不可比、或把失真的一级标成可比，两种都比不标更坏。
+ *
+ * 【怎么对应】逐字对着 0064 的七个 CTE 数据源：
+ *   signup           → consent_records  表
+ *   story_told       → flow_events      埋点  ← 2026-08-02 起才有
+ *   corpus_built     → corpus           表
+ *   matched          → flow_events      埋点
+ *   question_opened  → flow_events      埋点
+ *   practice_started → practice_sessions表
+ *   feedback_card    → flow_events      埋点
+ * ⚠️ 改 0064 里任何一步的数据源时【必须同步改这里】，否则看板会照旧标注、且没人会发现。
+ */
+const FUNNEL_STEP_SOURCE: Record<string, 'table' | 'flow'> = {
+  signup:           'table',
+  story_told:       'flow',
+  corpus_built:     'table',
+  matched:          'flow',
+  question_opened:  'flow',
+  practice_started: 'table',
+  feedback_card:    'flow',
+}
+
 /** 漏斗的一步 */
 export type FunnelStep = {
   /** 1-based 步号，与 0064 的 step_index 一致 */
@@ -55,6 +82,13 @@ export type FunnelStep = {
   label: string
   /** 该步窗口内去重 user_id 人数 */
   users: number
+  /**
+   * 该步的数据来源：'table' = 读数据库表（内测第一天就有数据）；
+   * 'flow' = 读 flow_events 埋点（**2026-08-02 才上线**，早于此的窗口段为空）。
+   * 窗口跨起算日时，相邻两步 source 不同 ⇒ 二者【不可相减】，转化率不可当结论。
+   * key 不在清单里时回落 'flow'（保守：宁可多标一个「不可比」，不可漏标）。
+   */
+  source: 'table' | 'flow'
   /** 相对上一步的转化率（0-100，1 位小数）；第 1 步与上一步为 0 人时 null */
   convFromPrev: number | null
   /** 相对上一步流失的人数；第 1 步为 null。负数 = 本步人数反超上一步（见下方说明） */
@@ -106,6 +140,8 @@ export function deriveFunnel(rows: readonly FunnelStepRow[]): GrowthFunnel {
       key,
       label: FUNNEL_STEP_LABEL[key] ?? key,
       users,
+      // 回落 'flow' 是【保守选择】：未知来源当成"可能是埋点"，宁可多标一个不可比
+      source: FUNNEL_STEP_SOURCE[key] ?? 'flow',
       convFromPrev: prevUsers === null ? null : ratePct(users, prevUsers),
       lostFromPrev: prevUsers === null ? null : prevUsers - users,
     })

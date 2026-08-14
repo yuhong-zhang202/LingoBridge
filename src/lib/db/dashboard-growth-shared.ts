@@ -105,9 +105,6 @@ export const TAB_VIEW_BASELINE_START = '2026-08-14'
  */
 export { FLOW_BASELINE_START }
 
-/** 起算日的 UTC 时刻（= 东八区当日 0 点）。由日期串换算，保持单一真源。 */
-const FLOW_BASELINE_TS = Date.parse(`${FLOW_BASELINE_START}T00:00:00.000Z`) - HK_OFFSET_MS
-
 /** 窗口与埋点起算日的关系（前端据此决定能不能显示转化率） */
 export type FlowBaselineInfo = {
   /** 起算日（东八区日期串），供 UI 显示「埋点自 YYYY-MM-DD 起统计」 */
@@ -141,13 +138,36 @@ export type FlowBaselineInfo = {
  * @returns           起算日、是否跨界、有效天数
  */
 export function flowBaselineInfo(now: Date, windowDays: number): FlowBaselineInfo {
+  return baselineInfoFor(FLOW_BASELINE_START, now, windowDays)
+}
+
+/**
+ * page.tab_view 埋点的同款判定（起算日换成 TAB_VIEW_BASELINE_START）。
+ *
+ * 【为什么由服务端算、不让前端自己判】判「窗口起点是否早于起算日」要折东八区日界，
+ * 而本项目**全站日界口径都在服务端**（0047 那批 SQL、growthWindowStart、hkDayStartUtc 都是）。
+ * 前端再算一份必然出现「服务端说跨界、前端说没跨」的分歧，且分歧只在跨日那几小时出现
+ * —— 那种 bug 复现不了、也没人会怀疑到日界上。
+ */
+export function tabViewBaselineInfo(now: Date, windowDays: number): FlowBaselineInfo {
+  return baselineInfoFor(TAB_VIEW_BASELINE_START, now, windowDays)
+}
+
+/**
+ * 通用实现：给定起算日（东八区日期串），算出本窗口与它的关系。
+ * @param baselineStart 起算日（'YYYY-MM-DD'，东八区）
+ * @param now           当前时刻
+ * @param windowDays    窗口天数
+ * @returns             起算日、是否跨界、有效天数
+ */
+function baselineInfoFor(baselineStart: string, now: Date, windowDays: number): FlowBaselineInfo {
+  const baselineTs = Date.parse(`${baselineStart}T00:00:00.000Z`) - HK_OFFSET_MS
   const startTs = growthWindowStart(now, windowDays).getTime()
   const windowTotalDays = windowDays + 1
-  if (startTs >= FLOW_BASELINE_TS) {
-    return { baselineStart: FLOW_BASELINE_START, crossesBaseline: false, effectiveDays: windowTotalDays, windowTotalDays }
+  if (startTs >= baselineTs) {
+    return { baselineStart, crossesBaseline: false, effectiveDays: windowTotalDays, windowTotalDays }
   }
-  // 跨界：从起算日算到窗口末尾（东八区今日 24:00）还剩几天，向上取整——首日是部分天，仍算一天
   const endTs = startTs + windowTotalDays * DAY_MS
-  const effectiveDays = Math.max(0, Math.min(windowTotalDays, Math.ceil((endTs - FLOW_BASELINE_TS) / DAY_MS)))
-  return { baselineStart: FLOW_BASELINE_START, crossesBaseline: true, effectiveDays, windowTotalDays }
+  const effectiveDays = Math.max(0, Math.min(windowTotalDays, Math.ceil((endTs - baselineTs) / DAY_MS)))
+  return { baselineStart, crossesBaseline: true, effectiveDays, windowTotalDays }
 }
