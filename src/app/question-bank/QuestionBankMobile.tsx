@@ -15,12 +15,20 @@ import type { useQuestionBank } from './useQuestionBank'
 import EmptyState from '@/components/EmptyState'
 import Skeleton from '@/components/Skeleton'
 import OfflineState from '@/components/OfflineState'
+import { useTabView } from '@/hooks/useTabView'
+import { toQuestionBankTabId, type QuestionBankTab } from '@/lib/tab-view'
 
-type ActiveTab = '维度设计' | '题目列表'
+// 埋点映射表就按这个联合类型建，故这里【引用而不是另抄一份】：改动 tab 内部值会当场 tsc 报错。
+// 🔴 这两个中文串是界面文案，绝不许原样上报（映射成 qbank_* 枚举，见 lib/tab-view 顶注）。
+type ActiveTab = QuestionBankTab
 const TABS: ActiveTab[] = ['维度设计', '题目列表']
 
 export default function QuestionBankMobile({ qb }: { qb: ReturnType<typeof useQuestionBank> }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('维度设计')
+  // page.tab_view 埋点：默认 tab（维度设计）在挂载时也报一条 ⇒ qbank_dimension 天然偏高，
+  // 且【加载中/出错/无语料空态也会计一条】（上报早于 qb 返回）—— 两条口径见 event-schema 的 TAB_ID。
+  // side='mobile'：本页与 QuestionBankDesktop 【同时挂载】，靠断点闸掉不可见的那棵树。
+  useTabView(toQuestionBankTabId(activeTab), 'mobile')
   const { navigate } = useNav() // 空态「去录制」跳首页走 navigate → 点击即亮顶部进度条
   // 加载完成、无错误、且一条语料都没有 → 显示空态（替掉全 0 的雷达盘）
   const isEmpty = !qb.loading && !qb.error && qb.corpusCount === 0

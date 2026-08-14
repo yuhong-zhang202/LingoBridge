@@ -42,6 +42,8 @@ export const FLOW_EVENT_NAMES = [
   // page.view 排在最前：它是所有链路的上游（进页面才谈得上后面的动作），也是全站唯一
   // 「每次导航都必然发一条」的事件 —— 它突然归零 = 埋点整体坏了，放第一行最容易一眼看见。
   'page.view',
+  // 紧跟 page.view：它是同一件事的下一层（进了页面之后停在哪个 tab），两行挨着看才有意义。
+  'page.tab_view',
   'flow.story_entry',
   'flow.mic_permission',
   'flow.capture_started',
@@ -69,6 +71,10 @@ export const FLOW_EVENT_NAMES = [
 /** 事件名的中文说明（看板只给 admin 看，仍写人话，免得每次都要回去翻代码） */
 const EVENT_LABEL: Record<string, string> = {
   'page.view':              '页面浏览',
+  // ⚠️ 看数口径：默认 tab 挂载即报 ⇒ library_cards / qbank_dimension 天然偏高；移动端素材库
+  //    默认落在 hub（不上报）⇒ 双端不对称。这一格【不可与其它 tab 直接比大小】，
+  //    也【不可与 page.view 的量相除】（去重跨页面存活）。完整口径见 event-schema.ts 的 TAB_ID。
+  'page.tab_view':          '页面内 tab 浏览（口径见代码注释）',
   'flow.story_entry':       '进入故事采集',
   'flow.mic_permission':    '麦克风授权',
   'flow.capture_started':   '开始采集',

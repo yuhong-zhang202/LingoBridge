@@ -188,6 +188,42 @@ export const PAGE_ROUTE = [
 export type PageRoute = (typeof PAGE_ROUTE)[number]
 
 /**
+ * 页面【内部 tab】的枚举 —— page.tab_view 的【唯一】props。
+ *
+ * 🔴【隐私红线·与 PAGE_ROUTE 同级】只上报本枚举里的 code，**绝不上报 UI 里的 tab 标识原文**。
+ *   题库两端的 tab 内部值是【中文串】（'维度设计' / '题目列表'），素材库两端是各自的英文短串，
+ *   三套互不相同 —— 原样上报等于把界面文案当数据往库里灌（自由文本面），且两端的同一个 tab
+ *   会落成不同的值、事后分不出来。所以本事件的 props 里【不设任何自由文本字段】，
+ *   内部值 → 本枚举的映射【全仓库只有 lib/tab-view.ts 一处】（同 page.view 与 lib/page-route.ts 的关系）。
+ *   ⚠️ 白名单外的值【一律不上报】，**刻意不设 'other' 兜底桶**（这一点与 PAGE_ROUTE 相反）：
+ *   路由是开集（随时会加页面，兜底桶能告诉你「有页面忘了登记」），而 tab 是闭集、只有这 6 个，
+ *   出现白名单外的值只可能是代码写错了 —— 造一个假桶会让这个 bug 看起来像一类真实用户行为，
+ *   静默丢掉反而让它以「某个 tab 恒为 0」的形态暴露出来。
+ *
+ * 值 = 「模块_功能」snake_case（与 PAGE_ROUTE / QUOTA_SURFACE 同款，分组统计不用记两套写法）：
+ *   library_* = 素材库四个分类；qbank_* = 题库两个 tab。
+ *
+ * ⚠️⚠️【这三条偏差是本事件的口径，做功能矩阵时它就是分母，必须先读完再用】
+ *   ① **默认 tab 在页面挂载时也上报**（与 page.view 同款「看到了就是一次浏览」，2026-08-14 产品方拍板）。
+ *      ⇒ 桌面端素材库默认 `cards`、题库两端默认 `'维度设计'`，故 **library_cards 与 qbank_dimension
+ *      天然偏高**，含大量「只打开页面、没主动切换过」的人。**这两个值不可与其它 tab 直接比大小。**
+ *   ② **移动端素材库默认落在 hub（分类首页，不上报）** ⇒ 移动端没有 ① 那个偏高，
+ *      **双端口径不对称**：跨端对比同一个 tab（尤其 library_cards）时必须记得这件事。
+ *   ③ **去重是模块级的、跨页面存活**（同 PageViewTracker 的 lastRoute，见 lib/tab-view.ts）：
+ *      「离开素材库 → 逛别的页 → 回到素材库、仍落在同一个 tab」中间若没报过别的 tab，
+ *      **第二次不会再记一条**。⇒ 本事件计的是「tab 切换/进入的次数」，**不是页面访问次数**，
+ *      跟 page.view 的量对不上是预期的，别拿两者相除。
+ *   ④ 题库在【加载中 / 出错 / 无语料空态】时同样会记一条 qbank_dimension（上报发生在挂载那一刻，
+ *      早于 useQuestionBank 返回）。⇒ qbank_dimension 里含一批「其实只看到了空态」的人，
+ *      问「有多少人真的用了维度设计」时要拿它跟 corpusCount>0 的人群交叉，别直接读。
+ */
+export const TAB_ID = [
+  'library_stories', 'library_cards', 'library_words', 'library_pron',
+  'qbank_list', 'qbank_dimension',
+] as const
+export type TabId = (typeof TAB_ID)[number]
+
+/**
  * 备考目标分（IELTS band，4.0–9.0 步进 0.5）的取值域 —— 【刻意用字符串枚举，不用数字】。
  *
  * 不是洁癖，是躲一个静默改值的坑：client-events 的 normalize() 对所有 number 字段一律 `Math.round`
@@ -546,6 +582,19 @@ export type ClientEventPropsMap = {
    *   所以【首页的 page.view 系统性偏低】，别拿它当首页 UV。
    */
   'page.view': { route: PageRoute }
+  /**
+   * 页面【内部 tab】浏览 —— page.view 只到路由级（整个素材库就一个 'library'），
+   * 答不了「用户实际在用哪个功能」：素材库 4 个分类 + 题库 2 个 tab 在数据里长得一模一样，
+   * 于是「素材库 94 次 / 29 人」这类数字产生不了任何行动。本事件把那一层拆开。
+   *
+   * ⚠️ props 刻意【只有 tab 一个枚举字段】，理由同 page.view：它挂在每一次 tab 切换上，
+   *   多一个字段就是「全站 tab 切换次数 × 1」。不带时长、不带来源 tab、不带任何自由文本。
+   *
+   * 🔴 tab 的取值域见 TAB_ID 上方的隐私红线：绝不上报 UI 里的内部 tab 标识/中文标签原文。
+   * 【口径】默认 tab 挂载即报、移动端 hub 不报、去重跨页面存活、题库空态也计一条 ——
+   *   四条偏差全写在 TAB_ID 的注释里，**用这个事件做任何比率之前必须先读那一段**。
+   */
+  'page.tab_view': { tab: TabId }
 }
 
 /** 客户端可上报的事件名（= 上面 map 的 key；服务端 /api/events 的 EVENT_SPECS 必须逐一对应，未注册即 400） */

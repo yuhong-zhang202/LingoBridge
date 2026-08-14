@@ -14,6 +14,9 @@
  *           P3 页面浏览（2026-08-03）追加 page.view：props 只允许 route 一个枚举字段 ——
  *           URL / query 形态的键（path/url/query/referrer…）一律不进库，这是该事件的最高红线
  *           （本项目 query 里的 `?h=` handoff key 可反查用户故事原文）。
+ *           P3 页面内 tab 浏览（2026-08-14）追加 page.tab_view：props 只允许 tab 一个枚举字段 ——
+ *           四处 UI 的内部 tab 标识互不相同、题库两端还是【中文串】('维度设计'/'题目列表')，
+ *           这类界面文案原样发上来必须被整条丢弃（枚举不命中），绝不许成为库里的取值。
  *           备考目标补埋点（2026-08-07）追加 auth.goal_saved / auth.goal_save_failed：
  *           band 只收枚举串（数字会被客户端 normalize 的 Math.round 并档，故服务端连数字都不收）、
  *           reason 只收收敛后的 code —— 【考试日期原文与后端 error message（可能含邮箱）一律不进库】，
@@ -48,7 +51,7 @@ import type { ClientEventName } from '@/lib/client-events'
 import { env } from '@/lib/env-server'
 import { requireUserAllowAnon } from '@/lib/api-auth'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
-import { PAGE_ROUTE, GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_FAIL_REASON, COLLECT_VIEW, GOAL_EDITOR_SOURCE } from '@/lib/event-schema'
+import { PAGE_ROUTE, TAB_ID, GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_FAIL_REASON, COLLECT_VIEW, GOAL_EDITOR_SOURCE } from '@/lib/event-schema'
 
 const mockLogEvent = logEvent as jest.MockedFunction<typeof logEvent>
 
@@ -147,6 +150,7 @@ describe('新事件 · 合法 props 原样放行', () => {
     ['auth.goal_saved',        { band: '6.5', hasDate: true, isFirstTime: true }],
     ['auth.goal_save_failed',  { reason: 'update_failed', isFirstTime: false }],
     ['page.view',              { route: 'practice_question' }],
+    ['page.tab_view',          { tab: 'library_words' }],
     ['flow.phrase_collected',      { nth: 3, view: 'mobile' }],
     ['flow.phrase_collect_failed', { reason: 'session_failed', view: 'desktop' }],
     ['flow.feedback_rendered',     { cardCount: 0, view: 'mobile' }],
@@ -332,6 +336,48 @@ describe('page.view · URL 原文注入负例', () => {
       expect(dumped).not.toContain(secret)
     }
     expect(dumped).toBe('{"route":"write"}')
+  })
+})
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 🔴 page.tab_view（2026-08-14）的红线：UI 里的内部 tab 标识一个字都不许进库
+// 四处 UI 的标识互不相同（桌面 phrases / 移动 words / 题库两端是中文串），一旦哪天有人图省事
+// 把内部值原样发上来，必须在服务端整条被丢掉 —— 界面文案永远不该成为埋点的取值域。
+// ───────────────────────────────────────────────────────────────────────────────
+describe('page.tab_view · 收敛口径', () => {
+  test.each([...TAB_ID].map((t) => [t]))('tab=%s 原样放行（漏一个 = 那个功能的浏览在库里恒空）', async (tab) => {
+    await POST(makeEventReq('page.tab_view', { tab }))
+    expect(capturedProps()).toEqual({ tab })
+  })
+
+  test('🔴 UI 内部标识原样上报一律丢弃（含题库两端的中文 tab 名）', async () => {
+    for (const tab of ['cards', 'phrases', 'words', 'pron', 'stories', 'hub', '维度设计', '题目列表']) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('page.tab_view', { tab }))
+      expect(capturedProps()).toEqual({})
+    }
+  })
+
+  test('枚举外 / 近似值 / 非字符串一律丢（不 trim、不转小写，绝不落野值）', async () => {
+    for (const tab of ['Library_cards', 'library_cards ', 'library-cards', 'qbank_other', 'other', 42, null]) {
+      jest.clearAllMocks()
+      await POST(makeEventReq('page.tab_view', { tab }))
+      expect(capturedProps()).toEqual({})
+    }
+  })
+
+  test('🔴 混入 URL / 标签文案 / 原文字段 → 写库 props 只剩 tab 一个字段', async () => {
+    await POST(makeEventReq('page.tab_view', {
+      tab: 'qbank_list',
+      label: '题目列表', tabName: '维度设计', path: '/question-bank?tab=list',
+      url: 'https://lingobridge.app/library?tab=phrases&h=SECRET_HANDOFF_KEY_9f3a',
+      query: '?h=SECRET_HANDOFF_KEY_9f3a', note: '我的隐私故事',
+    }))
+    const dumped = JSON.stringify(capturedProps())
+    for (const secret of ['SECRET_HANDOFF_KEY_9f3a', '题目列表', '维度设计', '我的', 'http', '?', '/']) {
+      expect(dumped).not.toContain(secret)
+    }
+    expect(dumped).toBe('{"tab":"qbank_list"}')
   })
 })
 
@@ -596,6 +642,7 @@ const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'auth.goal_saved': true,
   'auth.goal_save_failed': true,
   'page.view': true,
+  'page.tab_view': true,
   'flow.phrase_collected': true,
   'flow.phrase_collect_failed': true,
   'flow.feedback_rendered': true,
@@ -619,6 +666,7 @@ const ALL_CLIENT_EVENTS: Record<ClientEventName, true> = {
   'auth.goal_saved': true,
   'auth.goal_save_failed': true,
   'page.view': true,
+  'page.tab_view': true,
   'flow.phrase_collected': true,
   'flow.phrase_collect_failed': true,
   'flow.feedback_rendered': true,

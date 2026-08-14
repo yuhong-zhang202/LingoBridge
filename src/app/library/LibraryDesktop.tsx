@@ -28,8 +28,12 @@ import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
 import { HERO_TITLE_DESC, HERO_PAIR_DESC, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
+import { useTabView } from '@/hooks/useTabView'
+import { toLibraryDesktopTabId, type LibraryDesktopTab } from '@/lib/tab-view'
 
-type Tab = 'cards' | 'phrases' | 'pron' | 'stories'
+// 埋点映射表就按这个联合类型建（Record<LibraryDesktopTab, TabId>），故这里【引用而不是另抄一份】：
+// 将来改动本页 tab 的内部值，映射表会当场 tsc 报错，而不是静默漏报某个 tab。
+type Tab = LibraryDesktopTab
 
 // 题卡叠卡柔光投影：与移动端（LibraryMobile）SOFT_SM 同值。桌面叠卡静态、不迁移动端浮动动效，故只取此一个常量、不散写内联。
 const DECK_SHADOW = '0 4px 16px -6px rgba(180,120,70,0.12), 0 1px 5px rgba(120,90,60,0.04)'
@@ -56,6 +60,11 @@ function LibraryDesktopContent({ cards, wordsCount, pronCount, dueCount, corpusC
 
   // tab 由 URL 派生（?tab=phrases 等；缺省 → cards），刷新/分享保持
   const tab: Tab = TAB_IDS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'cards'
+  // page.tab_view 埋点：默认 tab（cards）在挂载时也报一条 —— 「打开素材库、看了默认的收藏卡片、离开」
+  // 是最典型的用法，不报的话它在数据里完全不可见。⚠️ 由此 library_cards 天然偏高（含没主动切换过的人），
+  // 不可与其它 tab 直接比大小；完整口径见 event-schema 的 TAB_ID。
+  // side='desktop'：本页与 LibraryMobile 【同时挂载】，靠断点闸掉不可见的那棵树（见 lib/tab-view 顶注）。
+  useTabView(toLibraryDesktopTabId(tab), 'desktop')
 
   // 「已攒下 N 条」：语料条数直接用 corpusCount（与下方 tab 胶囊同一个数，删语料后一起回落）
   const totalCount = corpusCount + cards.length + wordsCount + pronCount

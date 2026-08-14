@@ -1,6 +1,6 @@
 /**
  * @module   api/events
- * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 19 个客户端事件）。
+ * @desc     POST 接口：客户端埋点事件上报的唯一入口（flow.* / match.* / quota.* / auth.* / page.* 共 20 个客户端事件）。
  *           客户端不能直连 flow_events（RLS 无 insert 策略），必须经此端点由服务端 service_role 落库。
  *           props 服务端按白名单收敛为「枚举串 + 整数 + 布尔」，防客户端塞进任何原文——隐私铁律。
  *
@@ -23,7 +23,7 @@ import { isQaRequest } from '@/lib/qa-traffic'
 import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
-  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE,
+  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE, TAB_ID,
   GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_VIEW, COLLECT_FAIL_REASON, GOAL_EDITOR_SOURCE,
   QUEUE_DELAY_SEC_KEY, QUEUE_DELAY_SEC_MAX,
 } from '@/lib/event-schema'
@@ -447,7 +447,7 @@ function sanitizeGoalEditorOpened(raw: unknown): SafeProps {
   return out
 }
 
-// ── P3 页面浏览的 sanitize ──────────────────────────────────────────────────────────
+// ── P3 页面浏览 / 页面内 tab 浏览的 sanitize ─────────────────────────────────────────
 
 /**
  * page.view：页面浏览。
@@ -465,6 +465,25 @@ function sanitizePageView(raw: unknown): SafeProps {
   const out: SafeProps = {}
   const route = pickEnum(o, 'route', PAGE_ROUTE)
   if (route !== undefined) out.route = route
+  return out
+}
+
+/**
+ * page.tab_view：页面内部 tab 浏览。
+ *
+ * 🔴【隐私红线】本函数【只取 tab 一个枚举字段】，别的一律不看 —— 与 sanitizePageView 同款立场。
+ *   ⚠️ 尤其挡这一类：客户端那四个 UI 的内部 tab 标识互不相同、题库两端还是【中文串】
+ *   （'维度设计' / '题目列表'），一旦哪天有人图省事直接把内部值原样发上来，
+ *   在这里会被整条丢弃（枚举不命中）而不是落进库 —— 界面文案永远不该成为埋点的取值域。
+ *   本事件【永远不许】加任何字符串字段（TAB_ID 之外的一切）。
+ * @param  raw  客户端上报的 props
+ * @returns     tab(枚举)，仅此一个字段
+ */
+function sanitizeTabView(raw: unknown): SafeProps {
+  const o = asObject(raw)
+  const out: SafeProps = {}
+  const tab = pickEnum(o, 'tab', TAB_ID)
+  if (tab !== undefined) out.tab = tab
   return out
 }
 
@@ -492,6 +511,7 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
   ['auth.goal_saved',        { event: 'auth.goal_saved',        sanitize: sanitizeGoalSaved }],
   ['auth.goal_save_failed',  { event: 'auth.goal_save_failed',  sanitize: sanitizeGoalSaveFailed }],
   ['page.view',              { event: 'page.view',              sanitize: sanitizePageView }],
+  ['page.tab_view',          { event: 'page.tab_view',          sanitize: sanitizeTabView }],
   ['flow.phrase_collected',      { event: 'flow.phrase_collected',      sanitize: sanitizePhraseCollected }],
   ['flow.phrase_collect_failed', { event: 'flow.phrase_collect_failed', sanitize: sanitizePhraseCollectFailed }],
   ['flow.feedback_rendered',     { event: 'flow.feedback_rendered',     sanitize: sanitizeFeedbackRendered }],
@@ -504,7 +524,7 @@ const EVENT_SPECS: ReadonlyMap<string, EventSpec> = new Map<string, EventSpec>([
  *
  * ⚠️【为什么它可以脱离「一事件一函数」的规矩】本文件顶注禁止的是「所有整数字段一律放行」那种
  *   把 props 变成客户端可控自由 key 空间的通用 sanitize。这里【只放行一个写死名字的整数字段】，
- *   取值域比任何业务字段都窄，而它对所有事件一视同仁 —— 抄进 19 个 sanitize 函数只会多 18 个漏抄
+ *   取值域比任何业务字段都窄，而它对所有事件一视同仁 —— 抄进 20 个 sanitize 函数只会多 18 个漏抄
  *   的机会（漏一个 = 那个事件的补发行永远看不出是补发的、时间轴悄悄搬家）。
  *   ⚠️ 除它之外【永远不许】在这里加第二个跨事件字段，尤其不许加任何字符串字段。
  * @param  raw  客户端上报的 props（unknown）

@@ -22,8 +22,12 @@ import { GRADIENT_BORDER_STYLE, BRAND_GRADIENT } from '@/lib/constants'
 import HeroHelpTip from './HeroHelpTip'
 import { HERO_TITLE_DESC_MOBILE, HERO_PAIR_DESC_MOBILE, HERO_EMPTY_FALLBACK, HERO_HELP_TEXT } from './hero-copy'
 import type { LibraryViewProps } from './types'
+import { useTabView } from '@/hooks/useTabView'
+import { toLibraryMobileTabId, type LibraryMobileView } from '@/lib/tab-view'
 
-type View = 'hub' | 'stories' | 'cards' | 'words' | 'pron'
+// 埋点映射表就按这个联合类型建，故这里【引用而不是另抄一份】：改动本页视图的内部值会当场 tsc 报错。
+// ⚠️ 本页管「词组收藏」叫 words，桌面端叫 phrases —— 两者映射到同一个 library_words（见 lib/tab-view）。
+type View = LibraryMobileView
 
 const VIEW_TITLE: Record<Exclude<View, 'hub'>, string> = {
   stories: '我的语料',
@@ -44,6 +48,11 @@ export default function LibraryMobile({ cards, wordsCount, pronCount, dueCount, 
   // 空词立即置空（绕过防抖滞后）：切二级页/清空后新分类不会被上一个词短暂过滤
   const searchQuery = mobileQuery.trim() === '' ? '' : debouncedQuery
   const goView = (v: View) => { setView(v); setMobileQuery('') }
+  // page.tab_view 埋点：hub 是分类首页、不是 tab，故【不上报】（映射返回 null，顺带清掉去重状态，
+  // 使「进 cards → 退回 hub → 再进 cards」记两条）。⇒ 移动端没有桌面端那种「默认 tab 偏高」，
+  // 双端口径不对称，跨端比同一个 tab 时要记得这件事（口径全文见 event-schema 的 TAB_ID）。
+  // side='mobile'：本页与 LibraryDesktop 【同时挂载】，靠断点闸掉不可见的那棵树。
+  useTabView(toLibraryMobileTabId(view), 'mobile')
 
   // 匿名判定（与 settings/profile 同范式）：仅用于决定是否展示登录软引导卡。
   // 读取失败一律按「非匿名」降级 —— 宁可少打扰一次，也不给已登录用户误显引导。
