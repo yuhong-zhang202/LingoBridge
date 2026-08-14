@@ -24,6 +24,7 @@ import { parseRange } from '@/lib/db/dashboard-shared'
 import {
   fetchGrowthFunnel, fetchBrowseOnly, fetchFunnelQuality, fetchQuotaWall,
 } from '@/lib/db/dashboard-growth-funnel'
+import { flowBaselineInfo } from '@/lib/db/dashboard-growth-shared'
 
 /**
  * 取主线漏斗整块数据。
@@ -57,8 +58,17 @@ export async function GET(req: Request): Promise<NextResponse> {
       logErr('[dashboard growth/funnel API]', new Error('漏斗质量注脚取数分页触顶，次数与人数偏低；该把聚合下推到 DB 端了'))
     }
 
+    // 埋点起算日：采集类 flow_events 自 2026-08-02 才有数据，而第 1/3/6 步读的表从内测第一天就有。
+    // 窗口跨过这一天时【漏斗必然倒挂】（2026-08-14 生产实测：第 2 步 29 人 < 第 3 步 95 人，
+    // 转化率算出 327.6%、"流失 -66 人"）。这里如实告诉前端，由 UI 决定禁显跨源转化率
+    // —— 刻意【不修数、不编补偿系数】：历史埋点无法回填（0053 顶注：谁何时自测过事后无据可判）。
+    const flowBaseline = flowBaselineInfo(new Date(), windowDays)
+
     return NextResponse.json({
       windowDays,
+      // 埋点起算日与本窗口的关系。crossesBaseline=true ⇒ 第 2/4/5/7 步（读 flow_events）
+      // 相对第 1/3/6 步（读表）系统性偏低，两侧【不可相减】、跨源转化率必须显示为「—」。
+      flowBaseline,
       // ① 七步主线漏斗（含相邻转化率与掉幅最大一级的下标）
       funnel,
       funnelPending: funnel === null,

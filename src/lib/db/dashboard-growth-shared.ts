@@ -20,6 +20,7 @@
  */
 import 'server-only'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
+import { FLOW_BASELINE_START } from './dashboard-flow-events'
 
 /** 东八区偏移（无夏令时）：日界一律按东八区折算，与看板其余口径一致 */
 const HK_OFFSET_MS = 8 * 60 * 60 * 1000
@@ -97,3 +98,56 @@ export function ratio2(numerator: number, denominator: number): number | null {
  *    部署日若与此不符，改这一处（它是唯一真源，前端口径小字直接读它）。
  */
 export const TAB_VIEW_BASELINE_START = '2026-08-14'
+
+/**
+ * 采集类 flow_events 的起算日（东八区）。**直接复用 dashboard-flow-events 的唯一真源，
+ * 刻意不在本文件另写一份日期** —— 两处各写一份，改一处忘另一处时不会报错，只会让两张卡各说各话。
+ */
+export { FLOW_BASELINE_START }
+
+/** 起算日的 UTC 时刻（= 东八区当日 0 点）。由日期串换算，保持单一真源。 */
+const FLOW_BASELINE_TS = Date.parse(`${FLOW_BASELINE_START}T00:00:00.000Z`) - HK_OFFSET_MS
+
+/** 窗口与埋点起算日的关系（前端据此决定能不能显示转化率） */
+export type FlowBaselineInfo = {
+  /** 起算日（东八区日期串），供 UI 显示「埋点自 YYYY-MM-DD 起统计」 */
+  baselineStart: string
+  /** 本次窗口是否跨过起算日 —— true 时埋点侧的步骤【系统性偏低】 */
+  crossesBaseline: boolean
+  /** 窗口内真正有埋点数据的天数（跨界时 < 窗口天数） */
+  effectiveDays: number
+  /** 窗口总天数（闭区间，= windowDays + 1，见本文件顶注） */
+  windowTotalDays: number
+}
+
+/**
+ * 算出「本次窗口有多少天真的有采集类埋点数据」。
+ *
+ * 【为什么必须有 —— 2026-08-14 生产实测暴露的真问题】
+ *   七步漏斗的数据源是【混的】：第 1/3/6 步读表（consent_records / corpus / practice_sessions，
+ *   内测第一天就有数据），第 2/4/5/7 步读 flow_events（**2026-08-02 才上线**）。
+ *   拉 range=30d 时窗口是 7/15~8/14，其中【前 18 天埋点根本不存在】⇒ 表侧吃满 30 天、
+ *   埋点侧只有后 12 天 ⇒ 漏斗必然倒挂。生产实测：第 2 步 29 人 < 第 3 步 95 人，
+ *   转化率算出 327.6%、"流失 -66 人"。
+ *
+ *   **这不是 SQL 写错，是拿两个起算日不同的数据源做了减法。** 修法不是改 SQL，是把这件事
+ *   如实告诉前端：跨界时禁止显示跨源转化率，并标出埋点实际覆盖了几天。
+ *
+ * ⚠️ 本函数只回答「窗口跨没跨界」，**不修正数字** —— 回填历史埋点是不可能的
+ *   （0053 顶注：谁在什么时候自测过，事后无据可判），任何"补偿系数"都是编数。
+ *
+ * @param now         当前时刻
+ * @param windowDays  窗口天数（7/14/30）
+ * @returns           起算日、是否跨界、有效天数
+ */
+export function flowBaselineInfo(now: Date, windowDays: number): FlowBaselineInfo {
+  const startTs = growthWindowStart(now, windowDays).getTime()
+  const windowTotalDays = windowDays + 1
+  if (startTs >= FLOW_BASELINE_TS) {
+    return { baselineStart: FLOW_BASELINE_START, crossesBaseline: false, effectiveDays: windowTotalDays, windowTotalDays }
+  }
+  // 跨界：从起算日算到窗口末尾（东八区今日 24:00）还剩几天，向上取整——首日是部分天，仍算一天
+  const endTs = startTs + windowTotalDays * DAY_MS
+  const effectiveDays = Math.max(0, Math.min(windowTotalDays, Math.ceil((endTs - FLOW_BASELINE_TS) / DAY_MS)))
+  return { baselineStart: FLOW_BASELINE_START, crossesBaseline: true, effectiveDays, windowTotalDays }
+}
