@@ -265,3 +265,28 @@ npm run build
 # 确认静态产物里搜不到 key 名称
 grep -r "SUPABASE_SERVICE_ROLE_KEY" .next/static/ && echo "泄露！" || echo "安全"
 ```
+
+## 13. 新建数据库（建库真源）
+
+从零建一个可用的库（本地、staging、或迁库）**只有这一条路**，按顺序跑：
+
+```bash
+npm run db:push          # 1. 建 schema —— 按文件名字典序应用 supabase/migrations/ 全部迁移，幂等记账
+npm run seed:reference   # 2. 种参照表 —— 6 维度 + 49 观察点（真源见下）
+node scripts/seed/generate-questions-seed.mjs   # 3. 生成题库 SQL
+                                                #    再把 supabase/seed_questions.sql 执行到库里
+```
+
+**第 2 步不能省。** `dimensions` / `observation_points` 这两张参照表**不在迁移里**（0001/0002 只建表，0003/0017 只补插过个别点）—— 少了它们，萃取无观察点可映射、匹配链路整个瘫，而且不会报错，只会返回空。
+
+**真源（唯一）**
+| 数据 | 真源文件 | 怎么种 |
+|---|---|---|
+| 维度 + 观察点 | `scripts/data/{dimensions,observation-points}-seed.json`（从生产库 REST 导出） | `npm run seed:reference`（按 id / code 幂等 upsert） |
+| 题目 + 观察点链接 | `scripts/seed/ielts_questions_enriched.json` | 生成器产出 `supabase/seed_questions.sql`（**自动生成，勿手改**） |
+
+🔴 **不要再新增第二份手写种子。** 2026-06-02 曾有一份手写的 `supabase/seed.sql`，与上表第一行覆盖完全相同的两张表。它从此再没跟上过：到 2026-08-15 被删除时停留在 43 个观察点，比生产库少 6 个（`VAL_01/02/03`、`GRO_07`、`SPA_08`、`REL_12`）——**其中 `value` 是一整个维度，它声明了这个维度却给了零个观察点**。谁用它建库，会得到一个雷达图价值观轴取不到分母的库，且不报错。
+
+这笔债 2026-06 就被记下过（`docs/LingoBridge-项目总览-2026年6月.md` 的「待更新 seed.sql（加 GRO_07）」），两个月没还，期间缺口还从 4 个长到了 6 个 —— **手写副本不会自己跟上，只会安静地越差越远。**
+
+⚠️ `supabase/seed.sql` 是 Supabase CLI 的约定文件名（`supabase db reset` 会自动执行）。本仓库**刻意不放这个文件**：宁可 `db reset` 因为表空而响亮地失败，也不要它静默种出一个缺维度的库。

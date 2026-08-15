@@ -217,7 +217,7 @@ yuhong-zhang202/LingoBridge
 
 ### Phase 1：维度设计定稿（这一轮）
 - [ ] 用户拍板上述 4 条决策
-- [ ] 更新 seed.sql（加 GRO_07，标注话题型）
+- [x] ~~更新 seed.sql（加 GRO_07，标注话题型）~~ → **2026-08-15 以另一种方式了结：`supabase/seed.sql` 已删除**，不再补它。这条 TODO 挂了两个月没做，期间缺口从 GRO_07 一个长到 6 个（含整个 `value` 维度）——说明问题不是"忘了补"，是**手写副本这个形态本身会漂**。建库真源改为 `scripts/data/*-seed.json` + `npm run seed:reference`，步骤见 `ENGINEERING.md` §13。
 - [ ] 更新维度设计文档（Notion）
 
 ### Phase 2：题库建设（Prompt 6）
@@ -319,7 +319,7 @@ question_id, observation_point_id, is_primary
 - **📋 产品总览 & 开发计划**：父页面，包含设计决策链
 
 ### 生产数据
-- **Supabase seed.sql**：待更新，加入 GRO_07 + 话题型标记
+- ~~**Supabase seed.sql**：待更新，加入 GRO_07 + 话题型标记~~ → **2026-08-15：该文件已删除**（见上方 Phase 1 同条）。建库真源见 `ENGINEERING.md` §13。
 
 ---
 
