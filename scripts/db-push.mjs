@@ -11,6 +11,8 @@
  *   npm run db:push -- --mark-all-applied
  *                                    仅记账不执行——用于「pg_dump/restore 已把 schema+data 搬过来」后，
  *                                    把现有 0001..NNNN 标记为已应用，之后 db:push 只跑新增迁移。
+ *   DB_PUSH_LOCK_TIMEOUT=30s npm run db:push
+ *                                    放宽等锁上限（默认 3s，见 LOCK_TIMEOUT）。
  *
  * 依赖：pg（devDependency）。连接需 SSL（Supabase 强制），已内置。
  */
@@ -22,6 +24,20 @@ import pg from 'pg'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const MIGRATIONS_DIR = join(__dirname, '..', 'supabase', 'migrations')
 const TABLE = '_schema_migrations'
+
+/**
+ * 每个迁移事务的【等锁】上限。默认 3 秒，可用 DB_PUSH_LOCK_TIMEOUT 覆盖（如计划内维护窗口想让它等）。
+ *
+ * 🔴 为什么必须有：DDL 要 ACCESS EXCLUSIVE 锁，而本项目多张表在【主链路每次请求都读】
+ *   （最典型的是 observation_points，src/services/matching.ts:102 每次匹配都查）。
+ *   DDL 本身通常是毫秒级的 catalog 改动，但只要它在锁队列里排到一个长事务后面，
+ *   **它后面所有对该表的读也会一起排队** —— 迁移没卡死，用户的匹配先卡死了。
+ *   没有这个上限时，那段排队时间没有边界。
+ *
+ * ⚠️ 只限【等锁】，不限【干活】：故意不设 statement_timeout ——
+ *   回填类迁移本来就该跑很久，掐断它才是真事故。
+ */
+const LOCK_TIMEOUT = process.env.DB_PUSH_LOCK_TIMEOUT ?? '3s'
 
 function parseArgs() {
   const args = process.argv.slice(2)
@@ -95,6 +111,9 @@ async function main() {
       process.stdout.write(`\n▶ 执行 ${f} … `)
       try {
         await client.query('BEGIN')
+        // SET LOCAL：只作用于本事务，COMMIT/ROLLBACK 后自动失效，不污染连接上的后续迁移。
+        // 必须在 BEGIN 之后 —— 迁移文件里都不自带 BEGIN/COMMIT（已核），故整份 SQL 都在本事务内。
+        await client.query(`SET LOCAL lock_timeout = '${LOCK_TIMEOUT}'`)
         await client.query(sql)
         await client.query(`INSERT INTO ${TABLE}(name) VALUES ($1)`, [f])
         await client.query('COMMIT')
@@ -102,8 +121,18 @@ async function main() {
       } catch (e) {
         await client.query('ROLLBACK')
         console.log('✗')
-        console.error(`  ${f} 执行失败，已回滚该文件（前面已应用的保留）：`)
-        console.error(`  ${e instanceof Error ? e.message : e}`)
+        // 55P03 = lock_not_available，即等锁超时。它和「SQL 写错了」是完全不同的两件事，
+        // 处置也不同（前者重跑即可、后者要改文件），所以分开说，别让人对着一句通用报错猜。
+        if (e && e.code === '55P03') {
+          console.error(`  ${f} 【等锁超时】（${LOCK_TIMEOUT}）——不是 SQL 有问题，是有长事务占着表锁。`)
+          console.error('  该迁移【未应用】、账本也未记，直接重跑即可；本文件之前已应用的迁移不受影响。')
+          console.error('  若确认是计划内维护、愿意等：DB_PUSH_LOCK_TIMEOUT=30s npm run db:push')
+          console.error('  想先看谁占着锁：select pid, state, query, now()-xact_start as 事务时长')
+          console.error('                  from pg_stat_activity where state <> \'idle\' order by xact_start;')
+        } else {
+          console.error(`  ${f} 执行失败，已回滚该文件（前面已应用的保留）：`)
+          console.error(`  ${e instanceof Error ? e.message : e}`)
+        }
         process.exit(1)
       }
     }
