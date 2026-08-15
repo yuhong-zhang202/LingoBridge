@@ -7,6 +7,7 @@
  */
 'use client'
 import { type JSX } from 'react'
+import GradientButton from '@/components/GradientButton'
 import { X, RotateCcw } from 'lucide-react'
 import Waveform from '@/components/Waveform'
 import Orb from '@/components/Orb'
@@ -85,14 +86,18 @@ export default function RecordingMobile({
       >
         {/* role=alert：视觉保持灰色温柔基调不变色，仅让读屏即时播报错误（对齐 Desktop 可访问性） */}
         {error && <p role="alert" className="text-center text-[0.75rem] text-v2-text-muted mb-2">{error}</p>}
-        <button
+        {/* GradientButton（升级自原裸 btn-gradient，2026-08-15 收口）：loading 时自带 spinner + 禁用
+            + aria-busy。⚠️ 皮肤同时从三色停换成两色停 —— 原 .btn-gradient 等价于
+            GRADIENT_BORDER_STYLE_FULL，而基准页 feedback 与首页/登录用的都是 GradientButton
+            （内部 GRADIENT_BORDER_STYLE，两色停）。此前本页与它们长得不一样，本次对齐基准页。 */}
+        <GradientButton
           onClick={onFinish}
-          disabled={transcribing}
-          className="btn-gradient w-full h-[56px] text-[1rem] font-semibold disabled:opacity-50"
+          loading={transcribing}
+          className="w-full h-[56px] flex items-center justify-center gap-2 rounded-full text-[1rem] font-semibold"
         >
-          <div className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />
+          <div aria-hidden="true" className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />
           {transcribing ? '转写中…' : '完成录音'}
-        </button>
+        </GradientButton>
         <div className="flex justify-center mt-3">
           <button
             onClick={onRerecord}

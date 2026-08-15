@@ -6,6 +6,7 @@
  */
 'use client'
 import { type JSX } from 'react'
+import GradientButton from '@/components/GradientButton'
 import { useNav } from '@/components/NavProgress'
 import { CloudOff } from 'lucide-react'
 import { GRADIENT_BORDER_STYLE_FULL } from '@/lib/constants'
@@ -79,12 +80,13 @@ export default function LoginPrompt({
         <p className="text-[0.75rem] text-v2-text-secondary text-center mt-1.5">
           {subtitle}
         </p>
-        <button
+        {/* GradientButton（升级自原裸 btn-gradient，2026-08-15 收口）：皮肤对齐基准页两色停 */}
+        <GradientButton
           onClick={() => navigate('/login')}
-          className="btn-gradient px-6 py-2.5 rounded-full mt-4"
+          className="px-6 py-2.5 rounded-full mt-4 flex items-center justify-center text-[0.875rem] font-medium"
         >
           注册账号，保存进度
-        </button>
+        </GradientButton>
       </div>
     </div>
   )

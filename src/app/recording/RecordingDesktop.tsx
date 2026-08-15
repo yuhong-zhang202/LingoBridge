@@ -10,6 +10,7 @@
  */
 'use client'
 import { type JSX, useEffect, useRef } from 'react'
+import GradientButton from '@/components/GradientButton'
 import { RotateCcw, Pencil } from 'lucide-react'
 import Orb from '@/components/Orb'
 import Waveform from '@/components/Waveform'
@@ -108,14 +109,16 @@ function ListeningStage({
 
       {/* 动作区：移出滚动区、shrink-0 钉底，矮屏也不会被挤出首屏 */}
       <div className="shrink-0 flex flex-col items-center gap-4 px-8 pb-8 pt-4">
-          <button
+          {/* GradientButton（升级自原裸 btn-gradient，2026-08-15 收口，同 RecordingMobile）：
+              皮肤由三色停对齐到基准页的两色停；hover 位移/阴影是本页独有的桌面态，留在 className 里。 */}
+          <GradientButton
             onClick={onFinish}
-            disabled={transcribing}
-            className="btn-gradient w-[280px] h-[56px] text-[1rem] font-semibold disabled:opacity-50 transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            loading={transcribing}
+            className="w-[280px] h-[56px] flex items-center justify-center gap-2 rounded-full text-[1rem] font-semibold transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
             <div aria-hidden="true" className="w-[15px] h-[15px] bg-v2-text-secondary rounded-[3px]" />
             {transcribing ? '转写中…' : '完成录音'}
-          </button>
+          </GradientButton>
           <div className="flex items-center gap-5">
             <button
               onClick={onRerecord}

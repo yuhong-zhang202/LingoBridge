@@ -122,9 +122,14 @@ export default function MatchStatusNote({
   return (
     // role/aria-live 挂在外层而非 <Card>：Card 是全站共用组件，不为本页给它开 a11y 属性口子。
     <div role="status" aria-live="polite" className={cn('shrink-0', className)}>
-      {/* 短文案终态在卡内【垂直居中】（产品方真机验收：min-h 撑出的下方留白让文字看着顶在上沿）；
-          waiting/streaming 的进度条内容多、自然撑满，保持块布局不受影响 */}
-      <Card className={cn(cardClassName, !pending && 'flex flex-col justify-center')}>
+      {/* 【min-h 只在等待态生效 —— 2026-08-15 产品方要求「文案短的时候把空隙收掉」】
+          调用方传的 min-h（桌面 76 / 移动 84）当初是为了「八种状态之间卡下沿不上下跳」。
+          但会跳的只有 waiting ↔ streaming 这一段：**终态是终态**，进不去也出不来，
+          锁高对它没有防跳价值，只剩一张一行文案却撑到 84px 的空卡（lowMatch 最明显）。
+          故终态用 `min-h-0` 覆盖掉（cn 走 twMerge，后写的同族类干净胜出），让卡按内容自适应。
+          ⚠️ 保留 `justify-center`：万一将来某个终态文案变长到两三行，仍是居中而非顶在上沿。
+          ⚠️ pending 态一个字没动 —— 进度条那段的等高与不位移仍然按原样锁着。 */}
+      <Card className={cn(cardClassName, !pending && 'flex flex-col justify-center min-h-0')}>
         {pending ? (
           // ⚠️ 唯一一处 MatchingProgress：waiting 与 streaming 共用它，切换 phase 时不重挂载、进度条不倒退
           <MatchingProgress
