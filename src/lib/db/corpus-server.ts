@@ -14,6 +14,30 @@ import { mapCorpusRow, type CorpusRow } from './corpus'
 import type { Corpus, CorpusSource } from '../types'
 
 /**
+ * 日/终身用量计数的类别枚举 —— **额度桶的键，必须与调用方逐字一致**。
+ *
+ * 【为什么必须是联合类型而不是 string（2026-08-15 收口，此前是裸 string）】
+ * `bump_daily_usage` 的 `p_kind` 在 DB 侧是无约束的 `text`，且 upsert 走
+ * `on conflict (user_id, day, kind)` —— **任何字符串都会静默开出一个全新的计数桶**。
+ * 后果分两档，第二档更隐蔽：
+ *   · 单点拼错（如 'analyis'）⇒ 该桶从 0 起算，`count > LIMIT` 永不触发
+ *     ⇒ **该用户当天在那个接口上无限额**；
+ *   · **read 与 bump 用了不同的串**（如 read 'transcribe' / bump 'transcirbe'）⇒ 读恒为 0、
+ *     闸永远放行，而写侧计数在另一个桶里默默长大 —— 从任何一侧单看都"正常"。
+ * 两档都【不报错、不留痕】，tsc / jest / 生产日志全都抓不到。收敛成联合类型后，
+ * 拼错当场就是编译错误。
+ *
+ * ⚠️ 新增付费接口时在此加一项；**只加不改**——改一个既有值等于把线上那个桶弃用、
+ *    该用户当天的已用次数归零重算。
+ */
+export const USAGE_KIND = [
+  'matching', 'analysis', 'phrases', 'restructure',
+  'practice', 'polish', 'pronounce', 'transcribe',
+  'anki', 'anki_swap',
+] as const
+export type UsageKind = (typeof USAGE_KIND)[number]
+
+/**
  * 统计某用户本月创建的语料数。service_role 绕 RLS，故须显式按 user_id 过滤（不能依赖 auth.uid()）。
  * 月界走 quotaMonthStartISO（东八区）—— 与客户端 countCorpusThisMonth 同一份实现。
  * 此前服务端跟随容器时区、客户端跟随设备时区，每月 1 日头 8 小时两端不同月：
@@ -73,7 +97,7 @@ export async function bumpAnonRestructureTodayServer(userId: string): Promise<nu
  * @throws         Error —— RPC 出错
  * @sideEffect     service_role 调 RPC bump_daily_usage（原子 upsert 计数，绕 RLS）
  */
-export async function bumpDailyUsageServer(userId: string, kind: string): Promise<number> {
+export async function bumpDailyUsageServer(userId: string, kind: UsageKind): Promise<number> {
   // 内部账户全豁免：一处收敛。所有付费接口（practice/polish/pronounce/transcribe/analysis/matching/
   // restructure/phrases/anki/anki_swap 共 12+ 调用点）都靠本函数返回值做 `count > LIMIT` 防刷闸，
   // 这里恒返 0 即让每一处闸门天然通过，且不递增 RPC（日额度只是防刷计数器、非分析口径，跳过无副作用）。
@@ -96,7 +120,7 @@ export async function bumpDailyUsageServer(userId: string, kind: string): Promis
  * @returns        当日该类已计次数；无记录 / 读取失败均返回 0
  * @sideEffect     service_role 读 daily_usage_counts（绕 RLS，须显式按 user_id 过滤）
  */
-export async function readDailyUsageServer(userId: string, kind: string): Promise<number> {
+export async function readDailyUsageServer(userId: string, kind: UsageKind): Promise<number> {
   // 内部账户全豁免：transcribe 的「只读早退」闸走本函数（在 bump 之前），若不同样豁免，内部账户历史
   // 已累计到上限的计数会在这里被早退挡下、绕过 bump 的豁免。恒返 0 = 「今日未用」→ 放行到（同样豁免的）
   // bump。与 bumpDailyUsageServer 一起构成日额度层的完整一处收敛。
@@ -145,7 +169,7 @@ export async function readDailyUsageServer(userId: string, kind: string): Promis
  * @returns        该用户该类的终身累计次数；无记录 / 读取失败 / 内部账户均返回 0
  * @sideEffect     service_role 读 daily_usage_counts（绕 RLS，须显式按 user_id 过滤）
  */
-export async function readLifetimeUsageServer(userId: string, kind: string): Promise<number> {
+export async function readLifetimeUsageServer(userId: string, kind: UsageKind): Promise<number> {
   // 内部账户全豁免：与 bumpDailyUsageServer / readDailyUsageServer 同一处收敛。少了这一行，
   // 产品方自用账户历史累计的转写次数会把自己永久锁死（终身闸没有"明天再来"这条退路）。
   if (isInternalAccount(userId)) return 0

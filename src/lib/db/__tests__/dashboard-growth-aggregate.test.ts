@@ -263,12 +263,22 @@ describe('aggregateFailureImpact', () => {
     expect(out.totalAffectedUsers).toBe(1)
   })
 
-  it('缺 phase 的行按 service 兜底成可读桶名，不落进生 key（逐字沿用既有 todayPhaseName 口径）', () => {
-    // ⚠️ 兜底走的是 SERVICE_META 的服务名（'豆包 ASR'），不是 resolvePhase 的 'transcribe'。
-    //    这是「今日故障按环节」既有的分组口径，本块刻意复用同一个函数 —— 两处必须永远对得上，
-    //    故此处断言的是【既有行为】，不是我认为它该有的行为。
+  it('缺 phase 的豆包行归「语音转写」——与 resolvePhase 同源（2026-08-15 修正后的口径）', () => {
+    // 【本断言的历史，别改回去】原实现里 todayPhaseName 直接读 metadata.phase，不认 resolvePhase
+    // 那条「豆包 ASR 行缺 phase 即视为 transcribe」的规则，于是同一批行在看板两处显示成两个桶名：
+    // 这里是 '豆包 ASR'（SERVICE_META 服务名兜底），别处是 '语音转写'。
+    // 写本用例的人当时按红线只报不改，注释原话是「此处断言的是【既有行为】，不是我认为它该有的
+    // 行为」——本次（2026-08-15）把 todayPhaseName 改为复用 resolvePhase，两侧就此同源，
+    // 故断言随之更新为 '语音转写'。**这是兑现那条记下的债，不是放宽守卫让改动通过。**
+    // ⚠️ 只改展示名归属，计数口径与阈值一字未动。
     const out = aggregateFailureImpact([fail(undefined, U1, {}, 'doubao_asr')])
-    expect(out.byPhase[0].phase).toBe('豆包 ASR')
+    expect(out.byPhase[0].phase).toBe('语音转写')
+  })
+
+  it('非豆包且缺 phase 的行仍按 service 名兜底（不落进生 key 的保底没被改掉）', () => {
+    const out = aggregateFailureImpact([fail(undefined, U1, {}, 'qwen_plus')])
+    expect(out.byPhase[0].phase).not.toBe('')
+    expect(out.byPhase[0].phase).not.toBe('qwen_plus')
   })
 
   it('排序：影响用户数降序 → 失败次数降序 → 环节名字典序（顺序稳定，打开看板位置不跳）', () => {

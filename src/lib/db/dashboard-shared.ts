@@ -324,13 +324,22 @@ export function hkDayKey(iso: string): string {
 }
 
 /**
- * 今日故障归属的「环节中文名」：优先 metadata.phase 经 PHASE_META 映射；
- * 缺 phase 的历史行（如 2026-07-25 补埋点前的 transcribe 失败）用 service 兜底成一个可读桶名，
+ * 今日故障归属的「环节中文名」：先走 resolvePhase 取环节 key，再经 PHASE_META 映射中文名；
+ * 连 resolvePhase 都给不出环节时（非豆包、且无 metadata.phase）才用 service 兜底成可读桶名，
  * 绝不落进无意义的生 key。仅用于「今日故障按环节」分组展示。
+ *
+ * ⚠️【2026-08-15 修：此前与 resolvePhase 兜底不一致，同一批行在看板两处显示成两个名字】
+ *   旧实现直接读 `row.metadata?.phase`，不认 resolvePhase 里那条「豆包 ASR 行缺 phase 即
+ *   视为 transcribe」的规则。后果：一条缺 phase 的豆包失败行，在「今日故障按环节」显示成
+ *   **「豆包 ASR」**（service 兜底），而在走 resolvePhase 的其它统计里算作 **「语音转写」**
+ *   —— 同一批行、两个桶名，对不上账时没人查得出是哪一侧错。
+ *   改为复用 resolvePhase 后两侧同源：豆包缺 phase 的行两处都算「语音转写」。
+ *   ⚠️ 这只改**展示名归属**，不改任何计数口径与阈值。
+ *
  * @param row  今日日志行（用到 metadata.phase 与 service）
  */
 export function todayPhaseName(row: { metadata: LogMeta; service: string }): string {
-  const phase = row.metadata?.phase
+  const phase = resolvePhase(row)
   if (phase) return PHASE_META[phase] ?? phase
   return SERVICE_META[row.service]?.name ?? row.service
 }
