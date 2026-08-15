@@ -65,12 +65,19 @@ function GroupHeader({ text, variant }: { text: string; variant: Tier }): JSX.El
   )
 }
 
-/** 匹配档位徽标 */
-function TierBadge({ tier }: { tier: Tier }): JSX.Element {
+/**
+ * 匹配档位徽标 —— **只接 high / mid**。
+ *
+ * ⚠️【为什么参数类型排除了 'low'（2026-08-15 产品方拍板）】低相关档的这句判断已由题目详情卡
+ *   下方的「不够贴合」标题承担；此前右上角一枚同名徽标 + 下方一句反问，说的是同一件事、
+ *   等于把「这题不合适」强调了两遍。现在低相关档不再渲染本徽标。
+ *   **刻意把 'low' 从参数类型里摘掉而不是留个走不到的分支**：将来谁想再给低相关档加徽标，
+ *   tsc 会当场把他挡在这条决定面前，而不是让他以为这里本来就支持。
+ */
+function TierBadge({ tier }: { tier: Exclude<Tier, 'low'> }): JSX.Element {
   const map = {
-    high: { label: '高匹配',   cls: 'text-brand-accent-dark bg-brand-accent/10 border-brand-accent/25' },
-    mid:  { label: '中匹配',   cls: 'text-v2-text-secondary bg-black/[0.04] border-black/[0.08]' },
-    low:  { label: '不够贴合', cls: 'text-v2-text-muted bg-black/[0.04] border-black/[0.08]' },
+    high: { label: '高匹配', cls: 'text-brand-accent-dark bg-brand-accent/10 border-brand-accent/25' },
+    mid:  { label: '中匹配', cls: 'text-v2-text-secondary bg-black/[0.04] border-black/[0.08]' },
   }[tier]
   return <span className={`text-[0.6875rem] font-medium px-[9px] py-[3px] rounded-full border ${map.cls}`}>{map.label}</span>
 }
@@ -144,7 +151,9 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
           <Tag variant="green" label={q.dimension} />
           {q.is_new && <Tag variant="green" label="新题" />}
           <span className="ml-auto flex items-center gap-1.5">
-            {tier && <TierBadge tier={tier} />}
+            {/* 低相关档不渲染徽标：同一句判断已由下方「不够贴合」标题承担（产品方 2026-08-15 拍板）。
+                high / mid 仍显示 —— 那两档的徽标是【正向信息】（这题多贴合），不与下方标题重复。 */}
+            {tier && tier !== 'low' && <TierBadge tier={tier} />}
             {/* 存对子书签（TierBadge 行最右）：已存显「已存题卡」绿 Tag，未存/存中显 40×40 图标按钮 */}
             <AnkiBookmarkButton state={saveState} onSave={onSave} savedTag />
           </span>
@@ -160,9 +169,13 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
         {q.relevanceReason && (
           <div className="mt-5 border-t border-black/[0.05] pt-5">
             {/* 标题按档切：低相关时「为什么这道题适合你」是句谎话，这道题恰恰不适合。
-                正文仍用同一个 relevanceReason（重排对低分题照样给 reason，不需要新数据）。 */}
+                正文仍用同一个 relevanceReason（重排对低分题照样给 reason，不需要新数据）。
+                ⚠️【2026-08-15 产品方拍板】低相关档的标题由「这道题和你的语料差在哪」改为「不够贴合」，
+                   同时右上角那枚同名 TierBadge 不再渲染 —— 此前两处同时出现同一句判断，
+                   右上角一枚徽标 + 下方一句反问，说的是同一件事，读起来像被强调了两遍。
+                   现在只保留下方这一处，右上角留给 Part / 维度 / 新题 这些客观标签。 */}
             <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">
-              {tier === 'low' ? '这道题和你的语料差在哪' : '为什么这道题适合你'}
+              {tier === 'low' ? '不够贴合' : '为什么这道题适合你'}
             </p>
             <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">{q.relevanceReason}</p>
           </div>
