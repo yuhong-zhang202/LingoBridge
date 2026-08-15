@@ -73,7 +73,9 @@ type DashboardData = {
   // 窗口核心活跃去重人数（漏斗③主数字）。activePending = 两级每日权威 RPC（0047→0045）皆不可用 → ③走降级态。
   windowCoreActive: number
   activePending: boolean
-  // windowCoreApprox：③ 本次是否为 AI-only 近似（get_window_core_active 回退时 true）。当前 UI 暂不消费，留待未来标注「近似」。
+  // windowCoreApprox：③ 本次是否为 AI-only 近似（get_window_core_active 回退时 true）。
+  // 2026-08-15 起【已被 GrowthFunnel 的 ③ 段消费】：为真时整行口径小字换成「近似值·偏低」的措辞
+  // ——回退路径只数 AI 环节，原口径小字宣称的闪卡/收藏并没有算进去，不换就是在说假话。
   windowCoreApprox: boolean
   // 假空率（区间内空录音里 peak≥阈值=采到声音却转写空 的占比）：null = 无带 audio 信号的空录音（口径生效前无数据），
   // 前端显「待接入」；有数则 rate（0-100 百分比）+ n（带信号的空录音总数）+ fakeCount（其中判为假空的条数）。

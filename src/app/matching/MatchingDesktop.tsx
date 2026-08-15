@@ -40,7 +40,35 @@ const SELECTED_BAR = BRAND_GRADIENT_VERTICAL
  * 会给一道 45 分的题算出「中匹配」，页面上半部分刚说完「没有能用的题」，右边就自己打脸。
  * 未打分（undefined）返回 null → 不渲染徽标：降级态下分数全缺，标任何档都是「知道自己不知道，还是说了」。
  */
-type Tier = 'high' | 'mid' | 'low'
+export type Tier = 'high' | 'mid' | 'low'
+
+/**
+ * 详情卡「理由区」的小标题（按档切）。
+ *
+ * 【为什么是导出的纯函数而不是内联三元】2026-08-15 产品方拍板的这条用户可见文案改动
+ * （低相关档由「这道题和你的语料差在哪」改为「不够贴合」，同时右上角同名徽标不再渲染）
+ * 此前**零测试覆盖** —— 谁改回去都没人知道。本项目已有成例：MatchStatusNote 的 `matchTitle`
+ * 同样把状态化文案抽成导出纯函数供测试钉。沿用它，不新造机制。
+ *
+ * @param tier 该题档位；null = 未打分（降级态）
+ * @returns    小标题文案
+ */
+export function relevanceSectionTitle(tier: Tier | null): string {
+  // 低相关时「为什么这道题适合你」是句谎话 —— 这道题恰恰不适合。
+  return tier === 'low' ? '不够贴合' : '为什么这道题适合你'
+}
+
+/**
+ * 右上角档位徽标该不该渲染。
+ * low 不渲染：它与下方理由区标题说的是同一件事，两处同时出现等于把同一句判断强调两遍。
+ * null（未打分）也不渲染：降级态下标任何档都是「知道自己不知道，还是说了」。
+ * @param tier 该题档位
+ * @returns    true = 渲染徽标
+ */
+export function shouldShowTierBadge(tier: Tier | null): tier is Exclude<Tier, 'low'> {
+  return tier !== null && tier !== 'low'
+}
+
 function tierOf(score?: number): Tier | null {
   if (score === undefined) {
     console.error('[MatchingDesktop] 收到未打分候选，不标任何档', { score })
@@ -153,7 +181,7 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
           <span className="ml-auto flex items-center gap-1.5">
             {/* 低相关档不渲染徽标：同一句判断已由下方「不够贴合」标题承担（产品方 2026-08-15 拍板）。
                 high / mid 仍显示 —— 那两档的徽标是【正向信息】（这题多贴合），不与下方标题重复。 */}
-            {tier && tier !== 'low' && <TierBadge tier={tier} />}
+            {shouldShowTierBadge(tier) && <TierBadge tier={tier} />}
             {/* 存对子书签（TierBadge 行最右）：已存显「已存题卡」绿 Tag，未存/存中显 40×40 图标按钮 */}
             <AnkiBookmarkButton state={saveState} onSave={onSave} savedTag />
           </span>
@@ -175,7 +203,7 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
                    右上角一枚徽标 + 下方一句反问，说的是同一件事，读起来像被强调了两遍。
                    现在只保留下方这一处，右上角留给 Part / 维度 / 新题 这些客观标签。 */}
             <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">
-              {tier === 'low' ? '不够贴合' : '为什么这道题适合你'}
+              {relevanceSectionTitle(tier)}
             </p>
             <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">{q.relevanceReason}</p>
           </div>

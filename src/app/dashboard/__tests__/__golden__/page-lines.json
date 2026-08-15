@@ -38,7 +38,7 @@
   "<FunnelDegraded title=\"W1 首周留存\" reason={WEEKLY_RET_REASON} />",
   "<FunnelFraction num={act.activatedTotal} den={act.registeredTotal} />",
   "<FunnelFraction num={wr.w1Ret} den={wr.w1N} />",
-  "<FunnelNote>AI 环节 / 闪卡复习 / 收藏 任一即算 · 仅注册用户 · 近{windowDays}天</FunnelNote>",
+  "<FunnelNote>{windowCoreNote(data.windowCoreApprox, windowDays)}</FunnelNote>",
   "<FunnelNote>只计真注册（非匿名·有邮箱）· 东八区</FunnelNote>",
   "<FunnelNote>激活 = 在 corpus 有 ≥1 条记录（真讲过一次故事）</FunnelNote>",
   "<FunnelQualityNotes state={funnel} />",

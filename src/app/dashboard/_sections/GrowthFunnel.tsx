@@ -96,6 +96,26 @@ const WEEKLY_RET_REASON = 'W1 留存 RPC（get_weekly_retention_stats）尚未�
  * @param data       看板数据（读 activation / weeklyRetention / retention / windowCoreActive 及各 pending）
  * @param windowDays 区间天数（7/14/30），③ 口径小字「近 N 天」用
  */
+/**
+ * 漏斗③「窗口核心活跃」那行口径小字。
+ *
+ * 🔴【为什么整行换，而不是在原句后面补一句「（近似）」】降级时原口径小字【本身在说假话】：
+ *   它宣称「AI 环节 / 闪卡复习 / 收藏 任一即算」，但回退路径（windowActiveSet，读 api_usage_logs）
+ *   只数了 AI 环节，闪卡复习与收藏根本没进统计。留着原句再补注只会让人以为口径没变、只是精度差点。
+ *
+ * ⚠️【必须说方向】权威 RPC 数全 7 信号、回退只数其中一个子集 ⇒ 偏差方向恒定【偏低】，不会偏高。
+ *   同 CohortReturnTable / FailureImpactBlock 的纪律：只讲「近似」会让人以为可能偏高也可能偏低。
+ *
+ * @param approx     true = 本次是 AI-only 近似（get_window_core_active RPC 缺失/出错时回退）
+ * @param windowDays 区间天数
+ * @returns          该行口径小字文案
+ */
+export function windowCoreNote(approx: boolean, windowDays: number): string {
+  return approx
+    ? `⚠️ 近似值·【偏低】（不会偏高）：权威 RPC 未接入，本数只数了 AI 环节，闪卡复习与收藏没算进去 · 仅注册用户 · 近${windowDays}天`
+    : `AI 环节 / 闪卡复习 / 收藏 任一即算 · 仅注册用户 · 近${windowDays}天`
+}
+
 function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: number }) {
   // ① 累计注册 / ② 激活：同源 activation，null 时两段同时降级
   const act = data.activation
@@ -121,12 +141,25 @@ function GrowthFunnel({ data, windowDays }: { data: DashboardData; windowDays: n
     : <FunnelDegraded title="激活" reason={ACTIVATION_REASON} />
 
   // ③ 窗口核心活跃：activePending（两级权威 RPC 皆不可用）时降级；否则显窗口去重人数
+  //
+  // 🔴【2026-08-15 接线】windowCoreApprox 此前算了、返回了、但没有任何界面消费 —— 而它说的正是
+  //   「上面这个大数字到底可不可信」。数在屏幕上、可信度标志却不接线，与本项目
+  //   「宁可把『这个数不完整』摆在脸上，也绝不静默交付半份数据」的纪律相反，故本次接上。
+  //
+  //   ⚠️ 更要紧的是：降级时原来那行口径小字【本身在说假话】。它写着「AI 环节 / 闪卡复习 / 收藏
+  //     任一即算」，但回退路径（windowActiveSet）只数 api_usage_logs 的 AI 环节，闪卡与收藏根本没数。
+  //     所以近似态必须换掉整行口径，而不是在原句后面补一句「（近似）」。
+  //
+  //   方向可判定：权威 RPC 数全 7 信号，回退只数其中一个子集 ⇒ 恒定【偏低】，不会偏高。
+  //   按 CohortReturnTable / FailureImpactBlock 的同款纪律，必须把方向说出来 ——
+  //   只讲「近似」会让人以为可能偏高也可能偏低。
+  //   与 activePending 正交：那个是「两级每日口径链全挂、整段不可信」，这个是「标量降了一级保真度、数还能看」。
   const seg3: ReactNode = data.activePending
     ? <FunnelDegraded title="窗口核心活跃" reason="核心活跃口径 RPC（get_core_active_stats 与 0045）均未接入，窗口核心活跃暂不可信。待部署方跑迁移 0047 后自动显示。" />
     : (<>
         <FunnelTitle>窗口核心活跃</FunnelTitle>
         <div className="text-[1.5rem] font-bold text-v2-text-primary tabular-nums leading-none mt-1">{data.windowCoreActive}</div>
-        <FunnelNote>AI 环节 / 闪卡复习 / 收藏 任一即算 · 仅注册用户 · 近{windowDays}天</FunnelNote>
+        <FunnelNote>{windowCoreNote(data.windowCoreApprox, windowDays)}</FunnelNote>
       </>)
 
   // ④ W1 首周留存：三态——W1 有→完整；W1 无+D1/D7 有→主区降级但对照行照显；两者皆无→整段降级

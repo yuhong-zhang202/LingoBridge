@@ -198,8 +198,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     // null（迁移未跑/出错）→ 回退 windowActiveSet.size（rngRows 现算的 AI-only 近似，恒可算保底）。
     const windowCoreRpc = await windowCorePromise
     const windowCoreActive = windowCoreRpc ?? windowActiveSet.size
-    // windowCoreApprox：仅当回退到 AI-only 近似时置真（RPC 缺失/出错），供未来 UI 需要时标注「近似」用；
+    // windowCoreApprox：仅当回退到 AI-only 近似时置真（RPC 缺失/出错）；
     // happy path（RPC 已部署）恒为 false、值权威。
+    // 2026-08-15 起由 GrowthFunnel ③ 段消费（换整行口径小字并明说【偏低】），不再是只算不用的字段。
     const windowCoreApprox = windowCoreRpc == null
     // 核心活跃「三级全失败」标记：两级每日权威 RPC 皆不可用时置真，前端漏斗③改走降级态（口径不可信）。
     // 至少一级 RPC 可用则 false。⚠️ 与 windowCoreApprox 正交：前者判每日口径链健康、后者判③标量是否走近似。
@@ -291,7 +292,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       weeklyRetentionPending: weeklyRetention === null,
       // 窗口核心活跃去重人数（漏斗③主数字）：0047 标量 RPC（全 7 信号）优先，null 回退 rngRows AI-only 近似。
       windowCoreActive,
-      // windowCoreApprox：③ 本次是否为 AI-only 近似（RPC 回退时 true）。当前口径小字不据此改，留给未来 UI 用。
+      // windowCoreApprox：③ 本次是否为 AI-only 近似（RPC 回退时 true）。前端据此换整行口径小字并明说偏低。
       windowCoreApprox,
       // activePending：核心活跃两级【每日】权威 RPC（0047→0045，趋势线/今日值口径）皆不可用时置真，
       // 前端漏斗③走降级态（沿用原判定）。⚠️ 与③标量口径（windowCoreActive/windowCoreApprox）正交——
