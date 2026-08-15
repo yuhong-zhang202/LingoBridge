@@ -1,19 +1,21 @@
 /**
- * @module   db/dashboard-cohort-pageviews.test
- * @desc     看板「用户走到哪」两个新聚合的口径守卫（方案 §四）：
- *           · aggregateCohortReturns —— 剔 QA / 剔内部账户（分母与回访信号两侧）、东八区日界、
- *             「待满 1 天」判定（严格到边界日）、注册当天活动不算「回来」、人数去重、空日合并计数；
- *           · aggregatePageViews —— 剔 QA / 剔内部账户、route 缺失归「(未上报)」桶、
- *             打开次数与「用过的人」去重分列、无归属行计次不计人、降序排序。
+ * @module   db/dashboard-cohort-returns.test
+ * @desc     看板 cohort 回访聚合的口径守卫（方案 §四）：
+ *           aggregateCohortReturns —— 剔 QA / 剔内部账户（分母与回访信号两侧）、东八区日界、
+ *           「待满 1 天」判定（严格到边界日）、注册当天活动不算「回来」、人数去重、空日合并计数。
  *           纯函数直测，不碰真实 DB。变异自查：断言精确到分子/分母与排序，改坏任一口径会红。
+ *
+ *   【2026-08-15】原同文件还守着 aggregatePageViews（「哪些页面被用得多」）。该聚合的界面消费者
+ *   PageActivityList 已于 2026-08-14 从看板摘除，本次连同 fetchPageViewStats 与 route 字段整链删除，
+ *   故那一组用例一并移除 —— 删的是【守卫的对象已不存在】，不是守卫标准放松。
  * @author   LingoBridge
  * @created  2026-08-04
  */
 jest.mock('server-only', () => ({}))
 
 import {
-  aggregateCohortReturns, aggregatePageViews, PAGE_ROUTE_MISSING,
-  type CohortRegUser, type CohortFlowRow, type PageViewRow,
+  aggregateCohortReturns,
+  type CohortRegUser, type CohortFlowRow,
 } from '@/lib/db/dashboard-metrics'
 import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
 
@@ -118,52 +120,5 @@ describe('aggregateCohortReturns', () => {
     const regs = [reg('user-m', '2026-08-01T02:00:00.000Z'), reg('user-n', '2026-08-03T02:00:00.000Z')]
     const out = aggregateCohortReturns(regs, [], NOW)
     expect(out.days.map(d => d.dateLabel)).toEqual(['8/3', '8/1'])
-  })
-})
-
-describe('aggregatePageViews', () => {
-  /** 造一行 page.view */
-  function pv(userId: string | null, route: string | undefined, isQa = false): PageViewRow {
-    return { user_id: userId, props: route === undefined ? {} : { route }, is_qa: isQa }
-  }
-
-  it('按 route 聚合打开次数 + 用过的人去重，打开次数降序', () => {
-    const rows = [
-      pv('u1', 'practice'), pv('u1', 'practice'), pv('u2', 'practice'),
-      pv('u1', 'home'),
-    ]
-    expect(aggregatePageViews(rows)).toEqual([
-      { route: 'practice', views: 3, users: 2 },
-      { route: 'home', views: 1, users: 1 },
-    ])
-  })
-
-  it('剔 QA：is_qa=true 整行不计（次数与人数都不计）', () => {
-    const rows = [pv('u1', 'home'), pv('u2', 'home', true)]
-    expect(aggregatePageViews(rows)).toEqual([{ route: 'home', views: 1, users: 1 }])
-  })
-
-  it('剔内部账户：整行不计（内部自测的浏览既不计次也不计人）', () => {
-    const rows = [pv(INTERNAL_ID, 'home'), pv('u1', 'home')]
-    expect(aggregatePageViews(rows)).toEqual([{ route: 'home', views: 1, users: 1 }])
-  })
-
-  it('无归属行（user_id=null）计入次数、不计入人数', () => {
-    const rows = [pv(null, 'home'), pv('u1', 'home')]
-    expect(aggregatePageViews(rows)).toEqual([{ route: 'home', views: 2, users: 1 }])
-  })
-
-  it('route 缺失归「(未上报)」桶（埋点异常可见，不静默丢行）；非字符串同样归入', () => {
-    const rows: PageViewRow[] = [
-      pv('u1', undefined),
-      { user_id: 'u2', props: { route: 42 }, is_qa: false },
-      { user_id: 'u3', props: null, is_qa: false },
-    ]
-    expect(aggregatePageViews(rows)).toEqual([{ route: PAGE_ROUTE_MISSING, views: 3, users: 3 }])
-  })
-
-  it('同次数按 route 字典序，排序稳定', () => {
-    const rows = [pv('u1', 'library'), pv('u1', 'home')]
-    expect(aggregatePageViews(rows).map(r => r.route)).toEqual(['home', 'library'])
   })
 })

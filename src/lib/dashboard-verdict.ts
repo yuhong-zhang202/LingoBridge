@@ -6,6 +6,9 @@
  *             ② 新反馈    feedback.unhandledCount > 0（品牌深色——反馈是要处理、不是坏了，不用红）
  *             ③ 成本      沿用 Hero 卡既有 costWarn 判定（超日预算 或 超近 7 日均 2 倍，黄）
  *             ④ 速度      todayStatus.slowestPhase.p90 > latencyWarnMs（黄）
+ *           🔴【2026-08-15】③④ 两源【只在越阈值时才出现】，正常态一个字都不出现（P4 需求原文：
+ *           「成本超标与延迟异常降级为静默，只在真出事时才冒泡」）。computeVerdict 本就如此，
+ *           但 allClearText 曾常驻「成本正常 ¥x」，等于把静默判定又拉回台面 —— 已删，见该函数注释。
  *           🔴 flow_events 的「该我们修」桶刻意不进结论条：它是区间口径，与「今日」混用是误报温床
  *           （ux 三轮评审最重要的口径决定之一），它只在「出事了吗」区展示。
  *           抽成纯函数：判定逻辑可单测（四源各自触发/不触发），组件只管渲染与锚点跳转。
@@ -110,10 +113,17 @@ export function computeVerdict(input: VerdictInput): VerdictItem[] {
 }
 
 /**
- * 全绿态的一行结论（方案 §二钉死的措辞结构：不用处理 · 无失败 · 成本正常 ¥x · 无新反馈）。
- * @param todayCost  今日花费（展示「成本正常 ¥x」）
- * @returns          全绿一句话
+ * 全绿态的一行结论。
+ *
+ * 🔴【2026-08-15 口径变更】原措辞为「不用处理 · 无失败 · 成本正常 ¥x · 无新反馈」。
+ *    P4 需求原文：「今日结论条只保留两个判定 —— 有没有新反馈、有没有『该我们修』的 bug；
+ *    **成本超标与延迟异常降级为静默，只在真出事时才冒泡**」。而生产实测里成本没超标时
+ *    仍常驻占位（`成本正常 ¥0.0900`），等于每天都在提醒一件不需要处理的事 —— 结论条被
+ *    稀释成了仪表盘。故成本一段整段移除：**正常时一个字都不出现**，超标时由 computeVerdict
+ *    的 cost chip 承担（带锚点、能跳到「钱花在哪」区）。延迟同理，本就只在超阈值时出现。
+ *    余下「无失败 / 无新反馈」两段对应保留的两个判定，与 computeVerdict 一一对应。
+ * @returns  全绿一句话
  */
-export function allClearText(todayCost: number): string {
-  return `今天不用处理什么 · 无失败 · 成本正常 ${formatCny(todayCost)} · 无新反馈`
+export function allClearText(): string {
+  return '今天不用处理什么 · 无失败 · 无新反馈'
 }

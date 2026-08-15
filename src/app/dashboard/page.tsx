@@ -86,6 +86,12 @@ export default function DashboardPage() {
   // 区间天数与区块口径 chip：口径跟着区块走（收起态也看得见这块数据是什么时间范围的）
   const windowDays = Number(range.slice(0, -1))
   const rangeBadge = `近 ${windowDays} 天`
+  // 增长三区（用户走到哪 / 谁留下了 / 用户在用什么）走 0064/0065 的 RPC，窗口是【闭区间
+  // [今日-N, 今日]】= N+1 个日历日，比主看板那批（rangeStartDate 起、恰好 N 天）多一天。
+  // 徽标必须写真实天数：表内 caption 与「口径·来源」列已经在写 windowTotalDays（= N+1），
+  // 徽标若还写 N，同一块数据上会出现两个互相打架的天数。
+  // ⚠️ 真源是 dashboard-growth-shared 的 `windowTotalDays = windowDays + 1`，改那边要同步这里。
+  const growthRangeBadge = `近 ${windowDays + 1} 天`
   const hasRangeData = !!data && data.dailyData.some(d => d.total > 0)
 
   // ── 各区收起态 summary 的常驻结论数字（方案 §一骨架）──
@@ -193,12 +199,12 @@ export default function DashboardPage() {
             各区的 JSX 与局部逻辑分别落在 _sections/ 下的同名文件，这里只负责编排与传参。 */}
         <FeedbackSection data={data} />
 
-        <UsersSection data={data} funnel={growthFunnel} rangeBadge={rangeBadge}
+        <UsersSection data={data} funnel={growthFunnel} rangeBadge={growthRangeBadge}
           windowDays={windowDays} subtitle={usersSubtitle} />
 
-        <RetentionSection data={data} cohorts={growthCohorts} rangeBadge={rangeBadge} subtitle={retentionSubtitle} />
+        <RetentionSection data={data} cohorts={growthCohorts} rangeBadge={growthRangeBadge} subtitle={retentionSubtitle} />
 
-        <FeatureSection usage={growthUsage} rangeBadge={rangeBadge} />
+        <FeatureSection usage={growthUsage} rangeBadge={growthRangeBadge} />
 
         <IncidentSection data={data} flow={flow} rangeBadge={rangeBadge}
           incidentSubtitle={incidentSubtitle} rangeFailures={rangeFailures} oursTotal={oursTotal}

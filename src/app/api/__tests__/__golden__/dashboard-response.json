@@ -295,19 +295,6 @@
       "emptyDays": 6,
       "truncated": false
     },
-    "pageViewStats": [
-      {
-        "route": "library",
-        "views": 2,
-        "users": 2
-      },
-      {
-        "route": "home",
-        "views": 1,
-        "users": 1
-      }
-    ],
-    "pageViewsTruncated": false,
     "phaseLatency": [
       {
         "phase": "transcribe_practice",
@@ -1238,19 +1225,6 @@
       "emptyDays": 6,
       "truncated": false
     },
-    "pageViewStats": [
-      {
-        "route": "library",
-        "views": 2,
-        "users": 2
-      },
-      {
-        "route": "home",
-        "views": 1,
-        "users": 1
-      }
-    ],
-    "pageViewsTruncated": false,
     "phaseLatency": [
       {
         "phase": "transcribe_practice",
@@ -2579,19 +2553,6 @@
       "emptyDays": 6,
       "truncated": false
     },
-    "pageViewStats": [
-      {
-        "route": "library",
-        "views": 2,
-        "users": 2
-      },
-      {
-        "route": "home",
-        "views": 1,
-        "users": 1
-      }
-    ],
-    "pageViewsTruncated": false,
     "phaseLatency": [
       {
         "phase": "transcribe_practice",

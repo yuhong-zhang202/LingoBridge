@@ -48,7 +48,7 @@ function makeQ(id: string, part: 1 | 2 | 3) {
 }
 
 function makePoint(code: string, name: string, dimensionId: 'emotion' | 'space' | 'value' | 'relationship') {
-  return { id: `id-${code}`, code, name, dimensionId, layer: 'state' as const, mappedQuestionCount: 0, richThreshold: 0, sortOrder: 0 }
+  return { id: `id-${code}`, code, name, dimensionId, layer: 'state' as const, richThreshold: 0, sortOrder: 0 }
 }
 // 必须覆盖用例里会被走到的全部 code——含 OBSERVATION_ADJACENCY 中 SPA_03 / VAL_01 的邻居。
 // toMatchedPoint 对 DB 里查无此 code 的观察点一律返回 null（不再捏造维度兜底），

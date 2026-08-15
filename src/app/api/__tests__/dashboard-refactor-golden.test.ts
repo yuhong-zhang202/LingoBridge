@@ -235,7 +235,9 @@ describe('/api/dashboard · 拆分重构行为守卫（全量响应金标）', (
     expect(actual).toEqual(golden)
   })
 
-  it('金标覆盖了全部 63 个顶层键（防止响应结构被悄悄缩水）', async () => {
+  // 2026-08-15：63 → 61。「哪些页面被用得多」整链删除，pageViewStats / pageViewsTruncated 两键随之消失。
+  // ⚠️ 这个数字只许因【人明示的字段增删】而变；断言转红时先问「是不是有字段被悄悄丢了」，不是先改这个数。
+  it('金标覆盖了全部 61 个顶层键（防止响应结构被悄悄缩水）', async () => {
     const got = await capture('7d') as Record<string, unknown>
     const golden = JSON.parse(fs.readFileSync(GOLDEN_PATH, 'utf8')) as Record<string, Record<string, unknown>>
     expect(Object.keys(got).sort()).toEqual(Object.keys(golden['7d']).sort())

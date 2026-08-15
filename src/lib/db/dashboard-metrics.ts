@@ -4,11 +4,13 @@
  *           前半为指标 RPC 读取（2026-07-31 纯物理搬迁，逻辑/返回结构一字未改）；
  *           中段为 2026-08-07 成本看板身份口径修正（迁移 0058）：fetchUserAnonFlags 取用户【当前】身份、
  *           aggregateUserCosts 按当前身份聚合 Top-N 与匿名/登录占比（纯函数可单测）；
- *           后半为 2026-08-04 看板重设计新增的两个表级读取帮手（fetchCohortReturns / fetchPageViewStats，
- *           聚合逻辑抽成纯函数可单测）。每个 fetcher 独立自降级（内部 try/catch、失败返 null），
+ *           后半为 2026-08-04 看板重设计新增的表级读取帮手（fetchCohortReturns，聚合逻辑抽成纯函数
+ *           可单测）。每个 fetcher 独立自降级（内部 try/catch、失败返 null），
  *           绝不 reject 拖垮主看板；与 route 的主 Promise.all 并发跑。
+ *           （同批的 fetchPageViewStats / aggregatePageViews 已于 2026-08-15 随 PageActivityList
+ *           整链删除 —— 界面早已无消费者，后端却还在每次请求算一遍。）
  *
- *   ⚠️ 2026-08-12：上面两个表级 fetcher 原本各自手写分页、跑满页数上限【直接退出】——没有标志位、
+ *   ⚠️ 2026-08-12：上面的表级 fetcher 原本各自手写分页、跑满页数上限【直接退出】——没有标志位、
  *      没有日志，把不完整数据交给聚合。分页按 created_at 升序，被截掉的永远是【最新那批】，
  *      于是失真方向恒定偏低：回访/浏览看起来在跌，实际是新数据被丢了，而且没有任何人会知道。
  *      现统一改调 dashboard-shared 的 fetchAllRows（本项目唯一的分页范式），触顶时置 truncated
@@ -20,9 +22,8 @@
 import 'server-only'
 import type { getSupabaseServer } from '@/lib/supabase-server'
 import { isInternalAccount } from '@/lib/internal-accounts'
-import { flowWindowStart } from '@/lib/db/dashboard-flow-events'
 // fetchAllRows / PAGE_SIZE / MAX_PAGES 是本项目【唯一】的 PostgREST 分页范式（含判停不变式与触顶标志），
-// 下面两个表级 fetcher 一律走它，不再各写一套（见本文件顶注 2026-08-12 那段）。
+// 下面的表级 fetcher 一律走它，不再各写一套（见本文件顶注 2026-08-12 那段）。
 import { r2, fetchAllRows, PAGE_SIZE, MAX_PAGES } from '@/lib/db/dashboard-shared'
 
 /** service_role 客户端类型（route 传入，RPC 内 security definer 读 auth.users） */
@@ -606,91 +607,6 @@ export async function fetchCohortReturns(
       ...aggregateCohortReturns(regUsers, flowRes.data, now),
       truncated: regTruncated || flowRes.truncated,
     }
-  } catch {
-    return null
-  }
-}
-
-// ── 「哪些页面被用得多」（PageActivityList 消费）─────────────────────────────────
-
-/** props.route 缺失时的占位桶（不是真枚举值；埋点异常的可见信号，不静默丢行） */
-export const PAGE_ROUTE_MISSING = '(未上报)'
-
-/** 聚合入参：一行 page.view 事件 */
-export type PageViewRow = { user_id: string | null; props: Record<string, unknown> | null; is_qa: boolean | null }
-
-/** 单个页面（route 枚举 code）的窗口内活跃统计 */
-export type PageViewStat = {
-  /** route 枚举 code（如 'home' / 'practice'；缺失行归 PAGE_ROUTE_MISSING 桶） */
-  route: string
-  /** 打开次数（= 页面加载次数：刷新/多开重复计，不是访问人数 —— 防 UV 误读是展示侧第一要求） */
-  views: number
-  /** 用过的人（user_id 去重；无归属行计入次数、不计入人数） */
-  users: number
-}
-
-/**
- * 聚合「哪些页面被用得多」：窗口内 page.view 按 route 聚合打开次数 + user_id 去重人数。
- * 剔 QA（is_qa=true）与内部账户（该行整行剔除：内部自测的浏览既不该计次也不该计人）。
- * @param rows  窗口内全部 page.view 行
- * @returns     按打开次数降序（同次数按 route 字典序）的页面统计
- */
-export function aggregatePageViews(rows: readonly PageViewRow[]): PageViewStat[] {
-  const byRoute = new Map<string, { views: number; users: Set<string> }>()
-  for (const row of rows) {
-    if (row.is_qa === true) continue
-    if (row.user_id != null && isInternalAccount(row.user_id)) continue
-    const raw = row.props?.['route']
-    const route = typeof raw === 'string' ? raw : PAGE_ROUTE_MISSING
-    let entry = byRoute.get(route)
-    if (!entry) { entry = { views: 0, users: new Set() }; byRoute.set(route, entry) }
-    entry.views += 1
-    if (row.user_id != null) entry.users.add(row.user_id)
-  }
-  return Array.from(byRoute.entries())
-    .map(([route, v]) => ({ route, views: v.views, users: v.users.size }))
-    .sort((a, b) => b.views - a.views || a.route.localeCompare(b.route))
-}
-
-/** 「哪些页面被用得多」整块结果：统计 + 取数完整性标志 */
-export type PageViewStats = {
-  /** 按打开次数降序的页面统计 */
-  stats: PageViewStat[]
-  /**
-   * true = 分页触顶，本块【打开次数与人数均偏低】：分页按 created_at 升序，被截掉的永远是最新那批。
-   * ⚠️ 绝不静默：置真时 route 打错误日志、UI 明说「偏低」（见 PageActivityList）。
-   */
-  truncated: boolean
-}
-
-/**
- * 取「哪些页面被用得多」整块数据：窗口内 flow_events 的 page.view 行，route 聚合次数 + 人数去重。
- * 窗口起点与主看板区间同口径（东八区日界，复用 flowWindowStart）。查询失败降级返 null。
- * 取数走 fetchAllRows（2026-08-12 起）：跑满页数上限时置 truncated 交给 UI 明说，绝不静默少报。
- * ⚠️ 本条【没有】可下推的等价过滤：user_id 为空的行不计人数但要计打开次数（剔了就改口径）；
- *    is_qa 不下推的理由见 fetchCohortReturns 内同款注释（守卫把该过滤锁在 api_usage_logs 上）。
- *    行数只能靠 event='page.view' 这一条既有过滤压（它本就是本块口径的一部分，不是新加的）。
- * @param supabase    service_role 客户端
- * @param windowDays  窗口天数（与看板 range 联动的 7/14/30）
- * @param now         当前时刻（可注入，便于测试）
- * @returns           页面统计（打开次数降序）+ truncated；不可用时 null
- */
-export async function fetchPageViewStats(
-  supabase: SupabaseServer,
-  windowDays: number,
-  now: Date = new Date(),
-): Promise<PageViewStats | null> {
-  try {
-    const start = flowWindowStart(now, windowDays)
-    const res = await fetchAllRows<PageViewRow>(() => supabase
-      .from('flow_events')
-      .select('user_id, props, is_qa')
-      .eq('event', 'page.view')
-      .gte('created_at', start.toISOString())
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true }))
-    if (res.error) return null
-    return { stats: aggregatePageViews(res.data), truncated: res.truncated }
   } catch {
     return null
   }

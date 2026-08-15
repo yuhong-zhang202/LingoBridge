@@ -16,7 +16,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const BACKUP_DIR = join(__dirname, 'data', 'backup')
 
 const REL06_NEW_NAME = '一个让你印象深刻的陌生人'
-const REL12_ROW = { code: 'REL_12', dimension_id: 'relationship', name: '一个让你印象深刻的人', layer: 'rhythm', mapped_question_count: 0, rich_threshold: 2, sort_order: 12 }
+// mapped_question_count 已随迁移 0066 删列（从未被回写、值双向失真），故插入行里不再带它——
+// 带上会让整条 insert 报 42703。rich_threshold 保留：它是 get_dimension_scores 的分母，且 not null 无默认值。
+const REL12_ROW = { code: 'REL_12', dimension_id: 'relationship', name: '一个让你印象深刻的人', layer: 'rhythm', rich_threshold: 2, sort_order: 12 }
 
 async function main(): Promise<void> {
   const apply = process.argv.slice(2).includes('--apply')

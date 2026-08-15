@@ -125,10 +125,16 @@ export interface ObservationPoint {
   dimensionId: DimensionId
   name: string
   layer: ObservationLayer
-  mappedQuestionCount: number
+  /**
+   * 「语料饱和阈值」：维度得分公式 min(该点 primary 语料数, richThreshold) / Σ阈值 的分子上限与分母。
+   * 真正的算分在 DB 侧（0002 的 get_dimension_scores），本字段只是把该行原样带到前端。
+   */
   richThreshold: number
   sortOrder: number
 }
+// ⚠️ 原有 mappedQuestionCount（← observation_points.mapped_question_count）已于 2026-08-15 随迁移 0066 删除：
+//    该列从未被任何触发器/迁移/脚本回写过，值双向失真（实测 EMO_05 实算 28 存 0、REL_06 实算 0 存 4）。
+//    要「这个观察点挂了几道题」请用 getQuestionCountByObservations() 实算，别再加缓存计数字段。
 
 export type CorpusSource = 'voice' | 'text'
 export type CorpusStatus = 'draft' | 'restructured' | 'extracted'

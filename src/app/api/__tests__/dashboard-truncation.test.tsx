@@ -1,12 +1,17 @@
 /**
  * @module   api/dashboard-truncation.test
- * @desc     看板两个表级聚合器（cohort 回访 / page.view 页面活跃）的【取数完整性】守卫。
+ * @desc     看板 cohort 回访聚合器的【取数完整性】守卫。
  *
- *   【为什么要有这组测试】2026-08-12 之前，fetchCohortReturns / fetchPageViewStats 各自手写分页，
- *   跑满页数上限就【直接退出】——没有标志位、没有日志，把不完整数据交给聚合。分页按 created_at
- *   升序，被截掉的永远是【最新那批】，于是失真方向恒定偏低：看板显示回访/浏览在跌，实际是新数据
+ *   【为什么要有这组测试】2026-08-12 之前，fetchCohortReturns 手写分页，跑满页数上限就
+ *   【直接退出】——没有标志位、没有日志，把不完整数据交给聚合。分页按 created_at
+ *   升序，被截掉的永远是【最新那批】，于是失真方向恒定偏低：看板显示回访在跌，实际是新数据
  *   被丢了，而且没有任何人会知道。这类缺陷编译器和普通用例都抓不到——它没有异常、没有报错，
  *   只是数字悄悄变小。所以必须有一组用例专门钉「触顶时到底有没有声张」。
+ *
+ *   【2026-08-15 缩编】本文件原来同时守 fetchPageViewStats / PageActivityList（「哪些页面被用得多」）。
+ *   那块界面已于 2026-08-14 从看板摘除、本次连同后端整链删除，**守卫的对象不存在了**，故那半边一并移除。
+ *   ⚠️ 保留的这半边不是残余：CohortReturnTable 仍由「谁留下了」区实时渲染，
+ *   「取数触顶时界面必须说清偏低」这条规矩在它身上仍然成立、仍需被守。
  *
  *   【每条守的是行为还是结构】
  *     · describe 一（取数层）：守【行为】—— supabase mock 按 PostgREST 语义执行 range 分页与
@@ -33,7 +38,6 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { logErr } from '@/lib/log'
 import { PAGE_SIZE, MAX_PAGES } from '@/lib/db/dashboard-shared'
 import CohortReturnTable, { type CohortReturns } from '@/components/dashboard/CohortReturnTable'
-import PageActivityList, { type PageViewStat } from '@/components/dashboard/PageActivityList'
 
 const mockGetSupabase = getSupabaseServer as jest.MockedFunction<typeof getSupabaseServer>
 const mockLogErr = logErr as jest.MockedFunction<typeof logErr>
@@ -78,14 +82,12 @@ type AuthUser = { id: string; email: string | null; is_anonymous: boolean; creat
 type Wiring = {
   /** cohort 那条查询（无 event 过滤）看到的表 */
   cohort: FlowTable
-  /** page.view 那条查询（带 .eq('event','page.view')）看到的表 */
-  pageView: FlowTable
   /** auth.admin.listUsers 的全量用户 */
   users: AuthUser[]
 }
 
-/** flow_events 上实际发出的请求次数（按查询种类分）——用于量化「N 页 = N 次往返」 */
-let flowRequests: { cohort: number; pageView: number }
+/** flow_events 上实际发出的请求次数——用于量化「N 页 = N 次往返」 */
+let flowRequests: { cohort: number }
 
 /**
  * 按 PostgREST 语义对捕获到的过滤器求值（三值逻辑；认不出的形态一律抛错，
@@ -130,11 +132,11 @@ function pageOf(table: FlowTable, q: Captured, from: number, to: number): FlowRo
 
 /**
  * 装配 supabase mock：api_usage_logs / practice_sessions / profiles 一律空表（本套不关心成本口径），
- * flow_events 按查询种类喂各自的虚拟表，各指标 RPC 一律不可用（走既有降级）。
+ * flow_events 喂 cohort 的虚拟表，各指标 RPC 一律不可用（走既有降级）。
  * @param w  本次的数据源
  */
 function wire(w: Wiring): void {
-  flowRequests = { cohort: 0, pageView: 0 }
+  flowRequests = { cohort: 0 }
   const makeBuilder = (table: string) => {
     const q: Captured = { eq: [], not: [] }
     const b: Record<string, unknown> = {}
@@ -145,10 +147,8 @@ function wire(w: Wiring): void {
     b.range = (from: number, to: number) => ({
       then: (resolve: (r: { data: unknown[]; error: null }) => void) => {
         if (table !== 'flow_events') return resolve({ data: [], error: null })
-        const isPageView = q.eq.some(([c, v]) => c === 'event' && v === 'page.view')
-        if (isPageView) flowRequests.pageView += 1
-        else flowRequests.cohort += 1
-        return resolve({ data: pageOf(isPageView ? w.pageView : w.cohort, q, from, to), error: null })
+        flowRequests.cohort += 1
+        return resolve({ data: pageOf(w.cohort, q, from, to), error: null })
       },
     })
     // 裸查（不带 range）：真库会被 db-max-rows 静默截断，本套的两个聚合器【不该】走到这里
@@ -193,11 +193,9 @@ function hugeTable(event: string): FlowTable {
   }
 }
 
-/** 本套用到的响应字段（route 返回体很大，只声明关心的这几个） */
+/** 本套用到的响应字段（route 返回体很大，只声明关心的这一个） */
 type Body = {
   cohortReturns: CohortReturns | null
-  pageViewStats: PageViewStat[] | null
-  pageViewsTruncated: boolean
 }
 
 /**
@@ -216,37 +214,31 @@ beforeEach(() => {
 afterEach(() => { jest.useRealTimers() })
 
 describe('一 · 取数层：触顶必须被记下来，不许静默', () => {
-  test('flow_events 行数跑满页数上限 → cohortReturns.truncated 与 pageViewsTruncated 均为真', async () => {
-    wire({ cohort: hugeTable('flow.ai_call'), pageView: hugeTable('page.view'), users: [authUser(1)] })
+  test('flow_events 行数跑满页数上限 → cohortReturns.truncated 为真', async () => {
+    wire({ cohort: hugeTable('flow.ai_call'), users: [authUser(1)] })
     const body = await callDashboard()
 
     expect(body.cohortReturns?.truncated).toBe(true)
-    expect(body.pageViewsTruncated).toBe(true)
     // 触顶时确实翻满了页（不是提前收工后瞎标一个 true）
     expect(flowRequests.cohort).toBe(MAX_PAGES)
-    expect(flowRequests.pageView).toBe(MAX_PAGES)
   })
 
   test('数据量正常 → truncated 为假，且只发一次请求就到底', async () => {
     wire({
       cohort:   { rows: [flowRow(), flowRow({ user_id: 'u2' })] },
-      pageView: { rows: [flowRow({ event: 'page.view', props: { route: 'home' } })] },
       users:    [authUser(1)],
     })
     const body = await callDashboard()
 
     expect(body.cohortReturns?.truncated).toBe(false)
-    expect(body.pageViewsTruncated).toBe(false)
     expect(flowRequests.cohort).toBe(1)
-    expect(flowRequests.pageView).toBe(1)
     // 数据本身照常出（truncated 是附加信息，不是把内容替换成降级态）
-    expect(body.pageViewStats).toEqual([{ route: 'home', views: 1, users: 1 }])
+    expect(body.cohortReturns?.days.length).toBeGreaterThan(0)
   })
 
   test('恰好一页（PAGE_SIZE 行）→ 翻第二页拿到空页判到底，truncated 仍为假', async () => {
     wire({
       cohort:   { rows: Array.from({ length: PAGE_SIZE }, (_, i) => flowRow({ user_id: `u${i}` })) },
-      pageView: { rows: [] },
       users:    [authUser(1)],
     })
     const body = await callDashboard()
@@ -258,7 +250,6 @@ describe('一 · 取数层：触顶必须被记下来，不许静默', () => {
   test('注册名册分页跑满（2000 名注册用户）→ cohort 同样置 truncated（注册分母偏低）', async () => {
     wire({
       cohort:   { rows: [] },
-      pageView: { rows: [] },
       // listUsers 每页 200、上限 10 页：2000 名恰好把页数吃满，还有没拉到的人
       users:    Array.from({ length: 2000 }, (_, i) => authUser(i)),
     })
@@ -268,12 +259,11 @@ describe('一 · 取数层：触顶必须被记下来，不许静默', () => {
   })
 
   test('触顶时打错误日志（「不静默」的另一半：界面之外，日志里也要留痕）', async () => {
-    wire({ cohort: hugeTable('flow.ai_call'), pageView: hugeTable('page.view'), users: [authUser(1)] })
+    wire({ cohort: hugeTable('flow.ai_call'), users: [authUser(1)] })
     await callDashboard()
 
     const msgs = mockLogErr.mock.calls.map(c => (c[1] instanceof Error ? c[1].message : String(c[1])))
     expect(msgs.some(m => m.includes('cohort') && m.includes('偏低'))).toBe(true)
-    expect(msgs.some(m => m.includes('page.view') && m.includes('偏低'))).toBe(true)
   })
 
   test('QA 行与无归属行不进 cohort 回访口径（下推 user_id IS NOT NULL 后，剔除口径一字未变）', async () => {
@@ -284,7 +274,6 @@ describe('一 · 取数层：触顶必须被记下来，不许静默', () => {
         flowRow({ user_id: null }),                         // 无归属：归不到人
         flowRow({ user_id: 'reg-2', is_qa: null }),         // is_qa=NULL 的历史行：照常算数
       ] },
-      pageView: { rows: [] },
       // 注册日 = 香港 08-10，回访行落在 08-11（注册日+1）→ 次日回来
       users: [
         { id: 'reg-1', email: 'a@example.com', is_anonymous: false, created_at: '2026-08-10T01:00:00Z' },
@@ -328,55 +317,33 @@ describe('二 · 展示层：界面必须说出「不完整」且说明方向是
     expect(html).not.toContain('取数触顶')
   })
 
-  test('页面活跃触顶 → 列表上方出现 role="alert" 警示，并写明「偏低」', () => {
-    const stats: PageViewStat[] = [{ route: 'home', views: 12, users: 5 }]
-    const html = renderToStaticMarkup(<PageActivityList stats={stats} truncated={true} windowDays={7} />)
-    expect(html).toContain('role="alert"')
-    expect(html).toContain('取数触顶')
-    expect(html).toContain('偏低')
-    expect(html).toContain('不会偏高')
-  })
-
-  test('页面活跃未触顶 → 没有警示', () => {
-    const stats: PageViewStat[] = [{ route: 'home', views: 12, users: 5 }]
-    const html = renderToStaticMarkup(<PageActivityList stats={stats} truncated={false} windowDays={7} />)
+  test('读取失败降级（cohort=null）时不炸、也不假装有数据', () => {
+    const html = renderToStaticMarkup(<CohortReturnTable cohort={null} />)
     expect(html).not.toContain('role="alert"')
-  })
-
-  test('读取失败降级（stats=null）时触顶标志仍能显示：两种「不可信」不互相遮蔽', () => {
-    const html = renderToStaticMarkup(<PageActivityList stats={null} truncated={true} windowDays={7} />)
-    expect(html).toContain('role="alert"')
-    expect(html).toContain('读取失败')
+    expect(html).not.toContain('<table')
   })
 })
 
 describe('三 · 端到端：接口的标志原样喂给组件，中间没有哪段吞掉它', () => {
-  test('触顶响应 → 两块组件都渲染出警示', async () => {
-    wire({ cohort: hugeTable('flow.ai_call'), pageView: hugeTable('page.view'), users: [authUser(1)] })
+  test('触顶响应 → 组件渲染出警示', async () => {
+    wire({ cohort: hugeTable('flow.ai_call'), users: [authUser(1)] })
     const body = await callDashboard()
 
     const cohortHtml = renderToStaticMarkup(<CohortReturnTable cohort={body.cohortReturns} />)
-    const pageHtml = renderToStaticMarkup(
-      <PageActivityList stats={body.pageViewStats} truncated={body.pageViewsTruncated} windowDays={7} />)
 
     expect(cohortHtml).toContain('取数触顶')
-    expect(pageHtml).toContain('取数触顶')
   })
 
-  test('正常响应 → 两块组件都不出警示', async () => {
+  test('正常响应 → 组件不出警示', async () => {
     wire({
       cohort:   { rows: [flowRow()] },
-      pageView: { rows: [flowRow({ event: 'page.view', props: { route: 'home' } })] },
       users:    [authUser(1)],
     })
     const body = await callDashboard()
 
     const cohortHtml = renderToStaticMarkup(<CohortReturnTable cohort={body.cohortReturns} />)
-    const pageHtml = renderToStaticMarkup(
-      <PageActivityList stats={body.pageViewStats} truncated={body.pageViewsTruncated} windowDays={7} />)
 
     expect(cohortHtml).not.toContain('取数触顶')
-    expect(pageHtml).not.toContain('取数触顶')
   })
 })
 

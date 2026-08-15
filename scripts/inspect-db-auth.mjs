@@ -80,9 +80,11 @@ async function main() {
   console.log(`行数: ${opCount.error ? '❌ ' + opCount.error : opCount.count}`)
 
   if (!opCount.error && opCount.count > 0) {
+    // mapped_question_count 已随迁移 0066 删列（从未被回写、值双向失真）；要「挂了几道题」查
+    // question_observation_links 实算，别再 select 一个不存在的列（PostgREST 会整条查询报 42703）。
     const { data: opAll } = await sampleRows(
       'observation_points',
-      'code, dimension_id, name, layer, mapped_question_count, rich_threshold',
+      'code, dimension_id, name, layer, rich_threshold',
       200,
       'sort_order',
     )
@@ -101,17 +103,10 @@ async function main() {
       const layerDist = {}
       for (const op of opAll) layerDist[op.layer] = (layerDist[op.layer] ?? 0) + 1
       console.log('\nlayer 分布:', layerDist)
-      // mapped_question_count 非零
-      const nonZero = opAll.filter(op => op.mapped_question_count > 0)
-      console.log(`mapped_question_count > 0 的观察点: ${nonZero.length} 个`)
-      if (nonZero.length > 0) {
-        console.table(nonZero.map(op => ({
-          code: op.code,
-          dim: op.dimension_id,
-          mapped: op.mapped_question_count,
-          threshold: op.rich_threshold,
-        })))
-      }
+      // 语料饱和阈值分布（rich_threshold 是 get_dimension_scores 的分母，删不得）
+      const thDist = {}
+      for (const op of opAll) thDist[op.rich_threshold] = (thDist[op.rich_threshold] ?? 0) + 1
+      console.log('rich_threshold 分布:', thDist)
     }
   }
 

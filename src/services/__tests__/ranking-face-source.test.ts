@@ -78,7 +78,7 @@ function candidatesSentToModel(): CandidateQuestion[] {
 beforeEach(() => {
   jest.clearAllMocks()
   mockListPts.mockResolvedValue([
-    { id: 'id-REL_11', code: 'REL_11', name: '冲突/道歉', dimensionId: 'relationship', layer: 'state', mappedQuestionCount: 0, richThreshold: 0, sortOrder: 0 },
+    { id: 'id-REL_11', code: 'REL_11', name: '冲突/道歉', dimensionId: 'relationship', layer: 'state', richThreshold: 0, sortOrder: 0 },
   ])
   mockExtract.mockResolvedValue({
     primary:   { pointCode: 'REL_11', reason: 'r1' },

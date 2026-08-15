@@ -65,7 +65,9 @@ async function main() {
   console.log(`行数: ${opCount.error ?? opCount.count}`)
 
   // 按维度分组统计
-  const opAll = await sample('observation_points', 'code, dimension_id, name, layer, mapped_question_count, rich_threshold, sort_order', 200, 'sort_order')
+  // mapped_question_count 已随迁移 0066 删列（从未被回写、值双向失真）；要「挂了几道题」查
+  // question_observation_links 实算，别再 select 一个不存在的列（select 到不存在的列 PostgREST 会整条查询报 42703）。
+  const opAll = await sample('observation_points', 'code, dimension_id, name, layer, rich_threshold, sort_order', 200, 'sort_order')
   if (opAll.error) {
     console.log(`样本查询失败: ${opAll.error}`)
   } else {
@@ -86,13 +88,6 @@ async function main() {
       layerDist[op.layer] = (layerDist[op.layer] ?? 0) + 1
     }
     console.log('\nlayer 分布：', layerDist)
-
-    // 检查 mapped_question_count 是否有非零值
-    const nonZero = opAll.data.filter(op => op.mapped_question_count > 0)
-    console.log(`mapped_question_count > 0 的观察点: ${nonZero.length} 个`)
-    if (nonZero.length > 0) {
-      console.table(nonZero.map(op => ({ code: op.code, mapped_question_count: op.mapped_question_count })))
-    }
   }
 
   // ── 3. questions ────────────────────────────────────────────────────────

@@ -18,10 +18,10 @@ import { requireAdmin, authErrorResponse } from '@/lib/api-auth'
 import {
   fetchRetention, fetchRegistration, fetchDailyRegistrations, fetchActiveRegistered,
   fetchCoreActive, fetchWindowCoreActive, fetchActivation, fetchWeeklyRetention,
-  fetchCohortReturns, fetchPageViewStats,
+  fetchCohortReturns,
   // 成本看板身份口径（迁移 0058）：用户【当前】身份读取 + 按当前身份聚合 Top-N / 匿名占比。
   fetchUserAnonFlags, aggregateUserCosts,
-  // 两个表级 fetcher 触顶时的日志措辞（唯一真源，勿在此另写一份）。
+  // 表级 fetcher 触顶时的日志措辞（唯一真源，勿在此另写一份）。
   TRUNCATION_LOG_HINT,
 } from '@/lib/db/dashboard-metrics'
 // 「有新反馈吗」待办清单读取（未处理全量 + 已处理近 20）：同样抽出成帮手守 <1000 行红线；
@@ -63,9 +63,10 @@ import {
  *             增长漏斗（0047 三 RPC：activation 累计注册/激活、weeklyRetention W1 首周留存、windowCoreActive
  *             窗口核心活跃去重；活跃口径三级降级 = 核心活跃 0047 → 活跃注册 0045 → is_anonymous 去重，各 RPC
  *             迁移未跑时对应段独立降级、绝不 500）；
- *             另有三个【取数完整性】标志，各自对应一块数据、语义都是「这块偏低，别当真实值」：
- *             dataTruncated（api_usage_logs 金额）/ cohortReturns.truncated（回访人数）/
- *             pageViewsTruncated（页面打开次数与人数）。三者刻意不合并 —— 前端文案与各自的块一一对应。
+ *             另有两个【取数完整性】标志，各自对应一块数据、语义都是「这块偏低，别当真实值」：
+ *             dataTruncated（api_usage_logs 金额）/ cohortReturns.truncated（回访人数）。
+ *             两者刻意不合并 —— 前端文案与各自的块一一对应。
+ *             （原第三个 pageViewsTruncated 已随「哪些页面被用得多」整链于 2026-08-15 删除。）
  */
 export async function GET(req: Request): Promise<NextResponse> {
   try {
@@ -107,8 +108,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     const feedbackPromise = fetchDashboardFeedback(supabase)
     // 「新注册的人还回来吗」cohort（固定近 7 天注册分组，不随区间选择器变）：与主查询并发、失败降级 null。
     const cohortPromise = fetchCohortReturns(supabase)
-    // 「哪些页面被用得多」（窗口 page.view 聚合，随区间选择器变）：与主查询并发、失败降级 null。
-    const pageViewsPromise = fetchPageViewStats(supabase, rangeDays)
     // 用户【当前】身份表（0058·get_user_anon_flags，成本看板 Top-N 与匿名占比的口径权威源）：
     // 与主查询并发、自带降级；null = 迁移未跑/出错/结果疑似被截断 → 下方逐字回退旧标记口径并置 pending。
     const userFlagsPromise = fetchUserAnonFlags(supabase)
@@ -214,17 +213,13 @@ export async function GET(req: Request): Promise<NextResponse> {
     const weeklyRetention = await weeklyRetentionPromise
     // 反馈待办（并发结果，自带降级、恒有值）：未处理全量 + 已处理近 20 + handledSupported / loadFailed 标记。
     const feedback = await feedbackPromise
-    // 用户区扩充（2026-08-04 方案 §四）：cohort 回访 + 页面浏览聚合，各自失败降级 null、不 500。
+    // 用户区扩充（2026-08-04 方案 §四）：cohort 回访，失败降级 null、不 500。
     const cohortReturns = await cohortPromise
-    const pageViews     = await pageViewsPromise
-    // 这两块的取数触顶 = 最新那批数据被丢弃、人数/次数偏低（口径没错、数据不全），故【不并入
+    // 这块的取数触顶 = 最新那批数据被丢弃、人数偏低（口径没错、数据不全），故【不并入
     // dataTruncated】——后者专指 api_usage_logs 的金额偏低，前端文案与它一一对应，混在一起两边都说不清。
     // 与金额那条同一条纪律：触顶绝不静默，打错误日志 + 随响应返标志、由 UI 明说方向（偏低）。
     if (cohortReturns?.truncated) {
       logErr('[dashboard API]', new Error(`cohort 回访取数${TRUNCATION_LOG_HINT}`))
-    }
-    if (pageViews?.truncated) {
-      logErr('[dashboard API]', new Error(`page.view 取数${TRUNCATION_LOG_HINT}`))
     }
 
     return NextResponse.json({
@@ -307,11 +302,6 @@ export async function GET(req: Request): Promise<NextResponse> {
       // 「新注册的人还回来吗」（固定近 7 天注册分组）：null = 读取失败降级，前端显「暂不可用」。
       // 自带 truncated：true = 取数触顶、注册与回访人数均偏低，前端在该块顶部明说（不静默）。
       cohortReturns,
-      // 「哪些页面被用得多」（窗口 page.view 按 route 聚合，剔 QA 与内部账户）：null = 读取失败降级。
-      pageViewStats: pageViews?.stats ?? null,
-      // true = page.view 取数触顶，上面的打开次数/人数均偏低（被截掉的永远是最新那批）。
-      // 单列成兄弟字段而非塞进数组：pageViewStats 是纯统计数组，前端既有类型不动。
-      pageViewsTruncated: pageViews?.truncated ?? false,
       phaseLatency,
       latencyTrend,
       // 耗时两视图的数据起点（口径断点）：前端在区块标题右侧标出，避免被误读成"只有这几天有调用"

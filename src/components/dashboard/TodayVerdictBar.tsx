@@ -36,7 +36,7 @@ export default function TodayVerdictBar({ input }: { input: VerdictInput }) {
       : 'bg-white border-black/[0.05]'
   const dotClass = hasError ? 'bg-error' : items.length > 0 ? 'bg-warning' : 'bg-success'
 
-  const headline = items.length > 0 ? `今天有 ${items.length} 件事要处理` : allClearText(input.todayCost)
+  const headline = items.length > 0 ? `今天有 ${items.length} 件事要处理` : allClearText()
   // aria-label 复述整句结论：主句 + 各事项，读屏用户不必逐 chip 探索
   const ariaLabel = items.length > 0
     ? `今日结论：${headline}：${items.map(i => i.text).join('；')}`

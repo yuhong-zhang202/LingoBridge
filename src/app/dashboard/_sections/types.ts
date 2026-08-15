@@ -11,7 +11,6 @@
  * @created  2026-08-14
  */
 import type { CohortReturns } from '@/components/dashboard/CohortReturnTable'
-import type { PageViewStat } from '@/components/dashboard/PageActivityList'
 import type { FeedbackTodoPayload } from '@/components/dashboard/FeedbackTodoList'
 
 type ServiceTotal = { service: string; name: string; color: string; cost: number; calls: number }
@@ -81,12 +80,10 @@ type DashboardData = {
   fakeEmpty: { rate: number; n: number; fakeCount: number } | null
   fakeEmptyPending: boolean
   fakeEmptyThreshold: number
-  // ── 用户区扩充（2026-08-04 方案 §四）：近 7 天注册回访 + 窗口页面浏览聚合；null = 读取失败降级 ──
-  // cohortReturns 自带 truncated；页面浏览的同名标志单列成 pageViewsTruncated（数组塞不下标志位）。
-  // 两者语义都是【取数触顶、这块数字偏低】，与金额那条 dataTruncated 平级但各自独立、不要合并。
+  // ── 用户区扩充（2026-08-04 方案 §四）：近 7 天注册回访；null = 读取失败降级 ──
+  // cohortReturns 自带 truncated，语义是【取数触顶、这块数字偏低】，与金额那条 dataTruncated
+  // 平级但各自独立、不要合并。（同批的「窗口页面浏览聚合」已于 2026-08-15 随 PageActivityList 整链删除。）
   cohortReturns: CohortReturns | null
-  pageViewStats: PageViewStat[] | null
-  pageViewsTruncated: boolean
   phaseLatency: PhaseLatency[]
   latencyTrend: TrendPhase[]
   latencyCutoff: string

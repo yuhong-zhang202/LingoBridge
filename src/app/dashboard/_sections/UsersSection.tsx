@@ -7,8 +7,10 @@
  *      旧 4 段走 0047 那批 RPC（**不剔**内部账户与自测流量），七步走 0064（**剔**）。
  *      ⇒ UI 上绝不可出现二者相减 / 对比的表达，各自标明口径是硬要求。
  *
- *   【删除记录】「哪些页面被用得多」（PageActivityList）与「离开页分布」占位卡本次整块移除
- *      —— 不是隐藏，是从这棵树上摘掉；route 的 pageViewStats 字段仍在（数据层本阶段不动）。
+ *   【删除记录】「哪些页面被用得多」（PageActivityList）与「离开页分布」占位卡 2026-08-14 整块移除
+ *      —— 不是隐藏，是从这棵树上摘掉。2026-08-15 补清数据层：PageActivityList 组件、route 的
+ *      pageViewStats / pageViewsTruncated 字段、fetchPageViewStats / aggregatePageViews 一并删除，
+ *      「界面已无消费者、后端还在算」的半截链路就此收口。
  *
  * @author   LingoBridge
  * @created  2026-08-14
