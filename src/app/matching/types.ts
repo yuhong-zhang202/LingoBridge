@@ -5,6 +5,7 @@
  * @author   LingoBridge
  * @created  2026-07-09
  */
+import type { MatchEarlyHint } from '@/lib/match-early-hint'
 import type { MatchedPoint, DimensionLabel } from '@/lib/types'
 import type { MatchPhase } from './phase'
 
@@ -73,6 +74,12 @@ export interface MatchingViewProps {
   candidateCount: number | null
   /** 已到达题数（= result.questions.length），等待期计数行的分子 */
   arrivedCount: number
+  /**
+   * 等待期前置提示（判据见 lib/match-early-hint）：meta 帧在重排开始【前】就到，此时「主观察点召回不足、
+   * 走了邻居」或「一道都没召回」已是客观事实，如实告诉用户，别让他白等重排那约 11 秒再看到空结果。
+   * null = 不提示（正常召回，以及 ?stream=0 降级路无 meta 帧的情况）。
+   */
+  earlyHint: MatchEarlyHint | null
   /** 低相关兜底切片（全部 < SCORE_MID，按分降序）。lowMatch 态把它们作为「确实翻遍题库了」的佐证列出 */
   lowShown: FunnelQuestion[]
   /** 强制显示 75 秒超时兜底行；仅本地 mock 演示用（生产恒 undefined，由计时器自行判定） */

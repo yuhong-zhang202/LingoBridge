@@ -1,7 +1,8 @@
 /**
  * @module   MatchingProgress
  * @desc     匹配等待期的分阶段进度提示（桌面 + 移动共用）—— 一句随时间推进的文案 + 一条进度条，
- *           外加「已评估 N / M 道候选」真实计数与 75 秒后的逃生出口。匹配是一次真实模型调用
+ *           外加「已评估 N / M 道候选」真实计数、等待期前置提示（见 lib/match-early-hint）
+ *           与 75 秒后的逃生出口。匹配是一次真实模型调用
  *           （萃取 + 重排），此前这段时间里界面上只有一块不动的灰色骨架，用户无从判断是在跑还是卡死。
  *           纯前端计时，不依赖后端返回任何进度信号；文案/百分比的计算在 lib/matching-progress。
  *
@@ -20,6 +21,7 @@
 import { type JSX, useEffect, useState } from 'react'
 import { BRAND_GRADIENT } from '@/lib/constants'
 import { progressPct, stageText } from '@/lib/matching-progress'
+import type { MatchEarlyHint } from '@/lib/match-early-hint'
 
 /** 刷新节拍：文案与进度条都靠它推进；配合 CSS transition 视觉上是连续的 */
 const TICK_MS = 250
@@ -35,6 +37,11 @@ interface Props {
   candidateCount?: number | null
   /** 强制显示超时兜底行（只认 true）。默认由内部计时（> 75 秒）判定；mock 演示用它免去真等 75 秒 */
   slowHint?: boolean
+  /**
+   * 等待期前置提示（判据见 lib/match-early-hint）：重排开始前 meta 帧就已确定的客观事实，
+   * 在这里如实告诉用户，而不是让他白等 11 秒再看到空结果。null = 不提示（含 ?stream=0 无 meta 帧）。
+   */
+  earlyHint?: MatchEarlyHint | null
   /** 超时兜底的「重新匹配」出口。注意重试会真的再跑一次模型（多一次 AI 费用 + 多计一次当日配额），
    *  故做成低强度文本按钮放在说明卡里，不做显眼 CTA */
   onRetry?: () => void
@@ -46,6 +53,7 @@ interface Props {
  * @param arrivedCount    已到达题数
  * @param candidateCount  候选总数（null = 无此信号，不渲染计数行）
  * @param slowHint        强制显示超时兜底行（不传则按内部计时判定）
+ * @param earlyHint       等待期前置提示（null = 不提示）
  * @param onRetry         超时兜底的重新匹配回调
  * @returns               进度提示区块
  */
@@ -54,6 +62,7 @@ export default function MatchingProgress({
   arrivedCount,
   candidateCount,
   slowHint,
+  earlyHint,
   onRetry,
 }: Props): JSX.Element {
   const [elapsedMs, setElapsedMs] = useState(0)
@@ -91,6 +100,18 @@ export default function MatchingProgress({
           style={{ width: `${pct}%`, backgroundImage: BRAND_GRADIENT }}
         />
       </div>
+      {/* 前置提示：meta 帧到达时出现一次、之后不再变（不像计数行那样逐条刷），故【不】aria-hidden，
+          交外层说明卡的 role=status 播报一次 —— 这正是它最该被读屏用户听到的信息。
+          放在进度条之下、计数行之上：它比「已评估 N/M」重要，但不该顶掉分阶段主文案的位置。 */}
+      {earlyHint && (
+        <p className="mt-2 text-[0.75rem] text-v2-text-secondary leading-relaxed">
+          {earlyHint.before}
+          {earlyHint.pointName && (
+            <span className="text-brand-primary-dark font-medium">{earlyHint.pointName}</span>
+          )}
+          {earlyHint.after}
+        </p>
+      )}
       {/* 计数行随每个 question 帧变化，必须 aria-hidden：否则读屏会被逐条刷屏 */}
       {showCount && (
         <p className="mt-2 text-[0.75rem] text-v2-text-muted" aria-hidden="true">

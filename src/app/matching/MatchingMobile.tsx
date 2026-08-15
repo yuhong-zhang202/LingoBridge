@@ -61,7 +61,7 @@ function SkeletonCard(): JSX.Element {
 }
 
 export default function MatchingMobile({
-  phase, result, missingCorpus, candidateCount, arrivedCount, slowHint,
+  phase, result, missingCorpus, candidateCount, arrivedCount, slowHint, earlyHint,
   totalVisible, hasHigh, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, lowShown,
   selectedId, expanded, savedIds, savingId,
@@ -107,6 +107,7 @@ export default function MatchingMobile({
           arrivedCount={arrivedCount}
           candidateCount={candidateCount}
           slowHint={slowHint}
+          earlyHint={earlyHint}
           missingCorpus={missingCorpus}
           onRetry={onRetry}
         />

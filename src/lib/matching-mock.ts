@@ -18,16 +18,20 @@
  * @created  2026-08-03
  */
 import type { FunnelQuestion, FunnelResult } from '@/app/matching/types'
+import type { MatchEarlySignal } from '@/lib/match-early-hint'
 import type { MatchedPoint } from '@/lib/types'
 
 /**
  * 可点播的 UI 状态。名字即 URL 参数值：`?uiState=lowMatch`。
- * 八个与 MatchPhase 同名，外加两个变体：
+ * 八个与 MatchPhase 同名，外加四个变体：
  * - `waitingSlow`：伪造已等过 75 秒，验超时兜底行 + 重新匹配出口（否则本地要真干等 75 秒）
  * - `resultNoHigh`：一道高匹配都没有、中匹配自动展开，覆盖台账 002 那条「标题说有 N 道、屏幕上零张卡」的坑
+ * - `waitingNeighbor`：等待期走了邻居增援 → 出前置提示（真实环境要凑出「死点」语料才复现）
+ * - `waitingNoRecall`：等待期零召回 → 出前置提示（真实环境这一态几乎一闪而过，肉眼几乎看不到）
  */
 export type MockUiState =
-  | 'waiting' | 'waitingSlow' | 'streaming' | 'result' | 'resultNoHigh'
+  | 'waiting' | 'waitingSlow' | 'waitingNeighbor' | 'waitingNoRecall'
+  | 'streaming' | 'result' | 'resultNoHigh'
   | 'lowMatch' | 'noMatch' | 'degraded' | 'error' | 'limit'
 
 /** 演示用观察点（取产品方实测那次的真实取值，好和他截图对得上） */
@@ -116,6 +120,11 @@ export interface MockUiScenario {
   candidateCount: number | null
   /** 强制显示 75 秒超时兜底行（免去本地真干等 75 秒） */
   slowHint: boolean
+  /**
+   * 对应 SSE meta 帧里派生前置提示的那几个字段；null = 无 meta 帧（?stream=0 降级路）→ 不提示。
+   * 这里【只给信号不给文案】：接入处仍走 matchEarlyHint 这个真判据函数，演示的才是真逻辑。
+   */
+  earlySignal: MatchEarlySignal | null
   /** 首帧就给出的题数；其余按 arrivalIntervalMs 逐条追加 */
   initialCount: number
   /** 题目逐条到达的间隔（毫秒）；0 = 一次性给全 */
@@ -129,6 +138,8 @@ const SETTLED = {
   dailyLimitHit: false,
   slowHint: false,
   arrivalIntervalMs: 0,
+  // 默认不提示：前置提示只在两个客观信号成立时出现，其余场景一律保持现状
+  earlySignal: null,
 } as const
 
 /**
@@ -152,6 +163,29 @@ function build(s: MockUiState): MockUiScenario {
       return { ...SETTLED, settled: false, result: full(LOW_QUESTIONS), candidateCount: 12, initialCount: 0, arrivalIntervalMs: 1500 }
     case 'waitingSlow':
       return { ...SETTLED, settled: false, result: full(LOW_QUESTIONS), candidateCount: 12, initialCount: 3, arrivalIntervalMs: 0, slowHint: true }
+    // 等待期·走了邻居增援：meta 帧已定案「主观察点这一季没挂题、只能去相近话题借」，重排还要跑十几秒。
+    // 生产实测这一组的零可见率 58.6%（主观察点有题组的 5.6 倍），正是前置提示要覆盖的主场景。
+    case 'waitingNeighbor':
+      return {
+        ...SETTLED,
+        settled: false,
+        result: full(LOW_QUESTIONS),
+        candidateCount: 4,
+        initialCount: 0,
+        arrivalIntervalMs: 1500,
+        earlySignal: { primary: PRIMARY, matchedViaNeighbor: true, candidateCount: 4 },
+      }
+    // 等待期·零召回：真实环境里 candidateCount=0 会跳过重排、done 帧紧随 meta 帧到达，这一态几乎一闪而过，
+    // 只有这里能稳定看到它长什么样
+    case 'waitingNoRecall':
+      return {
+        ...SETTLED,
+        settled: false,
+        result: null,
+        candidateCount: 0,
+        initialCount: 0,
+        earlySignal: { primary: PRIMARY, matchedViaNeighbor: false, candidateCount: 0 },
+      }
     // 流式中：已有可见题、仍未定稿。首帧先给 1 道，其余每 1.5 秒追加一道，标题数字会自己往上跳。
     case 'streaming':
       return { ...SETTLED, settled: false, result: full(NORMAL_QUESTIONS), candidateCount: 12, initialCount: 1, arrivalIntervalMs: 1500 }
@@ -179,7 +213,8 @@ function build(s: MockUiState): MockUiScenario {
 }
 
 const VALID: readonly MockUiState[] = [
-  'waiting', 'waitingSlow', 'streaming', 'result', 'resultNoHigh',
+  'waiting', 'waitingSlow', 'waitingNeighbor', 'waitingNoRecall',
+  'streaming', 'result', 'resultNoHigh',
   'lowMatch', 'noMatch', 'degraded', 'error', 'limit',
 ] as const
 
@@ -199,6 +234,8 @@ export function getMockUiState(raw: string | null): MockUiScenario | null {
 export const MOCK_UI_STATES: ReadonlyArray<{ key: MockUiState; label: string }> = [
   { key: 'waiting',      label: '等待中（题在到达，但一道可见的都没有）' },
   { key: 'waitingSlow',  label: '等待超时（已等过 75 秒，出兜底行 + 重新匹配）' },
+  { key: 'waitingNeighbor', label: '等待中·借了相近话题（出前置提示：这一季没有直接问这个的）' },
+  { key: 'waitingNoRecall', label: '等待中·零召回（出前置提示：这一季没覆盖到这个方向）' },
   { key: 'streaming',    label: '流式中（已有可见题，仍在继续找）' },
   { key: 'result',       label: '正常结果（高 2 + 中 2）' },
   { key: 'resultNoHigh', label: '正常结果·无高匹配（中匹配自动展开）' },

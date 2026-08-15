@@ -22,6 +22,7 @@ import Card from '@/components/Card'
 import MatchingProgress from '@/components/matching/MatchingProgress'
 import { cn } from '@/lib/utils'
 import type { MatchPhase } from '@/app/matching/phase'
+import type { MatchEarlyHint } from '@/lib/match-early-hint'
 import type { MatchedPoint } from '@/lib/types'
 
 interface Props {
@@ -42,6 +43,8 @@ interface Props {
   candidateCount: number | null
   /** 强制显示 75 秒超时兜底行（mock 演示用，正常由 MatchingProgress 内部计时判定） */
   slowHint?: boolean
+  /** 等待期前置提示（判据见 lib/match-early-hint）；null = 不提示。仅 waiting/streaming 两态渲染 */
+  earlyHint: MatchEarlyHint | null
   /** error 态：缺 corpusId。此时重试永远无效，文案与出口都得换（F10） */
   missingCorpus: boolean
   /** waiting/streaming 的超时出口 + error/degraded 的重试 */
@@ -110,7 +113,7 @@ export function MatchDimensionLine({ phase, primary, secondary, className }: {
  */
 export default function MatchStatusNote({
   phase, className, cardClassName, secondary, hasHigh, matchedViaSecondary,
-  arrivedCount, candidateCount, slowHint, missingCorpus, onRetry,
+  arrivedCount, candidateCount, slowHint, earlyHint, missingCorpus, onRetry,
 }: Props): JSX.Element {
   const pending = phase === 'waiting' || phase === 'streaming'
   // 离线判定放在本组件内：两端共用一份口径，改文案只改一处。
@@ -128,6 +131,7 @@ export default function MatchStatusNote({
             arrivedCount={arrivedCount}
             candidateCount={candidateCount}
             slowHint={slowHint}
+            earlyHint={earlyHint}
             onRetry={onRetry}
           />
         ) : (

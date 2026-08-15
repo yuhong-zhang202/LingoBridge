@@ -27,6 +27,7 @@ import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
 import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import { getMockUiState } from '@/lib/matching-mock'
+import { matchEarlyHint, type MatchEarlyHint } from '@/lib/match-early-hint'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import { deriveMatchPhase } from './phase'
@@ -105,6 +106,9 @@ function MatchingContent() {
   // 候选总数：来自 SSE meta 帧（萃取完成即到，早于全部重排）。等待期计数行的分母，
   // 此前被丢弃。?stream=0 降级路没有 meta 帧 → 保持 null，视图据此整行不渲染，不显示假分母。
   const [candidateCount, setCandidateCount] = useState<number | null>(null)
+  // 等待期前置提示：同样只来自 meta 帧（重排开始前就已定案），判据是纯函数 matchEarlyHint。
+  // 【绝不做预测】——只有「走了邻居增援」「一道都没召回」这两个客观事实才提示，其余恒 null。
+  const [earlyHint, setEarlyHint] = useState<MatchEarlyHint | null>(null)
   const [error, setError] = useState<string | null>(null)
   // 402（匿名试用额度用尽）→ 弹 QuotaReached trial 引导注册；429（注册用户当日上限）→ 行内提示，绝不引导注册
   const [quotaShown, setQuotaShown] = useState(false)
@@ -200,7 +204,7 @@ function MatchingContent() {
 
     ;(async () => {
       setError(null); setDailyLimitHit(false); setStreamDone(false)
-      setResult(null); setSelectedId(null); setCandidateCount(null)
+      setResult(null); setSelectedId(null); setCandidateCount(null); setEarlyHint(null)
       const questions: StreamQuestion[] = []   // 逐条到达累积（方案 A：到达即追加，折叠分档实时重算）
       let meta: FunnelStreamMeta | null = null
       try {
@@ -211,7 +215,14 @@ function MatchingContent() {
         // 这里【刻意不报】：本次尝试还没完，下面 catch 会降级重发 ?stream=0，结局由那条路径给。
         if (!res.ok) throw new Error('匹配失败')   // 开流前的非配额错误 → 交 catch 降级重发 ?stream=0
         await readMatchingSSE(res, {
-          onMeta: (m) => { meta = m; if (!cancelled) setCandidateCount(m.candidateCount) },
+          onMeta: (m) => {
+            meta = m
+            if (cancelled) return
+            setCandidateCount(m.candidateCount)
+            // meta 帧此刻已定案「召回了几道 / 有没有借邻居」，而重排还要跑约 11 秒 ——
+            // 这一句就是把这段等待里我们已经知道、用户还不知道的事如实说出来。
+            setEarlyHint(matchEarlyHint(m))
+          },
           onQuestion: (q) => {
             if (cancelled) return
             questions.push(q)
@@ -271,6 +282,8 @@ function MatchingContent() {
     setError(mock.error)
     setDailyLimitHit(mock.dailyLimitHit)
     setCandidateCount(mock.candidateCount)
+    // 演示场景里也走同一个判据函数（而不是直接塞一句写死的文案），否则演示的就不是真逻辑
+    setEarlyHint(matchEarlyHint(mock.earlySignal))
     setStreamDone(mock.settled)
     const snapshot = mock.result
     if (!snapshot) { setResult(null); setSelectedId(null); return }
@@ -540,6 +553,7 @@ function MatchingContent() {
     missingCorpus: !corpusId,
     dailyLimitHit,
     candidateCount,
+    earlyHint,
     arrivedCount: result?.questions.length ?? 0,
     // 生产恒 false（preview 只在开发环境非空），超时兜底行照常由 MatchingProgress 内部计时判定
     slowHint: previewSlowHint,

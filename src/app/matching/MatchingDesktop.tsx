@@ -220,7 +220,7 @@ function ExitPane({ title, note, label, roomy = false, onAction }: {
 }
 
 export default function MatchingDesktop({
-  phase, result, missingCorpus, candidateCount, arrivedCount, slowHint,
+  phase, result, missingCorpus, candidateCount, arrivedCount, slowHint, earlyHint,
   totalVisible, hasHigh, availableTabs, activeTab, filtered,
   highGroup, midGroup, noneVisible, lowShown, selectedId, savedIds, savingId,
   onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
@@ -307,6 +307,7 @@ export default function MatchingDesktop({
           arrivedCount={arrivedCount}
           candidateCount={candidateCount}
           slowHint={slowHint}
+          earlyHint={earlyHint}
           missingCorpus={missingCorpus}
           onRetry={onRetry}
         />
