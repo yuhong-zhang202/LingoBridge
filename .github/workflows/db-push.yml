@@ -1,15 +1,26 @@
-# push 到 main 且改动了迁移文件时，自动把新增迁移应用到生产库（新加坡）。
+# main 上的 ci 跑绿之后，把新增迁移应用到生产库（新加坡）。
 # db-push.mjs 只执行账本里没有的迁移、幂等记账；SUPABASE_DB_URL 从仓库 secret 注入。
 # 手动触发：Actions 页 → db-push → Run workflow（workflow_dispatch）。
+#
+# 🔴【2026-08-15：改为等 ci 绿了再跑】原先本 workflow 与 ci 同样挂在 `on: push: main` 上，
+#   两者【并行起跑】且本文件没有任何前置依赖 —— 也就是说 tsc/lint/jest/build 红了，
+#   这里的【不可逆 DDL 照样执行】。迁移没有 down、Free 档没有 PITR，赌不起。
+#
+#   为什么不用 `needs:`：`needs` 只在【同一个 workflow 内部的 job 之间】生效，跨 workflow 无效。
+#   跨 workflow 的前置闸只有 `workflow_run` 这一个机制。
+#
+#   两个随之而来的行为变化，都是有意接受的：
+#     · `workflow_run` 不支持 `paths` 过滤 ⇒ main 每次 push 都会触发本任务。无害：
+#       db-push.mjs 只跑账本里没有的迁移，没有新迁移时是空跑（几十秒 runner，换掉一个赌局）。
+#     · `workflow_run` 触发的任务默认 checkout 【默认分支最新提交】，不是触发它的那个提交 ⇒
+#       下面显式 checkout `workflow_run.head_sha`，否则可能应用到一份没被 ci 验过的代码。
 name: db-push
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'supabase/migrations/**'
-      - 'scripts/db-push.mjs'
-      - '.github/workflows/db-push.yml'
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]          # 只认 head 分支是 main 的 ci 运行（PR 的 ci 不触发这里）
   workflow_dispatch: {}
 
 # 同一时刻只允许一个迁移任务；正在跑的不取消（迁移中途取消危险）。
@@ -20,8 +31,18 @@ concurrency:
 jobs:
   push:
     runs-on: ubuntu-latest
+    # 🔴 唯一的闸：ci 结论必须是 success。cancelled / failure / skipped 一律不跑迁移。
+    #   手动触发（workflow_dispatch）时没有 workflow_run 上下文，单独放行 —— 那是人主动按的。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 显式钉到触发本次运行的那个提交：workflow_run 默认取默认分支最新提交，
+          # 若期间又推了一次，就会把【没被这次 ci 验过】的代码应用到生产库。
+          # workflow_dispatch 时该值为空，回落到默认行为（当前默认分支）。
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
