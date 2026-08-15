@@ -124,9 +124,14 @@ export default function MatchStatusNote({
     <div role="status" aria-live="polite" className={cn('shrink-0', className)}>
       {/* 【min-h 只在等待态生效 —— 2026-08-15 产品方要求「文案短的时候把空隙收掉」】
           调用方传的 min-h（桌面 76 / 移动 84）当初是为了「八种状态之间卡下沿不上下跳」。
-          但会跳的只有 waiting ↔ streaming 这一段：**终态是终态**，进不去也出不来，
-          锁高对它没有防跳价值，只剩一张一行文案却撑到 84px 的空卡（lowMatch 最明显）。
-          故终态用 `min-h-0` 覆盖掉（cn 走 twMerge，后写的同族类干净胜出），让卡按内容自适应。
+          🔴 这是一次【有代价的取舍】，不是「反正也不会跳」——别把它读成后者：
+            · streamDone 一翻，pending→终态是【自动】发生的（见 phase.ts:75-85），
+              卡内容从进度条换成一行文案，去掉下限就会当场收缩约 34px。这正是当初上 min-h 要挡的那一跳。
+            · 终态也【出得来】：本卡的 onRetry 走 page.tsx 的 retry()，重置 streamDone 后回到 waiting。
+          仍然去掉的理由：那一跳发生在整页本来就在大换的同一帧（进度条→文案、骨架卡→真题卡），
+          而空卡留白是【每一次匹配、每一个终态】都常驻的。拿一次转场的位移换掉常驻的空白，产品方拍板要收。
+          ⚠️ error / degraded 本来就两行文案 + 重试按钮、天然高过 84px，`min-h-0` 对它们是空操作；
+            真正会缩的是 lowMatch / noMatch / result(情况二)，也正是产品方指的那几张。
           ⚠️ 保留 `justify-center`：万一将来某个终态文案变长到两三行，仍是居中而非顶在上沿。
           ⚠️ pending 态一个字没动 —— 进度条那段的等高与不位移仍然按原样锁着。 */}
       <Card className={cn(cardClassName, !pending && 'flex flex-col justify-center min-h-0')}>

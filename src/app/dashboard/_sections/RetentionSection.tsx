@@ -35,7 +35,7 @@ export default function RetentionSection({ data, cohorts, rangeBadge, subtitle }
       <RetentionSeriesBlock state={cohorts} />
       <StickinessBlock state={cohorts} />
       <UserSegmentsBlock state={cohorts} />
-      {/* 新注册的人还回来吗（固定近 7 天注册分组，只显人数分子/分母） */}
+      {/* 新注册的人还回来吗（窗口跟随区间选择器 = rangeDays+1，与本区徽标同数；只显人数分子/分母） */}
       <CohortReturnTable cohort={data.cohortReturns} />
     </CollapsibleSection>
   </>)

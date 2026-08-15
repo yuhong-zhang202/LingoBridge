@@ -116,7 +116,9 @@ function ListeningStage({
             loading={transcribing}
             className="w-[280px] h-[56px] flex items-center justify-center gap-2 rounded-full text-[1rem] font-semibold transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
-            <div aria-hidden="true" className="w-[15px] h-[15px] bg-v2-text-secondary rounded-[3px]" />
+            {/* ⚠️ 转写中【不渲染】这个装饰方块：GradientButton 在 loading 时会自己在 children 前面
+                加一个 Loader2 转圈，方块留着就成了「圈 + 方块 + 文字」三个元素（同 RecordingMobile）。 */}
+            {!transcribing && <div aria-hidden="true" className="w-[15px] h-[15px] bg-v2-text-secondary rounded-[3px]" />}
             {transcribing ? '转写中…' : '完成录音'}
           </GradientButton>
           <div className="flex items-center gap-5">

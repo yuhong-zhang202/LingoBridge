@@ -292,7 +292,8 @@
           "totalReturned": 1
         }
       ],
-      "emptyDays": 6,
+      "displayDays": 8,
+      "emptyDays": 7,
       "truncated": false
     },
     "phaseLatency": [
@@ -1222,7 +1223,8 @@
           "totalReturned": 1
         }
       ],
-      "emptyDays": 6,
+      "displayDays": 15,
+      "emptyDays": 14,
       "truncated": false
     },
     "phaseLatency": [
@@ -2550,7 +2552,8 @@
           "totalReturned": 1
         }
       ],
-      "emptyDays": 6,
+      "displayDays": 31,
+      "emptyDays": 30,
       "truncated": false
     },
     "phaseLatency": [

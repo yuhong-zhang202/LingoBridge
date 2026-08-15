@@ -1,6 +1,6 @@
 /**
  * @module   dashboard/CohortReturnTable
- * @desc     「新注册的人还回来吗」（方案 §四）—— 近 7 天按注册日分组的回访表：
+ * @desc     「新注册的人还回来吗」（方案 §四）—— 按注册日分组的回访表：
  *           注册日 / 注册人数 / 次日回来 / 至今回来。【只显人数分子/分母，不显任何百分比】
  *           （个位数样本下百分比是假精度）。「待满 1 天」的行绝不显 0 冒充流失；
  *           无注册的日子合并成一行「其余 N 天无新注册」。口径小字必须写明
@@ -25,6 +25,13 @@ export type CohortDayStat = {
 export type CohortReturns = {
   days: CohortDayStat[]
   emptyDays: number
+  /**
+   * 本次实际用的展示窗口天数（含今天），由服务端随数据一并下发。
+   * 🔴 本组件所有「近 N 天」文案【只许读这个字段】，绝不许按 range 自己再算一遍：
+   *   这张表 2026-08-15 之前恒取 7 天而区徽标写 windowDays+1，30 天档下同屏出现「近 31 天」和 7 天的数据。
+   *   数字与数据同源是那个 bug 结构上不再复发的唯一保证。
+   */
+  displayDays: number
   /** true = 取数触顶（注册名册或回访事件分页跑满），注册与回访人数【均偏低】，见 TruncatedNotice */
   truncated: boolean
 }
@@ -54,7 +61,7 @@ function PendingCell() {
 }
 
 /**
- * 近 7 天注册回访表
+ * 注册回访表（窗口跟随区间选择器，天数由服务端下发的 cohort.displayDays 决定）
  * @param cohort  /api/dashboard 的 cohortReturns 字段；null = 读取失败降级
  */
 export default function CohortReturnTable({ cohort }: { cohort: CohortReturns | null }) {
@@ -62,7 +69,10 @@ export default function CohortReturnTable({ cohort }: { cohort: CohortReturns | 
     <section aria-label="新注册的人还回来吗" className="bg-white rounded-[16px] border border-black/[0.05] p-4 mt-4">
       <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
         <h2 className="text-[0.8125rem] font-semibold text-v2-text-primary">新注册的人还回来吗</h2>
-        <span className="text-[0.6875rem] text-v2-text-muted">近 7 天注册分组 · 固定窗口</span>
+        {/* 天数读服务端下发的 displayDays（不自己按 range 算）；cohort=null 时无窗口可言，整条不渲染 */}
+        {cohort != null && (
+          <span className="text-[0.6875rem] text-v2-text-muted">近 {cohort.displayDays} 天注册分组 · 跟随区间</span>
+        )}
       </div>
 
       {/* 触顶提示放在表【之前】：数字的可信度是读表的前提，放脚注里等于没说 */}
@@ -73,7 +83,7 @@ export default function CohortReturnTable({ cohort }: { cohort: CohortReturns | 
       )}
 
       {cohort != null && cohort.days.length === 0 && (
-        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">近 7 天无新注册。</div>
+        <div className="text-v2-text-muted text-[0.75rem] py-4 text-center">近 {cohort.displayDays} 天无新注册。</div>
       )}
 
       {cohort != null && cohort.days.length > 0 && (

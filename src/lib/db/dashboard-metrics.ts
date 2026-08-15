@@ -437,9 +437,18 @@ function hkDayLabel(dayNum: number): string {
 
 // ── 「新注册的人还回来吗」（CohortReturnTable 消费）──────────────────────────────
 
-/** cohort 展示窗口：近 7 天注册分组（取数窗口多留 1 天余量 = 8 天，方案钉死） */
-const COHORT_DISPLAY_DAYS = 7
-const COHORT_FETCH_DAYS = 8
+/**
+ * cohort 展示窗口的兜底值：`displayDays` 不传时按 7 天（原「固定近 7 天」口径）。
+ *
+ * 🔴 2026-08-15 起本块【跟随区间选择器】，不再是固定窗口：调用方传 `windowDays + 1`
+ *   （= 增长三区 0064/0065 的闭区间总天数，真源 `dashboard-growth-shared.ts` 的 `windowTotalDays`）。
+ *   改之前徽标写「近 N+1 天」而表恒取 7 天，30 天档下同一区里「近 31 天」和 7 天的数据并排显示。
+ *   ⚠️ 用过的窗口天数【随数据一起返回】（`CohortReturns.displayDays`），界面文案只许读它、
+ *     绝不许自己再算一遍 —— 标签与数据出自同一个对象，结构上就不可能再各说各的。
+ */
+const COHORT_DISPLAY_DAYS_FALLBACK = 7
+/** 取数窗口在展示窗口上多留 1 天余量：cutoff 按整日时长回退、不与东八区日界对齐，边界那天要取全 */
+const COHORT_FETCH_MARGIN_DAYS = 1
 
 /** 聚合入参：一名真注册用户（id + 注册时刻） */
 export type CohortRegUser = { id: string; createdAt: string }
@@ -461,10 +470,16 @@ export type CohortDayStat = {
 }
 /** cohort 的【纯聚合】结果（不含取数元信息，故 aggregateCohortReturns 可单测、签名不变） */
 export type CohortAggregate = {
-  /** 近 7 天里【有注册】的日子，新到旧 */
+  /** 展示窗口里【有注册】的日子，新到旧 */
   days: CohortDayStat[]
-  /** 近 7 天里无注册的天数（UI 合并成一行「其余 N 天无新注册」） */
+  /** 展示窗口里无注册的天数（UI 合并成一行「其余 N 天无新注册」） */
   emptyDays: number
+  /**
+   * 本次实际用的展示窗口天数（含今天）。
+   * 🔴 界面文案（「近 N 天注册分组」「近 N 天无新注册」）必须读这个字段，不许前端自己按 range 再算一遍：
+   *   数字与数据同源才不会重演「徽标近 31 天 / 表里 7 天」那类同屏打架。
+   */
+  displayDays: number
 }
 /** cohort 整块结果 = 聚合结果 + 取数完整性标志（前端消费的形状） */
 export type CohortReturns = CohortAggregate & {
@@ -483,16 +498,18 @@ export type CohortReturns = CohortAggregate & {
  *   · 剔 QA（is_qa=true 的行不算回访信号）与内部账户（注册分母与回访信号两侧都剔）；
  *   · 「待满 1 天」判定：注册日+1（东八区）未过完（即注册日 ≥ 昨天）→ 次日/至今列都不显 0；
  *   · 只出人数分子/分母，绝不出百分比（个位数样本下百分比是假精度）。
- * @param regUsers  取数窗口内的真注册用户（真注册过滤在取数侧已做；本函数再剔内部账户）
- * @param flowRows  取数窗口内的 flow_events 行
- * @param now       当前时刻（可注入，便于测试日界与「待满 1 天」）
- * @returns         近 7 天 cohort 统计（有注册的日子新到旧 + 无注册天数）；
- *                  取数完整性标志 truncated 不在此产生，由 fetchCohortReturns 组装
+ * @param regUsers    取数窗口内的真注册用户（真注册过滤在取数侧已做；本函数再剔内部账户）
+ * @param flowRows    取数窗口内的 flow_events 行
+ * @param now         当前时刻（可注入，便于测试日界与「待满 1 天」）
+ * @param displayDays 展示窗口天数（含今天）；不传 = 7，即改成跟随区间之前的固定口径
+ * @returns           该窗口的 cohort 统计（有注册的日子新到旧 + 无注册天数 + 用过的窗口天数）；
+ *                    取数完整性标志 truncated 不在此产生，由 fetchCohortReturns 组装
  */
 export function aggregateCohortReturns(
   regUsers: readonly CohortRegUser[],
   flowRows: readonly CohortFlowRow[],
   now: Date,
+  displayDays: number = COHORT_DISPLAY_DAYS_FALLBACK,
 ): CohortAggregate {
   const todayNum = hkDayNumOf(now.getTime())
 
@@ -512,7 +529,7 @@ export function aggregateCohortReturns(
   for (const u of regUsers) {
     if (isInternalAccount(u.id)) continue
     const day = hkDayNumOf(Date.parse(u.createdAt))
-    if (day < todayNum - (COHORT_DISPLAY_DAYS - 1) || day > todayNum) continue
+    if (day < todayNum - (displayDays - 1) || day > todayNum) continue
     const arr = regsByDay.get(day)
     if (arr) arr.push(u.id)
     else regsByDay.set(day, [u.id])
@@ -520,8 +537,8 @@ export function aggregateCohortReturns(
 
   const days: CohortDayStat[] = []
   let emptyDays = 0
-  // 新到旧：今天 → 6 天前
-  for (let day = todayNum; day > todayNum - COHORT_DISPLAY_DAYS; day--) {
+  // 新到旧：今天 → (displayDays - 1) 天前
+  for (let day = todayNum; day > todayNum - displayDays; day--) {
     const ids = regsByDay.get(day)
     if (!ids || ids.length === 0) { emptyDays++; continue }
     // 注册日+1 过完 ⇔ 东八区今天 ≥ 注册日+2；否则「待满 1 天」
@@ -539,7 +556,7 @@ export function aggregateCohortReturns(
     }
     days.push({ dateLabel: hkDayLabel(day), registered: ids.length, d1Pending, d1Returned, totalReturned })
   }
-  return { days, emptyDays }
+  return { days, emptyDays, displayDays }
 }
 
 /** listUsers 每页人数与页数上限：内测规模（约 200 人）远在 1 页内，上限只是防御性护栏 */
@@ -547,7 +564,8 @@ const LIST_USERS_PER_PAGE = 200
 const LIST_USERS_MAX_PAGES = 10
 
 /**
- * 取「新注册的人还回来吗」整块数据：真注册用户（近 8 天）× flow_events（近 8 天），内存 join。
+ * 取「新注册的人还回来吗」整块数据：真注册用户 × flow_events，内存 join。
+ * 窗口 = `displayDays` 天（含今天）+ 1 天取数余量，【跟随区间选择器】，见 COHORT_DISPLAY_DAYS_FALLBACK 顶注。
  * ⚠️ 真注册口径与 0043/0044 RPC 完全一致（auth.users 非匿名·有邮箱），但读取路径用 service_role 的
  *    auth admin listUsers 而非 profiles —— profiles 表无 email/is_anonymous 列、含匿名各一行，
  *    无法表达「真注册」（正是此前注册数虚高的教训）；本轮无迁移，不新建 RPC。
@@ -558,17 +576,19 @@ const LIST_USERS_MAX_PAGES = 10
  *   · flow_events 跑满 fetchAllRows 的 MAX_PAGES → 回访分子偏低（被截掉的永远是最新那批）。
  * 两者【合并成同一个 truncated】返回：对看板读者而言结论一样（这块数字偏低、别当真实值），
  * 分开只会让 UI 多两种说法而无助于判断。触顶的正解不是调大上限，而是把聚合下推到 DB 端。
- * @param supabase  service_role 客户端（admin listUsers 需 service_role；flow_events 无 select 策略）
- * @param now       当前时刻（可注入，便于测试）
- * @returns         cohort 统计（含 truncated）；不可用时 null
+ * @param supabase    service_role 客户端（admin listUsers 需 service_role；flow_events 无 select 策略）
+ * @param now         当前时刻（可注入，便于测试）
+ * @param displayDays 展示窗口天数（含今天）；不传 = 7，即跟随区间之前的固定口径
+ * @returns           cohort 统计（含 truncated 与 displayDays）；不可用时 null
  */
 export async function fetchCohortReturns(
   supabase: SupabaseServer,
   now: Date = new Date(),
+  displayDays: number = COHORT_DISPLAY_DAYS_FALLBACK,
 ): Promise<CohortReturns | null> {
   try {
-    const cutoffTs = now.getTime() - COHORT_FETCH_DAYS * DAY_MS
-    // 1) 真注册用户（近 8 天）：分页拉 auth 用户，按 非匿名·有邮箱·窗口内 过滤。
+    const cutoffTs = now.getTime() - (displayDays + COHORT_FETCH_MARGIN_DAYS) * DAY_MS
+    // 1) 真注册用户（取数窗口内）：分页拉 auth 用户，按 非匿名·有邮箱·窗口内 过滤。
     //    listUsers 是 GoTrue admin API（不是 PostgREST），套不上 fetchAllRows，故仍手写循环——
     //    但判停/触顶语义与之逐字对齐：不满一页 = 到底；循环自然结束 = 触顶（regTruncated 保持 true）。
     const regUsers: CohortRegUser[] = []
@@ -584,7 +604,7 @@ export async function fetchCohortReturns(
       }
       if (data.users.length < LIST_USERS_PER_PAGE) { regTruncated = false; break }
     }
-    // 2) flow_events 近 8 天（回访信号）：走 fetchAllRows（含触顶标志），不再手写分页。
+    // 2) flow_events 取数窗口内（回访信号）：走 fetchAllRows（含触顶标志），不再手写分页。
     //    `.not('user_id','is',null)` 是【与下方 aggregateCohortReturns 逐字等价的下推】（SQL
     //    `user_id IS NOT NULL` ≡ 聚合里的 `if (row.user_id == null) continue`），口径一字不动，
     //    只为少拉无用行、把触顶点推远；JS 侧同名过滤刻意保留做双保险。
@@ -604,7 +624,7 @@ export async function fetchCohortReturns(
       .order('id', { ascending: true }))
     if (flowRes.error) return null
     return {
-      ...aggregateCohortReturns(regUsers, flowRes.data, now),
+      ...aggregateCohortReturns(regUsers, flowRes.data, now, displayDays),
       truncated: regTruncated || flowRes.truncated,
     }
   } catch {

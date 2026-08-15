@@ -95,7 +95,9 @@ export default function RecordingMobile({
           loading={transcribing}
           className="w-full h-[56px] flex items-center justify-center gap-2 rounded-full text-[1rem] font-semibold"
         >
-          <div aria-hidden="true" className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />
+          {/* ⚠️ 转写中【不渲染】这个装饰方块：GradientButton 在 loading 时会自己在 children 前面
+              加一个 Loader2 转圈，方块留着就成了「圈 + 方块 + 文字」三个元素（原来只有方块 + 文字）。 */}
+          {!transcribing && <div aria-hidden="true" className="w-[15px] h-[15px] bg-neutral-slate rounded-[3px]" />}
           {transcribing ? '转写中…' : '完成录音'}
         </GradientButton>
         <div className="flex justify-center mt-3">

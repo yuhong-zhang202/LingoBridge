@@ -106,8 +106,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     const weeklyRetentionPromise = fetchWeeklyRetention(supabase, rangeDays)
     // 用户反馈待办清单（不随区间选择器变）：与主查询并发、自带三态降级（见 dashboard-feedback 顶注）。
     const feedbackPromise = fetchDashboardFeedback(supabase)
-    // 「新注册的人还回来吗」cohort（固定近 7 天注册分组，不随区间选择器变）：与主查询并发、失败降级 null。
-    const cohortPromise = fetchCohortReturns(supabase)
+    // 「新注册的人还回来吗」cohort：与主查询并发、失败降级 null。
+    // 🔴 2026-08-15 起【跟随区间选择器】，窗口 = rangeDays + 1（闭区间总天数，与「谁留下了」区徽标
+    //   及 0064/0065 的 windowTotalDays 同一个数）。改之前它恒取 7 天，30 天档下同一区里
+    //   徽标写「近 31 天」、表里却只有 7 天的数据。用过的窗口随响应返回（cohortReturns.displayDays），
+    //   界面文案只读它、不自己再算一遍，杜绝标签与数据各说各的。
+    const cohortPromise = fetchCohortReturns(supabase, new Date(), rangeDays + 1)
     // 用户【当前】身份表（0058·get_user_anon_flags，成本看板 Top-N 与匿名占比的口径权威源）：
     // 与主查询并发、自带降级；null = 迁移未跑/出错/结果疑似被截断 → 下方逐字回退旧标记口径并置 pending。
     const userFlagsPromise = fetchUserAnonFlags(supabase)

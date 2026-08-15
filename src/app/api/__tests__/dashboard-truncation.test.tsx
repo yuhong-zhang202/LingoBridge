@@ -291,11 +291,12 @@ describe('一 · 取数层：触顶必须被记下来，不许静默', () => {
 })
 
 describe('二 · 展示层：界面必须说出「不完整」且说明方向是偏低', () => {
-  /** 造一块 cohort 数据 */
-  function cohort(truncated: boolean): CohortReturns {
+  /** 造一块 cohort 数据（displayDays 刻意取 31 而非 7：钉住「窗口天数来自数据、不是组件写死」） */
+  function cohort(truncated: boolean, displayDays = 31): CohortReturns {
     return {
       days: [{ dateLabel: '8/10', registered: 3, d1Pending: false, d1Returned: 1, totalReturned: 2 }],
       emptyDays: 0,
+      displayDays,
       truncated,
     }
   }
@@ -321,6 +322,20 @@ describe('二 · 展示层：界面必须说出「不完整」且说明方向是
     const html = renderToStaticMarkup(<CohortReturnTable cohort={null} />)
     expect(html).not.toContain('role="alert"')
     expect(html).not.toContain('<table')
+  })
+
+  // 【2026-08-15】窗口天数必须来自数据、不是组件写死 —— 否则「徽标近 31 天 / 表里 7 天」那类同屏打架会复发
+  test('「近 N 天」读的是 cohort.displayDays，不是组件里写死的 7', () => {
+    expect(renderToStaticMarkup(<CohortReturnTable cohort={cohort(false, 31)} />)).toContain('近 31 天注册分组')
+    expect(renderToStaticMarkup(<CohortReturnTable cohort={cohort(false, 8)} />)).toContain('近 8 天注册分组')
+    // 反向：组件里不许再有任何写死的天数漏出来
+    expect(renderToStaticMarkup(<CohortReturnTable cohort={cohort(false, 31)} />)).not.toContain('近 7 天')
+  })
+
+  test('空态文案的天数同样来自数据（空态是最容易漏改文案的那条路径）', () => {
+    const empty: CohortReturns = { days: [], emptyDays: 31, displayDays: 31, truncated: false }
+    const html = renderToStaticMarkup(<CohortReturnTable cohort={empty} />)
+    expect(html).toContain('近 31 天无新注册')
   })
 })
 
