@@ -108,6 +108,29 @@ export type SavePairResult =
   | { ok: false; kind: 'error' }                      // 其余（500 / 网络 / 解析失败）
 
 /**
+ * 【雅思流自动存对子】把 saveAnkiPair 的结果翻译成"页面该怎么办"。
+ *
+ *   🔴 这个函数存在的唯一理由：**自动流程与手动流程对失败的处置必须相反**。
+ *     - 手动（用户自己点书签存对子）：失败要告诉他 —— 匿名弹注册引导、超额弹 toast、出错弹 toast。
+ *       他主动要了这件事，没成必须让他知道。
+ *     - 自动（雅思流点「开始分析」顺带存）：**失败一律不许出声、更不许阻断跳转**。
+ *       他点的是「开始分析」，存对子是我们替他做的副作用；因为一个他没要求的东西
+ *       把他卡在整理页、或者弹一个他看不懂的注册框，是拿我们的便利去打断他的正事。
+ *
+ *   ⚠️ 唯一的例外是 'bound'（同一道题已有别的语料当答案）：Anki 卡是 (user_id, question_id) 唯一，
+ *     一道题只能有一个背面。近 60 天 317 组配对里 22 组撞这个 —— 静默选哪边都会一半时候错：
+ *     覆盖是丢数据，保留是无视用户刚写的新答案。**只有这一种要问人。**
+ *
+ * @param pair saveAnkiPair 的结果；null = 调用本身抛了异常（网络等）
+ * @returns    'conflict' = 弹换语料对比框、暂不跳转；'saved' = 存上了；'skip' = 静默略过，照常跳转
+ */
+export function autoPairOutcome(pair: SavePairResult | null): 'conflict' | 'saved' | 'skip' {
+  if (!pair) return 'skip'
+  if (pair.ok) return 'saved'
+  return pair.kind === 'bound' ? 'conflict' : 'skip'
+}
+
+/**
  * 存对子：把 (questionId, corpusId) 绑成题卡并入队生成。
  * @param  questionId  题目 id
  * @param  corpusId    语料 id

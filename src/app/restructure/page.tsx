@@ -23,7 +23,7 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+import { saveAnkiPair, swapAnkiCorpusClient, autoPairOutcome, type CorpusBrief } from '@/lib/anki/cards-client'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -251,6 +251,23 @@ function RestructureContent() {
       if (qid) {
         // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转（upsertMatch 本幂等）
         await upsertMatch(storyId, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
+        // 【2026-08-18 产品方拍板】雅思流落库即自动存对子，不再要求用户先点书签。
+        // 理由：这段语料【就是为回答这道题说的】，它天然就是一个对子；此前要用户手动点，
+        // 结果 47/49 条雅思流语料在素材库里被显示成「还没绑题目」+ 一个「去匹配题目」按钮
+        // （素材库的 bound 判据数的是 Anki 卡、不是 corpus_question_matches），
+        // 于是用户会对一条本来就有题的语料再跑一整条 AI 匹配 ——
+        // 实测（近 60 天）共 4 条语料在「已有 chosen 配对之后」又跑了匹配，其中 3 条无 Anki 卡、
+        // 正是走的本 bug 这条路（第 4 条有卡，素材库会显示已绑，它是从别处进的匹配）。
+        // 其中 2 条还混进了「匹配失败」的分析样本里当供给缺口的证据。
+        //
+        // ⚠️ 【任何结局都不在这一页出声、不阻断跳转】——包括「这道题你之前用别的语料存过卡」这种冲突。
+        //   用户点的是「开始分析」，脑子里想的是「我要分析这段话」；他没在想 Anki 卡。
+        //   在这里弹一个换语料对比框，正是本改动想消灭的那种"拿我们的便利去打断他的正事"。
+        //   ⇒ 冲突【推迟到分析页点「开始练习」时再问】（产品方 2026-08-18 定）：
+        //     那一步才和「这张卡的背面是哪段语料」真正相关，问得着调。见 analysis/page.tsx 的 onStartPractice。
+        //   ⇒ 那边会重发一次 saveAnkiPair 拿到同样的 409；本页这次失败不留任何状态，无需跨页传递。
+        const pair = await saveAnkiPair(qid, storyId).catch(() => null)
+        if (autoPairOutcome(pair) === 'saved') setAnkiSaveState('saved')
         navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
       } else {
         navigate(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配
