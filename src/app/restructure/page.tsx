@@ -23,7 +23,7 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+import { saveAnkiPair, swapAnkiCorpusClient, autoPairOutcome, type CorpusBrief } from '@/lib/anki/cards-client'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
@@ -101,6 +101,9 @@ function RestructureContent() {
   const [ankiToast, setAnkiToast] = useState<string | null>(null)
   const [ankiSwap, setAnkiSwap] = useState<{ current: CorpusBrief; newStoryId: string } | null>(null)
   const [ankiSwapping, setAnkiSwapping] = useState(false)
+  // 自动存对子撞冲突时暂存的跳转目标：用户在换语料对比框里做完选择（换 or 保留）后才去分析页。
+  // null = 不是自动流程触发的（用户自己点书签存对子撞的冲突），选完就停在本页，不跳转。
+  const [pendingAnalysisNav, setPendingAnalysisNav] = useState<string | null>(null)
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -251,6 +254,27 @@ function RestructureContent() {
       if (qid) {
         // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转（upsertMatch 本幂等）
         await upsertMatch(storyId, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
+        // 【2026-08-18 产品方拍板】雅思流落库即自动存对子，不再要求用户先点书签。
+        // 理由：这段语料【就是为回答这道题说的】，它天然就是一个对子；此前要用户手动点，
+        // 结果 47/49 条雅思流语料在素材库里被显示成「还没绑题目」+ 一个「去匹配题目」按钮
+        // （素材库的 bound 判据数的是 Anki 卡、不是 corpus_question_matches），
+        // 于是用户会对一条本来就有题的语料再跑一整条 AI 匹配 —— 实测 3 条这么干了，
+        // 其中 2 条还混进了「匹配失败」的分析样本里当供给缺口的证据。
+        //
+        // ⚠️ 冲突（同一道题已有别的语料当答案）【必须问人】：Anki 卡是 (user_id, question_id) 唯一，
+        //   一道题只能有一个背面。近 60 天 317 组里有 22 组撞这个，静默选哪边都会一半时候是错的
+        //   —— 覆盖是丢数据、保留是无视用户新答案。故弹现成的换语料对比框，选完再跳转。
+        // ⚠️ 其余失败一律【静默跳过、绝不阻断跳转】：用户点的是「开始分析」，
+        //   不能因为一个他没主动要求的副作用把他卡在这一页。匿名（Anki 注册专属）也不弹注册引导。
+        const pair = await saveAnkiPair(qid, storyId).catch(() => null)
+        const outcome = autoPairOutcome(pair)   // 判据抽在 cards-client，带单测（自动流程与手动流程处置相反）
+        if (outcome === 'conflict') {
+          setAnkiSwap({ current: (pair as { currentCorpus: CorpusBrief }).currentCorpus, newStoryId: storyId })
+          setPendingAnalysisNav(storyId)   // 用户在对比框里做完选择后再跳
+          setIsSaving(false)
+          return
+        }
+        if (outcome === 'saved') setAnkiSaveState('saved')
         navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
       } else {
         navigate(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配
@@ -289,7 +313,14 @@ function RestructureContent() {
     setAnkiSwap(null)
     if (ok) { setAnkiSaveState('saved'); setAnkiToast('已换成新语料，正在重新生成') }
     else setAnkiToast('没换成，再试一次')
-  }, [qid, ankiSwap])
+    // 自动流程触发的冲突：选完就接着去分析页（换成功与否都跳——用户点的是「开始分析」，
+    // 换不换语料是这条路上的岔口，不该因为岔口的结果把他留在整理页）。
+    if (pendingAnalysisNav) {
+      const storyId = pendingAnalysisNav
+      setPendingAnalysisNav(null)
+      navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)
+    }
+  }, [qid, ankiSwap, pendingAnalysisNav, navigate])
 
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline
@@ -370,7 +401,16 @@ function RestructureContent() {
           newCorpus={{ id: ankiSwap.newStoryId, summary }}
           swapping={ankiSwapping}
           onSwap={() => void handleConfirmSwapAnki()}
-          onKeepCurrent={() => { if (!ankiSwapping) setAnkiSwap(null) }}
+          onKeepCurrent={() => {
+            if (ankiSwapping) return
+            setAnkiSwap(null)
+            // 「保留当前」同样要接着跳（理由同 handleConfirmSwapAnki 末尾）
+            if (pendingAnalysisNav) {
+              const storyId = pendingAnalysisNav
+              setPendingAnalysisNav(null)
+              navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)
+            }
+          }}
         />
       )}
       <Toast message={ankiToast} onDismiss={() => setAnkiToast(null)} />
