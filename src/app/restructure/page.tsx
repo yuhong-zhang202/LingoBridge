@@ -101,9 +101,6 @@ function RestructureContent() {
   const [ankiToast, setAnkiToast] = useState<string | null>(null)
   const [ankiSwap, setAnkiSwap] = useState<{ current: CorpusBrief; newStoryId: string } | null>(null)
   const [ankiSwapping, setAnkiSwapping] = useState(false)
-  // 自动存对子撞冲突时暂存的跳转目标：用户在换语料对比框里做完选择（换 or 保留）后才去分析页。
-  // null = 不是自动流程触发的（用户自己点书签存对子撞的冲突），选完就停在本页，不跳转。
-  const [pendingAnalysisNav, setPendingAnalysisNav] = useState<string | null>(null)
 
   const runRestructure = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true)
@@ -261,20 +258,14 @@ function RestructureContent() {
         // 于是用户会对一条本来就有题的语料再跑一整条 AI 匹配 —— 实测 3 条这么干了，
         // 其中 2 条还混进了「匹配失败」的分析样本里当供给缺口的证据。
         //
-        // ⚠️ 冲突（同一道题已有别的语料当答案）【必须问人】：Anki 卡是 (user_id, question_id) 唯一，
-        //   一道题只能有一个背面。近 60 天 317 组里有 22 组撞这个，静默选哪边都会一半时候是错的
-        //   —— 覆盖是丢数据、保留是无视用户新答案。故弹现成的换语料对比框，选完再跳转。
-        // ⚠️ 其余失败一律【静默跳过、绝不阻断跳转】：用户点的是「开始分析」，
-        //   不能因为一个他没主动要求的副作用把他卡在这一页。匿名（Anki 注册专属）也不弹注册引导。
+        // ⚠️ 【任何结局都不在这一页出声、不阻断跳转】——包括「这道题你之前用别的语料存过卡」这种冲突。
+        //   用户点的是「开始分析」，脑子里想的是「我要分析这段话」；他没在想 Anki 卡。
+        //   在这里弹一个换语料对比框，正是本改动想消灭的那种"拿我们的便利去打断他的正事"。
+        //   ⇒ 冲突【推迟到分析页点「开始练习」时再问】（产品方 2026-08-18 定）：
+        //     那一步才和「这张卡的背面是哪段语料」真正相关，问得着调。见 analysis/page.tsx 的 onStartPractice。
+        //   ⇒ 那边会重发一次 saveAnkiPair 拿到同样的 409；本页这次失败不留任何状态，无需跨页传递。
         const pair = await saveAnkiPair(qid, storyId).catch(() => null)
-        const outcome = autoPairOutcome(pair)   // 判据抽在 cards-client，带单测（自动流程与手动流程处置相反）
-        if (outcome === 'conflict') {
-          setAnkiSwap({ current: (pair as { currentCorpus: CorpusBrief }).currentCorpus, newStoryId: storyId })
-          setPendingAnalysisNav(storyId)   // 用户在对比框里做完选择后再跳
-          setIsSaving(false)
-          return
-        }
-        if (outcome === 'saved') setAnkiSaveState('saved')
+        if (autoPairOutcome(pair) === 'saved') setAnkiSaveState('saved')
         navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
       } else {
         navigate(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配
@@ -313,14 +304,7 @@ function RestructureContent() {
     setAnkiSwap(null)
     if (ok) { setAnkiSaveState('saved'); setAnkiToast('已换成新语料，正在重新生成') }
     else setAnkiToast('没换成，再试一次')
-    // 自动流程触发的冲突：选完就接着去分析页（换成功与否都跳——用户点的是「开始分析」，
-    // 换不换语料是这条路上的岔口，不该因为岔口的结果把他留在整理页）。
-    if (pendingAnalysisNav) {
-      const storyId = pendingAnalysisNav
-      setPendingAnalysisNav(null)
-      navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)
-    }
-  }, [qid, ankiSwap, pendingAnalysisNav, navigate])
+  }, [qid, ankiSwap])
 
   // 未保存 = 用户编辑过整理后文本；「重新整理」会覆盖这些改动，故仅该动作按 hasUnsaved 决定是否先确认。
   const hasUnsaved = aiText !== aiBaseline
@@ -401,16 +385,7 @@ function RestructureContent() {
           newCorpus={{ id: ankiSwap.newStoryId, summary }}
           swapping={ankiSwapping}
           onSwap={() => void handleConfirmSwapAnki()}
-          onKeepCurrent={() => {
-            if (ankiSwapping) return
-            setAnkiSwap(null)
-            // 「保留当前」同样要接着跳（理由同 handleConfirmSwapAnki 末尾）
-            if (pendingAnalysisNav) {
-              const storyId = pendingAnalysisNav
-              setPendingAnalysisNav(null)
-              navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)
-            }
-          }}
+          onKeepCurrent={() => { if (!ankiSwapping) setAnkiSwap(null) }}
         />
       )}
       <Toast message={ankiToast} onDismiss={() => setAnkiToast(null)} />
