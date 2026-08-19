@@ -663,7 +663,9 @@ export function FlowSelfCheckBlock({ state }: { state: FlowHealthState }) {
           <>
             <div className="text-[0.6875rem] text-v2-text-muted mb-3 leading-relaxed">
               窗口内埋点事件共 <span className="tabular-nums text-v2-text-secondary">{d.totalRows}</span> 条，
-              其中自测（is_qa）<span className="tabular-nums text-v2-text-secondary">{d.qaRows}</span> 条 · {qaPct}%
+              {/* 口径必须写全：qaRows = is_qa 标记 ∪ 内部账户名册。0053 生效前内部账户的行 is_qa 全是
+                  false，只写「is_qa」会让人以为那批混着的自测流量没被剔（见 dashboard-flow-events 的 isSelfTestRow）。 */}
+              其中自测（is_qa 或内部账户）<span className="tabular-nums text-v2-text-secondary">{d.qaRows}</span> 条 · {qaPct}%
               —— <span className="text-v2-text-secondary">所有主数字都已剔除自测流量</span>，括号里的「+N 自测」仅用于确认标记在工作、
               以及判断某条分支到底有没有被触发过。
               <br />

@@ -16,10 +16,16 @@
  *
  *   ⚠️【事件名 / 枚举值在本文件手工重列了一份】刻意的重复，理由见 FLOW_EVENT_NAMES 注释。
  *
+ *   ⚠️【自测流量要两道过滤，缺一不可】主口径（count / attempts / successRate / 枚举分布 /
+ *      「该我们修」下钻）一律剔除 `is_qa=true` 【与】内部账户名册两类行。为什么单靠 is_qa 不够、
+ *      为什么内部账户归入「自测」而不是丢弃、以及已知剔不掉的残余，全文见 isSelfTestRow 注释。
+ *      规则守卫：src/__tests__/flow-events-internal-filter-rule.test.ts。
+ *
  * @author   LingoBridge
  * @created  2026-08-03
  */
 import 'server-only'
+import { isInternalAccount } from '@/lib/internal-accounts'
 import type { getSupabaseServer } from '@/lib/supabase-server'
 
 /** service_role 客户端类型（route 传入；flow_events 无 select 策略，只有 service_role 读得到） */
@@ -236,11 +242,17 @@ const PAGE_SIZE = 500
 /** 分页上限（= 5 万行）。触顶不静默：置 truncated 让 UI 明说「数据不完整」。 */
 const MAX_PAGES = 100
 
-/** flow_events 的最小读取形状（只取聚合用得上的四列，绝不 select *） */
+/** flow_events 的最小读取形状（只取聚合用得上的五列，绝不 select *） */
 export interface FlowEventRow {
   event: string
   props: Record<string, unknown> | null
   is_qa: boolean | null
+  /**
+   * 事件归属用户（匿名 / 未登录为 null）。
+   * 【只用于剔除内部账户，绝不展示、绝不进任何返回结构】—— 本模块是给 admin 看的观测面，
+   * 多带一个用户标识出去就是多一处隐私面。取它的唯一理由见 isSelfTestRow。
+   */
+  user_id: string | null
   created_at: string
 }
 
@@ -252,7 +264,10 @@ export interface AiResultStat {
   label: string
   bucket: AiResultBucket
   count: number
-  /** QA 自测流量的计数（不计入主口径，只用于确认 QA 标记在工作 / 判断某分支到底有没有被触发过） */
+  /**
+   * 自测流量的计数（不计入主口径，只用于确认 QA 标记在工作 / 判断某分支到底有没有被触发过）。
+   * 口径 = `is_qa=true` 【或】发自内部账户名册，见 isSelfTestRow。
+   */
   qaCount: number
 }
 
@@ -273,7 +288,7 @@ export interface AiStageStat {
   missingResult: number
   /** ok / attempts × 100（1 位小数）；attempts=0 时 null（别显示 0% 误导） */
   successRate: number | null
-  /** 该阶段的 QA 行数（含 aborted / 未上报） */
+  /** 该阶段的自测行数（is_qa 或内部账户；含 aborted / 未上报） */
   qaRows: number
   results: AiResultStat[]
 }
@@ -310,10 +325,11 @@ export interface EnumFieldCoverage {
   label: string
   event: string
   field: string
-  /** 该事件在窗口内的总行数（真实，不含 QA）—— 0 行时「全部值恒缺」不代表拼错，只代表没数据 */
+  /** 该事件在窗口内的总行数（真实，不含自测）—— 0 行时「全部值恒缺」不代表拼错，只代表没数据 */
   eventRows: number
+  /** 同上，但只数自测行（is_qa 或内部账户） */
   eventRowsQa: number
-  /** 该事件里这个字段【缺失】的行数（真实 / QA）—— 字段被静默丢弃时这里会涨 */
+  /** 该事件里这个字段【缺失】的行数（真实 / 自测）—— 字段被静默丢弃时这里会涨 */
   missing: number
   missingQa: number
   values: EnumValueStat[]
@@ -336,11 +352,15 @@ export interface FlowHealthResult {
   windowStart: string
   /** 真实用户数据起算日（东八区日期串） */
   baselineStart: string
-  /** 窗口内早于起算日的行数（含 QA）—— >0 时 UI 提示这批数据混有无法回溯标记的自测流量 */
+  /** 窗口内早于起算日的行数（含自测）—— >0 时 UI 提示这批数据混有无法回溯标记的自测流量 */
   preBaselineRows: number
-  /** 窗口内总行数（含 QA） */
+  /** 窗口内总行数（含自测） */
   totalRows: number
-  /** 其中 is_qa=true 的行数 */
+  /**
+   * 其中自测流量的行数 = `is_qa=true` 【或】发自内部账户名册（见 isSelfTestRow）。
+   * ⚠️ 它【不等于】库里 `is_qa=true` 的行数：0053 生效前内部账户的行 is_qa 全是 false，
+   *    却确实是自测流量。UI 的口径小字必须跟着这个定义写，别只写「is_qa」。
+   */
   qaRows: number
   /** true = 分页触顶，以下所有计数偏低，不可当真实值看 */
   truncated: boolean
@@ -359,24 +379,55 @@ function pickStr(props: Record<string, unknown> | null, key: string): string | u
   return typeof v === 'string' ? v : undefined
 }
 
-/** 计数器：key → [真实, QA] 两格 */
+/**
+ * 这一行算不算「自测流量」（= 不进主口径的行）。**两道过滤缺一不可**，本函数是本模块唯一的判定入口。
+ *
+ * 【为什么 is_qa 一道挡不住】
+ *   ① is_qa【无法回溯标记】：该列 2026-08-02 才由迁移 0053 加上，此前的行一律 false，
+ *      而「谁在什么时候自测过，事后无据可判」（0053 顶注 / 台账 153）。实测：内部账户
+ *      2026-05～08-01 的 match.result 行 is_qa 全为 false。只按 is_qa 过滤 ⇒ 起算日之前的
+ *      自测流量整段混进主口径。实测占比：近 60 天 149 次 match.result（is_qa=false）里
+ *      36 次来自内部账户，占 24%。
+ *   ② 内部账户名册是【服务端权威、不可伪造】的，且对历史行同样成立（user_id 是当时就写进去的）
+ *      —— 它是唯一能把起算日之前那批自测流量剔干净的依据。
+ *
+ * 【为什么归入「自测」栏而不是整行丢弃】写入侧 qa-traffic.ts 的 isQaRequest() 早就把
+ *   「userId 在内部账户名册里」判为 QA 流量 —— 0053 之后内部账户的行本来就标着 is_qa=true。
+ *   本函数只是把 0053 之前那批【本该被标成 QA 却没标上】的行归回原位，不是新造一档口径。
+ *   归入 QA 栏还保住两件既有的事：qaCount 的用途（判断某条分支到底有没有被触发过，
+ *   见 AiResultStat.qaCount 注释）、以及 everSeen = count + qaCount > 0 这条判定
+ *   （若改成整行丢弃，「只有产品方触发过」的事件会变成窗口 0 + 全库有 ⇒ 误报「埋点可能坏了」）。
+ *
+ * ⚠️【已知残余，本次不修】产品方用无痕窗口自测时新建的匿名账号：每次都是一个全新的匿名 user_id，
+ *   既进不了名册，0053 之前也没有 is_qa 可标 —— 两道过滤都拦不住，且【无从识别】（没有任何字段
+ *   能把它与真实新访客区分开）。⇒ 起算日之前的数字仍偏高，FLOW_BASELINE_START 那条
+ *   「早于起算日的 N 条仅供参考」提示必须一直留着。
+ *
+ * @param row  一行埋点事件
+ * @returns    属于自测流量（is_qa 或内部账户）则 true
+ */
+function isSelfTestRow(row: FlowEventRow): boolean {
+  return row.is_qa === true || isInternalAccount(row.user_id)
+}
+
+/** 计数器：key → [真实, 自测] 两格 */
 type Counter = Map<string, [number, number]>
 
-/** 往计数器某个 key 上加一（按是否 QA 落到不同格） */
-function bump(counter: Counter, key: string, isQa: boolean): void {
+/** 往计数器某个 key 上加一（按是否自测流量落到不同格） */
+function bump(counter: Counter, key: string, isSelfTest: boolean): void {
   const cur = counter.get(key) ?? [0, 0]
-  cur[isQa ? 1 : 0] += 1
+  cur[isSelfTest ? 1 : 0] += 1
   counter.set(key, cur)
 }
 
 /**
  * 聚合 AI 调用结局分布：按 stage × result 分组，并按归属桶汇总 + 算成功率。
  * 只统计 event='flow.ai_call' 的行；stage 未上报的行归入一个显式的 '(未上报)' 阶段，不静默丢。
- * @param rows  窗口内全部 flow_events 行（含 QA，函数内部区分）
+ * @param rows  窗口内全部 flow_events 行（含自测流量，函数内部按 isSelfTestRow 区分）
  * @returns     每个阶段一条，契约里的三个阶段恒在（零行也给一条，否则「某阶段归零」看不出来）
  */
 export function aggregateAiCall(rows: readonly FlowEventRow[]): AiStageStat[] {
-  // stage → (result → [真实, QA])。result 缺失用 MISSING_VALUE 占位。
+  // stage → (result → [真实, 自测])。result 缺失用 MISSING_VALUE 占位。
   const byStage = new Map<string, Counter>()
   for (const stage of AI_STAGES) byStage.set(stage, new Map())
   for (const row of rows) {
@@ -385,7 +436,7 @@ export function aggregateAiCall(rows: readonly FlowEventRow[]): AiStageStat[] {
     const result = pickStr(row.props, 'result') ?? MISSING_VALUE
     let counter = byStage.get(stage)
     if (!counter) { counter = new Map(); byStage.set(stage, counter) }
-    bump(counter, result, row.is_qa === true)
+    bump(counter, result, isSelfTestRow(row))
   }
 
   const stats: AiStageStat[] = []
@@ -451,7 +502,7 @@ export function aggregateAiCall(rows: readonly FlowEventRow[]): AiStageStat[] {
  */
 export function aggregateEventCounts(rows: readonly FlowEventRow[]): EventCountStat[] {
   const counter: Counter = new Map()
-  for (const row of rows) bump(counter, row.event, row.is_qa === true)
+  for (const row of rows) bump(counter, row.event, isSelfTestRow(row))
   const known: EventCountStat[] = FLOW_EVENT_NAMES.map(event => {
     const [count, qaCount] = counter.get(event) ?? [0, 0]
     return { event, label: EVENT_LABEL[event] ?? event, count, qaCount, known: true, everSeen: count + qaCount > 0 }
@@ -492,16 +543,16 @@ export function aggregateEnumCoverage(rows: readonly FlowEventRow[]): EnumFieldC
     let missingQa = 0
     for (const row of rows) {
       if (row.event !== spec.event) continue
-      const isQa = row.is_qa === true
-      if (isQa) eventRowsQa += 1
+      const selfTest = isSelfTestRow(row)
+      if (selfTest) eventRowsQa += 1
       else eventRows += 1
       const v = pickStr(row.props, spec.field)
       if (v === undefined) {
-        if (isQa) missingQa += 1
+        if (selfTest) missingQa += 1
         else missing += 1
         continue
       }
-      bump(counter, v, isQa)
+      bump(counter, v, selfTest)
     }
     const values: EnumValueStat[] = [
       ...spec.expected.map(value => {
@@ -521,15 +572,17 @@ export function aggregateEnumCoverage(rows: readonly FlowEventRow[]): EnumFieldC
 }
 
 /**
- * 「该我们修」桶最近一条失败的明细（S4 下钻）：扫窗口内非 QA 的 flow.ai_call 行，
+ * 「该我们修」桶最近一条失败的明细（S4 下钻）：扫窗口内【非自测】的 flow.ai_call 行，
  * result 归属为 ours 的取 created_at 最新一条。纯派生展示字段，不改任何既有聚合口径。
+ * ⚠️ 自测流量必须剔（含内部账户）：这一格是「该我们修」的告警下钻，拿产品方自己撞出来的
+ *    503/5xx 报警会让人去修一个真实用户根本没遇到的问题。
  * @param rows  窗口内全部 flow_events 行
  * @returns     最近一条 ours 失败；窗口内没有时 null
  */
 export function latestOursFailure(rows: readonly FlowEventRow[]): LatestOursFailure | null {
   let best: { t: number; stage: string; result: string; createdAt: string } | null = null
   for (const row of rows) {
-    if (row.event !== 'flow.ai_call' || row.is_qa === true) continue
+    if (row.event !== 'flow.ai_call' || isSelfTestRow(row)) continue
     const result = pickStr(row.props, 'result')
     if (!result || AI_RESULT_BUCKET[result] !== 'ours') continue
     const t = Date.parse(row.created_at)
@@ -547,11 +600,11 @@ export function latestOursFailure(rows: readonly FlowEventRow[]): LatestOursFail
 
 /**
  * 把窗口内的原始行聚合成整块「客户端链路观测」结果。
- * @param rows       窗口内全部 flow_events 行（含 QA）
+ * @param rows       窗口内全部 flow_events 行（含自测流量）
  * @param windowDays 窗口天数（7/14/30）
  * @param windowStart 窗口起点（ISO）
  * @param truncated  分页是否触顶（true = 计数偏低）
- * @returns          三块聚合结果 + 窗口/QA/起算日元信息
+ * @returns          三块聚合结果 + 窗口/自测/起算日元信息
  */
 export function aggregateFlowHealth(
   rows: readonly FlowEventRow[],
@@ -565,7 +618,7 @@ export function aggregateFlowHealth(
     baselineStart: FLOW_BASELINE_START,
     preBaselineRows: rows.filter(r => Date.parse(r.created_at) < FLOW_BASELINE_TS).length,
     totalRows: rows.length,
-    qaRows: rows.filter(r => r.is_qa === true).length,
+    qaRows: rows.filter(r => isSelfTestRow(r)).length,
     truncated,
     aiCall: aggregateAiCall(rows),
     eventCounts: aggregateEventCounts(rows),
@@ -595,6 +648,12 @@ export function flowWindowStart(now: Date, windowDays: number): Date {
  * 全库（不限时间窗）查询一批事件名是否出现过 —— 「窗口内归零」两档判定的依据。
  * 逐事件 head-count（不取行、只要计数）：候选至多十几个、flow_events 目前几千行，
  * 代价可忽略；数据量大了再改成一次分组聚合下推 DB。
+ *
+ * ⚠️【本查询刻意不剔 is_qa、也不剔内部账户】它回答的不是「这个指标有多大」，而是
+ *   「这条埋点有没有被触发过」—— 自测触发同样证明代码路径是通的。口径与窗口侧的
+ *   `everSeen = count + qaCount > 0`【逐字一致】（那边自测行也算出现过）：两边同时含自测，
+ *   才不会出现「窗口里 0、全库说有 ⇒ 误报埋点坏了」。它是规则守卫里登记在案的豁免项，
+ *   不是漏了过滤，见 src/__tests__/flow-events-internal-filter-rule.test.ts。
  * @param supabase  service_role 客户端
  * @param events    待查事件名（= 窗口内计 0 的清单内事件）
  * @returns         其中在全库出现过的事件名集合
@@ -635,9 +694,11 @@ export async function fetchFlowHealth(
   for (let page = 0; page < MAX_PAGES; page++) {
     const from = page * PAGE_SIZE
     // 稳定排序（created_at asc, id asc）是分页正确性的前提：无序分页在 OFFSET 下会漏行/重行。
+    // user_id 必须取：它是剔除内部账户的唯一依据（不取 = 主口径里永远混着产品方自测流量，
+    // 且 tsc/lint/单测全绿，只有拉真实数据时才看得出来）。用途仅限过滤，绝不进返回结构。
     const { data, error } = await supabase
       .from('flow_events')
-      .select('event, props, is_qa, created_at')
+      .select('event, props, is_qa, user_id, created_at')
       .gte('created_at', start.toISOString())
       .order('created_at', { ascending: true })
       .order('id', { ascending: true })

@@ -5,7 +5,10 @@
  *             ① 归属分类（用户侧 / 我方侧 / 网络）不能错位，aborted 不进成功率分母；
  *             ② 零计数的事件、零次出现的枚举值【必须留一行/一格】—— 过滤掉它们等于把
  *                「埋点坏了」和「值拼错了」这两个唯一可见信号一起删掉；
- *             ③ QA 流量不进主计数，但要单列（不能直接在查询里 where is_qa=false 丢掉）。
+ *             ③ QA 流量不进主计数，但要单列（不能直接在查询里 where is_qa=false 丢掉）；
+ *             ④ 内部账户（产品方自测账号）与 ③ 同档：不进主计数、单列在自测格。
+ *                单靠 is_qa 挡不住它——那一列 2026-08-02（迁移 0053）才有，此前的行一律 false
+ *                且无法回溯标记，实测占了近 60 天 match.result 主口径的 24%。
  * @author   LingoBridge
  * @created  2026-08-03
  */
@@ -16,15 +19,35 @@ import {
   applyEverSeen, latestOursFailure, flowWindowStart, FLOW_EVENT_NAMES, MISSING_VALUE,
   type FlowEventRow,
 } from '@/lib/db/dashboard-flow-events'
+import { INTERNAL_ACCOUNT_IDS } from '@/lib/internal-accounts'
 
-/** 造一行埋点事件（created_at 默认落在起算日之后） */
+/** 名册里的真实内部账户 id（刻意不手抄常量：抄了就会与名册漂移） */
+const INTERNAL_ID = [...INTERNAL_ACCOUNT_IDS][0]
+
+/** 造一行埋点事件（默认真实用户、created_at 落在起算日之后） */
 function row(
   event: string,
   props: Record<string, unknown> | null = {},
   isQa = false,
   createdAt = '2026-08-02T10:00:00.000Z',
+  userId: string | null = 'real-user',
 ): FlowEventRow {
-  return { event, props, is_qa: isQa, created_at: createdAt }
+  return { event, props, is_qa: isQa, user_id: userId, created_at: createdAt }
+}
+
+/**
+ * 造一行【内部账户】埋点（is_qa 刻意留 false —— 这正是 0053 之前那批行的真实形态）。
+ * @param event      事件名
+ * @param props      事件属性
+ * @param createdAt  时刻（ISO）
+ * @returns          一行内部账户事件
+ */
+function internalRow(
+  event: string,
+  props: Record<string, unknown> | null = {},
+  createdAt = '2026-08-02T10:00:00.000Z',
+): FlowEventRow {
+  return { event, props, is_qa: false, user_id: INTERNAL_ID, created_at: createdAt }
 }
 
 describe('aggregateAiCall · 结局归属与成功率', () => {
@@ -225,5 +248,84 @@ describe('latestOursFailure · 「该我们修」格下钻', () => {
   it('stage 未上报显「未知阶段」；窗口内无 ours 失败返回 null', () => {
     expect(latestOursFailure([row('flow.ai_call', { result: 'parse_fail' })])?.stageName).toBe('未知阶段')
     expect(latestOursFailure([row('flow.ai_call', { stage: 'coach', result: 'ok' })])).toBeNull()
+  })
+})
+
+describe('内部账户（产品方自测号）与 QA 同档：不进主口径、单列在自测格', () => {
+  // 这一组的每一行都是 is_qa=false —— 0053 之前那批自测流量的真实形态。
+  // 只按 is_qa 过滤时它们会全部混进主口径（实测占近 60 天 match.result 主口径的 24%）。
+
+  it('AI 结局：内部账户的失败不计入「我方侧」，落进自测格', () => {
+    const stats = aggregateAiCall([
+      row('flow.ai_call', { stage: 'matching', result: 'ok' }),
+      internalRow('flow.ai_call', { stage: 'matching', result: 'server_5xx' }),
+    ])
+    const m = stats.find(s => s.stage === 'matching')
+    expect(m?.ourSide).toBe(0)
+    expect(m?.attempts).toBe(1)
+    expect(m?.successRate).toBe(100)
+    expect(m?.qaRows).toBe(1)
+    expect(m?.results.find(r => r.result === 'server_5xx')?.qaCount).toBe(1)
+  })
+
+  it('事件计数：内部账户行不进 count、进 qaCount，且 everSeen 仍为真（埋点确实被触发过）', () => {
+    const stats = aggregateEventCounts([
+      row('match.result'),
+      internalRow('match.result'),
+      internalRow('quota.cta'),
+    ])
+    const m = stats.find(s => s.event === 'match.result')
+    expect(m?.count).toBe(1)
+    expect(m?.qaCount).toBe(1)
+    // 只有内部账户触发过的事件：主口径 0，但「这条埋点是通的」这个信号不能丢
+    const q = stats.find(s => s.event === 'quota.cta')
+    expect(q?.count).toBe(0)
+    expect(q?.qaCount).toBe(1)
+    expect(q?.everSeen).toBe(true)
+  })
+
+  it('枚举覆盖：内部账户行计进 eventRowsQa / missingQa，不污染真实分布', () => {
+    const cov = aggregateEnumCoverage([
+      row('flow.story_entry', { entry: 'record' }),
+      internalRow('flow.story_entry', { entry: 'text' }),
+      internalRow('flow.story_entry', {}),
+    ])
+    const entry = cov.find(c => c.key === 'flow.story_entry.entry')
+    expect(entry?.eventRows).toBe(1)
+    expect(entry?.eventRowsQa).toBe(2)
+    expect(entry?.missing).toBe(0)
+    expect(entry?.missingQa).toBe(1)
+    expect(entry?.values.find(v => v.value === 'record')?.count).toBe(1)
+    // 内部账户打出来的 'text' 不进主计数（否则「真实用户用过文字入口」是假的）
+    expect(entry?.values.find(v => v.value === 'text')?.count).toBe(0)
+    expect(entry?.values.find(v => v.value === 'text')?.qaCount).toBe(1)
+  })
+
+  it('「该我们修」下钻：不拿内部账户撞出来的故障报警', () => {
+    const latest = latestOursFailure([
+      row('flow.ai_call', { stage: 'matching', result: 'busy_503' }, false, '2026-08-03T10:00:00.000Z'),
+      internalRow('flow.ai_call', { stage: 'coach', result: 'server_5xx' }, '2026-08-04T10:00:00.000Z'),
+    ])
+    // 时间更新的那条是内部账户的，必须被跳过
+    expect(latest).toEqual({ stageName: '题目匹配', result: 'busy_503', createdAt: '2026-08-03T10:00:00.000Z' })
+    expect(latestOursFailure([internalRow('flow.ai_call', { stage: 'coach', result: 'server_5xx' })])).toBeNull()
+  })
+
+  it('窗口元信息：qaRows 把内部账户行也算作自测（它不等于库里 is_qa=true 的行数）', () => {
+    const res = aggregateFlowHealth([
+      row('flow.ai_call', { stage: 'polish', result: 'ok' }),
+      row('flow.ai_call', { stage: 'polish', result: 'ok' }, true),
+      internalRow('flow.ai_call', { stage: 'polish', result: 'ok' }),
+    ], 7, '2026-07-28T16:00:00.000Z', false)
+    expect(res.totalRows).toBe(3)
+    expect(res.qaRows).toBe(2)
+    expect(res.aiCall.find(s => s.stage === 'polish')?.ok).toBe(1)
+  })
+
+  it('匿名行（user_id=null）不被误剔 —— 未登录用户是真实用户，不是自测', () => {
+    const stats = aggregateEventCounts([row('page.view', {}, false, '2026-08-02T10:00:00.000Z', null)])
+    const p = stats.find(s => s.event === 'page.view')
+    expect(p?.count).toBe(1)
+    expect(p?.qaCount).toBe(0)
   })
 })
