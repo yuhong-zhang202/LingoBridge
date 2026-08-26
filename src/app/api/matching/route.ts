@@ -28,6 +28,8 @@ import { levelForScore } from '@/lib/match-level'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
+// 候选池明细的契约与上限只认 event-schema（埋点契约唯一真源），本文件不另抄一份形状/上限
+import { MATCH_RESULT_CANDIDATES_MAX, type MatchResultCandidate } from '@/lib/event-schema'
 import { isQaRequest } from '@/lib/qa-traffic'
 import {
   SCORE_MID, RANKING_ALGO_VERSION,
@@ -106,6 +108,59 @@ function pushMatchUsageLogs(
       completionTokens: a.result.questions.length * 40,
     }
     afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+  }
+}
+
+/**
+ * match.result 埋点 props 的【唯一产出处】：观察点分布 + 命中来源 + noMatch + 可见/未打分计数 +
+ * served_from + **候选池逐条明细 candidates**。visibleCount 与前端 totalVisible 同口径。
+ *
+ * ⚠️ 全站共【三处】发 match.result，全部必须走本函数：handleBuffered 一处 + handleStreaming 的
+ * 「快照命中」与「新算」各一处。原先 handleBuffered 是手抄的一份内联字面量（口径逐字相同、
+ * 但结构上是第二份真源）—— 2026-08-26 加 candidates 时收归本函数，正是因为「加字段只改了两处」
+ * 会让第三条路径上的 candidates 永远缺失，而**缺字段和「候选池真的是空的」长得一模一样**。
+ * 规则由 __tests__/match-result-candidates-guard.test.ts 静态守住（三处、且都调本函数）。
+ *
+ * ⚠️ 本函数只统一了 props，logEvent 的外层字段（flowId / storyId / userId / **isQa**）仍在三处各写各的
+ * —— 这就是 2026-08-02 那次「流式两处漏 isQa、生产 match.result 全部 is_qa=false」的成因：
+ * 抽了 props 公共函数，容易误以为「口径已经统一了」，而 isQa 根本不在这个函数的管辖范围内。
+ * 新增/修改任何外层字段时，请三处一起改，别只看这个函数。
+ *
+ * 【candidates 的口径】契约（字段含义 / 隐私红线 / 空数组语义 / 上限）全文见
+ * `@/lib/event-schema` 的 MatchResultCandidate 与 MATCH_RESULT_CANDIDATES_MAX，改动前必读那两段。
+ * 三点在此重申：
+ *   ① 【无条件写出】任何一条路径、任何结局都带这个 key。`[]` = 零召回（候选池真是空的），
+ *      key 缺失 = 历史行或漏写 —— 两者必须分得开，所以绝不做「没候选就不带」的省略。
+ *   ② 【不回填占位分】没拿到分的题写 `score: null`（不是 0、不是 100），与 match-level 同一条红线。
+ *   ③ 【只读不改】`.map()` 已产出新数组，`.sort()` 排的是副本 —— 绝不能就地 sort `result.questions`，
+ *      那是随后要发给用户的展示序（埋点改展示 = 埋点改产品行为）。
+ *
+ * @param  result      本次匹配结果（新算 / 读档 / 搭车三种来源共用同一形态）
+ * @param  servedFrom  本次结果来源，见 ServedFrom
+ * @returns            match.result 的完整 props
+ */
+function matchResultEventProps(result: FunnelMatchResult, servedFrom: ServedFrom): Record<string, unknown> {
+  return {
+    primaryCode: result.primary?.pointCode ?? null,
+    secondaryCode: result.secondary?.pointCode ?? null,
+    matchedViaSecondary: result.matchedViaSecondary,
+    matchedViaNeighbor: result.matchedViaNeighbor,
+    noMatch: result.noMatch,
+    candidateCount: result.questions.length,
+    visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
+    unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
+    served_from: servedFrom,
+    // 按分降序、未打分（null）垫底；sort 稳定 ⇒ 同分保持 matchByStory 的既有次序（isPrimaryMatch → part），
+    // 即本数组的顺序就是用户看到的顺序。上限只是安全阀，当前题库（最大 91）永不触发。
+    candidates: result.questions
+      .map((q): MatchResultCandidate => ({
+        id: q.id,
+        score: q.relevanceScore ?? null,
+        isPrimary: q.isPrimaryMatch,
+        obs: q.matched_point,
+      }))
+      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+      .slice(0, MATCH_RESULT_CANDIDATES_MAX),
   }
 }
 
@@ -231,10 +286,12 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
         servedFrom = 'joined'
       }
     }
-    // 埋点 match.result（第一周只出裸计数与分布、不设阈值）：观察点分布 + noMatch + 假空率的原料。
+    // 埋点 match.result：观察点分布 + noMatch + 假空率 + 候选池逐条明细（candidates）的原料。
     // visibleCount 与 page.tsx 的 totalVisible 同口径（≥SCORE_MID 且已打分）；unscoredCount 为兜底残留数。
     // 假空率 = (noMatch=false 但 visibleCount=0) 的故事 ÷ 故事总数（分母走 flow.corpus_bound 计数，
     // 不用 candidateCount——那是模型能自己控的量，违反分母铁律）。logEvent 内部已吞异常，不阻断返回。
+    // props 走共享的 matchResultEventProps（三条路径唯一真源，见该函数顶注；served_from 由它带出：
+    // 读档命中标 'cache'、重算标 'fresh'、搭车标 'joined'，离线口径只在 fresh 上算分布/假空率）。
     afterTasks.push(logEvent({
       event: 'match.result',
       flowId: req.headers.get('x-flow-id'),
@@ -242,18 +299,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       userId,
       // 不标 QA 的话，产品方自测的匹配结果会混进 ranking 质量分析（分布/假空率）里
       isQa: isQaRequest(req, userId),
-      props: {
-        primaryCode: result.primary?.pointCode ?? null,
-        secondaryCode: result.secondary?.pointCode ?? null,
-        matchedViaSecondary: result.matchedViaSecondary,
-        matchedViaNeighbor: result.matchedViaNeighbor,
-        noMatch: result.noMatch,
-        candidateCount: result.questions.length,
-        visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
-        unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
-        // 读档命中标 'cache'、重算标 'fresh'：离线口径只在 fresh 上算分布/假空率，避免重访读档被重复计数。
-        served_from: servedFrom,
-      },
+      props: matchResultEventProps(result, servedFrom),
     }))
 
     // 后置任务统一并行等待。这些写没有一条影响返回给用户的响应体（全是留档、记账、埋点），
@@ -310,31 +356,6 @@ const SSE_HEADERS: Record<string, string> = {
 /** 编码一帧 SSE 事件。data 走 JSON.stringify 天然无换行，单行即完整 data 段。 */
 function sseFrame(event: string, data: unknown): Uint8Array {
   return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-}
-
-/**
- * match.result 埋点 props（与 handleBuffered 内联口径逐字一致）：
- * 观察点分布 + 命中来源 + noMatch + 可见/未打分计数 + served_from。visibleCount 与前端 totalVisible 同口径。
- *
- * ⚠️ 全站共【三处】发 match.result，须保持同步：handleBuffered 内联一处 + handleStreaming 的
- * 「快照命中」与「新算」各一处。原注释写「两处」，正是漏数了流式两条中的一条。
- * ⚠️ 本函数只统一了 props，logEvent 的外层字段（flowId / storyId / userId / **isQa**）仍在三处各写各的
- * —— 这就是 2026-08-02 那次「流式两处漏 isQa、生产 match.result 全部 is_qa=false」的成因：
- * 抽了 props 公共函数，容易误以为「口径已经统一了」，而 isQa 根本不在这个函数的管辖范围内。
- * 新增/修改任何外层字段时，请三处一起改，别只看这个函数。
- */
-function matchResultEventProps(result: FunnelMatchResult, servedFrom: ServedFrom): Record<string, unknown> {
-  return {
-    primaryCode: result.primary?.pointCode ?? null,
-    secondaryCode: result.secondary?.pointCode ?? null,
-    matchedViaSecondary: result.matchedViaSecondary,
-    matchedViaNeighbor: result.matchedViaNeighbor,
-    noMatch: result.noMatch,
-    candidateCount: result.questions.length,
-    visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
-    unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
-    served_from: servedFrom,
-  }
 }
 
 /**

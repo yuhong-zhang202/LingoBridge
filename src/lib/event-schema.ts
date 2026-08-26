@@ -338,6 +338,67 @@ export type QuestionOpenedProps =
     algoVersion?: string
   }
 
+// ── match.result（服务端专属事件）的候选池明细契约 ────────────────────────────────────────────
+// ⚠️ match.result 在 SERVER_ONLY_EVENTS 里：由 lib/events.ts 以 service_role 直接落库，
+//    【不过 /api/events 的 sanitize】。故本节只定义契约与上限，api/events/route.ts 一行都不用改
+//    （那条路仍会把客户端上报的 match.result 一律 400，见 events-sanitize.test.ts 的 ALL_FLOW_EVENTS）。
+
+/**
+ * `match.result` 的 `candidates` 数组单条 —— 一次匹配【实际召回并送去重排】的一道候选题。
+ *
+ * 【为什么非有不可·这是「空手」归因的唯一分辨依据】此前 match.result 只记 `candidateCount`（计数）。
+ *   生产 26 条空手里 23 条（88.5%）是「有候选、打了分、全部 < SCORE_MID」，而计数答不了那唯一要紧的问题：
+ *   **最高分是 59 还是 25？** 擦线（重排判错）与完全不沾边（召回给的题题材不对）在数据里长得一模一样，
+ *   却指向完全相反的修法。逐条的 (题目 id, 分数, 来源观察点) 才分得开。
+ *
+ * ⚠️【成功的匹配也记】不是只在空手时才写。只记失败样本就没有对照组，「空手的候选长这样」读不出意义。
+ *
+ * 🔴【隐私】只放内部 id 与 taxonomy code：**绝不放题面文本**（题面事后 join `questions` 表即可，
+ *   落进 props 等于把题库内容重复落一份库，还会把 props 撑大一个数量级）、
+ *   **更绝不放用户故事的任何内容**（观察点 code 已是全事件既有口径，见 events.ts 顶注的隐私约定）。
+ *
+ * 【口径·空数组 ≠ 缺字段，这两件事必须分得开】
+ *   · `candidates: []`  = 这次匹配【一道候选都没召回】（零召回，与 `noMatch=true`、`candidateCount=0` 同时成立）；
+ *   · 字段【整个不存在】= 这条事件早于本字段上线（2026-08-26 之前的历史行），或某条发事件的路径漏写了。
+ *   为此本字段在【每一条】发 match.result 的路径上都【无条件写出】（fresh / cache / joined 三条路共用
+ *   api/matching/route.ts 的 matchResultEventProps 一处产出），绝不做「没有候选就不带这个 key」的省略。
+ */
+export interface MatchResultCandidate {
+  /** 题目主键 UUID（仅内部 id 引用，无原文；题面事后 join questions 表拿） */
+  id: string
+  /**
+   * 重排给出的相关性分数（0–100）。
+   * `null` = 这道题【没拿到分】（重排整体降级 / 模型漏了这一条），**绝不回填占位分** ——
+   * 覆辙见 match-level.ts 的 `?? 100`：把「我们不知道」写成一个看着很合理的假值，事后无法分辨。
+   */
+  score: number | null
+  /** 是否来自主观察点那一层召回（= FunnelMatchedQuestion.isPrimaryMatch，与前端「换个角度」标签同源） */
+  isPrimary: boolean
+  /**
+   * 这道题是挂在哪个观察点上被召回的（如 'REL_06'，= FunnelMatchedQuestion.matched_point）。
+   *
+   * 【为什么不能只有 isPrimary】`isPrimary=false` 把「副观察点补充」和「邻居兜底」压成同一格，
+   * 而本次要答的问题恰恰是「**邻居层实际贡献了什么**」——只有 isPrimary 就答不了。
+   * 有了本字段，与同一条 props 里的 `primaryCode` / `secondaryCode` 一比即可分层：
+   * `== primaryCode` → 主层；`== secondaryCode` → 副层；两者都不是 → 邻居层（且直接看得出借的是哪个邻居）。
+   */
+  obs: string
+}
+
+/**
+ * `candidates` 数组的条数上限 —— **安全阀，不是采样**。
+ *
+ * 生产实测候选数中位 10、最大 91（GRO_01），故 100 在当前题库下【永不触发】= 事实上全量记录。
+ * 为什么不按分数取 top-10：**选样的依据（重排分）正是被怀疑的那个东西** ——
+ * 若重排真的判错了，那道「用户其实能答的题」恰恰会被它压到低位、被 top-N 切掉，
+ * 于是数据只能证明「重排自己认为最高的几道不行」，永远证不了「池子里有没有能答的」。
+ * 全量记的代价可忽略（fresh 匹配约 2.5 次/天 × 最坏 7KB），换的是这个问题可回答。
+ *
+ * 触发上限时按分数降序保留最高的若干条；`candidateCount`（真实总数）不受本上限影响，
+ * ⇒ `candidates.length < candidateCount` 即「这条被截断了」，可判别、不静默。
+ */
+export const MATCH_RESULT_CANDIDATES_MAX = 100
+
 // ── 全事件通用的元字段（不属于任何一个事件的业务 props，由 track 在补发时自动挂上）───────────────
 
 /**
