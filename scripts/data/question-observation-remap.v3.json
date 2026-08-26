@@ -29,7 +29,21 @@
       "topic": "ACCOMMODATION",
       "primary": "SPA_01",
       "secondary": [],
-      "note": "保留题,声明沿用v2"
+      "overrides": [
+        {
+          "match": "who do you live with",
+          "add_secondary": [
+            "REL_01"
+          ]
+        },
+        {
+          "match": "what room does your family spend most of the time in",
+          "add_secondary": [
+            "REL_01"
+          ]
+        }
+      ],
+      "note": "保留题,声明沿用v2;2026-08-26按题级override给2道题加副挂REL_01:根因是换季到2026-05时v3只给新题库的卡做了映射,REL_01/VAL_01/SPI_03三点未被重新安置、当季链接数0(REL_01的v2落点Staying With Old People是2026-01题);⚠️绝不整组挂——本组16道里13道是纯住所题(户型/交通/未来想住哪),整组挂等于往REL_01池里灌垃圾;⚠️只挂2道不挂3道是产品方2026-08-26拍板的走法(b):挂满3道会踩中NEIGHBOR_MIN=3的边界(matching.ts:192的3<3为假)使邻居增援层整个不启动,候选反而从约11道缩到3道;挂2道则仍进邻居层借REL_02(3道)、累计5道达NEIGHBOR_TARGET停,得2直挂+3邻居;舍掉的第3道\"What do you usually do in your apartment\"无家庭元素,是pm判定里自标\"较弱\"的一道;两串match已核在本组16道题面内各唯一命中1道(override只在topic内逐题匹配,见remap-links.ts:206-212);SPA_01主挂不动,其候选池一条不变"
     },
     {
       "topic": "Childhood Activities",
@@ -604,9 +618,10 @@
       "cue_card_title": "A Time You Worked in a Group",
       "primary": "GRO_03",
       "secondary": [
-        "REL_10"
+        "REL_10",
+        "VAL_01"
       ],
-      "note": "5-8月新卡"
+      "note": "5-8月新卡;2026-08-26加副挂VAL_01:根因同上(换季未重新安置,VAL_01当季0链接且其邻居REL_11/VAL_03/VAL_02当季也全空,是唯一\"全链路零候选\"的点);萃取prompt第二个VAL_01样例即「小组作业有人一直抢我的贡献,期末前我私下找他摊牌」,该卡bullet含What problems you faced;只加副挂、GRO_03主挂与REL_10副挂一字不动,两点候选池各自一条不变"
     },
     {
       "cue_card_title": "A Live Sports Event",
@@ -703,10 +718,9 @@
     },
     {
       "cue_card_title": "A Message That Got No Reply",
-      "primary": null,
+      "primary": "VAL_01",
       "secondary": [],
-      "topic_only": true,
-      "note": "5-8月新卡;说明:题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复)"
+      "note": "5-8月新卡;说明:题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复);2026-08-26由topic_only零映射改为主挂VAL_01:根因是换季到2026-05时v3只给新题库的卡做了映射,VAL_01未被重新安置(v2落点Rules/A Time When Someone Apologized to You均为2026-01题),当季链接数0且邻居REL_11/VAL_03/VAL_02也全空——生产实测26条空手里3条零召回全部是VAL_01;本卡四问(发给谁/内容/最后回没回/什么感受)与萃取prompt中VAL_01头号样例(转账出问题、联系平台反复沟通始终无合理处理)逐条对应;topic_only与primary非null语义互斥故一并撤销该字段——注意remap-links.ts不读此字段、set-topic-only.ts读的是v2且只置true不置false,故DB的questions.topic_only不会随本次改动变化,本卡仍留在首页随机切换池"
     },
     {
       "cue_card_title": "A Long-term Goal",
@@ -724,8 +738,10 @@
     {
       "cue_card_title": "A Time You Changed an Important Opinion",
       "primary": "GRO_05",
-      "secondary": [],
-      "note": "5-8月新卡"
+      "secondary": [
+        "SPI_03"
+      ],
+      "note": "5-8月新卡;2026-08-26加副挂SPI_03:根因同上(换季未重新安置,SPI_03当季0链接,v2落点Museum/A Useful Book均为2026-01题);该卡bullet即「原看法是什么/为什么改」,SPI_03故事重心不用挪;必须副挂而非主挂——SPI_03限定「一个改变了你某种看法的【作品】」,本卡不限定作品,副挂只放行「SPI_03故事→召回本题」这一个方向,不会把非作品故事拉进SPI_03;GRO_05主挂不动,其候选池一条不变"
     },
     {
       "cue_card_title": "An Environmental Law You Would Like To Introduce",

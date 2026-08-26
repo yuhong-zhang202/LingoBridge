@@ -391,8 +391,8 @@ function combinedDigest(digests: Record<string, string>): string {
  *    并把当时的 RANKING_ALGO_VERSION 一并写进 algoVersion 字段（二者必须同一次写入）。
  */
 const PINNED = {
-  algoVersion: 'v1-2026-07-17',
-  combined: '07639f1d2c5c',
+  algoVersion: 'v2-2026-08-26',
+  combined: '8af92007cb95',
   digests: {
     'constants#SCORE_HIGH': 'b4944c6ff08d',
     'constants#SCORE_MID': '39fa9ec190ee',
@@ -430,7 +430,7 @@ const PINNED = {
     'remap-links#REMAP_PATH': '2405ad6c1822',
     'scripts/data/question-observation-remap.v1.json': 'c4215541a7b0',
     'scripts/data/question-observation-remap.v2.json': 'b85337fd64b1',
-    'scripts/data/question-observation-remap.v3.json': '4083b745dac3',
+    'scripts/data/question-observation-remap.v3.json': 'a428434ce182',
     'scripts/seed/ielts_questions_2026_05_enriched.json': '3ff0e1deb12c',
     'scripts/seed/ielts_questions_enriched.json': '30bec07c7a25',
   } as Record<string, string>,

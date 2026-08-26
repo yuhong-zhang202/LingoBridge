@@ -127,7 +127,7 @@ export const RANKING_TIE_MAX  = 8
  * 冻结存档，包括但不限于：萃取 prompt、排序算法/prompt、SCORE_HIGH/SCORE_MID 切分线、邻居兜底逻辑、
  * 以及切换 RANKING_DIMENSIONAL 开关（两条打分路径结果不同，产品方切开时须同步 bump）。
  */
-export const RANKING_ALGO_VERSION = 'v1-2026-07-17'
+export const RANKING_ALGO_VERSION = 'v2-2026-08-26'
 
 // ── 语料最小字数门槛（Anki 双防线·源头：防薄素材语料诱发例句编造）──
 /**
