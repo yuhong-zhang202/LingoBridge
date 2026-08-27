@@ -2,6 +2,12 @@
  * @module   RestructurePage
  * @desc     AI 整理确认页外壳 —— 集中持有语料整理逻辑（AI 整理/编辑/重整/保存跳转），
  *           按 lg 断点分发移动/桌面两套视图。逻辑单实例，两视图仅接收状态与回调做展示。
+ *
+ *   【谁还会走到这一页（2026-08-27 分流之后）】
+ *     · 语音路径首程 —— 行为完全不变（要校对 ASR 转写错字，实测长停留全在语音侧）；
+ *     · 返回态（带 corpusId，从匹配/分析页「返回语料」进来）—— 全站唯一能看到并修改「我讲的那段」的页面；
+ *     · **文字路径的失败兜底** —— 整理 AI 失败（gate.payload=null）或建语料失败时由 useStorySubmit 回落到这里，
+ *       URL 带 `&mode=text`。文字路径除此之外不再经过本页。
  * @author   LingoBridge
  * @created  2026-05-28
  */
@@ -10,7 +16,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { takeHandoff, takeHandoffJson } from '@/lib/handoff'
 import { updateCorpusCleaned, getCorpusById } from '@/lib/db/corpus'
-import { upsertMatch } from '@/lib/db/matches'
+import { bindIeltsCorpus } from '@/lib/ielts-corpus-binding'
 import { apiFetch, readQuotaReason } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
 // 整理调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：
@@ -23,12 +29,13 @@ import QuotaReached from '@/components/QuotaReached'
 import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpusClient, autoPairOutcome, type CorpusBrief } from '@/lib/anki/cards-client'
+import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
 import RestructureMobile from './RestructureMobile'
 import RestructureDesktop from './RestructureDesktop'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import GradientButton from '@/components/GradientButton'
 import type { RestructureViewProps } from './types'
+import type { CorpusSource } from '@/lib/types'
 
 /** 结构化 handoff 形状：预检整理结果 { rawText, cleanedText, summary? }。summary 为可选（旧 handoff 无此键）。 */
 interface StructuredHandoff { rawText: string; cleanedText: string; summary?: string }
@@ -45,6 +52,12 @@ function RestructureContent() {
   const { navigate } = useNav()
   const params   = useSearchParams()
   const qid      = params.get('qid')
+  // 本页新建语料时记的 source：由跳来的那一方【显式声明】，默认 voice。
+  // 【为什么不能继续写死 voice】此前所有新建语料一律记 voice，包括从 /write 敲的文字故事 ——
+  // 于是素材库里每一条文字故事都挂着麦克风图标（MyCorpusCard 用 item.source === 'voice' 判）。
+  // 2026-08-27 分流后走到这里的文字故事只剩「失败兜底」这一条窄路，那条路照样得传对，
+  // 不能指望「文字路径不再经过本页」顺手把它修掉。
+  const source: CorpusSource = params.get('mode') === 'text' ? 'text' : 'voice'
   // corpusId 存在 = 返回态（从 matching / analysis「返回上一步」进来）：忽略 handoff，改从 DB 水合真实语料。
   // 无 corpusId = 首程：故事正文（及可选预检整理结果）从 sessionStorage 一次性取（取完即删），URL 仅含短 id。
   const corpusId = params.get('corpusId')
@@ -220,7 +233,7 @@ function RestructureContent() {
     if (!storyId) {
       const res = await apiFetch('/api/corpus', {
         method: 'POST',
-        json: { source: 'voice', rawText: rawStory },
+        json: { source, rawText: rawStory },
       })
       // 建语料 402：reason 决定变体——匿名总条数闸 trial（注册引导）/ 注册月额度闸 story（月额度用完）。
       if (res.status === 402) {
@@ -238,7 +251,7 @@ function RestructureContent() {
     // summary 非空才随本次保存写入；null（旧兜底路径/返回态未重算）→ 不传，不覆盖 DB 已有概括。
     await updateCorpusCleaned(storyId, aiText, summary ?? undefined)
     return storyId
-  }, [corpusId, ensuredStoryId, rawStory, aiText, summary, router])
+  }, [corpusId, ensuredStoryId, rawStory, aiText, summary, source, router])
 
   const handleMatchClick = useCallback(async (): Promise<void> => {
     setIsSaving(true)
@@ -249,25 +262,11 @@ function RestructureContent() {
       // navigate（非 router.push）：保存完成到目标页（分析/匹配均为 AI 环节、非瞬时）跳转期间亮顶部条，
       // 与按钮「保存中…」spinner 接力，全程有反馈。
       if (qid) {
-        // 记录「已选」配对，让答过的语料出现在该题「练习题目」页；写库失败不阻断跳转（upsertMatch 本幂等）
-        await upsertMatch(storyId, qid, 'chosen').catch((e) => console.error('[restructure] upsertMatch failed', e))
-        // 【2026-08-18 产品方拍板】雅思流落库即自动存对子，不再要求用户先点书签。
-        // 理由：这段语料【就是为回答这道题说的】，它天然就是一个对子；此前要用户手动点，
-        // 结果 47/49 条雅思流语料在素材库里被显示成「还没绑题目」+ 一个「去匹配题目」按钮
-        // （素材库的 bound 判据数的是 Anki 卡、不是 corpus_question_matches），
-        // 于是用户会对一条本来就有题的语料再跑一整条 AI 匹配 ——
-        // 实测（近 60 天）共 4 条语料在「已有 chosen 配对之后」又跑了匹配，其中 3 条无 Anki 卡、
-        // 正是走的本 bug 这条路（第 4 条有卡，素材库会显示已绑，它是从别处进的匹配）。
-        // 其中 2 条还混进了「匹配失败」的分析样本里当供给缺口的证据。
-        //
-        // ⚠️ 【任何结局都不在这一页出声、不阻断跳转】——包括「这道题你之前用别的语料存过卡」这种冲突。
-        //   用户点的是「开始分析」，脑子里想的是「我要分析这段话」；他没在想 Anki 卡。
-        //   在这里弹一个换语料对比框，正是本改动想消灭的那种"拿我们的便利去打断他的正事"。
-        //   ⇒ 冲突【推迟到分析页点「开始练习」时再问】（产品方 2026-08-18 定）：
-        //     那一步才和「这张卡的背面是哪段语料」真正相关，问得着调。见 analysis/page.tsx 的 onStartPractice。
-        //   ⇒ 那边会重发一次 saveAnkiPair 拿到同样的 409；本页这次失败不留任何状态，无需跨页传递。
-        const pair = await saveAnkiPair(qid, storyId).catch(() => null)
-        if (autoPairOutcome(pair) === 'saved') setAnkiSaveState('saved')
+        // 雅思流落库即自动绑定：配对（让答过的语料出现在该题「练习题目」页）+ 自动存对子。
+        // 【2026-08-18 产品方拍板 / 台账 179】来龙去脉、以及「任何结局都不出声不阻断跳转」的理由，
+        // 全部写在 lib/ielts-corpus-binding 顶注 —— 文字路径（useStorySubmit）跳过本页后调的是同一份，
+        // 两处绝不许各写一遍（同类分叉已付过一次学费，见 lib/restructure-gate 顶注）。
+        if (await bindIeltsCorpus(qid, storyId) === 'saved') setAnkiSaveState('saved')
         navigate(`/analysis?questionId=${qid}&storyId=${storyId}&from=restructure`)   // 雅思流：跳过匹配，直达分析
       } else {
         navigate(`/matching?corpusId=${storyId}`)                    // 故事流：照旧去匹配

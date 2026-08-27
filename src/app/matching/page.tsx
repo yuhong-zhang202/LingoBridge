@@ -684,7 +684,9 @@ function MatchingContent() {
     savingId,
     onSavePair: (id) => void handleSavePair(id),
     onRetry: () => void retry(),
-    // 返回整理页/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
+    // 返回语料页/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）。
+    // href 一字不动：带 corpusId 进 /restructure 走返回态、从 DB 水合，不重复建库、不吃额度，
+    // 且那是全站唯一能看到并修改「我讲的那段」的页面。只有【标签】改了，见下方 backLabel。
     onBack: () => navigate(`/restructure?corpusId=${corpusId}`),
     onExit: () => navigate('/'),
   }
@@ -694,7 +696,9 @@ function MatchingContent() {
       <div className="lg:hidden"><MatchingMobile {...viewProps} /></div>
       {/* 桌面端：FlowShellDesktop 沉浸外壳（匹配步激活）+ master-detail 舞台 */}
       <div className="hidden lg:block">
-        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel="返回整理" showFeedback>
+        {/* backLabel 说「语料」不说「整理」：2026-08-27 起文字路径不经过整理确认页，
+            对那些用户「返回整理」是句谎话（他从没去过）。目的地不变，仍是那条语料的编辑页。 */}
+        <FlowShellDesktop activeStep="matching" onExit={viewProps.onExit} onBack={viewProps.onBack} backLabel="返回语料" showFeedback>
           <MatchingDesktop {...viewProps} />
         </FlowShellDesktop>
       </div>

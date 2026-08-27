@@ -85,13 +85,17 @@ function AnalysisContent() {
   // events 侧 route.ts 收敛口径对齐，防深链构造超大 rank），脏值/超界忽略、不续传。
   const rankParam  = params.get('rank')
   const rank       = rankParam !== null && /^[1-9]\d*$/.test(rankParam) && Number(rankParam) <= 10000 ? rankParam : ''
-  // 流向判别：from=matching（故事流）→ 回匹配页；from=restructure（雅思流）→ 回整理页（带 qid）；
+  // 流向判别：from=matching（故事流）→ 回匹配页；from=restructure（雅思流）→ 回语料页（带 qid）；
   // from=question-bank（题库练习入口）→ 回题库页；深链缺 from → 安全默认回首页，绝不静默走错分支。
+  // ⚠️ from=restructure 这支的 href【一字不动】：2026-08-27 起雅思流文字路径直接从提交跳到这里、
+  //   并没有经过整理确认页，但目的地仍应是那条语料的编辑页（带 corpusId 走返回态从 DB 水合，
+  //   不重复建库、不吃额度，且那是全站唯一能改「我讲的那段」的页面）。改的只有标签：
+  //   对没去过整理页的用户，「返回整理」是句谎话。
   const from       = params.get('from')
   const backTarget = from === 'matching'
     ? { href: `/matching?corpusId=${storyId}`, label: '返回题目' }
     : from === 'restructure'
-      ? { href: `/restructure?corpusId=${storyId}&qid=${questionId}`, label: '返回整理' }
+      ? { href: `/restructure?corpusId=${storyId}&qid=${questionId}`, label: '返回语料' }
       : from === 'question-bank'
         ? { href: '/question-bank', label: '返回题库' }
         : from === 'practice-question'

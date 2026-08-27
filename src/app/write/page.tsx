@@ -49,7 +49,7 @@ function WriteContent(): JSX.Element {
   // 人还在本页、还在写，此时关页走人就是真放弃 → 复位为假，否则这批人被全屏蔽掉，
   // 而「被打回后放弃」恰恰是最该看见的一格（text 路径放弃率会系统性偏低）。
   // 纯通知，不参与 useStorySubmit 的任何分支。
-  const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({
+  const { submitting, toastMsg, quotaVariant, submit, dismissToast, dismissQuota } = useStorySubmit({
     text: textStory,
     qid,
     onOutcome: (outcome) => { markSubmitted(outcome !== 'garbage' && outcome !== 'text_too_short') },
@@ -150,8 +150,9 @@ function WriteContent(): JSX.Element {
       {storyQuota.blockedVariant && (
         <QuotaReached variant={storyQuota.blockedVariant} surface="write" asOverlay onClose={storyQuota.dismiss} />
       )}
-      {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
-      {quotaReached && <QuotaReached variant="trial" surface="write" asOverlay onClose={dismissQuota} />}
+      {/* 提交途中撞额度：整理 402 → trial（匿名试用用尽）；建语料 402 → 按服务端 reason 分 trial / story
+          （文字路径 2026-08-27 起在本页直接建语料，故这里会出现注册用户的月额度变体）。关闭留在本页。 */}
+      {quotaVariant && <QuotaReached variant={quotaVariant} surface="write" asOverlay onClose={dismissQuota} />}
     </>
   )
 }

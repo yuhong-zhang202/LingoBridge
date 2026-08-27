@@ -11,7 +11,7 @@ import { getSupabaseServer } from '../supabase-server'
 import { isInternalAccount } from '../internal-accounts'
 import { quotaDayKey, quotaMonthStartISO } from '../quota-period'
 import { mapCorpusRow, type CorpusRow } from './corpus'
-import type { Corpus, CorpusSource } from '../types'
+import type { Corpus, CorpusSource, CorpusStatus } from '../types'
 
 /**
  * 日/终身用量计数的类别枚举 —— **额度桶的键，必须与调用方逐字一致**。
@@ -189,19 +189,51 @@ export async function readLifetimeUsageServer(userId: string, kind: UsageKind): 
 }
 
 /**
- * 服务端创建一段新语料（status 默认 draft，cleaned_text 暂空）。service_role insert，user_id 用入参。
+ * 服务端创建一段新语料。service_role insert，user_id 用入参。
+ *
+ * 【为什么可以一并写 cleaned_text（2026-08-27）】文字路径不再经过 `/restructure` 整理确认页，
+ * 而**全仓写 cleaned_text 的地方原本只有那一页**（restructure/page.tsx 的 updateCorpusCleaned）。
+ * 少了这一步的后果不是「某个字段空着」，是六个下游同时哑掉：`/api/matching` 400、
+ * **`/api/analysis` 静默降级成「通用分析」（界面完全看不出来）**、教练走「用户还没分享故事」的
+ * fallback、Anki 卡背按无语料生成、练习题目页显示一张空白语料卡。
+ *
+ * 🔴【必须和 insert 在同一次请求里原子完成】绝不能拆成「建语料 → 跳转 → 后台再写 cleaned_text」：
+ *   慢网下匹配页会先挂载并发出 `/api/matching`，撞上还没写好的那一瞬 → 400。
+ *   这个 bug 只在慢网出现，本地永远测不出来。
+ *
+ * ⚠️【不给 getCorpusByIdServer 加 `?? raw_text` 兜底】那会把「整理失败」变成静默的，
+ *   让生 ASR 稿悄悄流进匹配/分析/教练/Anki 卡背，六个消费方一处都不会报警。此路已明确否掉。
+ *
  * @param  userId  requireUser 反查出的当前用户 id（作为行 user_id，防客户端伪造）
- * @param  input   source（voice/text）与原始文本
+ * @param  input   source（voice/text）、原始文本，以及可选的整理结果（cleanedText / summary）
  * @returns        映射后的完整 Corpus（含服务端生成的 id / created_at，供后续整理/匹配链路使用）
  * @throws         Error —— 写入出错
  */
 export async function createCorpusServer(
   userId: string,
-  input: { source: CorpusSource; rawText: string },
+  input: { source: CorpusSource; rawText: string; cleanedText?: string; summary?: string },
 ): Promise<Corpus> {
+  const row: {
+    user_id: string
+    source: CorpusSource
+    raw_text: string
+    cleaned_text?: string
+    summary?: string
+    status?: CorpusStatus
+  } = { user_id: userId, source: input.source, raw_text: input.rawText }
+  // 只有真拿到非空整理结果才写、才推进状态：空串/空白一律当没有，让这条语料老老实实停在 draft，
+  // 由整理页兜底重跑 —— 绝不能用空串把 status 推到 restructured，那等于宣称「整理好了」而内容是空的。
+  const cleaned = input.cleanedText?.trim()
+  if (cleaned) {
+    row.cleaned_text = cleaned
+    row.status = 'restructured'
+    // summary 与 cleaned_text 同源产出（整理时一次给出），无概括则不写该列、保持 null
+    const summary = input.summary?.trim()
+    if (summary) row.summary = summary
+  }
   const { data, error } = await getSupabaseServer()
     .from('corpus')
-    .insert({ user_id: userId, source: input.source, raw_text: input.rawText })
+    .insert(row)
     .select()
     .single()
   if (error) throw new Error(`保存语料失败：${error.message}`)

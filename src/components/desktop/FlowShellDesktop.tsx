@@ -2,7 +2,9 @@
  * @module   FlowShellDesktop
  * @desc     桌面端核心链路统一外壳 —— 全沉浸版式：顶部极简进度栏（品牌左 · 5 点进度+当前步名居中 · 退出右）
  *           + 下方居中舞台区。无左侧面板、无边框分隔，整页同底色，让柔和的 Orb 舞台成为唯一主角。
- *           6 个流程页的桌面视图统一包在此壳内，进度由 activeStep 驱动（复用 StepBar 的 STEPS）。
+ *           6 个流程页的桌面视图统一包在此壳内，进度由 activeStep 驱动。
+ *           进度点的【条数】不再写死 5：与移动端 StepBar 同源，按本次链路形态派生（useFlowSteps），
+ *           读不到形态标识时降级回全量 5 步。
  * @author   LingoBridge
  * @created  2026-07-04
  */
@@ -10,7 +12,8 @@
 import type { JSX, ReactNode } from 'react'
 import ProgressLink from '@/components/ProgressLink'
 import { Mic, X, ChevronLeft } from 'lucide-react'
-import { STEPS, type StepKey } from '@/components/StepBar'
+import { useFlowSteps } from '@/hooks/useFlowSteps'
+import type { StepKey } from '@/lib/flow-shape'
 import FeedbackButton from '@/components/FeedbackButton'
 
 interface FlowShellDesktopProps {
@@ -36,8 +39,9 @@ export default function FlowShellDesktop({
   showFeedback = false,
   children,
 }: FlowShellDesktopProps): JSX.Element {
-  const activeIndex = STEPS.findIndex(s => s.key === activeStep)
-  const current = STEPS[activeIndex]
+  const steps = useFlowSteps(activeStep)
+  const activeIndex = steps.findIndex(s => s.key === activeStep)
+  const current = steps[activeIndex]
 
   return (
     <div className="min-h-screen bg-bg-page flex flex-col">
@@ -63,10 +67,10 @@ export default function FlowShellDesktop({
           )}
         </div>
 
-        {/* 进度：5 点（当前为拉长胶囊）+ 当前步名，绝对居中 */}
+        {/* 进度：本次链路的各步（当前为拉长胶囊）+ 当前步名，绝对居中 */}
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-5">
           <div className="flex items-center gap-[14px]" aria-hidden="true">
-            {STEPS.map((s, i) => {
+            {steps.map((s, i) => {
               const isActive = i === activeIndex
               const isDone   = i < activeIndex
               return (
@@ -85,7 +89,7 @@ export default function FlowShellDesktop({
             })}
           </div>
           <span className="text-[0.8125rem] font-semibold text-v2-text-primary">
-            <span className="sr-only">第 {activeIndex + 1} 步，共 {STEPS.length} 步：</span>
+            <span className="sr-only">第 {activeIndex + 1} 步，共 {steps.length} 步：</span>
             {current?.label}
           </span>
         </div>

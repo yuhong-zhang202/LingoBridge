@@ -26,6 +26,7 @@ import { putHandoff, putHandoffJson } from '@/lib/handoff'
 import { newFlowId } from '@/lib/flow-id'
 import { apiFetch } from '@/lib/api-client'
 import { evaluateRestructureResponse } from '@/lib/restructure-gate'
+import { setFlowShape } from '@/lib/flow-shape'
 import { track } from '@/lib/client-events'
 import type { RecordingResult } from '@/hooks/useAudioRecorder'
 // 提交结局 / AI 调用结局的取值域【一律来自 event-schema 这一份真源】，本文件不再手抄：
@@ -179,6 +180,12 @@ export async function runVoiceStorySubmit(deps: VoiceStorySubmitDeps): Promise<v
   setTranscribing(true)
   const signal = beginAbort()
   const qidParam = qid ? `&qid=${qid}` : ''
+  /**
+   * 记下本次链路形态供步骤条派生。语音路径【一定】经过整理确认页（2026-08-27 的分流只跳过文字路径），
+   * 故 mode 恒 voice；flow 只看有没有 qid。**只喂步骤条，不参与任何业务分支**（见 lib/flow-shape 顶注）。
+   * 放在两处跳转各自之前、而不是流程开头：被打回重录/额度拦下的人没有进入下一步，不该留下标识。
+   */
+  const markFlowShape = (): void => setFlowShape({ mode: 'voice', flow: qid ? 'ielts' : 'story' })
   try {
     const rec = await stop()
     if (!rec) { reportSubmit('no_audio'); throw new Error('没有录到声音，请重试') }
@@ -273,6 +280,7 @@ export async function runVoiceStorySubmit(deps: VoiceStorySubmitDeps): Promise<v
             // aborted，同一个「中断」两段口径不一致，横向比不了）。reportSubmit 自带去重，不会重复。
             if (signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航
             reportSubmit('proceed')
+            markFlowShape()
             push(`/restructure?h=${putHandoffJson({ rawText: data.text, cleanedText: gate.payload.cleanedText, summary: gate.payload.summary ?? '' })}${qidParam}`)
             return
           }
@@ -286,6 +294,7 @@ export async function runVoiceStorySubmit(deps: VoiceStorySubmitDeps): Promise<v
     }
     if (signal.aborted) { reportSubmit('aborted'); return }          // 已跳页则不再导航（同上：中断也要报）
     reportSubmit('proceed')
+    markFlowShape()
     push(`/restructure?h=${putHandoff(data.text)}${qidParam}`)
   } catch (e) {
     if (signal.aborted) {

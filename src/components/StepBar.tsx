@@ -1,28 +1,30 @@
-export type StepKey = 'story' | 'restructure' | 'matching' | 'analysis' | 'practice'
+/**
+ * @module   StepBar
+ * @desc     移动端核心链路步骤条（纯展示、不可点）。步骤序列不再写死 5 步，改由 useFlowSteps
+ *           按本次链路形态派生（语音/文字 × 故事流/雅思流，读不到标识则降级回全量 5 步）。
+ *           步骤定义（STEPS / StepKey）与派生规则的真源在 `lib/flow-shape`。
+ * @author   LingoBridge
+ * @created  2026-05-15
+ */
+'use client'
+import { useFlowSteps } from '@/hooks/useFlowSteps'
+import type { StepKey } from '@/lib/flow-shape'
 
 interface StepBarProps {
   currentStep: StepKey
 }
 
-/** 核心链路 5 步（顺序即流程顺序）；桌面 FlowShellDesktop 顶部进度复用同一份数据与 key。 */
-export const STEPS: { key: StepKey; label: string }[] = [
-  { key: 'story',       label: '故事' },
-  { key: 'restructure', label: '整理' },
-  { key: 'matching',    label: '题目' },
-  { key: 'analysis',    label: '分析' },
-  { key: 'practice',    label: '练习' },
-]
-
 export function StepBar({ currentStep }: StepBarProps) {
-  const currentIndex = STEPS.findIndex(s => s.key === currentStep)
+  const steps = useFlowSteps(currentStep)
+  const currentIndex = steps.findIndex(s => s.key === currentStep)
 
   // 桌面端(lg:)收窄到与内容同宽并居中、放大圆点/文字；移动端保持原全宽紧凑样式不变。
   return (
     <div className="flex items-center px-4 py-3 lg:max-w-[1024px] lg:mx-auto lg:w-full lg:px-10 lg:pt-[30px] lg:pb-10">
-      {STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const isDone    = i < currentIndex
         const isCurrent = i === currentIndex
-        const isLast    = i === STEPS.length - 1
+        const isLast    = i === steps.length - 1
 
         return (
           <div key={step.key} className={`flex items-center ${isLast ? '' : 'flex-1'}`}>

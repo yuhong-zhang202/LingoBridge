@@ -74,7 +74,7 @@ export default function HomePage() {
   }
   const { question, loading, error, exhausted, next } = useSwitchQuestion()
   // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
-  const { submitting, toastMsg, quotaReached, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
+  const { submitting, toastMsg, quotaVariant, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
 
   // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）。
   // 这是 JS 驱动的循环动画，globals.css 的 reduced-motion 兜底管不住 → 开启「减弱动效」时直接显示完整标题、不启动定时器。
@@ -219,8 +219,9 @@ export default function HomePage() {
         }}
         onDismiss={() => setMicSheet(null)}
       />
-      {/* 提交时匿名整理额度用尽：弹试用结束提示（trial 变体），关闭留在本页 */}
-      {quotaReached && <QuotaReached variant="trial" surface="home" asOverlay onClose={dismissQuota} />}
+      {/* 提交途中撞额度：整理 402 → trial（匿名试用用尽）；建语料 402 → 按服务端 reason 分 trial / story
+          （文字路径 2026-08-27 起在提交时直接建语料，故这里会出现注册用户的月额度变体）。关闭留在本页。 */}
+      {quotaVariant && <QuotaReached variant={quotaVariant} surface="home" asOverlay onClose={dismissQuota} />}
       {/* 建新故事额度已满：只在点「开始录音」/「文本输入」/ 桌面「或用文字输入」时弹，关闭即回首页正常态。
           匿名试用用尽 → trial（引导注册）；注册用户月额度用尽 → story。 */}
       {storyQuota.blockedVariant && (
