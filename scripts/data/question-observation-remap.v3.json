@@ -29,21 +29,10 @@
       "topic": "ACCOMMODATION",
       "primary": "SPA_01",
       "secondary": [],
-      "overrides": [
-        {
-          "match": "who do you live with",
-          "add_secondary": [
-            "REL_01"
-          ]
-        },
-        {
-          "match": "what room does your family spend most of the time in",
-          "add_secondary": [
-            "REL_01"
-          ]
-        }
+      "remove_links": [
+        "REL_01"
       ],
-      "note": "保留题,声明沿用v2;2026-08-26按题级override给2道题加副挂REL_01:根因是换季到2026-05时v3只给新题库的卡做了映射,REL_01/VAL_01/SPI_03三点未被重新安置、当季链接数0(REL_01的v2落点Staying With Old People是2026-01题);⚠️绝不整组挂——本组16道里13道是纯住所题(户型/交通/未来想住哪),整组挂等于往REL_01池里灌垃圾;⚠️只挂2道不挂3道是产品方2026-08-26拍板的走法(b):挂满3道会踩中NEIGHBOR_MIN=3的边界(matching.ts:192的3<3为假)使邻居增援层整个不启动,候选反而从约11道缩到3道;挂2道则仍进邻居层借REL_02(3道)、累计5道达NEIGHBOR_TARGET停,得2直挂+3邻居;舍掉的第3道\"What do you usually do in your apartment\"无家庭元素,是pm判定里自标\"较弱\"的一道;两串match已核在本组16道题面内各唯一命中1道(override只在topic内逐题匹配,见remap-links.ts:206-212);SPA_01主挂不动,其候选池一条不变"
+      "note": "保留题,声明沿用v2;⚠️2026-08-27产品方拍板撤回08-26那次的题级override(原给\"who do you live with\"与\"what room does your family spend most of the time in\"两道加副挂REL_01)。撤回理由是实测净负:REL_01原本0直挂时邻居层要借两家才凑够,候选约11道;加2道直挂后只需借一家即达NEIGHBOR_TARGET=5停止,候选反而降到5道——即用2道P1短问答挤掉了约6道邻居题。⚠️08-26当时的记录把参照系写错了,拿\"挂3道会缩到3道\"跟\"挂2道得5道\"比,漏掉了\"不挂有11道\"这个真正的对照组,走法(b)因此是对当时实现细节(NEIGHBOR_MIN=3/NEIGHBOR_TARGET=5)的适配、不是产品判断。⚠️remove_links是物理锚点必须保留:remap-links.ts对已存在但未声明的链接走keeps原地保留(见reconcileQuestion:150-154),光删override不会删库里的链接。⚠️本字段是topic级(remap-links.ts:205在题循环外),会对本组16道题逐题尝试删REL_01;已实测16道里仅上述2道带REL_01链接、其余14道显式无(LEFT JOIN带对照列查证,非count),故删除面恰为2条。SPA_01主挂不动,其候选池一条不变"
     },
     {
       "topic": "Childhood Activities",
@@ -718,9 +707,13 @@
     },
     {
       "cue_card_title": "A Message That Got No Reply",
-      "primary": "VAL_01",
+      "primary": null,
       "secondary": [],
-      "note": "5-8月新卡;说明:题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复);2026-08-26由topic_only零映射改为主挂VAL_01:根因是换季到2026-05时v3只给新题库的卡做了映射,VAL_01未被重新安置(v2落点Rules/A Time When Someone Apologized to You均为2026-01题),当季链接数0且邻居REL_11/VAL_03/VAL_02也全空——生产实测26条空手里3条零召回全部是VAL_01;本卡四问(发给谁/内容/最后回没回/什么感受)与萃取prompt中VAL_01头号样例(转账出问题、联系平台反复沟通始终无合理处理)逐条对应;topic_only与primary非null语义互斥故一并撤销该字段——注意remap-links.ts不读此字段、set-topic-only.ts读的是v2且只置true不置false,故DB的questions.topic_only不会随本次改动变化,本卡仍留在首页随机切换池"
+      "topic_only": true,
+      "remove_links": [
+        "VAL_01"
+      ],
+      "note": "5-8月新卡;说明:题干分歧:途鸭版方向相反,按主基准取综合版(你发消息未获回复);⚠️2026-08-27产品方拍板撤回08-26那次\"由topic_only零映射改为主挂VAL_01\"的改动,恢复原声明。撤回理由:VAL_01定义是「一次感到被不公平对待、或为公平/正义站出来」(extraction.ts:82),而本卡题面原文写的是\"sent a message or an email to someone\"——对象是不限定的someone。08-26的依据只举了萃取prompt里VAL_01那个头号样例(转账出问题、联系平台反复沟通),但那个样例的内核是「平台规则不公」不是「消息没回」;朋友/HR/暗恋对象不回消息与公平正义无关,而本卡还被设成primary(主挂),等于让它当VAL_01的头号题。⚠️撤回同时暴露出一个08-26留下的自相矛盾状态:DB里本题questions.topic_only=true却挂着VAL_01主挂链接(已实测)。两条路径互不干涉——topic_only只被db/questions.ts:194-234的首页随机取题用(.eq('topic_only',true)优先取),召回路径matching.ts:154只透传不过滤——所以那次改动确实生效了,但一道题同时是「话题展示题」和「召回题」语义混乱,撤回后恢复一致。⚠️remove_links是物理锚点必须保留:光把primary改回null不会删库里的链接,现存链接会走reconcileQuestion:150-154的keeps原地保留"
     },
     {
       "cue_card_title": "A Long-term Goal",
@@ -738,10 +731,11 @@
     {
       "cue_card_title": "A Time You Changed an Important Opinion",
       "primary": "GRO_05",
-      "secondary": [
+      "secondary": [],
+      "remove_links": [
         "SPI_03"
       ],
-      "note": "5-8月新卡;2026-08-26加副挂SPI_03:根因同上(换季未重新安置,SPI_03当季0链接,v2落点Museum/A Useful Book均为2026-01题);该卡bullet即「原看法是什么/为什么改」,SPI_03故事重心不用挪;必须副挂而非主挂——SPI_03限定「一个改变了你某种看法的【作品】」,本卡不限定作品,副挂只放行「SPI_03故事→召回本题」这一个方向,不会把非作品故事拉进SPI_03;GRO_05主挂不动,其候选池一条不变"
+      "note": "5-8月新卡;⚠️2026-08-27产品方拍板撤回08-26那次加的副挂SPI_03(与同批另两处一并撤,理由是整批靶子的选取过拟合于26条历史失败语料)。⚠️但本条与同批另两处性质不同,恢复时请先读这段:撤回当天发现主会话先前判它\"不对路\"的理由(SPI_03限定「作品」而本卡题面通篇无作品)方向判反了——副挂是单向的,只放行「SPI_03故事→召回本题」,不会把非作品故事拉进SPI_03;而一个真正的SPI_03故事(看了某本书改变了看法)去答本卡完全答得了,本卡bullet正是「原看法是什么/为什么改」。08-26的原note已论证过这一点,当时漏读了。⚠️所以本条撤回的依据只剩\"靶子选取过拟合\",不含\"映射本身错\";若日后按结构性口径(某观察点当季零直挂)重做安置,本条是优先恢复候选。⚠️remove_links是物理锚点必须保留:光从secondary删掉不会删库里的链接,现存链接会走reconcileQuestion:150-154的keeps原地保留;恢复时须同时删本字段,否则加回secondary也会被删掉。GRO_05主挂不动,其候选池一条不变"
     },
     {
       "cue_card_title": "An Environmental Law You Would Like To Introduce",

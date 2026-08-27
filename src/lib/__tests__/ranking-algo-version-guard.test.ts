@@ -389,10 +389,27 @@ function combinedDigest(digests: Record<string, string>): string {
  * 钉住值：改动上面任一输入都会与它失配。
  * ⚠️ 更新它 = 一次决定，不是一次格式修正。更新前请确认「这次改动确实该 bump 版本号」，
  *    并把当时的 RANKING_ALGO_VERSION 一并写进 algoVersion 字段（二者必须同一次写入）。
+ *
+ * ── 2026-08-27：一次「重钉但刻意不 bump」的登记，理由留证于此 ──
+ * 本次改动：撤回 08-26 那批 4 处映射中的 3 处（生产库 430→426 条链接，已 apply）。
+ * 召回集合确实又变了，按本守卫的常规要求应当再 bump 一次；产品方拍板不 bump，依据是
+ * **v2 纪元自始至终零数据**——两侧都实测过（2026-08-27 10:4x，生产库）：
+ *   corpus_match_snapshots      156 条全部 v1-2026-07-17，最晚 08-26 15:43:20
+ *   match.question_opened 埋点   35 条 v1 + 15 条无此 key(08-02 前)，v2 恰为 0
+ * 而 bump 发生在 08-26 18:47，此后 16 小时无任何用户产生数据。
+ * ⇒ 不存在「两批口径被打上同一标签、事后无法分段」的受害者（那正是本守卫第一位的关切）；
+ *   反之再 bump 会让 156 条存档【第二次】失配、老用户再吃一次静默重算，代价真实而收益为零。
+ *   故 v2-2026-08-26 原地复用，改为指代「撤回后的召回集合」。
+ * ⚠️ 本守卫机械上拦不住这个决定（见文末「已知漏判」②：它无法强制「真的 bump 了」，
+ *   只能强制「必须停下来看一眼」）。这一眼看过了，依据就是上面两行实测数——
+ *   **下次再遇到「想重钉但不想 bump」，先把这两条 SQL 重跑一遍再说，不要引用本段当先例。**
+ * 复算：select algo_version, count(*) from corpus_match_snapshots group by 1;
+ *       select props->>'algoVersion', count(*) from flow_events
+ *         where event='match.question_opened' group by 1;
  */
 const PINNED = {
   algoVersion: 'v2-2026-08-26',
-  combined: '8af92007cb95',
+  combined: 'dc71baa7316f',
   digests: {
     'constants#SCORE_HIGH': 'b4944c6ff08d',
     'constants#SCORE_MID': '39fa9ec190ee',
@@ -430,7 +447,7 @@ const PINNED = {
     'remap-links#REMAP_PATH': '2405ad6c1822',
     'scripts/data/question-observation-remap.v1.json': 'c4215541a7b0',
     'scripts/data/question-observation-remap.v2.json': 'b85337fd64b1',
-    'scripts/data/question-observation-remap.v3.json': 'a428434ce182',
+    'scripts/data/question-observation-remap.v3.json': '47dc3bccbcf5',
     'scripts/seed/ielts_questions_2026_05_enriched.json': '3ff0e1deb12c',
     'scripts/seed/ielts_questions_enriched.json': '30bec07c7a25',
   } as Record<string, string>,
