@@ -12,7 +12,7 @@ import StoryTextPanel from '@/components/StoryTextPanel'
 import type { WriteViewProps } from './types'
 
 export default function WriteMobile({
-  textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, onExit,
+  textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, qid, onExit,
 }: WriteViewProps): JSX.Element {
   return (
     <div
@@ -52,6 +52,7 @@ export default function WriteMobile({
           submitting={submitting}
           onSubmit={onSubmit}
           onSwitchToVoice={onSwitchToVoice}
+          qid={qid}
         />
       </div>
     </div>

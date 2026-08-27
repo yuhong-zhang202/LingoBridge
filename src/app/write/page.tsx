@@ -122,6 +122,7 @@ function WriteContent(): JSX.Element {
     onSubmit: () => void runSubmit(),
     onSwitchToVoice: () => void handleSwitchToVoice(),
     questionContext,
+    qid,
     onExit: doExit,
   }
 

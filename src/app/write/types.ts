@@ -29,6 +29,12 @@ export interface WriteViewProps {
   onSwitchToVoice: () => void
   /** ?qid 对应题目上下文；无 qid 或取不到为 null */
   questionContext: WriteQuestionContext | null
+  /**
+   * 原始 ?qid（无则 null）—— 只用来决定提交钮说什么（有 qid 落 /analysis、无则落 /matching）。
+   * 【不能用 questionContext 是否为 null 代替】：题目详情是客户端另取的，取失败时 questionContext
+   * 为 null 而 qid 仍在，按钮会说「开始匹配题目」却跳去分析页 —— 正是本次要修的那类错。
+   */
+  qid: string | null
   /** 退出（桌面 Esc / 外壳 ✕ / 移动端返回，走 router.back()） */
   onExit: () => void
 }

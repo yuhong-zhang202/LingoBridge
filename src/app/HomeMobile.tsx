@@ -27,6 +27,7 @@ export default function HomeMobile({
   submitting,
   canSubmit,
   startingRec,
+  submitQid,
   onSetShowTextInput,
   onSelectMyStory,
   onSelectIelts,
@@ -154,6 +155,7 @@ export default function HomeMobile({
                     submitting={submitting}
                     onSubmit={onSubmitStory}
                     onSwitchToVoice={() => onSetShowTextInput(false)}
+                    qid={submitQid}
                     minH="min-h-[244px]"
                     fadeUp
                   />

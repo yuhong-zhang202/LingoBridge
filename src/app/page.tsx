@@ -73,8 +73,11 @@ export default function HomePage() {
     track('flow.capture_started', { mode: 'text' })
   }
   const { question, loading, error, exhausted, next } = useSwitchQuestion()
-  // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）
-  const { submitting, toastMsg, quotaVariant, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: ieltsMode && question ? question.id : null })
+  // 文字提交复用共享 hook；qid 取首页语义（雅思模式带当前题 id，否则 null）。
+  // 【只算一次并同时喂给 hook 与视图】：文本面板提交钮的文案按它分「开始分析 / 开始匹配题目」，
+  // 两处若各算各的，一旦口径分叉就会出现「按钮说 A、实际跳 B」——本次修的正是这类错。
+  const submitQid = ieltsMode && question ? question.id : null
+  const { submitting, toastMsg, quotaVariant, submit, dismissToast, dismissQuota } = useStorySubmit({ text: textStory, qid: submitQid })
 
   // 打字机：故事模式下 Hero 标题第二行逐字浮现，打完停顿后循环重放（持续的动态打字效果）。
   // 这是 JS 驱动的循环动画，globals.css 的 reduced-motion 兜底管不住 → 开启「减弱动效」时直接显示完整标题、不启动定时器。
@@ -163,6 +166,7 @@ export default function HomePage() {
     submitting,
     canSubmit: computeRichness(textStory).canSubmit,
     startingRec,
+    submitQid,
     typed,
     reuseTab,
     writeHref,

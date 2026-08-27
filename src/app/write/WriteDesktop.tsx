@@ -11,13 +11,14 @@
 import { type JSX, useEffect, useRef } from 'react'
 import { Mic2 } from 'lucide-react'
 import GradientButton from '@/components/GradientButton'
+import { storySubmitLabel } from '@/components/StoryTextPanel'
 import { WRITE_PLACEHOLDER, type WriteViewProps } from './types'
 
 /** 舞台高度：满屏减去外壳 72px 顶栏 */
 const STAGE = 'h-[calc(100vh-72px)]'
 
 export default function WriteDesktop({
-  textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, onExit,
+  textStory, onChangeText, canSubmit, submitting, onSubmit, onSwitchToVoice, questionContext, qid, onExit,
 }: WriteViewProps): JSX.Element {
 
   // 键盘：⌘/Ctrl+Enter 提交（canSubmit 时）、Esc 退出。仅 ≥1024px 生效（CSS 双挂载，需按视口过滤）。
@@ -96,7 +97,10 @@ export default function WriteDesktop({
               loading={submitting}
               className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
-              语料梳理 →
+              {/* 文案 = 这一步的真实落点（a581b18 后文字路径不再经整理页）：
+                  有 qid → /analysis「开始分析」，无 qid → /matching「开始匹配题目」。
+                  与整理确认页 CTA 同一份真源（storySubmitLabel），两个入口不许各说各话。 */}
+              {storySubmitLabel(qid, submitting)}
             </GradientButton>
           </div>
           <p className="text-[0.75rem] text-v2-text-muted">⌘/Ctrl + Enter 提交 · Esc 退出</p>

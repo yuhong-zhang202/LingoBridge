@@ -28,6 +28,12 @@ export interface HomeViewProps {
   canSubmit: boolean
   /** 「开始录音」进行中：额度核对 + 麦克风权限探测期间为 true，驱动 CTA 转圈禁用 */
   startingRec: boolean
+  /**
+   * 文字提交实际会带的 qid（= 外壳喂给 useStorySubmit 的那一个：雅思模式当前题，否则 null）。
+   * 只用来决定移动端文本面板提交钮的无障碍标签说什么（有 qid → 落 /analysis，无 → 落 /matching），
+   * 不参与任何行为。与 hook 同源，别在视图里另算一遍。
+   */
+  submitQid: string | null
 
   /** 桌面 Hero 标题第二行打字机逐字文本 */
   typed: string
