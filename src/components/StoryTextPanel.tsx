@@ -33,13 +33,19 @@ export function storySubmitAction(qid: string | null): string {
 }
 
 /**
- * 文字提交按钮的可见文案（与整理确认页 CTA 逐字一致，含尾部箭头）。
+ * 文字提交按钮的可见文案（动作名与整理确认页 CTA 同一套词，含尾部箭头）。
+ *
+ * ⚠️【进行中文案刻意与整理页不同，2026-08-27 产品方拍板】整理页写「保存中…」名副其实——
+ * 点那颗 CTA 就是在存语料；而文字路径这几秒里先跑一次 AI 整理（/api/restructure）再建语料，
+ * 大头时间花在 AI 上，叫「保存中」偏窄。改动 A 之后文字路径不再显示整理页，
+ * 这句「整理中…」是用户唯一能感知到「整理这一步仍然照做」的地方，故不与整理页统一。
+ *
  * @param  qid         同 storySubmitAction
  * @param  submitting  提交进行中
  * @returns            按钮文案
  */
 export function storySubmitLabel(qid: string | null, submitting: boolean): string {
-  return submitting ? '保存中…' : `${storySubmitAction(qid)} →`
+  return submitting ? '整理中…' : `${storySubmitAction(qid)} →`
 }
 
 interface StoryTextPanelProps {
