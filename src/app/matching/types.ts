@@ -89,6 +89,8 @@ export interface MatchingViewProps {
   /** 本次匹配【跨所有 Part】有没有高匹配（≥ SCORE_HIGH）。结果级属性，不随 Tab 变：
    *  result 态据此切「情况二·没有完美匹配的题目」的标题与说明卡（产品方 2026-08-03 定稿） */
   hasHigh: boolean
+  /** 定稿后从全局排序选出的唯一推荐题；Part 筛选只控制其显隐，不得按当前 Tab 重选。 */
+  recommendedId: string | null
   /** 动态 Part 标签：只含有结果的 Part */
   availableTabs: PartTab[]
   activeTab: PartTab

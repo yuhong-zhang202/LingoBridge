@@ -62,7 +62,7 @@ function SkeletonCard(): JSX.Element {
 
 export default function MatchingMobile({
   phase, result, missingCorpus, candidateCount, arrivedCount, slowHint, earlyHint,
-  totalVisible, hasHigh, availableTabs, activeTab,
+  totalVisible, hasHigh, recommendedId, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, lowShown,
   selectedId, expanded, savedIds, savingId,
   onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onSavePair, onRetry, onBack, onExit,
@@ -154,6 +154,7 @@ export default function MatchingMobile({
                         onPractice={() => onPractice(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={true}
+                        recommended={recommendedId === q.id}
                         saveState={saveStateOf(q.id)}
                         onSave={() => onSavePair(q.id)}
                       />
@@ -176,6 +177,7 @@ export default function MatchingMobile({
                         onPractice={() => onPractice(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={false}
+                        recommended={recommendedId === q.id}
                         saveState={saveStateOf(q.id)}
                         onSave={() => onSavePair(q.id)}
                       />
@@ -207,6 +209,7 @@ export default function MatchingMobile({
                     onPractice={() => onPractice(q.id)}
                     isPrimaryMatch={q.isPrimaryMatch}
                     isHighMatch={false}
+                    recommended={false}
                     showSwitchTag={false}
                     practiceVariant="text"
                     saveState={saveStateOf(q.id)}

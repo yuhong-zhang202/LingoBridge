@@ -111,8 +111,8 @@ function TierBadge({ tier }: { tier: Exclude<Tier, 'low'> }): JSX.Element {
 }
 
 /** 左栏紧凑可点题目行 —— 视觉 DNA 对齐 MatchedQuestionCard，但行内不放 CTA（CTA 归右栏） */
-function QuestionRow({ q, isHigh, selected, showSwitchTag = true, onSelect }: {
-  q: FunnelQuestion; isHigh: boolean; selected: boolean; showSwitchTag?: boolean; onSelect: () => void
+function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, onSelect }: {
+  q: FunnelQuestion; isHigh: boolean; selected: boolean; recommended: boolean; showSwitchTag?: boolean; onSelect: () => void
 }): JSX.Element {
   const enText = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
   const zhText = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
@@ -135,6 +135,7 @@ function QuestionRow({ q, isHigh, selected, showSwitchTag = true, onSelect }: {
           : <div className="w-full h-full bg-transparent group-hover:bg-brand-primary/25 transition-colors" />}
       </div>
       <div className="flex-1 p-3.5 min-w-0">
+        {recommended && <Tag variant="green" label="试试这道题吧" className="mb-2" />}
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
           <PartTag label={`Part ${q.part}`} />
           <Tag variant="green" label={q.dimension} />
@@ -262,7 +263,7 @@ function ExitPane({ title, note, label, roomy = false, onAction }: {
 
 export default function MatchingDesktop({
   phase, result, missingCorpus, candidateCount, arrivedCount, slowHint, earlyHint,
-  totalVisible, hasHigh, availableTabs, activeTab, filtered,
+  totalVisible, hasHigh, recommendedId, availableTabs, activeTab, filtered,
   highGroup, midGroup, noneVisible, lowShown, selectedId, savedIds, savingId,
   onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
 }: MatchingViewProps): JSX.Element {
@@ -417,7 +418,7 @@ export default function MatchingDesktop({
                           <GroupHeader text={`高匹配 · ${highGroup.length} 道`} variant="high" />
                           <div className="flex flex-col gap-2.5">
                             {highGroup.map((q) => (
-                              <QuestionRow key={q.id} q={q} isHigh selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
+                              <QuestionRow key={q.id} q={q} isHigh recommended={recommendedId === q.id} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
                             ))}
                           </div>
                         </div>
@@ -427,7 +428,7 @@ export default function MatchingDesktop({
                           <GroupHeader text={`中匹配 · ${midGroup.length} 道`} variant="mid" />
                           <div className="flex flex-col gap-2.5">
                             {midGroup.map((q) => (
-                              <QuestionRow key={q.id} q={q} isHigh={false} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
+                              <QuestionRow key={q.id} q={q} isHigh={false} recommended={recommendedId === q.id} selected={selectedId === q.id} onSelect={() => onSelect(q.id)} />
                             ))}
                           </div>
                         </div>
@@ -447,7 +448,7 @@ export default function MatchingDesktop({
                           // showSwitchTag=false：全都不贴合的语境下只给一部分卡挂「需切换角度」，
                           // 等于暗示没挂的那几道可以直接用
                           <QuestionRow
-                            key={q.id} q={q} isHigh={false} showSwitchTag={false}
+                            key={q.id} q={q} isHigh={false} recommended={false} showSwitchTag={false}
                             selected={selectedId === q.id} onSelect={() => onSelect(q.id)}
                           />
                         ))}

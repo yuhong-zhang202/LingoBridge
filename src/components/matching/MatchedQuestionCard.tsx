@@ -29,6 +29,8 @@ interface Props {
   isPrimaryMatch: boolean
   /** 当前题卡属于高匹配组时传 true，高匹配组一律不显示"需切换角度"标签 */
   isHighMatch: boolean
+  /** 是否为定稿后按全局排序选出的唯一推荐题。 */
+  recommended: boolean
   /** 是否允许显示「需切换角度」标签。低相关态传 false：那个语境下一道题都不能直接用，
    *  只给一部分卡挂标签等于暗示没挂的那几道可以直接用。 */
   showSwitchTag?: boolean
@@ -53,7 +55,7 @@ interface Props {
  * @param onSave     触发存对子
  */
 export default function MatchedQuestionCard({
-  question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch,
+  question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch, recommended,
   showSwitchTag = true, practiceVariant = 'chip', saveState, onSave,
 }: Props) {
   // Part 2 主显示卡片标题，其余显示题目文本
@@ -148,6 +150,7 @@ export default function MatchedQuestionCard({
         </div>
 
         <div className="flex-1 p-4 min-w-0">
+          {recommended && <Tag variant="green" label="试试这道题吧" className="mb-2.5" />}
           <div className="flex items-center gap-2 mb-2.5 pr-9">
             <PartTag label={`Part ${question.part}`} />
             <Tag variant="green" label={question.dimension} />

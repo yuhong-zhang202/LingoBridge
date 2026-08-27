@@ -31,6 +31,7 @@ import { matchEarlyHint, type MatchEarlyHint } from '@/lib/match-early-hint'
 import MatchingMobile from './MatchingMobile'
 import MatchingDesktop from './MatchingDesktop'
 import { deriveMatchPhase } from './phase'
+import { recommendedQuestionId } from './recommendation'
 import type { FunnelResult, FunnelQuestion, FunnelStreamMeta, PartTab, MatchingViewProps } from './types'
 
 /** 逐条到达的富化题（SSE question 帧）：与 FunnelQuestion 同形，唯 ankiSaved 由前端在 done 帧前默认 false。 */
@@ -490,6 +491,12 @@ function MatchingContent() {
     [dailyLimitHit, error, result, streamDone, totalVisible, lowShown.length],
   )
 
+  // 推荐锚定定稿后的全局排序，只计算一个 ID；Part 筛选不参与，避免每个 Part 各冒出一枚推荐标签。
+  const recommendedId = useMemo(
+    () => recommendedQuestionId(phase, result?.questions ?? []),
+    [phase, result],
+  )
+
   // 进入 lowMatch 时的两处归位：
   // F7 —— Part 筛选归位。流式中途 Tab 可点，而 lowShown 不经 Part 筛选，done 一到 Tab 整排消失，
   //        用户做过的筛选会无声蒸发（页面看起来像是自己忘了他点过什么）。
@@ -559,6 +566,7 @@ function MatchingContent() {
     slowHint: previewSlowHint,
     totalVisible,
     hasHigh,
+    recommendedId,
     availableTabs,
     activeTab,
     filtered,
