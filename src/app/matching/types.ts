@@ -131,7 +131,8 @@ export interface MatchingViewProps {
   savedIds: Set<string>
   /** 正在存题卡的题 id（同一时刻至多一个）；null = 无进行中。 */
   savingId: string | null
-  /** 存题卡（书签/右滑触发）。已存题短路、匿名 401 弹注册引导、409 弹换语料弹窗，均在外壳处理。 */
+  /** 存题卡（点书签触发；2026-08-27 删掉右滑手势后，书签是唯一入口）。
+   *  已存题短路、匿名 401 弹注册引导、409 弹换语料弹窗，均在外壳处理。 */
   onSavePair: (id: string) => void
   /** error 态重试（含防重入守卫） */
   onRetry: () => void

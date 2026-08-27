@@ -48,8 +48,8 @@ export type Tier = 'high' | 'mid' | 'low'
 /**
  * 详情卡「理由区」的小标题（按档切）。
  *
- * 【为什么是导出的纯函数而不是内联三元】2026-08-15 产品方拍板的这条用户可见文案改动
- * （低相关档由「这道题和你的语料差在哪」改为「不够贴合」，同时右上角同名徽标不再渲染）
+ * 【为什么是导出的纯函数而不是内联三元】产品方拍板的用户可见文案按档位集中管理，方便测试钉住。
+ * （低相关档显示「不够贴合」，其他档显示中性的「说明」，同时右上角同名徽标不再渲染）
  * 此前**零测试覆盖** —— 谁改回去都没人知道。本项目已有成例：MatchStatusNote 的 `matchTitle`
  * 同样把状态化文案抽成导出纯函数供测试钉。沿用它，不新造机制。
  *
@@ -57,8 +57,8 @@ export type Tier = 'high' | 'mid' | 'low'
  * @returns    小标题文案
  */
 export function relevanceSectionTitle(tier: Tier | null): string {
-  // 低相关时「为什么这道题适合你」是句谎话 —— 这道题恰恰不适合。
-  return tier === 'low' ? '不够贴合' : '为什么这道题适合你'
+  // 低相关时不能暗示题目适合用户；其他档位只说明理由，不预设适配结论。
+  return tier === 'low' ? '不够贴合' : '说明'
 }
 
 /**
@@ -121,40 +121,67 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
   const zhText = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
   const needSwitch = showSwitchTag && !q.isPrimaryMatch && !isHigh
   return (
-    <button
-      onClick={onSelect}
-      data-qid={q.id}
-      aria-pressed={selected}
-      className={`group w-full text-left bg-white rounded-[14px] overflow-hidden flex border border-black/[0.05] transition-[box-shadow,transform] duration-200 ${
-        selected
-          ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]'
-          : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_14px_rgba(0,0,0,0.09)] hover:-translate-y-[1px]'
-      }`}
-    >
-      {/* 左侧竖条：选中显示渐变，未选中 hover 时透出淡暖橙 */}
-      <div className="w-[4px] flex-shrink-0 self-stretch">
-        {selected
-          ? <div className="w-full h-full" style={{ background: SELECTED_BAR }} />
-          : <div className="w-full h-full bg-transparent group-hover:bg-brand-primary/25 transition-colors" />}
-      </div>
-      <div className="flex-1 p-3.5 min-w-0">
-        {recommended && <Tag variant="green" label="试试这道题吧" className="mb-2" />}
-        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-          <PartTag label={`Part ${q.part}`} />
-          <Tag variant="green" label={q.dimension} />
-          {q.is_new && <Tag variant="green" label="新题" />}
-          {needSwitch && (
-            // 文字色由 brand-primary-dark 改 v2-text-secondary：前者压 brand-primary/10 底约 3.86:1，
-            // 10px 字远不达 WCAG AA
-            <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-v2-text-secondary bg-brand-primary/10 border border-brand-primary/30">
-              需切换角度
-            </span>
-          )}
+    // 外壳只为骑边标签而存在：<button> 自带 overflow-hidden 且没有 relative，标签没法挂在它身上。
+    // group 从 button 上移到这里，hover 上浮才能同时驱动按钮和标签（否则上浮 1px 时标签不跟、出现错位）。
+    <div className="group relative">
+      <button
+        onClick={onSelect}
+        data-qid={q.id}
+        aria-pressed={selected}
+        className={`w-full text-left bg-white rounded-[14px] overflow-hidden flex border border-black/[0.05] transition-[box-shadow,transform] duration-200 ${
+          selected
+            ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]'
+            : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)] group-hover:shadow-[0_2px_14px_rgba(0,0,0,0.09)] group-hover:-translate-y-[1px]'
+        }`}
+      >
+        {/* 推荐题的读屏文本：必须是按钮内第一个子元素，可访问名才按「试试这道题吧 → Part → …」拼。
+            视觉标签在按钮外、aria-hidden，两者合起来只念一遍。 */}
+        {recommended && <span className="sr-only">试试这道题吧</span>}
+        {/* 左侧竖条：选中显示渐变，未选中 hover 时透出淡暖橙 */}
+        <div className="w-[4px] flex-shrink-0 self-stretch">
+          {selected
+            ? <div className="w-full h-full" style={{ background: SELECTED_BAR }} />
+            : <div className="w-full h-full bg-transparent group-hover:bg-brand-primary/25 transition-colors" />}
         </div>
-        <p className="text-[0.875rem] font-bold text-v2-text-primary leading-snug truncate">{enText}</p>
-        {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5 truncate">{zhText}</p>}
-      </div>
-    </button>
+        {/* 推荐态把上内边距从 3.5 撑到 11：骑边标签纵向压在上内边距区内，不撑就会盖住 PartTag 行。
+            ① 必须拆成 px-/pb-/pt- 三段，不能写 p-3.5 再补 pt-11 靠类顺序赢（这串没走 twMerge，脆）；
+            ② 必须用 rem 制的 pt-11 而不是 pt-[44px]：字体档放大时标签跟着长高，px padding 不长
+               （成因与下方 Part 筛选槽那条 rem 教训同源）。 */}
+        <div className={`flex-1 px-3.5 pb-3.5 min-w-0 ${recommended ? 'pt-11' : 'pt-3.5'}`}>
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            <PartTag label={`Part ${q.part}`} />
+            <Tag variant="green" label={q.dimension} />
+            {q.is_new && <Tag variant="green" label="新题" />}
+            {needSwitch && (
+              // 文字色由 brand-primary-dark 改 v2-text-secondary：前者压 brand-primary/10 底约 3.86:1，
+              // 10px 字远不达 WCAG AA
+              <span className="text-[0.625rem] font-medium px-[8px] py-[3px] rounded-full text-v2-text-secondary bg-brand-primary/10 border border-brand-primary/30">
+                需切换角度
+              </span>
+            )}
+          </div>
+          <p className="text-[0.875rem] font-bold text-v2-text-primary leading-snug truncate">{enText}</p>
+          {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5 truncate">{zhText}</p>}
+        </div>
+      </button>
+
+      {/* 推荐题的骑边视觉标签：按钮之后、外壳之内，向左出挑 8px 压在左边框上。
+          top-2 而非 -top-2：推荐题几乎总是列表第一张，向上出挑会撞 GroupHeader 那条分隔线。
+          跟着 group-hover 一起上浮 1px，否则 hover 时标签与卡片错位。
+          ⚠️ 上浮必须跟按钮【同条件】：按钮的 hover 上浮只写在未选中分支里（选中态本就不上浮），
+             标签若无条件上浮，选中 + hover 时会变成「卡片不动、标签独自浮起」的反向错位 ——
+             而桌面默认就会自动选中列表第一题，推荐题正是那一张，这个组合是常态不是边角。
+          已知代价：标签会压住选中态 4px 渐变竖条顶端约 26px —— 骑边与「竖条完整」不可兼得，产品方选骑边。
+          ⚠️ 出挑的 8px 会被左栏滚动容器裁掉（overflow-y:auto 使 overflow-x 计算成 auto，
+             起始边不可达溢出被浏览器静默裁平），修法是那个容器上成对的 -ml-2 pl-2，见下方注释。 */}
+      {recommended && (
+        <span aria-hidden="true" className={`pointer-events-none absolute top-2 -left-2 z-10 transition-transform duration-200 ${
+          selected ? '' : 'group-hover:-translate-y-[1px]'
+        }`}>
+          <Tag variant="green" label="试试这道题吧" />
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -214,11 +241,11 @@ function DetailPane(props: {
 
         {q.relevanceReason && (
           <div className="mt-5 border-t border-black/[0.05] pt-5">
-            {/* 标题按档切：低相关时「为什么这道题适合你」是句谎话，这道题恰恰不适合。
+            {/* 标题按档切：低相关时只显示「不够贴合」，其他档位显示中性的「说明」。
                 正文仍用同一个 relevanceReason（重排对低分题照样给 reason，不需要新数据）。
-                ⚠️【2026-08-15 产品方拍板】低相关档的标题由「这道题和你的语料差在哪」改为「不够贴合」，
+                ⚠️【产品方拍板】低相关档标题为「不够贴合」，
                    同时右上角那枚同名 TierBadge 不再渲染 —— 此前两处同时出现同一句判断，
-                   右上角一枚徽标 + 下方一句反问，说的是同一件事，读起来像被强调了两遍。
+                   右上角一枚徽标 + 下方标题，说的是同一件事，读起来像被强调了两遍。
                    现在只保留下方这一处，右上角留给 Part / 维度 / 新题 这些客观标签。 */}
             <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">
               {relevanceSectionTitle(tier)}
@@ -227,8 +254,16 @@ function DetailPane(props: {
           </div>
         )}
       </div>
-      {/* data-detail-actions：桌面 Enter/→ 把焦点送进这个操作区（见下方键盘 effect），挂在容器上 */}
-      <div data-detail-actions className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center justify-end gap-3">
+      {/* data-detail-actions：桌面 Enter/→ 把焦点送进这个操作区（见下方键盘 effect），必须挂在这个容器上
+          （挪到内层 wrapper 会让 Enter 送焦点静默失效）。
+          常规态两颗平权按钮左右分置（justify-between），低相关态只有一颗文字按钮 —— 无条件 between
+          会把它从右推到左、与今天不同，所以 lowTone 仍走 justify-end。
+          分置只写在父容器上：两颗按钮的 class 必须逐字相同（不许给左颗加 mr-auto，那会让两串 class
+          首次分叉）；也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，
+          一次性打破 Tab 顺序、读屏朗读顺序，并让 Enter 送来的焦点落到右颗。 */}
+      <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center gap-3 ${
+        props.lowTone ? 'justify-end' : 'justify-between'
+      }`}>
         {props.lowTone ? (
           <button
             onClick={() => onAnalyze(q.id)}
@@ -440,8 +475,17 @@ export default function MatchingDesktop({
                   ))}
                 </div>
 
-                {/* 列表区：骨架卡 / 真卡分组，二选一填进同一个滚动容器 */}
-                <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
+                {/* 列表区：骨架卡 / 真卡分组，二选一填进同一个滚动容器。
+                    ⚠️【-ml-2 pl-2 必须成对，少一个就出 bug】推荐题的「试试这道题吧」标签向左出挑 8px，
+                       而 overflow-y:auto 会让 overflow-x 计算成 auto —— 向【起始边】的溢出属于不可达溢出，
+                       浏览器直接裁平且不报错、不给滚动条。pl-3 给出挑腾出空间，-ml-3 把这 12px 抵消回去，
+                       保证卡片左缘仍与上方标题 / 说明卡 / Part chips 在同一条垂直线上、卡片宽度不变。
+                       只加 pl-3 → 整列右移与上方全错位；只加 -ml-3 → 照旧被裁。
+                       【为什么补 12px 而不是刚好 8px】等宽补位等于零余量，任何子像素舍入都可能削掉标签边缘，
+                       而这种 bug 只在特定缩放/DPI 下现身、极难复现；12px 留 4px 余量，且左扩的 12px
+                       落在页面外层 px-8（32px）的空白里，不压任何元素。
+                       移动端不用改：那边滚动容器是 px-5（20px），8px 出挑落在内边距区内。 */}
+                <div className="flex-1 min-h-0 overflow-y-auto -ml-3 pl-3 pr-1.5 flex flex-col gap-5">
                   {phase === 'waiting' && (
                     <div className="flex flex-col gap-2.5" aria-hidden="true">
                       {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-[86px] rounded-[14px]" />)}
