@@ -21,6 +21,7 @@ import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-serve
 import { generatePhrases } from '@/services/analysis'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { isQaRequest } from '@/lib/qa-traffic'
+import { isStoryMissing, logStoryMissing } from '@/lib/story-missing'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import type { AnalysisPhraseGroup, QuestionAnalysis } from '@/lib/types'
@@ -133,6 +134,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       story = dbStory ?? storyUrl
     } catch {
       story = storyUrl
+    }
+    // 静默降级留痕（与 /api/analysis 同口径、同判定）：带了 storyId 却没解析出正文 = 这一档词组
+    // 与用户的故事无关，而界面上看不出来。降级行为不动，只把它记成一条可查的事件。
+    if (isStoryMissing(storyId, story)) {
+      await logStoryMissing({ req, stage: 'phrases', storyId, userId })
     }
 
     const q = await getQuestionById(questionId)

@@ -8,6 +8,7 @@ import 'server-only'
 import { env } from '@/lib/env-server'
 import { getQuestionById, getQuestionsByParent } from '@/lib/db/questions'
 import { getCorpusByIdServer } from '@/lib/db/corpus-server'
+import { isStoryMissing } from '@/lib/story-missing'
 import { generateAnalysis } from '@/services/analysis'
 import { callLLMJson, type LLMUsage } from '@/lib/llm'
 import { MODEL_PRACTICE } from '@/lib/constants'
@@ -17,18 +18,25 @@ import type { PracticeScaffold, PracticeMessage, PolishResult } from '@/lib/type
  * 构建对话脚手架（一次性：取题 + 用户语料 + 侧重点 + 真实 Part 3）。
  * ⚠️ 内部会额外发一次 generateAnalysis 的 AI 调用——这条调用此前在 practice route 完全漏记账。
  * @param onAnalysisUsage  内部 generateAnalysis 的真实 token 用量回调（供 route 单独记这条调用的账）
+ * @param onStoryMissing   「带了 storyId 却读不到正文」时回调一次（供 route 发 flow.story_missing）。
+ *                         本文件是 service 不是 route，拿不到 Request、也不该自己发事件，
+ *                         故照 onAnalysisUsage 的老规矩把事实回传给 route，由它去记 —— 事件发点保持在路由层一处。
  */
 export async function buildScaffold(
   questionId: string,
   storyId?: string,
   level = '6.0',
   onAnalysisUsage?: (usage: LLMUsage) => void,
+  onStoryMissing?: () => void,
 ): Promise<PracticeScaffold> {
   const q = await getQuestionById(questionId)
   if (!q) throw new Error('题目不存在')
 
   // service_role 服务端读用户语料（与 analysis 同路径）；无 storyId 时为空，Lior 自动走 fallback
   const story = storyId ? (await getCorpusByIdServer(storyId)) ?? '' : ''
+  // 静默降级留痕：storyId 非空却读不到正文 = 教练会走「用户还没讲故事」的 fallback 台词，
+  // 用户明明讲过，却被当成没讲。降级行为不动（那句 fallback 照旧），只把事实回传给 route。
+  if (isStoryMissing(storyId ?? '', story)) onStoryMissing?.()
 
   const part3 = q.part === 2 ? await getQuestionsByParent(q.id) : []
   const analysis = await generateAnalysis({

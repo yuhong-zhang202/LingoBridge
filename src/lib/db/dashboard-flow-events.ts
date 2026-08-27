@@ -56,6 +56,12 @@ export const FLOW_EVENT_NAMES = [
   'flow.capture_submitted',
   'flow.capture_abandoned',
   'flow.ai_call',
+  // 紧跟 flow.ai_call：两者是同一段 AI 环节的【出口】与【入口】——ai_call 记「这次调用的结局」，
+  // story_missing 记「这次调用喂进去的语料是空的」。挨着放才看得出那类最难发现的故障：
+  // 调用成功、结局 ok、成本照记，但用户拿到的是一份跟他故事无关的通用分析（一次「绿着的失败」）。
+  // ⚠️ 两者的 stage 口径【不同】，别横向相减：ai_call 是客户端视角的 8 段 AI 路由，
+  //    story_missing 只有 analysis / analysis_stream / phrases / practice 四个服务端降级点。
+  'flow.story_missing',
   'flow.corpus_bound',
   'flow.consent_granted',
   'match.result',
@@ -87,6 +93,10 @@ const EVENT_LABEL: Record<string, string> = {
   'flow.capture_submitted': '采集提交',
   'flow.capture_abandoned': '采集中途放弃',
   'flow.ai_call':           'AI 调用',
+  // 措辞是有意的：责任在【我们】，不是用户忘了传。用户绑了语料（storyId 在），服务端却没读出正文，
+  // 于是分析/词组悄悄退回通用版、教练走「还没讲故事」的 fallback，界面上一点异常都看不出来。
+  // 写成「用户没传语料」会把人指向完全相反的方向（那种情况根本不发本事件）。
+  'flow.story_missing':     '该有语料却没取到（静默降级）',
   'flow.corpus_bound':      '语料建成',
   'flow.consent_granted':   '同意隐私条款',
   'match.result':           '匹配结果（服务端）',
@@ -147,6 +157,10 @@ const AI_RESULT_BUCKET: Record<string, AiResultBucket> = {
   busy_503:      'ours',
   server_5xx:    'ours',
   parse_fail:    'ours',
+  // 【为什么归 ours 而不是 user】它是从 bad_input_400 里劈出来的那一半：用户明明讲完了故事，
+  // 库里那条语料却没有正文（cleaned_text 被写空 / 整理没落库）—— 是我们的数据故障，不是他输入不合格。
+  // 归错桶等于让「该我们修」的东西躺在「用户侧」栏里被当成噪音，正是这个值存在的全部理由。
+  corpus_empty_400: 'ours',
   network:       'network',
   timeout:       'network',
   aborted:       'aborted',
@@ -168,6 +182,8 @@ const RESULT_LABEL: Record<string, string> = {
   busy_503:      '并发满',
   server_5xx:    '服务端错误',
   parse_fail:    '返回解析失败',
+  // 与「输入不合格」必须一眼分得开：那是用户给的东西不行，这是我们库里的语料没正文。
+  corpus_empty_400: '语料无正文（我方数据）',
   network:       '网络失败',
   timeout:       '超时',
   aborted:       '用户跳页打断',

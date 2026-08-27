@@ -18,6 +18,7 @@ import { generateAnalysis, generateAnalysisStreaming } from '@/services/analysis
 import type { AnalysisStreamSection } from '@/lib/analysis-stream-parse'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { isQaRequest } from '@/lib/qa-traffic'
+import { isStoryMissing, logStoryMissing } from '@/lib/story-missing'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
@@ -123,6 +124,12 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       story = dbStory ?? storyUrl
     } catch {
       story = storyUrl
+    }
+    // 静默降级留痕：带了 storyId 却没解析出正文 = 用户讲过故事、这份分析却与他的故事无关，
+    // 而界面上一点异常都看不出来。降级行为不动（照旧走通用分析），只把它记成一条可查的事件。
+    // 判定放在 try/catch【之后】：读库返回 null 与读库抛错两种走法都会落到「story 为空」，一处即全覆盖。
+    if (isStoryMissing(storyId, story)) {
+      await logStoryMissing({ req, stage: 'analysis', storyId, userId })
     }
 
     const q = await getQuestionById(questionId)
@@ -334,6 +341,11 @@ async function handleStreaming(req: Request): Promise<Response> {
       story = dbStory ?? storyUrl
     } catch {
       story = storyUrl
+    }
+    // 静默降级留痕（口径同 handleBuffered，只有 stage 不同）：这一路是真实用户的默认路，
+    // 两路各记各的 stage，才看得出是哪一路在漏；写在开流之前，与降级本身同一刻发生。
+    if (isStoryMissing(storyId, story)) {
+      await logStoryMissing({ req, stage: 'analysis_stream', storyId, userId })
     }
 
     const q = await getQuestionById(questionId)

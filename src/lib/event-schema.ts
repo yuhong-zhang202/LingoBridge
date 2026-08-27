@@ -142,7 +142,14 @@ export type AiStage = (typeof AI_STAGE)[number]
  */
 export const AI_RESULT = [
   'ok', 'consent_403', 'quota_402', 'rate_429', 'bad_input_400', 'empty_422', 'auth_401',
-  'busy_503', 'server_5xx', 'parse_fail', 'network', 'timeout', 'aborted', 'other',
+  'busy_503', 'server_5xx', 'parse_fail',
+  // 'corpus_empty_400' 是从 bad_input_400 里【劈出来】的一格：/api/matching 的 400 有两种成因，
+  // 「corpusId 不合法」（用户侧）与「这份语料在库里没有正文」（我方把 cleaned_text 写空了）。
+  // 混成一格的后果不是少了个维度，而是**指错责任方** —— 看板把 bad_input_400 归进
+  // 「用户侧·输入不合格」，于是我们自己的数据故障显示成用户的错，量不大时会被当噪音略过。
+  // ⚠️ 只是加了一个值：历史的 bad_input_400 行一律不动、不迁移、不回填。
+  'corpus_empty_400',
+  'network', 'timeout', 'aborted', 'other',
 ] as const
 export type AiResult = (typeof AI_RESULT)[number]
 
@@ -419,6 +426,38 @@ export interface MatchResultCandidate {
  */
 export const MATCH_RESULT_CANDIDATES_MAX = 100
 
+// ── flow.story_missing（服务端专属事件）的 stage 契约 ─────────────────────────────────────────
+// ⚠️ 与 match.result 同属 SERVER_ONLY_EVENTS：由 lib/story-missing.ts 经 lib/events.ts 以 service_role
+//    直接落库，【不过 /api/events 的 sanitize】。故 api/events/route.ts 一行都不用改
+//    （那条路仍会把客户端上报的 flow.story_missing 一律 400，见 events-sanitize.test.ts）。
+
+/**
+ * `flow.story_missing` 的触发环节 —— 「用户绑了语料、正文却取不到」这一静默降级发生在哪一段。
+ *
+ * 【为什么四段要分开而不是记一个布尔】四个消费方对「取不到正文」的反应各不相同、修法也不同：
+ *   analysis / analysis_stream / phrases 悄悄退回「通用分析」（一份跟用户故事无关的分析），
+ *   practice 让教练走 fallback 台词（"The user hasn't shared a story for this one yet"）。
+ *   混成一格就只能看出「有事发生」、答不了「哪条路在漏」。
+ * 【为什么 analysis 与 analysis_stream 要分开】同一个路由的两条实现路（流式默认路 / `?stream=0`
+ *   降级路）字节等价但代码各写一份，正是最容易只改一处的地方；分成两格，哪一路漏发一眼看得出。
+ */
+export const STORY_MISSING_STAGE = ['analysis', 'analysis_stream', 'phrases', 'practice'] as const
+export type StoryMissingStage = (typeof STORY_MISSING_STAGE)[number]
+
+/**
+ * `flow.story_missing` 的 props 契约 —— 【只有 stage 一个枚举字段】。
+ *
+ * 🔴【隐私】故事正文、摘要、题面一个字都不许进 props：本事件恰恰诞生在「读用户语料」这一步旁边，
+ *   是全表最容易顺手把原文塞进来的一条。语料主键走 flow_events 的 `story_id` 【列】（UUID，非内容，
+ *   且入库前有形态白名单），不放进 props；用户归属走 `user_id` 列。两者都不该在这里重复一份。
+ *
+ * ⚠️ 刻意写成 type 而非 interface：interface 没有隐式索引签名，赋给 logEvent 的
+ *   `props?: Record<string, unknown>` 会被 tsc 拒（同 QuestionOpenedProps 的写法）。
+ */
+export type StoryMissingProps = {
+  stage: StoryMissingStage
+}
+
 // ── 全事件通用的元字段（不属于任何一个事件的业务 props，由 track 在补发时自动挂上）───────────────
 
 /**
@@ -683,7 +722,17 @@ export type ClientEventName = keyof ClientEventPropsMap
 
 /**
  * 只由服务端自己发的事件名 —— 不接受客户端上报（不在 EVENT_SPECS 分发表里）。
- * match.result = 一次匹配的结果分布；flow.corpus_bound = 语料建成；flow.consent_granted = 同意捕获。
+ * match.result = 一次匹配的结果分布；flow.corpus_bound = 语料建成；flow.consent_granted = 同意捕获；
+ * flow.story_missing = 该有语料却取不到（见下）。
+ *
+ * 【flow.story_missing 为什么非有不可】`getCorpusByIdServer` 取不到正文时返回 null，而四个消费方对
+ *   null 的反应【只有匹配会喊】（400「语料无正文或不存在」），另外三个全是静默降级：
+ *   analysis 两条路与 phrases 退回「通用分析」、practice 让教练走「用户还没讲故事」的 fallback。
+ *   后果是用户明明讲了故事、却拿到一份跟他故事无关的分析或对话，而**界面上完全看不出来、看板里也查不到**。
+ *   产品方拍板不改降级行为（用户已经讲完了，当场甩他一个错误不如给一份通用的、我们自己去修），
+ *   本事件就是这个选择的配套：把只有用户能察觉的东西变成服务端能查的东西。
+ *   ⚠️ 只在 `storyId` 非空时才发 —— `storyId` 为空是【合法】的通用分析场景（用户没绑语料），
+ *   把那种流量也算进来，本事件就会被正常流量淹没、等于没埋。判定收口在 lib/story-missing.ts。
  */
-export const SERVER_ONLY_EVENTS = ['match.result', 'flow.corpus_bound', 'flow.consent_granted'] as const
+export const SERVER_ONLY_EVENTS = ['match.result', 'flow.corpus_bound', 'flow.consent_granted', 'flow.story_missing'] as const
 export type ServerOnlyEventName = (typeof SERVER_ONLY_EVENTS)[number]

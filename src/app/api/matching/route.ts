@@ -25,6 +25,8 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
 // 落库档位判定抽在 @/lib/match-level（逻辑一字未改，只为可测；见该文件顶注）
 import { levelForScore } from '@/lib/match-level'
+// 与匹配页共用一份码（两头各拼一次字符串必然漂移，且漂移是静默的：客户端只会把它当普通 400）
+import { CORPUS_EMPTY_CODE } from '@/lib/match-ai-result'
 import { requireConsent } from '@/lib/consent-server'
 import { runWithRawLogContext } from '@/lib/raw-log-context'
 import { logEvent } from '@/lib/events'
@@ -197,7 +199,10 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     ])
     const cleanedText = rawText?.trim() ?? ''
     if (!cleanedText) {
-      return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
+      // code 是给客户端埋点分流用的【机器可读码】：没有它，本 400 与「corpusId 为空」那种真·输入错
+      // 在客户端长得一模一样，只能一起记成 bad_input_400 → 看板归进「用户侧·输入不合格」，
+      // 而这件事十有八九是【我们】把 cleaned_text 写空了。指错责任方比不报还坏（会被当噪音略过）。
+      return NextResponse.json({ error: '语料无正文或不存在', code: CORPUS_EMPTY_CODE }, { status: 400 })
     }
     const hash = storyHash(cleanedText)
 
@@ -406,7 +411,9 @@ async function handleStreaming(req: Request): Promise<Response> {
       env.matchSnapshotEnabled ? getMatchSnapshotServer(corpusId) : Promise.resolve(null),
     ])
     const cleanedText = rawText?.trim() ?? ''
-    if (!cleanedText) return NextResponse.json({ error: '语料无正文或不存在' }, { status: 400 })
+    // 与 handleBuffered 同口径带 code（两条路必须一致：客户端流式失败会降级重发 ?stream=0，
+    // 真正被读到的往往是【降级路】那一条响应，只改一条等于没改）
+    if (!cleanedText) return NextResponse.json({ error: '语料无正文或不存在', code: CORPUS_EMPTY_CODE }, { status: 400 })
     const hash = storyHash(cleanedText)
     const cached: FunnelMatchResult | null =
       snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null

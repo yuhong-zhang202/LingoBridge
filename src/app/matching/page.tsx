@@ -13,6 +13,7 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
+import { aiResultFromFailedResponse } from '@/lib/match-ai-result'
 import { track } from '@/lib/client-events'
 // AI 调用结局 / 选题入口的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
 // 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
@@ -256,13 +257,11 @@ function MatchingContent() {
           if (handleTerminalStatus(res)) return
           if (!res.ok) {
             // 降级也失败 = 本次尝试的最终结局，在 throw 之前报（throw 进下面 catch 会被记成 network，
-            // 那是凭空造故障：请求明明到了服务端并拿到了状态码）。400=corpusId 空/语料无正文。
-            reportAi(
-              res.status === 400 ? 'bad_input_400'
-                : res.status === 401 ? 'auth_401'
-                  : res.status >= 500 ? 'server_5xx' : 'other',
-              res.status,
-            )
+            // 那是凭空造故障：请求明明到了服务端并拿到了状态码）。
+            // 400 的两种成因必须分开报：corpusId 不合法 = bad_input_400（用户侧），
+            // 语料在库里没有正文 = corpus_empty_400（我方数据故障）。判据是响应体里的 code，
+            // 读取走 res.clone()（见 aiResultFromFailedResponse 顶注：这条路上响应体可能被别处消费）。
+            reportAi(await aiResultFromFailedResponse(res), res.status)
             throw new Error('匹配失败')
           }
           applyFinal((await res.json()) as FunnelResult)

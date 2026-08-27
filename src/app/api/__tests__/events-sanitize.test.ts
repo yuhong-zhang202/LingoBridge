@@ -608,6 +608,7 @@ describe('事件名分发闸 —— 未注册立即 400、绝不落库', () => {
     ['match.result'],             // 服务端自发事件，不接受客户端上报
     ['flow.corpus_bound'],        // 同上
     ['flow.consent_granted'],     // 同上（由 /api/consent 服务端补发）
+    ['flow.story_missing'],       // 同上（由 lib/story-missing.ts 在四个降级点服务端自发）
     ['FLOW.STORY_ENTRY'],         // 大小写近似
     [''],                         // 空串
   ])('事件名 %s → 400 且 logEvent 零调用', async (event) => {
@@ -643,6 +644,7 @@ const EVENT_NAME_RE = /^(flow|match|quota|auth|page)\.[a-z][a-z0-9_]{1,39}$/
 const ALL_FLOW_EVENTS: Record<FlowEventName, true> = {
   'match.result': true,
   'flow.corpus_bound': true,
+  'flow.story_missing': true,
   'match.view_rendered': true,
   'match.question_opened': true,
   'flow.story_entry': true,

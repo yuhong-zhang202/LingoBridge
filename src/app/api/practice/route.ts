@@ -9,6 +9,7 @@ import { logErr } from '@/lib/log'
 import { buildScaffold, coachReply } from '@/services/practice'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { isQaRequest } from '@/lib/qa-traffic'
+import { logStoryMissing } from '@/lib/story-missing'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
 import { requireUserAllowAnon, assertCorpusOwner, authErrorResponse } from '@/lib/api-auth'
@@ -94,9 +95,17 @@ export async function POST(req: Request): Promise<NextResponse> {
       const scaffoldT0 = Date.now()
       // onUsage 在服务内部同步触发（callLLMJson 返回前回调），await 结束后 analysisUsage 已落值。
       let analysisUsage: LLMUsage | null = null
+      // 静默降级留痕：buildScaffold 里「带了 storyId 却读不到正文」时回调，教练会走
+      // 「用户还没讲故事」的 fallback 台词而界面看不出来。降级行为不动，只记一条可查的事件。
+      // 判定在 service 里（与另外三处共用 isStoryMissing 一份），事件发点留在路由层。
+      let storyMissing = false
       scaffold = await runWithRawLogContext(rawLogCtx, () =>
-        buildScaffold(questionId, body.storyId, body.level, (u) => { analysisUsage = u }),
+        buildScaffold(questionId, body.storyId, body.level, (u) => { analysisUsage = u }, () => { storyMissing = true }),
       )
+      // storyId 为空是【合法】的无语料练习（不发事件），故此处只可能是 isStoryMissing 判真的那种
+      if (storyMissing && body.storyId) {
+        await logStoryMissing({ req, stage: 'practice', storyId: body.storyId, userId })
+      }
       const aUsage: LLMUsage = analysisUsage ?? { promptTokens: Math.round(scaffold.questionForAI.length * 0.3 + 800), completionTokens: 400 }
       await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: aUsage.promptTokens + aUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(aUsage.promptTokens, aUsage.completionTokens), latency_ms: Date.now() - scaffoldT0, status: 'success', user_id: userId, corpus_id: body.storyId || undefined, is_anonymous: isAnonymous, is_qa: isQaRequest(req, userId), metadata: { phase: 'analysis', prompt_tokens: aUsage.promptTokens, completion_tokens: aUsage.completionTokens, cost_source: analysisUsage ? 'actual' : 'estimate' } })
     }
