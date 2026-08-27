@@ -65,7 +65,7 @@ export default function MatchingMobile({
   totalVisible, hasHigh, recommendedId, availableTabs, activeTab,
   highGroup, midGroup, foldedCount, hasMore, noneVisible, lowShown,
   selectedId, expanded, savedIds, savingId,
-  onSelectTab, onToggleSelect, onToggleExpanded, onPractice, onSavePair, onRetry, onBack, onExit,
+  onSelectTab, onToggleSelect, onToggleExpanded, onAnalyze, onPracticeDirect, onSavePair, onRetry, onBack, onExit,
 }: MatchingViewProps): JSX.Element {
   // 单题存对子三态：进行中 > 已存 > 未存（saving 优先于 saved，避免刚点完瞬间闪回未存）
   const saveStateOf = (id: string): 'idle' | 'saving' | 'saved' =>
@@ -151,7 +151,8 @@ export default function MatchingMobile({
                         question={q}
                         selected={selectedId === q.id}
                         onToggle={() => onToggleSelect(q.id)}
-                        onPractice={() => onPractice(q.id)}
+                        onAnalyze={() => onAnalyze(q.id)}
+                        onPracticeDirect={() => onPracticeDirect(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={true}
                         recommended={recommendedId === q.id}
@@ -174,7 +175,8 @@ export default function MatchingMobile({
                         question={q}
                         selected={selectedId === q.id}
                         onToggle={() => onToggleSelect(q.id)}
-                        onPractice={() => onPractice(q.id)}
+                        onAnalyze={() => onAnalyze(q.id)}
+                        onPracticeDirect={() => onPracticeDirect(q.id)}
                         isPrimaryMatch={q.isPrimaryMatch}
                         isHighMatch={false}
                         recommended={recommendedId === q.id}
@@ -200,13 +202,14 @@ export default function MatchingMobile({
                 {lowShown.map((q) => (
                   // showSwitchTag=false：全都不贴合的语境下只给一部分卡挂「需切换角度」，
                   // 等于暗示没挂的那几道可以直接用。
-                  // practiceVariant=text：这几道题是佐证不是备选，卡上的分析入口不该和底部主 CTA 抢注意力。
+                  // practiceVariant=text：这几道题是佐证不是备选，卡上的分析入口不该和底部主 CTA 抢注意力；
+                  // 这个形态【在类型上】就没有 onPracticeDirect —— 低相关态一律不出练习入口。
                   <MatchedQuestionCard
                     key={q.id}
                     question={q}
                     selected={selectedId === q.id}
                     onToggle={() => onToggleSelect(q.id)}
-                    onPractice={() => onPractice(q.id)}
+                    onAnalyze={() => onAnalyze(q.id)}
                     isPrimaryMatch={q.isPrimaryMatch}
                     isHighMatch={false}
                     recommended={false}

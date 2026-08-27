@@ -116,8 +116,17 @@ export interface MatchingViewProps {
   /** 桌面 master-detail：点行始终选中该题（不取消，右栏永远有内容） */
   onSelect: (id: string) => void
   onToggleExpanded: () => void
-  /** 对某题进入题目分析（跳 /analysis，非 /practice） */
-  onPractice: (id: string) => void
+  /**
+   * 对某题进入【题目分析】（跳 /analysis，非 /practice）。
+   * ⚠️ 原名 onPractice —— 名字与行为不符（它一直跳的是分析页），2026-08-27 两入口平权时正名。
+   */
+  onAnalyze: (id: string) => void
+  /**
+   * 对某题【直接开始练习】（跳 /practice，跳过分析页）。2026-08-27 起与「题目分析」平权。
+   * 🔴 lowMatch 形态不出这个入口（那几道题一道都用不上），故两端的低相关分支在【类型上】
+   *    就没有这个回调的位置（见 MatchedQuestionCard 的 Props 联合与桌面 DetailPane）。
+   */
+  onPracticeDirect: (id: string) => void
   /** 已存题卡的题 id 集合（含服务端 ankiSaved 初值 + 本次会话新存的）。 */
   savedIds: Set<string>
   /** 正在存题卡的题 id（同一时刻至多一个）；null = 无进行中。 */

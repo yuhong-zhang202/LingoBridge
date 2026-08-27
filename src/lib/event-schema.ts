@@ -322,6 +322,20 @@ export const VIEW_RENDERED_BOOL = ['noMatch', 'globalNoneVisible', 'rankingDegra
 /** match.question_opened 的正整数字段白名单：rank = 1-based 排位、candidateCount = 列表总数 */
 export const QUESTION_OPENED_NUMERIC = ['rank', 'candidateCount'] as const
 
+/**
+ * 用户从匹配页的哪个入口打开这道题（2026-08-27 起「题目分析」与「开始练习」两个入口平权）。
+ *   · analysis = 点「题目分析」→ /analysis
+ *   · practice = 点「开始练习」→ 直达 /practice（跳过分析页）
+ *
+ * 【为什么是加字段而不是另起一个事件名】match.question_opened 是漏斗第⑤步、也是重排质量
+ * rank 信号的【唯一】来源。新入口若另起事件名：① 漏斗第⑤步会因为少了一半的量而出现 >100% 的反超；
+ * ② rank 样本按入口劈成两半，两边都要手工相加才是原口径；③ 事件名要同时过 DB 的 CHECK 正则、
+ * /api/events 分发表、看板事件清单三处（理由同本文件 PAGE_ROUTE 条目里「一页一个事件名」那段）。
+ * 加一个枚举字段则口径不变、旧数据仍可用（没有该字段的行 = 改动前的老数据，全部是 analysis 入口）。
+ */
+export const QUESTION_OPENED_ENTRY = ['analysis', 'practice'] as const
+export type QuestionOpenedEntry = (typeof QUESTION_OPENED_ENTRY)[number]
+
 /** match.view_rendered 的 props 契约（字段全可选：客户端按当次渲染实际有的信息带） */
 export type ViewRenderedProps =
   Partial<Record<(typeof VIEW_RENDERED_NUMERIC)[number], number>> &
@@ -330,6 +344,12 @@ export type ViewRenderedProps =
 /** match.question_opened 的 props 契约（dwellMs 上界与 rank 不同故单列；questionId/algoVersion 为受限形态串） */
 export type QuestionOpenedProps =
   Partial<Record<(typeof QUESTION_OPENED_NUMERIC)[number], number>> & {
+    /**
+     * 【必填】走的是哪个入口（见 QUESTION_OPENED_ENTRY）。刻意不给默认值、不设可选：
+     * 两个入口都必须发本事件，漏一个就是漏斗第⑤步反超 + rank 样本腰斩，而那两件事在数据里
+     * 长得像「用户变少了」。设成必填，将来再加第三个入口时 tsc 会当场把人挡在这条决定面前。
+     */
+    entry: QuestionOpenedEntry
     /** 用户在匹配页的活跃浏览时长(ms)，0 允许 = 一眼即点 */
     dwellMs?: number
     /** 题目主键 UUID（仅内部 id 引用，无原文） */
@@ -458,7 +478,7 @@ export type ClientEventPropsMap = {
   // ⇒ 拿 count(*) 算放弃率会系统性低估，且低估幅度不可校正（大小未知 = 无法加权修正）。
   // 【放弃率的唯一正确来源是离线推断口径】：有 capture_started、但窗口内该 user 没有新增 corpus 行。
   // 它的输入（capture_started 在挂载时报、早于用户做任何决定；corpus 是服务端事实）丢失与结局无关，
-  // 只缩小样本、不偏移比率。口径全文见 docs/交接-用户反馈批次-2026-08-02.md §3.5。
+  // 只缩小样本、不偏移比率。当前口径与历史边界见 Project_State.md §4、§8。
   'flow.capture_abandoned': {
     mode: CaptureMode
     exit: CaptureExit

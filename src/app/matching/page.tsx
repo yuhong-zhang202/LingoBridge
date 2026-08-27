@@ -14,9 +14,9 @@ import { useNav } from '@/components/NavProgress'
 import { saveExtraction, getCorpusById } from '@/lib/db/corpus'
 import { apiFetch } from '@/lib/api-client'
 import { track } from '@/lib/client-events'
-// AI 调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
+// AI 调用结局 / 选题入口的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
 // 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
-import type { AiResult } from '@/lib/event-schema'
+import type { AiResult, QuestionOpenedEntry } from '@/lib/event-schema'
 import { requestAnalysis, abortAll, inflightKey } from '@/lib/analysis-inflight'
 import { SCORE_HIGH, SCORE_MID, LOW_MATCH_SHOW_MAX, targetBandToLevel, RANKING_ALGO_VERSION } from '@/lib/constants'
 import { useAccount } from '@/hooks/useAccount'
@@ -26,6 +26,9 @@ import Toast from '@/components/Toast'
 import AnkiRegisterGate from '@/components/anki/AnkiRegisterGate'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
 import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+// 进练习前的结对确认（含 409 撞别的语料）与分析页共用同一份：那次 saveAnkiPair 是故事流唯一的自动结对动作
+import { startPracticeWithPairCheck } from '@/lib/anki/start-practice'
+import { startPracticeSession } from '@/lib/storage'
 import { getMockUiState } from '@/lib/matching-mock'
 import { matchEarlyHint, type MatchEarlyHint } from '@/lib/match-early-hint'
 import MatchingMobile from './MatchingMobile'
@@ -138,6 +141,11 @@ function MatchingContent() {
   const dwellRef = useRef<{ activeStart: number; accumulatedMs: number } | null>(null)
   const [swap, setSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
   const [swapping, setSwapping] = useState(false)
+  // 「开始练习」直达路径上的 409 换语料弹窗，与上面书签那个【刻意分开】：两者的出路不同 ——
+  // 书签的两条出路都留在本页（换/保留后接着挑题），练习的两条出路【都接着进练习】
+  // （用户点的是「开始练习」，换不换语料是这条路上的岔口，不该因为岔口的结果把他留在匹配页）。
+  const [practiceSwap, setPracticeSwap] = useState<{ questionId: string; current: CorpusBrief } | null>(null)
+  const [practiceSwapping, setPracticeSwapping] = useState(false)
   // 本页会话语料（corpusId）的一句话概括：整理时已同源产出并写入 corpus.summary，此处按 id 拉出，
   // 供 409 换语料弹窗把「新语料」显示成真概括而非中性占位（弹窗才会用到，但预拉一次免开窗时闪动）。
   const [newCorpusSummary, setNewCorpusSummary] = useState<string | null>(null)
@@ -553,6 +561,57 @@ function MatchingContent() {
     }
   }
 
+  // 选题排位：该题在 result.questions（已按分数降序 = 用户所见顺序）里的 index+1。
+  // 0 = 不在列表里（两个入口的 id 都取自这份列表，正常走不到；只作防御）。
+  const rankOf = (questionId: string): number => (result?.questions.findIndex((q) => q.id === questionId) ?? -1) + 1
+
+  /**
+   * 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）。
+   *
+   * 🔴【两个入口都必须调它】它是漏斗第⑤步、也是重排质量 rank 信号的【唯一】发出点。
+   *   新入口漏发的后果不是「少一点数据」：漏斗第⑤步会因为分子少了一半而出现 >100% 的反超
+   *   （下游的 practice 步反而比它大），rank 样本则直接腰斩 —— 两者在看板上都长得像「产品变差了」。
+   *   区分入口靠 props 的 entry 字段（不另起事件名，理由见 event-schema 的 QUESTION_OPENED_ENTRY）。
+   *
+   * 顺序：先 track 再跳 —— 请求一旦发出，SPA 客户端跳转不卸载页面/不 kill 在途请求，
+   * 故不会因跳转丢上报（也正因不卸载，此处【不需要】opts.keepalive）。失败静默、绝不阻塞跳转。
+   * @param questionId 被点开的题 id
+   * @param entry      走的是哪个入口（analysis = 题目分析 / practice = 开始练习）
+   * @sideEffect       POST /api/events（失败静默）
+   */
+  const trackQuestionOpened = (questionId: string, entry: QuestionOpenedEntry): void => {
+    const rank = rankOf(questionId)
+    if (!result || rank < 1) return
+    // dwell 终点 = 点击时刻。活跃时长 = 已落袋 + 当前可见时段（点击必在前台，document.hidden 恒 false，
+    // 防御性保留判断）。Math.round 取整过服务端 sanitize 的整数校验。
+    const d = dwellRef.current
+    const dwellMs = d ? Math.round(d.accumulatedMs + (document.hidden ? 0 : performance.now() - d.activeStart)) : undefined
+    // 同 view_rendered：走 track() 而非裸调 apiFetch，字段受 event-schema 的 QuestionOpenedProps 约束。
+    // 乙.1：带 questionId（= 点开的题 UUID）+ algoVersion（当前排序算法版本常量），去掉「靠 rank
+    // join 快照 result.questions[rank-1]、遇算法升级错位」的脆耦合。服务端 sanitize 按 UUID/短枚举放行。
+    // flowId 无需在此显式带：track 常规路径最终仍走 apiFetch，X-Flow-Id 头自动注入，route 侧读该头写入（乙.3）。
+    track('match.question_opened', {
+      entry,
+      rank,
+      candidateCount: result.questions.length,
+      questionId,
+      algoVersion: RANKING_ALGO_VERSION,
+      ...(dwellMs != null ? { dwellMs } : {}),
+    }, { storyId: corpusId })
+  }
+
+  // 直达练习：五个 query 参数一个都不能省 —— 缺 questionId 练习页直接 error；缺 storyId 教练走
+  // 「用户还没分享故事」的 fallback 且 practice_sessions.story_id 写 null；缺 level 默认 6.0（目标 7.5
+  // 的用户拿到错档）；review 传 1 会误触发复练月额度校验；缺 rank 则走本入口的用户全部不进重排质量样本。
+  // rank 恒 >=1（id 取自 result.questions）；万一取不到给 0，练习页对脏值一律作 null，不写脏数据。
+  // startPracticeSession 必须紧贴 navigate 之前（生成本场 id + 清上一场遗留句子），且 URL 保持字面量：
+  // src/__tests__/practice-session-entry-rule.test.ts 是静态扫描守卫，抽成函数/拉远它就守不住了。
+  const goPractice = (questionId: string): void => {
+    const rank = rankOf(questionId)
+    startPracticeSession()
+    navigate(`/practice?questionId=${questionId}&storyId=${corpusId}&level=${level}&review=0&rank=${rank}`)
+  }
+
   const viewProps: MatchingViewProps = {
     phase,
     result,
@@ -585,7 +644,7 @@ function MatchingContent() {
     onToggleExpanded: () => setExpanded(v => !v),
     // from=matching：让 analysis「返回上一步」知道自己该回到本匹配页（故事流），而非静默走错。
     // navigate（非 router.push）：点「开始分析」瞬间即亮顶部进度条，AI 分析页拉取期间有反馈。
-    onPractice: (id) => {
+    onAnalyze: (id) => {
       // 演示模式点了不跳：mock 题 id 在库里不存在，跳过去只会拿到一个错误页，
       // 还会白发一次 analysis 请求并往选题行为真源里打一条假记录。
       if (preview) return
@@ -597,31 +656,29 @@ function MatchingContent() {
       lastClickedKeyRef.current = key
       abortAll(key)
       requestAnalysis(id, corpusId, false, level)
-      // 选题排位埋点 match.question_opened（fire-and-forget，先发再跳）：rank = 该题在 result.questions
-      //（已按分数降序 = 用户所见顺序）的 index+1；candidateCount = 列表总数。
-      // 顺序：先 track 再 navigate —— 请求一旦发出，SPA 客户端跳转不卸载页面/不 kill 在途请求，
-      // 故不会因跳转丢上报（也正因不卸载，此处【不需要】opts.keepalive）。失败静默、绝不阻塞跳转
-      //（同上面 view_rendered 的上报范式）。
-      const rank = (result?.questions.findIndex((q) => q.id === id) ?? -1) + 1
-      // dwell 终点 = 点击时刻。活跃时长 = 已落袋 + 当前可见时段（点击必在前台，document.hidden 恒 false，
-      // 防御性保留判断）。Math.round 取整过服务端 sanitize 的整数校验。
-      const d = dwellRef.current
-      const dwellMs = d ? Math.round(d.accumulatedMs + (document.hidden ? 0 : performance.now() - d.activeStart)) : undefined
-      if (result && rank >= 1) {
-        // 同 view_rendered：走 track() 而非裸调 apiFetch，字段受 event-schema 的 QuestionOpenedProps 约束。
-        // 乙.1：补 questionId（= 点开的题 UUID）+ algoVersion（当前排序算法版本常量），去掉「靠 rank
-        // join 快照 result.questions[rank-1]、遇算法升级错位」的脆耦合。服务端 sanitize 按 UUID/短枚举放行。
-        // flowId 无需在此显式带：track 常规路径最终仍走 apiFetch，X-Flow-Id 头自动注入，route 侧读该头写入（乙.3）。
-        track('match.question_opened', {
-          rank,
-          candidateCount: result.questions.length,
-          questionId: id,
-          algoVersion: RANKING_ALGO_VERSION,
-          ...(dwellMs != null ? { dwellMs } : {}),
-        }, { storyId: corpusId })
-      }
+      // 选题排位埋点（先发再跳；两个入口共用同一份，口径与理由见 trackQuestionOpened）
+      trackQuestionOpened(id, 'analysis')
       // rank 随 query 透传给 analysis→practice，最终写入 practice_sessions（乙.2）；仅故事流有 rank，rank<1 不拼。
+      const rank = rankOf(id)
       navigate(`/analysis?questionId=${id}&storyId=${corpusId}&from=matching${rank >= 1 ? `&rank=${rank}` : ''}`)
+    },
+    // 「开始练习」直达 /practice（2026-08-27 起与「题目分析」平权，练习不再必须先过分析页）。
+    // 🔴 三件事一件都不能少，顺序也不能换：
+    //   ① abortAll() 【不带 except】—— 用户没要分析，三条预取全停（带 except 等于替他保住一条他不会看的）；
+    //   ② 埋点必须发 —— match.question_opened 是漏斗第⑤步 + rank 信号的唯一来源，这条路不发就是
+    //      「用户凭空消失」，且新入口的量越大缺口越大（见 trackQuestionOpened）；
+    //   ③ startPracticeWithPairCheck —— 那次 saveAnkiPair 是故事流【唯一的自动结对动作】，
+    //      漏了就是台账 179 复发（素材库把已有题的语料显示成「还没绑题目」，用户重跑整条 AI 匹配）。
+    onPracticeDirect: (id) => {
+      if (preview) return   // 同 onAnalyze：mock 题 id 在库里不存在
+      abortAll()
+      trackQuestionOpened(id, 'practice')
+      void startPracticeWithPairCheck({
+        questionId: id,
+        storyId: corpusId,
+        onConflict: (current) => setPracticeSwap({ questionId: id, current }),
+        go: () => goPractice(id),
+      })
     },
     savedIds,
     savingId,
@@ -654,6 +711,32 @@ function MatchingContent() {
           swapping={swapping}
           onSwap={() => void handleConfirmSwap()}
           onKeepCurrent={() => { if (!swapping) setSwap(null) }}
+        />
+      )}
+      {/* 「开始练习」直达路径撞 409：这道题的卡背绑着别的语料。
+          两条出路都接着进练习 —— 用户点的是「开始练习」，换不换语料是这条路上的岔口，
+          不该因为岔口的结果把他留在匹配页（与分析页同款处置，行为一字不差）。 */}
+      {practiceSwap && corpusId && (
+        <SwapCorpusDialog
+          currentCorpus={practiceSwap.current}
+          newCorpus={{ id: corpusId, summary: newCorpusSummary }}
+          swapping={practiceSwapping}
+          onSwap={() => {
+            if (practiceSwapping) return
+            const qid = practiceSwap.questionId
+            setPracticeSwapping(true)
+            void swapAnkiCorpusClient(qid, corpusId).then((ok) => {
+              setPracticeSwapping(false); setPracticeSwap(null)
+              if (!ok) setToast('没换成，这次先用原来的语料练')
+              goPractice(qid)
+            })
+          }}
+          onKeepCurrent={() => {
+            if (practiceSwapping) return
+            const qid = practiceSwap.questionId
+            setPracticeSwap(null)
+            goPractice(qid)
+          }}
         />
       )}
       <Toast message={toast} onDismiss={() => setToast(null)} />

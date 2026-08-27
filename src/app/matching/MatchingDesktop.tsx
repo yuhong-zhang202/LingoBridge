@@ -12,7 +12,7 @@
  *   ⚠️ <MatchStatusNote> 必须保持在骨架的固定位置：它内部的 <MatchingProgress> 计时器以挂载时刻为起点，
  *     一旦因分支切换而重挂载，进度条会从 85% 掉回 0。
  *
- *   桌面独有：↑↓ 切题 / Enter·→ 分析 / Esc 退出、行 hover 高亮、右栏 CTA 浮起。
+ *   桌面独有：↑↓ 切题 / Enter·→ 跳到右栏操作区 / Esc 退出、行 hover 高亮、右栏 CTA 浮起。
  *   noMatch / degraded / error / limit 四个终态经产品方真机验收拍板删掉了左列表说明块（与上方文案重复），
  *   这四态下左右两栏收成居中单面板（骨架容器保留，标题与说明卡不位移）。
  * @author   LingoBridge
@@ -28,6 +28,9 @@ import PartTag from '@/components/PartTag'
 import Skeleton from '@/components/Skeleton'
 import GradientButton from '@/components/GradientButton'
 import MatchStatusNote, { matchTitle, MatchDimensionLine } from '@/components/matching/MatchStatusNote'
+// 可访问名称的拼法两端共用一份（移动卡是它的第一个调用方）：一屏多颗按钮只有两种文字，
+// 名称里必须带题面才分得清是哪道题的入口；两端各写一遍迟早分叉。
+import { actionAriaLabel } from '@/components/matching/MatchedQuestionCard'
 import AnkiBookmarkButton, { type AnkiSaveState } from '@/components/anki/AnkiBookmarkButton'
 import { SCORE_HIGH, SCORE_MID, BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 import type { MatchingViewProps, FunnelQuestion } from './types'
@@ -155,17 +158,31 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
   )
 }
 
+/** DetailPane 底栏动作区的两种形态 —— **低相关态在类型上就没有练习入口**（理由同 MatchedQuestionCard 的 ActionProps） */
+type DetailActionProps =
+  | {
+      /** 常规：两个平权入口（题目分析 / 开始练习），同款渐变按钮 */
+      lowTone?: false
+      onPracticeDirect: (id: string) => void
+    }
+  | {
+      /** 低相关态：这道题本来就用不上，只留文本级分析入口，不该做成显眼 CTA 怂恿去练 */
+      lowTone: true
+      onPracticeDirect?: never
+    }
+
 /**
  * 右栏选中题详情。
- * @param lowTone 低相关态：分析入口降为文本按钮——这道题本来就用不上，不该做成显眼 CTA 怂恿去练
+ * @param props 题目 + 存对子三态 + 动作区形态（见 DetailActionProps）；
+ *              刻意整体接 props 不解构 lowTone —— 靠它做判别联合收窄
  */
-function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
+function DetailPane(props: {
   q: FunnelQuestion
-  lowTone: boolean
-  onPractice: (id: string) => void
+  onAnalyze: (id: string) => void
   saveState: AnkiSaveState
   onSave: () => void
-}): JSX.Element {
+} & DetailActionProps): JSX.Element {
+  const { q, onAnalyze, saveState, onSave } = props
   const enText = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
   const zhText = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
   const tier = tierOf(q.relevanceScore)
@@ -210,21 +227,35 @@ function DetailPane({ q, lowTone, onPractice, saveState, onSave }: {
           </div>
         )}
       </div>
-      <div className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center justify-end">
-        {lowTone ? (
+      {/* data-detail-actions：桌面 Enter/→ 把焦点送进这个操作区（见下方键盘 effect），挂在容器上 */}
+      <div data-detail-actions className="shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center justify-end gap-3">
+        {props.lowTone ? (
           <button
-            onClick={() => onPractice(q.id)}
+            onClick={() => onAnalyze(q.id)}
+            aria-label={actionAriaLabel('题目分析', enText)}
             className="min-h-[44px] inline-flex items-center px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
           >
             题目分析 →
           </button>
         ) : (
-          <GradientButton
-            onClick={() => onPractice(q.id)}
-            className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
-          >
-            题目分析 →
-          </GradientButton>
+          <>
+            {/* 两颗【完全同款】：同一个 GradientButton、同一组 class，不分主次。
+                min-h-[44px] 是本次唯一新增的一条（触控目标下限），其余逐字照抄改动前那颗。 */}
+            <GradientButton
+              onClick={() => onAnalyze(q.id)}
+              aria-label={actionAriaLabel('题目分析', enText)}
+              className="min-h-[44px] flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            >
+              题目分析 →
+            </GradientButton>
+            <GradientButton
+              onClick={() => props.onPracticeDirect(q.id)}
+              aria-label={actionAriaLabel('开始练习', enText)}
+              className="min-h-[44px] flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
+            >
+              开始练习 →
+            </GradientButton>
+          </>
         )}
       </div>
     </Card>
@@ -265,7 +296,7 @@ export default function MatchingDesktop({
   phase, result, missingCorpus, candidateCount, arrivedCount, slowHint, earlyHint,
   totalVisible, hasHigh, recommendedId, availableTabs, activeTab, filtered,
   highGroup, midGroup, noneVisible, lowShown, selectedId, savedIds, savingId,
-  onSelectTab, onSelect, onPractice, onSavePair, onRetry, onExit,
+  onSelectTab, onSelect, onAnalyze, onPracticeDirect, onSavePair, onRetry, onExit,
 }: MatchingViewProps): JSX.Element {
   const pending = phase === 'waiting' || phase === 'streaming'
   const isLow = phase === 'lowMatch'
@@ -287,15 +318,15 @@ export default function MatchingDesktop({
     if (!filtered.some((q) => q.id === selectedId)) onSelect(filtered[0].id)
   }, [filtered, selectedId, phase, onSelect])
 
-  // 键盘：↑↓ 切题、Enter/→ 进入分析、Esc 退出（仅桌面断点、有列表时才挂）
-  const latest = useRef({ listItems, selectedId, onSelect, onPractice, onExit })
-  latest.current = { listItems, selectedId, onSelect, onPractice, onExit }
+  // 键盘：↑↓ 切题、Enter/→ 跳到操作区、Esc 退出（仅桌面断点、有列表时才挂）
+  const latest = useRef({ listItems, selectedId, onSelect, onExit })
+  latest.current = { listItems, selectedId, onSelect, onExit }
   useEffect(() => {
     if (!hasList) return
     const onKey = (e: KeyboardEvent): void => {
       if (!window.matchMedia('(min-width: 1024px)').matches) return
       const t = e.target as HTMLElement | null
-      const { listItems, selectedId, onSelect, onPractice, onExit } = latest.current
+      const { listItems, selectedId, onSelect, onExit } = latest.current
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         // 方向键无原生按钮动作，始终用于列表切题（即使焦点在筛选 Chip/行上）
         e.preventDefault()
@@ -310,9 +341,15 @@ export default function MatchingDesktop({
         const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         document.querySelector(`[data-qid="${nextId}"]`)?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
       } else if (e.key === 'Enter' || e.key === 'ArrowRight') {
-        // Enter 交还给聚焦的原生控件（筛选 Chip / 列表行 / 按钮）自行激活；→ 无原生动作，照常进入分析
+        // 【2026-08-27 两入口平权后改】此前 Enter/→ 直接调 onPractice（其实是进分析）。现在右栏底部
+        // 有两颗平权按钮，键盘替用户选一个就是替他做决定，故只把焦点送进操作区，按哪颗由他自己定。
+        // Enter 仍先交还给聚焦的原生控件（筛选 Chip / 列表行 / 按钮）自行激活：焦点在列表行上时
+        // Enter 应当是「选中这一行」，不该跳走。→ 无原生动作，照常送焦点。
         if (e.key === 'Enter' && t?.closest('button, a, [role="button"]')) return
-        if (selectedId) { e.preventDefault(); onPractice(selectedId) }
+        if (selectedId) {
+          e.preventDefault()
+          document.querySelector<HTMLButtonElement>('[data-detail-actions] button')?.focus()
+        }
       } else if (e.key === 'Escape') {
         onExit()
       }
@@ -469,13 +506,24 @@ export default function MatchingDesktop({
 
                 {(phase === 'streaming' || phase === 'result' || isLow) && (
                   selected ? (
-                    <DetailPane
-                      q={selected}
-                      lowTone={isLow}
-                      onPractice={onPractice}
-                      saveState={savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle'}
-                      onSave={() => onSavePair(selected.id)}
-                    />
+                    // 低相关态【在类型上】就没有 onPracticeDirect：那几道题一道都用不上，不出练习入口
+                    isLow ? (
+                      <DetailPane
+                        q={selected}
+                        lowTone
+                        onAnalyze={onAnalyze}
+                        saveState={savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle'}
+                        onSave={() => onSavePair(selected.id)}
+                      />
+                    ) : (
+                      <DetailPane
+                        q={selected}
+                        onAnalyze={onAnalyze}
+                        onPracticeDirect={onPracticeDirect}
+                        saveState={savingId === selected.id ? 'saving' : savedIds.has(selected.id) ? 'saved' : 'idle'}
+                        onSave={() => onSavePair(selected.id)}
+                      />
+                    )
                   ) : (
                     <Card className="flex items-center justify-center px-8 py-16 text-center">
                       <p className="text-[0.8125rem] text-v2-text-muted">从左侧选择一道题查看详情</p>
@@ -490,7 +538,7 @@ export default function MatchingDesktop({
         {/* ④ 键盘提示（恒在）。lowMatch / limit 的「回到首页」按产品方拍板做成同层级纯文字链接放在这一行：
             这两个状态的出口是退路不是主推，不给渐变按钮 */}
         <p className="shrink-0 mt-4 text-center text-[0.75rem] text-v2-text-muted">
-          ↑↓ 切题 · Enter 分析 · Esc 退出
+          ↑↓ 切题 · Enter 跳到操作 · Esc 退出
           {(isLow || phase === 'limit') && (
             <>
               {' · '}

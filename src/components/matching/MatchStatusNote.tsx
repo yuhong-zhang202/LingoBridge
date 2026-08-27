@@ -196,7 +196,9 @@ function Body({ phase, secondary, hasHigh, matchedViaSecondary, missingCorpus, o
       return (
         <>
           <p className={`${LINE1} mb-1`}>下面这些题，都可以用你刚才那段语料来回答</p>
-          <p className={LINE2}>先挑一道进去，分析会告诉你这段语料该怎么组织成答案。</p>
+          {/* 第二行随「两入口平权」改（2026-08-27）：此前只说分析，而练习现在也是卡上的平权入口，
+              旧措辞会把「必须先看分析」这层已经不存在的前提留在用户脑子里。 */}
+          <p className={LINE2}>挑一道进去，「题目分析」帮你理清怎么组织，「开始练习」直接开口说。</p>
         </>
       )
 

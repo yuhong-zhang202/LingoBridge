@@ -1,6 +1,9 @@
 /**
  * @module   MatchedQuestionCard
- * @desc     匹配页单题卡片（移动端）— 复用现有视觉，数据来自真实匹配结果。新增「存对子」：
+ * @desc     匹配页单题卡片（移动端）— 复用现有视觉，数据来自真实匹配结果。
+ *           动作行是【两个平权入口】：「题目分析」（跳 /analysis）与「开始练习」（直达 /practice），
+ *           同款渐变胶囊、不分主次；低相关态（practiceVariant='text'）只保留文本级分析入口，
+ *           练习入口在类型上就不存在（见 ActionProps）。另有「存对子」：
  *           右滑存（绿底拼图层，右移 > 60px 触发、松手弹回并切已存态）+ 右上角三态书签按钮（右滑的
  *           a11y 兜底，右滑绝不是唯一途径）。图标统一用 lucide Puzzle（结对语义）。三态：存中（spinner +
  *           aria-live 播报）/ 已存（实心 Puzzle，右滑短路）/ 未存。失败由外壳 Toast 呈现、回未存态。
@@ -21,11 +24,36 @@ import { BRAND_GRADIENT_VERTICAL } from '@/lib/constants'
 /** 右滑触发存对子的位移阈值（px）。 */
 const SWIPE_SAVE_THRESHOLD = 60
 
-interface Props {
+/** 动作按钮可访问名称里题面的截断长度（超出加省略号）。 */
+const ARIA_LABEL_TEXT_MAX = 40
+
+/**
+ * 动作按钮的可访问名称，形如「题目分析：Describe a time you helped someone」。
+ *
+ * 【为什么必须带题面】一屏最多 6 颗按钮却只有两种文字（题目分析 / 开始练习），读屏用户按按钮列表
+ * 导航时根本分不清哪颗属于哪道题。可访问名称属 WCAG 2.4.6，**与「aria-live 长内容只播状态不念全文」
+ * 那条铁律不冲突** —— 后者管的是播报（见 A11yAnnouncer），不是可访问名。
+ * 题面仍截断：可访问名不是朗读全文的地方。
+ *
+ * @param  action  动作名（题目分析 / 开始练习）
+ * @param  enText  题面（Part 2 取 cue_card_title，其余取 question_text）
+ * @returns        拼好的 aria-label
+ */
+export function actionAriaLabel(action: string, enText: string): string {
+  const t = enText.length > ARIA_LABEL_TEXT_MAX ? `${enText.slice(0, ARIA_LABEL_TEXT_MAX)}…` : enText
+  return `${action}：${t}`
+}
+
+/** 两端共用的动作文案（改一处即两端同改，避免文案漂移） */
+const ANALYZE_LABEL = '题目分析'
+const PRACTICE_LABEL = '开始练习'
+
+interface BaseProps {
   question: MatchedQuestion
   selected: boolean
   onToggle: () => void
-  onPractice: () => void
+  /** 进题目分析（跳 /analysis）。原名 onPractice —— 名字与行为不符，2026-08-27 正名。 */
+  onAnalyze: () => void
   isPrimaryMatch: boolean
   /** 当前题卡属于高匹配组时传 true，高匹配组一律不显示"需切换角度"标签 */
   isHighMatch: boolean
@@ -34,9 +62,6 @@ interface Props {
   /** 是否允许显示「需切换角度」标签。低相关态传 false：那个语境下一道题都不能直接用，
    *  只给一部分卡挂标签等于暗示没挂的那几道可以直接用。 */
   showSwitchTag?: boolean
-  /** 分析入口的视觉层级。'chip'（默认）= 渐变胶囊；'text' = 低强度文本入口，
-   *  用于低相关态——那几道题是「确实翻遍题库了」的佐证而非备选，入口不该和主 CTA 抢注意力。 */
-  practiceVariant?: 'chip' | 'text'
   /** 存对子三态（存中/已存/未存）。 */
   saveState: AnkiSaveState
   /** 触发存对子（右滑越阈 / 点书签）。已存/存中态由本组件短路，不重复调用。 */
@@ -44,20 +69,40 @@ interface Props {
 }
 
 /**
- * 匹配页单题卡片
- * @param question   匹配题目
- * @param selected   是否选中
- * @param onToggle   点击卡片切换选中
- * @param onPractice 点击练习按钮
- * @param showSwitchTag   是否允许显示「需切换角度」标签（低相关态传 false）
- * @param practiceVariant 分析入口层级：'chip' 渐变胶囊（默认）/ 'text' 低强度文本入口
- * @param saveState  存对子三态
- * @param onSave     触发存对子
+ * 卡片底部动作区的两种形态 —— **低相关态在类型上就没有练习入口**。
+ *
+ * ⚠️【为什么把 onPracticeDirect 从 'text' 形态的类型里摘掉（2026-08-27 产品方拍板）】
+ *   低相关态那 4 张卡是「我们确实翻遍题库了」的佐证、不是备选题，只保留低强度的文本级
+ *   「题目分析」，绝不出「开始练习」—— 出了就等于把一道用不上的题推去开口说。
+ *   **刻意用类型摘掉而不是留一个运行时分支靠注释约束**：将来谁想给低相关档加练习入口，
+ *   tsc 会当场把他挡在这条决定面前。成例见 MatchingDesktop 的 TierBadge。
  */
-export default function MatchedQuestionCard({
-  question, selected, onToggle, onPractice, isPrimaryMatch, isHighMatch, recommended,
-  showSwitchTag = true, practiceVariant = 'chip', saveState, onSave,
-}: Props) {
+type ActionProps =
+  | {
+      /** 'chip'（默认）= 两个平权入口，均为渐变胶囊 */
+      practiceVariant?: 'chip'
+      /** 直接开始练习（跳 /practice，跳过分析页） */
+      onPracticeDirect: () => void
+    }
+  | {
+      /** 'text' = 低相关态：只有低强度文本级「题目分析」，没有练习入口 */
+      practiceVariant: 'text'
+      onPracticeDirect?: never
+    }
+
+type Props = BaseProps & ActionProps
+
+/**
+ * 匹配页单题卡片
+ * @param props 见 BaseProps（题目/选中/存对子）与 ActionProps（动作区形态）；
+ *              刻意整体接 props 而不解构 practiceVariant —— 靠它做判别联合收窄，
+ *              'text' 形态下 onPracticeDirect 在类型上不存在。
+ */
+export default function MatchedQuestionCard(props: Props) {
+  const {
+    question, selected, onToggle, onAnalyze, isPrimaryMatch, isHighMatch, recommended,
+    showSwitchTag = true, saveState, onSave,
+  } = props
   // Part 2 主显示卡片标题，其余显示题目文本
   const enText = question.part === 2 ? (question.cue_card_title ?? question.question_text) : question.question_text
   const zhText = question.part === 2 ? (question.cue_card_title_zh ?? '') : (question.question_text_zh ?? '')
@@ -167,24 +212,40 @@ export default function MatchedQuestionCard({
           <p className="text-[1rem] font-bold text-v2-text-primary leading-snug">{enText}</p>
           {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5">{zhText}</p>}
 
-          <div className="flex items-center justify-end mt-3">
-            {practiceVariant === 'text' ? (
+          {/* 动作行：两个入口【平权】—— 同一款渐变胶囊、同一组内边距，不分主次。
+              e.stopPropagation() 不能省：卡片本体是 role="button"，不阻止冒泡会连带触发选中切换。 */}
+          <div className="flex items-center justify-end gap-2 mt-3">
+            {props.practiceVariant === 'text' ? (
               <button
-                onClick={(e) => { e.stopPropagation(); onPractice() }}
+                onClick={(e) => { e.stopPropagation(); onAnalyze() }}
+                aria-label={actionAriaLabel(ANALYZE_LABEL, enText)}
                 className="min-h-[44px] inline-flex items-center gap-1 px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
               >
-                题目分析
+                {ANALYZE_LABEL}
                 <ArrowRight size={12} />
               </button>
             ) : (
-              <Chip
-                variant="gradient"
-                onClick={(e) => { e.stopPropagation(); onPractice() }}
-                className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
-              >
-                题目分析
-                <ArrowRight size={12} />
-              </Chip>
+              <>
+                <Chip
+                  variant="gradient"
+                  onClick={(e) => { e.stopPropagation(); onAnalyze() }}
+                  ariaLabel={actionAriaLabel(ANALYZE_LABEL, enText)}
+                  // min-h-[44px] 必须保留：Chip 的 md 尺寸 py-[5px] 裸高约 26px，不足触控目标
+                  className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
+                >
+                  {ANALYZE_LABEL}
+                  <ArrowRight size={12} />
+                </Chip>
+                <Chip
+                  variant="gradient"
+                  onClick={(e) => { e.stopPropagation(); props.onPracticeDirect() }}
+                  ariaLabel={actionAriaLabel(PRACTICE_LABEL, enText)}
+                  className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
+                >
+                  {PRACTICE_LABEL}
+                  <ArrowRight size={12} />
+                </Chip>
+              </>
             )}
           </div>
         </div>

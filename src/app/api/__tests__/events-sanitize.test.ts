@@ -83,6 +83,22 @@ describe('question_opened · sanitize 白名单（乙.1）', () => {
     expect(capturedProps()).toEqual({ rank: 3, candidateCount: 8, questionId: VALID_UUID, algoVersion: 'v1-2026-07-17' })
   })
 
+  // 2026-08-27 两入口平权：entry 区分「题目分析」与「开始练习」。它是【新加的 props key】，
+  // 而 sanitize 对不认识的键是静默丢弃 —— 打错一个字母就是「客户端在发、库里查不到」，
+  // tsc / build 全绿也看不出来。这两条正/负例就是那个字母的守卫。
+  test.each([['analysis'], ['practice']])('entry=%s 放行（两个入口都要能落库）', async (entry) => {
+    await POST(makeReq({ rank: 1, candidateCount: 4, entry }))
+    expect(capturedProps()).toEqual({ rank: 1, candidateCount: 4, entry })
+  })
+
+  test('枚举外/近似的 entry 一律丢弃（不 trim、不转小写）', async () => {
+    await POST(makeReq({ rank: 1, entry: 'Practice' }))
+    expect(capturedProps()).toEqual({ rank: 1 })
+    jest.clearAllMocks()
+    await POST(makeReq({ rank: 1, entry: 'practice ' }))
+    expect(capturedProps()).toEqual({ rank: 1 })
+  })
+
   test('非 UUID 的 questionId 一律丢弃（含伪装成 id 的自由文本）', async () => {
     await POST(makeReq({ rank: 1, questionId: '用户偷偷塞的原文句子' }))
     expect(capturedProps()).toEqual({ rank: 1 })

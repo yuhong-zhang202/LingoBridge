@@ -23,7 +23,8 @@ import { isQaRequest } from '@/lib/qa-traffic'
 import {
   STORY_ENTRY, STORY_MODE, MIC_RESULT, MIC_SURFACE, CAPTURE_MODE, CAPTURE_OUTCOME,
   CAPTURE_EXIT, AI_STAGE, AI_RESULT, QUOTA_VARIANT, QUOTA_SURFACE, QUOTA_CTA,
-  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, PAGE_ROUTE, TAB_ID,
+  VIEW_RENDERED_NUMERIC, VIEW_RENDERED_BOOL, QUESTION_OPENED_NUMERIC, QUESTION_OPENED_ENTRY,
+  PAGE_ROUTE, TAB_ID,
   GOAL_BAND, GOAL_SAVE_FAIL_REASON, COLLECT_VIEW, COLLECT_FAIL_REASON, GOAL_EDITOR_SOURCE,
   QUEUE_DELAY_SEC_KEY, QUEUE_DELAY_SEC_MAX,
 } from '@/lib/event-schema'
@@ -64,10 +65,11 @@ const ALGO_VERSION_RE = /^[a-z0-9][a-z0-9._-]{0,31}$/i
  *   · rank / candidateCount：有限正整数 1..10000；
  *   · dwellMs：用户在匹配页的【活跃浏览时长】(ms)，有限整数 0..30min（0 允许=一眼即点；口径见客户端）；
  *   · questionId：题目 UUID（严格 UUID 格式，仅内部 id 引用，无原文）；
- *   · algoVersion：排序算法版本短枚举串（≤32 字符、仅 [a-z0-9._-]，无原文）。
+ *   · algoVersion：排序算法版本短枚举串（≤32 字符、仅 [a-z0-9._-]，无原文）；
+ *   · entry：走的是哪个入口（QUESTION_OPENED_ENTRY 枚举，2026-08-27 两入口平权后新增）。
  * 非法值（负数 / 非整数 / 非数字 / 超大值 / 非 UUID / 非枚举形态）一律丢弃、不抛错。
  * @param raw  客户端上报的 props（unknown）
- * @returns    收敛后的安全 props（数字字段 + questionId/algoVersion 字符串字段）
+ * @returns    收敛后的安全 props（数字字段 + questionId/algoVersion/entry 字符串字段）
  */
 function sanitizeQuestionOpened(raw: unknown): Record<string, number | string> {
   const out: Record<string, number | string> = {}
@@ -83,6 +85,9 @@ function sanitizeQuestionOpened(raw: unknown): Record<string, number | string> {
   if (typeof qid === 'string' && UUID_RE.test(qid)) out.questionId = qid
   const algo = o.algoVersion
   if (typeof algo === 'string' && ALGO_VERSION_RE.test(algo)) out.algoVersion = algo
+  // entry 走通用枚举原语（全等命中白名单才放行）：不 trim、不转小写，'Practice' / 'practice ' 一律丢
+  const entry = pickEnum(o, 'entry', QUESTION_OPENED_ENTRY)
+  if (entry !== undefined) out.entry = entry
   return out
 }
 

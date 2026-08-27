@@ -25,7 +25,8 @@ import { useSavedWords, SAVED_WORDS_KEY } from '@/hooks/library-data'
 import { apiFetch } from '@/lib/api-client'
 import { startPracticeSession } from '@/lib/storage'
 import SwapCorpusDialog from '@/components/anki/SwapCorpusDialog'
-import { saveAnkiPair, swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+import { swapAnkiCorpusClient, type CorpusBrief } from '@/lib/anki/cards-client'
+import { startPracticeWithPairCheck } from '@/lib/anki/start-practice'
 import { track } from '@/lib/client-events'
 // AI 调用结局的取值域【来自 event-schema 这一份真源】，本页不手抄：服务端 sanitize 对不认识的值
 // 是静默丢弃，打错一个字母就成了「埋了但库里查不到」，本地测不出来。
@@ -324,39 +325,14 @@ function AnalysisContent() {
     ).catch((e) => console.error('[analysis] 词组收藏失败', e))
   }
 
-  /**
-   * 点「开始练习」：先确认这道题的 Anki 卡背绑的是不是当前这段语料，再进练习。
-   *
-   * 【为什么把这个问题放在这一步】2026-08-18 产品方定。雅思流已经在语料落库时自动存对子了
-   * （见 restructure/page.tsx），但会撞上一种冲突：**这道题之前用别的语料存过卡**——
-   * Anki 卡是 (user_id, question_id) 唯一，一道题只能有一个背面。近 60 天 317 组配对里 22 组撞这个。
-   *
-   * 冲突当时【刻意不在整理页问】：那时用户点的是「开始分析」，脑子里想的是「我要分析这段话」，
-   * 弹一个换语料框是拿我们的便利打断他的正事。**而「开始练习」才是真正和"这张卡的背面是哪段语料"
-   * 相关的动作** —— 练的就是那个答案，在这里问才有上下文。
-   *
-   * ⚠️ 不跨页传状态：这里重发一次 saveAnkiPair 就能拿到同样的 409，整理页那次失败不留任何痕迹。
-   *   重发是廉价的——路由把冲突判定放在计次之前（`api/anki/cards/route.ts` 注释「不白扣额度」），
-   *   已绑的情况下不计次、不调 AI。顺带还有个好处：整理页那次若因断网静默失败，这里会自动补上。
-   * ⚠️ 同一段语料重发 → 也会 409（路由不比对 corpusId），故必须比 id：是自己就当已绑，直接走。
-   * ⚠️ 除冲突外任何失败都【静默放行】，绝不因为一个副作用把用户挡在练习门外。
-   */
+  // 点「开始练习」前的结对确认（含 409 撞别的语料）已收敛进 lib/anki/start-practice —— 匹配页
+  // 2026-08-27 新增的「开始练习」直达入口是第二个调用方，两处必须是同一份分支，不许各写一遍。
+  // 那次 saveAnkiPair 同时是故事流唯一的自动结对动作，来龙去脉见该模块顶注。
   // startPracticeSession 必须紧贴 navigate 之前（生成本场 id + 清上一场遗留句子），
-  // 三条进 /practice 的入口都照此办理，src/__tests__/practice-session-entry-rule.test.ts 会守。
+  // 进 /practice 的每个入口都照此办理，src/__tests__/practice-session-entry-rule.test.ts 会守。
   const goPractice = (): void => {
     startPracticeSession()
     navigate(`/practice?questionId=${questionId}&storyId=${storyId}&level=${level}&review=${review ? 1 : 0}${rank ? `&rank=${rank}` : ''}`)
-  }
-
-  const startPracticeWithPairCheck = async (): Promise<void> => {
-    const go = goPractice
-    if (!questionId || !storyId) { go(); return }
-    const pair = await saveAnkiPair(questionId, storyId).catch(() => null)
-    if (pair && !pair.ok && pair.kind === 'bound' && pair.currentCorpus.id !== storyId) {
-      setAnkiSwap({ current: pair.currentCorpus })   // 弹对比框，选完（换/保留）由 dialog 回调接着 go()
-      return
-    }
-    go()
   }
 
   const viewProps: AnalysisViewProps = {
@@ -381,7 +357,14 @@ function AnalysisContent() {
     // startPracticeSession 必须在这里（入口）调、且在跳转之前：它生成本场 id 并清掉上一场遗留的句子。
     // 练习页自己不能调 —— 那样页面被手机浏览器回收后重载也会算作「新的一场」，本场句子照样清空。
     // 新增第三个进 /practice 的入口时也要照做，src/__tests__/practice-session-entry-rule.test.ts 会守。
-    onStartPractice: () => { void startPracticeWithPairCheck() },
+    onStartPractice: () => {
+      void startPracticeWithPairCheck({
+        questionId,
+        storyId,
+        onConflict: (current) => setAnkiSwap({ current }),
+        go: goPractice,
+      })
+    },
     // 复习卡/返回上一步/退出跳首页均走 navigate → 点击当帧亮顶部进度条（消冷缓存空窗）
     onReviewCards: () => navigate('/review'),
     onBack: () => navigate(backTarget.href),
