@@ -13,14 +13,17 @@
  *           「右滑的 a11y 兜底、右滑绝不是唯一途径」），删后功能面零损失；② 全仓无任何测试覆盖右滑 ——
  *           一条没人守得住的隐藏交互；③ 裁绿底层所需的 overflow-hidden 挡住了推荐标签向左出挑。
  *
- *           推荐题标签「试试这道题吧」【骑在卡片左边框上】（向左出挑 8px，不向上 —— 向上会撞
- *           GroupHeader 的分隔线）。已知代价：它会压住选中态那根 4px 渐变竖条顶端约 26px；
- *           骑边与「竖条完整」二者不可兼得，产品方选了骑边。视觉标签 aria-hidden，读屏文本另由
- *           卡内首位的 sr-only 承担，保证朗读顺序是「试试这道题吧 → Part → …」且只念一遍。
+ *           推荐题提示「试试这道题吧」= 内容流首行的【纯文字 + 小 ✨】（2026-09-01 产品方拍板，
+ *           由此前的绿色 Tag 胶囊改来）。⚠️ 它曾经【骑在卡片左边框上】（绝对定位向左出挑 8px、
+ *           aria-hidden，读屏另由卡内首位的 sr-only 承担）；改纯文字后骑边必须一并撤销 ——
+ *           无底色的文字一半悬在卡外会读成渲染错误，那个位置只有带填充的角标撑得住。
+ *           回到内容流后，sr-only 兜底、内容区的 pt-11 让位、桌面左栏滚动容器的 -ml-3 pl-3 防裁切
+ *           这三样为骑边搭的机制全部随之拆除，别当成漏改加回来。
  * @author   LingoBridge
  * @created  2026-06-03
  */
 'use client'
+import { Sparkles } from 'lucide-react'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
@@ -112,9 +115,10 @@ export default function MatchedQuestionCard(props: Props) {
   const zhText = question.part === 2 ? (question.cue_card_title_zh ?? '') : (question.question_text_zh ?? '')
 
   return (
-    // 不裁切的定位容器：原先这层带 rounded-[14px] overflow-hidden，唯一职责是裁右滑绿底层；
-    // 绿底层已删，裁切也就没有消费者了（卡片本体自带同款圆角与 overflow-hidden）。
-    // 去掉裁切正是推荐标签能向左出挑 8px 的前提，所以刻意不新加一层 DOM。
+    // 外层容器：原先带 rounded-[14px] overflow-hidden，唯一职责是裁右滑绿底层；绿底层随手势一并删了。
+    // ⚠️ 它一度还承担「让骑边标签能向左出挑而不被裁」，但标签已于 2026-09-01 收回卡内 ——
+    //    所以这层现在只是个不再裁切的普通包裹，卡片本体自带圆角与 overflow-hidden，不依赖它。
+    //    留着是因为拆掉要连带动 DOM 层级、收益为零；哪天顺手清理可以合并进本体。
     <div className="relative">
       {/* 卡片本体。整卡可点：role=button + 键盘（回车/空格切换选中）。onKeyDown 仅处理源于卡片自身的按键。
           onClick 原为 `if (!moved.current) onToggle()`，moved 只由已删的 onTouchMove 写过；手势删掉后
@@ -132,10 +136,6 @@ export default function MatchedQuestionCard(props: Props) {
           selected ? 'shadow-[0_2px_16px_rgba(212,135,90,0.12)]' : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)]'
         }`}
       >
-        {/* 推荐题的读屏文本：必须是卡内第一个子元素，可访问名才按「试试这道题吧 → Part → …」顺序拼。
-            视觉标签在卡外、aria-hidden，两者合起来只念一遍。 */}
-        {recommended && <span className="sr-only">试试这道题吧</span>}
-
         {/* 左侧竖条 */}
         <div className="w-[4px] flex-shrink-0 self-stretch">
           {selected ? (
@@ -145,10 +145,20 @@ export default function MatchedQuestionCard(props: Props) {
           )}
         </div>
 
-        {/* 推荐态把上内边距从 4 撑到 11：骑边标签纵向仍压在卡片上内边距区内，不撑就会盖住 PartTag 行。
-            ① 必须拆成 px-/pb-/pt- 三段，不能写 p-4 再补 pt-11 靠类顺序赢（这串没走 twMerge，脆）；
-            ② 必须用 rem 制的 pt-11 而不是 pt-[44px]：字体档放大时标签跟着长高，px padding 不长。 */}
-        <div className={`flex-1 px-4 pb-4 min-w-0 ${recommended ? 'pt-11' : 'pt-4'}`}>
+        <div className="flex-1 p-4 min-w-0">
+          {/* 推荐提示：2026-09-01 产品方拍板由绿色 Tag 胶囊改为【纯文字 + 小 ✨】。
+              ⚠️ 连带把标签从「骑在卡片左边框上」收回卡内：无底色的纯文字一半悬在卡外
+                 会读成渲染错误，骑边这个位置只有带填充的角标撑得住。
+              ⚠️ 文字用 v2-text-secondary（压白底 6.47:1）而非品牌色：本项目已有判例
+                 ——brand-primary-dark 压浅底约 3.86:1，小字远不达 WCAG AA（见下方「需切换角度」那条）。
+                 颜色只给 ✨ 图标，既有 HomeDesktop 的同款用法。
+              回到内容流后不再需要 sr-only 兜底：它本来就是为「视觉标签在卡外、aria-hidden」配的。 */}
+          {recommended && (
+            <p className="flex items-center gap-1 text-[0.75rem] text-v2-text-secondary mb-2">
+              <Sparkles size={12} className="text-brand-primary flex-shrink-0" />
+              试试这道题吧
+            </p>
+          )}
           <div className="flex items-center gap-2 mb-2.5 pr-9">
             <PartTag label={`Part ${question.part}`} />
             <Tag variant="green" label={question.dimension} />
@@ -175,7 +185,14 @@ export default function MatchedQuestionCard(props: Props) {
                  （桌面 DetailPane 的 lowTone 是布尔可以真值判断 —— 两端形似而不神似，照抄必翻车。）
               ⚠️ 排布只写在父容器的 justify 上：两颗 Chip 的 class 必须逐字相同，这是「平权」的物理保障；
                  也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，打破 Tab 与朗读顺序。 */}
-          <div className={`flex items-center gap-2 mt-3 ${
+          {/* ⚠️ 间距【刻意小于桌面的比例】。产品方要的是「隔约 1.5 个按钮宽」，桌面按钮约 114px
+              故取 gap-44(176px)；移动端 Chip 只有约 72px 宽，同样 1.5 倍是 108px ——
+              但 375px 屏卡内可用仅约 299px，特大字体档(1.15)下两颗涨到约 166px、
+              间距涨到约 124px，合计 290px，只剩 4px 余量；而本行【没有 flex-wrap】、
+              Chip 又是 flex-shrink-0，一旦超宽就是直接溢出卡片、不是换行。
+              故取 gap-20(80px，约 1.1 倍)：特大档合计约 258px，留 36px 余量。
+              真机若觉得还能再拉开，往上调 gap-24(96px) 仍安全，gap-28 起就贴边了。 */}
+          <div className={`flex items-center gap-20 mt-3 ${
             props.practiceVariant === 'text' ? 'justify-end' : 'justify-center'
           }`}>
             {props.practiceVariant === 'text' ? (
@@ -218,15 +235,6 @@ export default function MatchedQuestionCard(props: Props) {
         />
       </div>
 
-      {/* 推荐题的骑边视觉标签：卡片本体之后、定位容器之内，向左出挑 8px 压在左边框上。
-          top-2 而非 -top-2：推荐题几乎总是列表第一张，向上出挑会撞 GroupHeader 那条分隔线。
-          已知代价：标签会压住选中态 4px 渐变竖条顶端约 26px —— 骑边与「竖条完整」不可兼得，产品方选骑边。
-          aria-hidden + pointer-events-none：朗读交给卡内首位的 sr-only，点击照旧穿透给整卡。 */}
-      {recommended && (
-        <span aria-hidden="true" className="pointer-events-none absolute top-2 -left-2 z-10">
-          <Tag variant="green" label="试试这道题吧" />
-        </span>
-      )}
     </div>
   )
 }

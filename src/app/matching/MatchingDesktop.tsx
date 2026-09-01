@@ -20,6 +20,7 @@
  */
 'use client'
 import { type JSX, useEffect, useRef } from 'react'
+import { Sparkles } from 'lucide-react'
 import Card from '@/components/Card'
 import Chip from '@/components/Chip'
 import Tag from '@/components/Tag'
@@ -121,8 +122,11 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
   const zhText = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
   const needSwitch = showSwitchTag && !q.isPrimaryMatch && !isHigh
   return (
-    // 外壳只为骑边标签而存在：<button> 自带 overflow-hidden 且没有 relative，标签没法挂在它身上。
-    // group 从 button 上移到这里，hover 上浮才能同时驱动按钮和标签（否则上浮 1px 时标签不跟、出现错位）。
+    // ⚠️ 这层外壳原本【只为骑边标签而存在】（<button> 自带 overflow-hidden 且无 relative，
+    //    绝对定位的标签挂不上去），group 也是为此从 button 移上来的。
+    //    2026-09-01 标签改纯文字并收回卡内后，外壳已无定位职责；留着是因为 group 迁回 button
+    //    要把 group-hover:* 全改回 hover:*，是有回归风险的动作，收益却为零。
+    //    ⇒ 现状：外壳仅承载 group。哪天要清理，记得两件一起做（去外壳 + 改回 hover:）。
     <div className="group relative">
       <button
         onClick={onSelect}
@@ -134,20 +138,21 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
             : 'shadow-[0_1px_8px_rgba(0,0,0,0.06)] group-hover:shadow-[0_2px_14px_rgba(0,0,0,0.09)] group-hover:-translate-y-[1px]'
         }`}
       >
-        {/* 推荐题的读屏文本：必须是按钮内第一个子元素，可访问名才按「试试这道题吧 → Part → …」拼。
-            视觉标签在按钮外、aria-hidden，两者合起来只念一遍。 */}
-        {recommended && <span className="sr-only">试试这道题吧</span>}
         {/* 左侧竖条：选中显示渐变，未选中 hover 时透出淡暖橙 */}
         <div className="w-[4px] flex-shrink-0 self-stretch">
           {selected
             ? <div className="w-full h-full" style={{ background: SELECTED_BAR }} />
             : <div className="w-full h-full bg-transparent group-hover:bg-brand-primary/25 transition-colors" />}
         </div>
-        {/* 推荐态把上内边距从 3.5 撑到 11：骑边标签纵向压在上内边距区内，不撑就会盖住 PartTag 行。
-            ① 必须拆成 px-/pb-/pt- 三段，不能写 p-3.5 再补 pt-11 靠类顺序赢（这串没走 twMerge，脆）；
-            ② 必须用 rem 制的 pt-11 而不是 pt-[44px]：字体档放大时标签跟着长高，px padding 不长
-               （成因与下方 Part 筛选槽那条 rem 教训同源）。 */}
-        <div className={`flex-1 px-3.5 pb-3.5 min-w-0 ${recommended ? 'pt-11' : 'pt-3.5'}`}>
+        <div className="flex-1 p-3.5 min-w-0">
+          {/* 推荐提示：与移动端 MatchedQuestionCard 同款（两处是各自独立实现，靠人肉同步，改一处必改另一处）。
+              2026-09-01 产品方拍板由绿色 Tag 胶囊改为纯文字 + 小 ✨，并连带收回卡内 —— 理由见移动端注释。 */}
+          {recommended && (
+            <p className="flex items-center gap-1 text-[0.75rem] text-v2-text-secondary mb-2">
+              <Sparkles size={12} className="text-brand-primary flex-shrink-0" />
+              试试这道题吧
+            </p>
+          )}
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             <PartTag label={`Part ${q.part}`} />
             <Tag variant="green" label={q.dimension} />
@@ -165,22 +170,6 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
         </div>
       </button>
 
-      {/* 推荐题的骑边视觉标签：按钮之后、外壳之内，向左出挑 8px 压在左边框上。
-          top-2 而非 -top-2：推荐题几乎总是列表第一张，向上出挑会撞 GroupHeader 那条分隔线。
-          跟着 group-hover 一起上浮 1px，否则 hover 时标签与卡片错位。
-          ⚠️ 上浮必须跟按钮【同条件】：按钮的 hover 上浮只写在未选中分支里（选中态本就不上浮），
-             标签若无条件上浮，选中 + hover 时会变成「卡片不动、标签独自浮起」的反向错位 ——
-             而桌面默认就会自动选中列表第一题，推荐题正是那一张，这个组合是常态不是边角。
-          已知代价：标签会压住选中态 4px 渐变竖条顶端约 26px —— 骑边与「竖条完整」不可兼得，产品方选骑边。
-          ⚠️ 出挑的 8px 会被左栏滚动容器裁掉（overflow-y:auto 使 overflow-x 计算成 auto，
-             起始边不可达溢出被浏览器静默裁平），修法是那个容器上成对的 -ml-3 pl-3，见下方注释。 */}
-      {recommended && (
-        <span aria-hidden="true" className={`pointer-events-none absolute top-2 -left-2 z-10 transition-transform duration-200 ${
-          selected ? '' : 'group-hover:-translate-y-[1px]'
-        }`}>
-          <Tag variant="green" label="试试这道题吧" />
-        </span>
-      )}
     </div>
   )
 }
@@ -263,7 +252,13 @@ function DetailPane(props: {
           排布只写在父容器上：两颗按钮的 class 必须逐字相同（不许给左颗加 mr-auto，那会让两串 class
           首次分叉）；也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，
           一次性打破 Tab 顺序、读屏朗读顺序，并让 Enter 送来的焦点落到右颗。 */}
-      <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center gap-3 ${
+      {/* gap-44（176px）不是随手选的：产品方要求两颗之间隔「约 1.5 个按钮宽」。
+          按钮实测宽约 114px（px-7 两侧 + 4 个 15px 汉字），1.5 倍 ≈ 171px，gap-44 是最接近的档。
+          用 rem 制的 gap-44 而非 gap-[171px]：字体档放大时按钮会变宽，固定 px 的间距不会跟着长，
+          比例就跑掉了（与本文件 Part 筛选槽那条 rem 教训同源）。
+          余量核算：1024px 视口下底栏可用约 520px，两颗约 228px + 176px = 404px，尚余 116px；
+          特大字体档（1.15）下约 464px，仍在 520px 内，不换行。 */}
+      <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center gap-44 ${
         props.lowTone ? 'justify-end' : 'justify-center'
       }`}>
         {props.lowTone ? (
@@ -478,16 +473,13 @@ export default function MatchingDesktop({
                 </div>
 
                 {/* 列表区：骨架卡 / 真卡分组，二选一填进同一个滚动容器。
-                    ⚠️【-ml-3 pl-3 必须成对，少一个就出 bug】推荐题的「试试这道题吧」标签向左出挑 8px，
-                       而 overflow-y:auto 会让 overflow-x 计算成 auto —— 向【起始边】的溢出属于不可达溢出，
-                       浏览器直接裁平且不报错、不给滚动条。pl-3 给出挑腾出空间，-ml-3 把这 12px 抵消回去，
-                       保证卡片左缘仍与上方标题 / 说明卡 / Part chips 在同一条垂直线上、卡片宽度不变。
-                       只加 pl-3 → 整列右移与上方全错位；只加 -ml-3 → 照旧被裁。
-                       【为什么补 12px 而不是刚好 8px】等宽补位等于零余量，任何子像素舍入都可能削掉标签边缘，
-                       而这种 bug 只在特定缩放/DPI 下现身、极难复现；12px 留 4px 余量，且左扩的 12px
-                       落在页面外层 px-8（32px）的空白里，不压任何元素。
-                       移动端不用改：那边滚动容器是 px-5（20px），8px 出挑落在内边距区内。 */}
-                <div className="flex-1 min-h-0 overflow-y-auto -ml-3 pl-3 pr-1.5 flex flex-col gap-5">
+                    ⚠️【2026-09-01 拆掉了这里的 -ml-3 pl-3，别当成漏改加回来】那对补位是为
+                       「推荐标签骑在卡片左边框上、向左出挑 8px」而存在的：overflow-y:auto 会让
+                       overflow-x 计算成 auto，向起始边的溢出属于不可达溢出、被浏览器静默裁平。
+                       产品方拍板把标签改成纯文字 + ✨ 并收回卡内之后，已经没有任何东西向左出挑，
+                       这对补位随之失去意义（留着只是白白让滚动视口左扩 12px）。
+                       若将来又有元素要探出卡片左缘，记得成对加回来——少一个就出 bug。 */}
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
                   {phase === 'waiting' && (
                     <div className="flex flex-col gap-2.5" aria-hidden="true">
                       {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="w-full h-[86px] rounded-[14px]" />)}
