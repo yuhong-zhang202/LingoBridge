@@ -209,8 +209,21 @@ export default function MatchedQuestionCard(props: Props) {
                   variant="gradient"
                   onClick={(e) => { e.stopPropagation(); onAnalyze() }}
                   ariaLabel={actionAriaLabel(ANALYZE_LABEL, enText)}
-                  // min-h-[44px] 必须保留：Chip 的 md 尺寸 py-[5px] 裸高约 26px，不足触控目标
-                  className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
+                  /* ⚠️【2026-09-01 产品方真机否掉了原来的写法，别改回去】原为
+                     `px-3 py-1.5 min-h-[44px]`，出发点是 WCAG 2.5.5 的 44px 触控目标，
+                     但那是把「命中区要 44」这条要求写到了【可见胶囊】的盒子上：
+                     结果这两颗比同屏 Part 筛选 chip（MatchingMobile.tsx:128，同为 Chip md）高 47%、
+                     左右还各窄 2px（px-3 覆盖了 md 的 px-3.5，cn() 是 twMerge、真的会覆盖）——
+                     又高又窄，一眼看出不是一套。
+                     ⇒ 可见尺寸交还 Chip 的 md 规格（DESIGN.md:411/414 把「练习/分析」这类小动作
+                        点名划给 Chip），命中区改用【伪元素外扩】，可视尺寸不变。
+                     取值依据：md 实测约 30px（12px 字 × 1.5 行高 + py-[5px]×2 + 渐变描边），
+                     最小字体档(0.9)约 29.2px，+9px×2 = 47.2px，全档位 ≥44。
+                     ⚠️ 本项目已有同款成例：anki/review/page.tsx:352 那排筛选 Chip 用的就是这一串，
+                        逐字复用、不自造新数字。
+                     ⚠️ 横向只扩 2px：两颗之间 gap-2(8px) − 2×2 = 净空 4px，命中区不重叠，
+                        不会出现「点左边那颗却跳去练习」。 */
+                  className="flex-shrink-0 relative after:absolute after:-inset-y-[9px] after:-inset-x-[2px] after:content-['']"
                 >
                   {ANALYZE_LABEL}
                 </Chip>
@@ -218,7 +231,8 @@ export default function MatchedQuestionCard(props: Props) {
                   variant="gradient"
                   onClick={(e) => { e.stopPropagation(); props.onPracticeDirect() }}
                   ariaLabel={actionAriaLabel(PRACTICE_LABEL, enText)}
-                  className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
+                  /* class 串必须与上面那颗【逐字相同】——这是「平权」唯一的物理保障，理由见上方长注释 */
+                  className="flex-shrink-0 relative after:absolute after:-inset-y-[9px] after:-inset-x-[2px] after:content-['']"
                 >
                   {PRACTICE_LABEL}
                 </Chip>

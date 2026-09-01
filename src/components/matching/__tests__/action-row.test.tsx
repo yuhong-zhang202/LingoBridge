@@ -114,6 +114,24 @@ describe('取证：MatchedQuestionCard 动作行', () => {
     expect(actionBtns[0]).toBe(actionBtns[1])
   })
 
+  it('④ 不许为凑触控目标去覆盖 Chip 的 md 尺寸；命中区一律靠 after: 伪元素补', () => {
+    // 【为什么钉这条】2026-09-01 之前这两颗写的是 px-3 py-1.5 min-h-[44px]，出发点是
+    // WCAG 2.5.5 的 44px 触控目标 —— 但那是把「命中区要 44」写到了【可见胶囊】的盒子上：
+    // cn() 是 twMerge，px-3/py-1.5 会真的覆盖掉 SIZES.md 的 px-3.5/py-[5px]，
+    // 结果比同屏同类 Chip 高 47%、左右还各窄 2px，产品方真机一眼看出不是一套。
+    // ⇒ 可见尺寸交还 md，命中区用伪元素外扩（成例：anki/review/page.tsx:352）。
+    // ⚠️ 别断言 after:content-['']：renderToStaticMarkup 会把单引号转义成 &#x27;，钉了必红。
+    const actionBtns = [...chipHtml.matchAll(/<button[^>]*aria-label="(?:题目分析|开始练习)[^"]*"[^>]*class="([^"]*)"/g)]
+      .map((m) => m[1])
+    const cls = actionBtns[0]
+    // 渲染产物是 twMerge 之后的结果：这里该出现的正是 Chip 自己的 md 规格（SIZES.md），
+    // 出现别的值就说明调用点又在覆盖尺寸了。
+    expect(cls).toContain('px-3.5')            // md 的横向内边距，不是被覆盖后的 px-3
+    expect(cls).toContain('py-[5px]')          // md 的纵向内边距，不是被覆盖后的 py-1.5
+    expect(cls).not.toMatch(/min-h-\[/)        // 不许再撑高可见胶囊
+    expect(cls).toContain('after:-inset-y-[9px]')  // 命中区外扩仍在
+  })
+
   it('③ 三种形态下按钮里都没有 → 字符，也没有 lucide arrow-right 的 svg', () => {
     for (const [name, html] of [['chip', chipHtml], ['text', textHtml], ['undef', undefHtml]] as const) {
       expect({ name, has: html.includes('→') }).toEqual({ name, has: false })

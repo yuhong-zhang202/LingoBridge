@@ -339,7 +339,7 @@ function AnkiReviewContent(): JSX.Element {
               <>
                 {/* 二级筛选（全部 / Part 1 / Part 2）：Chip 胶囊，与题库页 Part 筛选同款（QuestionListTabMobile
                     ghost + active，md 默认尺寸、不覆盖字号/内边距）——视觉降一级与一级分段 Tab 分主次。
-                    after: 伪元素把命中区纵向扩到约 44px（Chip 本体约 26px 高），可视尺寸不变。
+                    after: 伪元素把命中区纵向扩到约 48px（Chip md 本体实测约 30px 高：12px 字 × 1.5 行高 + py-[5px]×2 + 描边），可视尺寸不变。
                     默认「全部」与 Hero 计数一致。两种模式下都显示，与一级组合生效（due 快照队列同样按 part 过滤）。 */}
                 <div className="flex justify-center gap-2 pb-5" role="group" aria-label="按 Part 筛选">
                   {PART_TABS.map((t) => (

@@ -8,7 +8,9 @@
  *             - saved ：savedTag=true → 渲染 <Tag green 已存题卡>（桌面详情行有横向空间，仍是绿色强调标签，遵 DESIGN §5）；
  *                       savedTag=false → 换成实心【品牌橙 brand-primary】Puzzle（角标位无空间放 Tag，产品方定的存对子已存色）。
  *                       已存态不可再触发、不带 tooltip。
- *           40×40 命中区（≥WCAG 2.5.5）、focus-visible 焦点环；idle/saving 均为原生 <button>。
+ *           40×40 命中区（过 WCAG 2.5.8 AA 的 24×24；【未达】2.5.5 AAA 的 44×44 —— 已知偏差，
+ *           改 44 要连带核对三个调用点的绝对定位与 MatchedQuestionCard 的 pr-9 避让，单排任务）、
+ *           focus-visible 焦点环；idle/saving 均为原生 <button>。
  * @author   LingoBridge
  * @created  2026-07-25
  */
