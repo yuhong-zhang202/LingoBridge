@@ -114,7 +114,7 @@ describe('取证：MatchedQuestionCard 动作行', () => {
     expect(actionBtns[0]).toBe(actionBtns[1])
   })
 
-  it('④ 不许为凑触控目标去覆盖 Chip 的 md 尺寸；命中区一律靠 after: 伪元素补', () => {
+  it('④ 尺寸必须来自 Chip 的档位（现为 lg），不许在调用点覆盖；命中区靠 after: 伪元素补', () => {
     // 【为什么钉这条】2026-09-01 之前这两颗写的是 px-3 py-1.5 min-h-[44px]，出发点是
     // WCAG 2.5.5 的 44px 触控目标 —— 但那是把「命中区要 44」写到了【可见胶囊】的盒子上：
     // cn() 是 twMerge，px-3/py-1.5 会真的覆盖掉 SIZES.md 的 px-3.5/py-[5px]，
@@ -126,10 +126,11 @@ describe('取证：MatchedQuestionCard 动作行', () => {
     const cls = actionBtns[0]
     // 渲染产物是 twMerge 之后的结果：这里该出现的正是 Chip 自己的 md 规格（SIZES.md），
     // 出现别的值就说明调用点又在覆盖尺寸了。
-    expect(cls).toContain('px-3.5')            // md 的横向内边距，不是被覆盖后的 px-3
-    expect(cls).toContain('py-[5px]')          // md 的纵向内边距，不是被覆盖后的 py-1.5
+    expect(cls).toContain('px-5')              // Chip lg 的横向内边距
+    expect(cls).toContain('py-2.5')            // Chip lg 的纵向内边距
+    expect(cls).toContain('text-[0.875rem]')   // Chip lg 的字号（14px）
     expect(cls).not.toMatch(/min-h-\[/)        // 不许再撑高可见胶囊
-    expect(cls).toContain('after:-inset-y-[9px]')  // 命中区外扩仍在
+    expect(cls).toContain('after:-inset-y-')   // 命中区外扩仍在（值可调，见组件注释）
   })
 
   it('③ 三种形态下按钮里都没有 → 字符，也没有 lucide arrow-right 的 svg', () => {

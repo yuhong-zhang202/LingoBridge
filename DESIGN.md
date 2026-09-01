@@ -408,10 +408,11 @@ border-radius: 14px
 | 组件 | 性质 | 变体 | 默认尺寸 | 圆角 |
 |---|---|---|---|---|
 | `<Tag>` | 展示型（不可点） | `green`（默认）/ `gradient` / `gray` | `text-[11px]` `px-[10px] py-[5px]` `font-medium` | `rounded-full` |
-| `<Chip>` | 交互型（可点） | `gradient`（默认）/ `ghost` / `default` | `md`：`text-[12px]` `px-[14px] py-[5px]`；`sm`：`text-[11px]` `px-[10px] py-[3px]` | `rounded-full` |
+| `<Chip>` | 交互型（可点） | `gradient`（默认）/ `ghost` / `default` | `lg`：`text-[14px]` `px-[20px] py-[10px]`（卡片级主动作，标准档约 44px 高）；`md`：`text-[12px]` `px-[14px] py-[5px]`（筛选/切换，默认）；`sm`：`text-[11px]` `px-[10px] py-[3px]` | `rounded-full` |
 
 - `<Tag>`：展示标签（当季热题、语料梳理、Part 等），不带交互。
-- `<Chip>`：可点胶囊（筛选、切换、练习/分析等小动作）。`ghost + active` 自动切为渐变样式（用于筛选/切换）；`size="sm"` 用于紧凑动作 chip。
+- `<Chip>`：可点胶囊（筛选、切换、练习/分析等小动作）。**选档按语义分量、不按页面**：卡片级主动作用 `lg`，筛选/切换用 `md`，行内次要操作用 `sm`。
+  🔴 **禁止在调用点用 `px-`/`py-`/`min-h-` 覆盖档位尺寸**（`cn()` 是 twMerge，覆盖会真的生效，结果是同类胶囊各长各的）。尺寸不够用就去 `Chip.tsx` 加一档。`ghost + active` 自动切为渐变样式（用于筛选/切换）；`size="sm"` 用于紧凑动作 chip。
 
 实现：使用 `src/components/Tag.tsx` 和 `src/components/Chip.tsx`，禁止页面内直接手写同类样式。
 

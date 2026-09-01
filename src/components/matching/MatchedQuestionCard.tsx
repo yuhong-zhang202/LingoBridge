@@ -217,13 +217,19 @@ export default function MatchedQuestionCard(props: Props) {
                      又高又窄，一眼看出不是一套。
                      ⇒ 可见尺寸交还 Chip 的 md 规格（DESIGN.md:411/414 把「练习/分析」这类小动作
                         点名划给 Chip），命中区改用【伪元素外扩】，可视尺寸不变。
-                     取值依据：md 实测约 30px（12px 字 × 1.5 行高 + py-[5px]×2 + 渐变描边），
-                     最小字体档(0.9)约 29.2px，+9px×2 = 47.2px，全档位 ≥44。
+                     ⚠️【2026-09-01 二次修正】交还 md 之后产品方再判「组件和字体都有点小」——
+                        根因是 md 按【筛选胶囊】的分量设计，用在卡片主动作上偏轻。
+                        正解不是再来一次调用点覆盖（那正是上面刚犯的错），而是给 Chip 补一档 lg
+                        （见 Chip.tsx 的 SIZES 注释）：14px 字、px-5 py-2.5，标准字体档自然长到 44px 高。
+                     取值依据：lg 标准档 = 14px 字 × 1.5 行高(21) + py-2.5×2(20) + 描边(3) = 44px，
+                     触控目标基本靠自身满足；最小字体档(0.9)约 39.9px，故仍留 +4px×2 的伪元素外扩
+                     兜到 47.9px，全档位 ≥44。
                      ⚠️ 本项目已有同款成例：anki/review/page.tsx:352 那排筛选 Chip 用的就是这一串，
                         逐字复用、不自造新数字。
                      ⚠️ 横向只扩 2px：两颗之间 gap-2(8px) − 2×2 = 净空 4px，命中区不重叠，
                         不会出现「点左边那颗却跳去练习」。 */
-                  className="flex-shrink-0 relative after:absolute after:-inset-y-[9px] after:-inset-x-[2px] after:content-['']"
+                  size="lg"
+                  className="flex-shrink-0 relative after:absolute after:-inset-y-[4px] after:-inset-x-[2px] after:content-['']"
                 >
                   {ANALYZE_LABEL}
                 </Chip>
@@ -232,7 +238,8 @@ export default function MatchedQuestionCard(props: Props) {
                   onClick={(e) => { e.stopPropagation(); props.onPracticeDirect() }}
                   ariaLabel={actionAriaLabel(PRACTICE_LABEL, enText)}
                   /* class 串必须与上面那颗【逐字相同】——这是「平权」唯一的物理保障，理由见上方长注释 */
-                  className="flex-shrink-0 relative after:absolute after:-inset-y-[9px] after:-inset-x-[2px] after:content-['']"
+                  size="lg"
+                  className="flex-shrink-0 relative after:absolute after:-inset-y-[4px] after:-inset-x-[2px] after:content-['']"
                 >
                   {PRACTICE_LABEL}
                 </Chip>
