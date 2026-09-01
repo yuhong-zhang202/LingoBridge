@@ -285,7 +285,7 @@ export default function AnalysisMobile({
               onClick={onStartPractice}
               className="w-full flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[0.875rem] font-medium lg:max-w-[480px] lg:mx-auto"
             >
-              开始练习 →
+              开始练习
             </GradientButton>
           </>
         )}

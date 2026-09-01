@@ -367,8 +367,9 @@ export default function AnalysisDesktop({
             onClick={onStartPractice}
             className="flex items-center justify-center gap-1.5 px-8 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
           >
-            开始练习 →
+            开始练习
           </GradientButton>
+          {/* 这一行的 → 指的是【方向键】，不是 CTA 装饰箭头，2026-09-01 去箭头时刻意保留 */}
           <p className="text-[0.75rem] text-v2-text-muted">Enter 或 → 进入练习 · Esc 退出</p>
         </div>
       </div>

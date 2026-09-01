@@ -136,7 +136,7 @@ export default function RestructureDesktop({
             loading={isSaving}
             className="flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium"
           >
-            {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}
+            {isSaving ? '保存中…' : qid ? '开始分析' : '开始匹配题目'}
           </GradientButton>
         </div>
 

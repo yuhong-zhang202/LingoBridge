@@ -136,7 +136,7 @@ export default function LoggedInView({ stats: _stats }: LoggedInViewProps): JSX.
           </div>
           {!showEmpty && (
             <button className="text-[0.75rem] font-medium text-brand-primary-dark mt-0.5 active:opacity-60">
-              查看完整 →
+              查看完整
             </button>
           )}
         </div>

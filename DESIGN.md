@@ -165,9 +165,15 @@ import { GRADIENT_BORDER_STYLE } from '@/lib/constants'
   className="flex items-center gap-1.5 px-6 py-3 rounded-full text-[14px] font-medium text-v2-text-secondary active:scale-[0.97] transition-transform duration-150"
   style={GRADIENT_BORDER_STYLE}
 >
-  开始匹配题目 →
+  开始匹配题目
 </button>
 ```
+
+> 🔴 **2026-09-01 起 CTA 不带箭头**（产品方拍板：「所有页面所有按钮里不要再包含右箭头，只保留文字」）。
+> 按钮里只放动作文字，不加 ` →`、也不加 `<ArrowRight />` 图标。
+> **三类不受此限，是另一回事，别顺手删**：① 键盘按键提示（如「Enter 或 → 进入练习」，那个 `→` 指方向键）；
+> ② 手势 / 展开收起的方向指示（如「查看更多 N 道 →」「收起 ↑」、卡片左右滑动的 `←不熟悉 / 熟悉→`）；
+> ③ 图标即按钮全部内容的圆形图标钮（如 `StoryTextPanel` 的 42×42 提交钮，删了就是个空按钮）。
 
 `GRADIENT_BORDER_STYLE` 使用 CSS `background-clip: padding-box / border-box` 技巧，内层白底，外层渐变边框，无需额外包裹 div。
 
@@ -574,6 +580,7 @@ Accordion：accordionDown，200ms ease-out
 
 ---
 
+*2026-09-01：CTA 按钮一律不带右箭头（范例代码同步去掉 ` →`，并注明三类不受限的例外）*
 *2026-08-08：修正「卡片样式参考」里过期的 `rounded-[18px]`（2026-06-17 已全站统一为 16），示例改指 `MyCorpusCard`*
 *2026-07-09：文档页面底色由 `#F8F5F1` 同步为实际代码值 `#FBFAF7`（globals.css / layout.tsx / tailwind `bg-page`·`bg-base` 均为 `#FBFAF7`）；上方 06-16 历史记录保留不改。*
 *2026-06-17：卡片/标签/胶囊/渐变 CTA 统一为 `<Card>`/`<Tag>`/`<Chip>`/`<GradientButton>` 四组件并列为必用；卡片圆角全站统一为 16（删旧 .card 死样式）；示例 v1 色 #444/#AAAAAA 改 v2*

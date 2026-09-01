@@ -173,7 +173,7 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
              而桌面默认就会自动选中列表第一题，推荐题正是那一张，这个组合是常态不是边角。
           已知代价：标签会压住选中态 4px 渐变竖条顶端约 26px —— 骑边与「竖条完整」不可兼得，产品方选骑边。
           ⚠️ 出挑的 8px 会被左栏滚动容器裁掉（overflow-y:auto 使 overflow-x 计算成 auto，
-             起始边不可达溢出被浏览器静默裁平），修法是那个容器上成对的 -ml-2 pl-2，见下方注释。 */}
+             起始边不可达溢出被浏览器静默裁平），修法是那个容器上成对的 -ml-3 pl-3，见下方注释。 */}
       {recommended && (
         <span aria-hidden="true" className={`pointer-events-none absolute top-2 -left-2 z-10 transition-transform duration-200 ${
           selected ? '' : 'group-hover:-translate-y-[1px]'
@@ -256,13 +256,15 @@ function DetailPane(props: {
       </div>
       {/* data-detail-actions：桌面 Enter/→ 把焦点送进这个操作区（见下方键盘 effect），必须挂在这个容器上
           （挪到内层 wrapper 会让 Enter 送焦点静默失效）。
-          常规态两颗平权按钮左右分置（justify-between），低相关态只有一颗文字按钮 —— 无条件 between
-          会把它从右推到左、与今天不同，所以 lowTone 仍走 justify-end。
-          分置只写在父容器上：两颗按钮的 class 必须逐字相同（不许给左颗加 mr-auto，那会让两串 class
+          【2026-09-01 产品方真机后拍板】常规态两颗平权按钮由「贴两端」（justify-between）改为
+          「紧挨着作为一组居中」（justify-center）—— 两端分置让它们看起来像两件不相干的事，
+          居中成组才读得出「同一层级的两个入口，挑一个」。gap-3 此时决定两颗之间的距离，别删。
+          低相关态只有一颗文字按钮 —— 无条件 center 会把它从右推到中、与今天不同，所以 lowTone 仍走 justify-end。
+          排布只写在父容器上：两颗按钮的 class 必须逐字相同（不许给左颗加 mr-auto，那会让两串 class
           首次分叉）；也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，
           一次性打破 Tab 顺序、读屏朗读顺序，并让 Enter 送来的焦点落到右颗。 */}
       <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center gap-3 ${
-        props.lowTone ? 'justify-end' : 'justify-between'
+        props.lowTone ? 'justify-end' : 'justify-center'
       }`}>
         {props.lowTone ? (
           <button
@@ -270,7 +272,7 @@ function DetailPane(props: {
             aria-label={actionAriaLabel('题目分析', enText)}
             className="min-h-[44px] inline-flex items-center px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
           >
-            题目分析 →
+            题目分析
           </button>
         ) : (
           <>
@@ -281,14 +283,14 @@ function DetailPane(props: {
               aria-label={actionAriaLabel('题目分析', enText)}
               className="min-h-[44px] flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
-              题目分析 →
+              题目分析
             </GradientButton>
             <GradientButton
               onClick={() => props.onPracticeDirect(q.id)}
               aria-label={actionAriaLabel('开始练习', enText)}
               className="min-h-[44px] flex items-center gap-1.5 px-7 py-3 rounded-full text-[0.9375rem] font-medium transition-[transform,box-shadow] duration-200 hover:-translate-y-[2px] hover:shadow-[0_8px_22px_rgba(0,0,0,0.09)]"
             >
-              开始练习 →
+              开始练习
             </GradientButton>
           </>
         )}
@@ -476,7 +478,7 @@ export default function MatchingDesktop({
                 </div>
 
                 {/* 列表区：骨架卡 / 真卡分组，二选一填进同一个滚动容器。
-                    ⚠️【-ml-2 pl-2 必须成对，少一个就出 bug】推荐题的「试试这道题吧」标签向左出挑 8px，
+                    ⚠️【-ml-3 pl-3 必须成对，少一个就出 bug】推荐题的「试试这道题吧」标签向左出挑 8px，
                        而 overflow-y:auto 会让 overflow-x 计算成 auto —— 向【起始边】的溢出属于不可达溢出，
                        浏览器直接裁平且不报错、不给滚动条。pl-3 给出挑腾出空间，-ml-3 把这 12px 抵消回去，
                        保证卡片左缘仍与上方标题 / 说明卡 / Part chips 在同一条垂直线上、卡片宽度不变。

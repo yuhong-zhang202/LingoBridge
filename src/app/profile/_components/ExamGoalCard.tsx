@@ -128,7 +128,7 @@ export default function ExamGoalCard(): JSX.Element | null {
               <Target size={18} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[0.9375rem] font-semibold text-v2-text-primary">设置你的备考目标 →</span>
+              <span className="block text-[0.9375rem] font-semibold text-v2-text-primary">设置你的备考目标</span>
               <span className="block text-[0.78125rem] text-v2-text-secondary mt-0.5">定个分数和考试日期，我们帮你盯着倒计时</span>
             </span>
           </button>

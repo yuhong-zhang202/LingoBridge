@@ -13,7 +13,7 @@
 'use client'
 import { type JSX, Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Plus, RefreshCw, Loader2 } from 'lucide-react'
+import { Plus, RefreshCw, Loader2 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
 import DesktopBackLink from '@/components/DesktopBackLink'
 import Card from '@/components/Card'
@@ -82,7 +82,6 @@ function CorpusMatchCard({ item, selected, onToggle, onPractice }: {
               className="px-3 py-1.5 flex-shrink-0"
             >
               练习
-              <ArrowRight size={12} />
             </Chip>
           </div>
         )}
@@ -321,7 +320,7 @@ function PracticeQuestionContent(): JSX.Element {
                 }}
                 className="w-full py-3 rounded-full text-[0.875rem] font-medium"
               >
-                开始分析 →
+                开始分析
               </GradientButton>
             </div>
             <button

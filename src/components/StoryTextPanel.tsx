@@ -33,7 +33,11 @@ export function storySubmitAction(qid: string | null): string {
 }
 
 /**
- * 文字提交按钮的可见文案（动作名与整理确认页 CTA 同一套词，含尾部箭头）。
+ * 文字提交按钮的可见文案（动作名与整理确认页 CTA 同一套词）。
+ *
+ * ⚠️【2026-09-01 起 CTA 不带箭头】原返回值是 `${动作名} →`，产品方拍板「所有页面所有按钮里
+ * 不要再包含右箭头，只保留文字」，尾部箭头已去。本函数仍然保留（而不是让调用方直接用
+ * storySubmitAction）：它是「进行中 → 整理中…」这条状态分支的真源，删了 WriteDesktop 就要自己写。
  *
  * ⚠️【进行中文案刻意与整理页不同，2026-08-27 产品方拍板】整理页写「保存中…」名副其实——
  * 点那颗 CTA 就是在存语料；而文字路径这几秒里先跑一次 AI 整理（/api/restructure）再建语料，
@@ -45,7 +49,7 @@ export function storySubmitAction(qid: string | null): string {
  * @returns            按钮文案
  */
 export function storySubmitLabel(qid: string | null, submitting: boolean): string {
-  return submitting ? '整理中…' : `${storySubmitAction(qid)} →`
+  return submitting ? '整理中…' : storySubmitAction(qid)
 }
 
 interface StoryTextPanelProps {

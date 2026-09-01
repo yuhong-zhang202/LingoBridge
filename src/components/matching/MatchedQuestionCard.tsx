@@ -2,7 +2,7 @@
  * @module   MatchedQuestionCard
  * @desc     匹配页单题卡片（移动端）— 复用现有视觉，数据来自真实匹配结果。
  *           动作行是【两个平权入口】：「题目分析」（跳 /analysis）与「开始练习」（直达 /practice），
- *           同款渐变胶囊、不分主次、左右分置（差异只写在父容器的 justify 上，两颗按钮 class 逐字相同）；
+ *           同款渐变胶囊、不分主次、紧挨着作为一组居中（差异只写在父容器的 justify 上，两颗按钮 class 逐字相同）；
  *           低相关态（practiceVariant='text'）只保留文本级分析入口，练习入口在类型上就不存在（见 ActionProps）。
  *           「存对子」只有一条途径：右上角三态书签按钮（无条件渲染、可聚焦、可点）。三态：存中
  *           （spinner + aria-live 播报）/ 已存 / 未存。失败由外壳 Toast 呈现、回未存态。
@@ -21,7 +21,6 @@
  * @created  2026-06-03
  */
 'use client'
-import { ArrowRight } from 'lucide-react'
 import PartTag from '@/components/PartTag'
 import Tag from '@/components/Tag'
 import Chip from '@/components/Chip'
@@ -166,15 +165,18 @@ export default function MatchedQuestionCard(props: Props) {
           <p className="text-[1rem] font-bold text-v2-text-primary leading-snug">{enText}</p>
           {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5">{zhText}</p>}
 
-          {/* 动作行：两个入口【平权】—— 同一款渐变胶囊、同一组内边距，不分主次，且左右分置。
+          {/* 动作行：两个入口【平权】—— 同一款渐变胶囊、同一组内边距，不分主次。
+              【2026-09-01 产品方真机后拍板】由「左右分置」（justify-between）改为「紧挨着作为一组居中」
+                 （justify-center）：两端分置让它们看起来像两件不相干的事，居中成组才读得出
+                 「同一层级的两个入口，挑一个」。gap-2 此时决定两颗之间的距离，别删。
               e.stopPropagation() 不能省：卡片本体是 role="button"，不阻止冒泡会连带触发选中切换。
               ⚠️ 判别式必须写 `=== 'text'`，绝不能写真值判断：practiceVariant 在 'chip' 形态下是可选的、
                  实际常常是 undefined，写成 `props.practiceVariant ? …` 会让常规态整个走错分支。
                  （桌面 DetailPane 的 lowTone 是布尔可以真值判断 —— 两端形似而不神似，照抄必翻车。）
-              ⚠️ 分置只写在父容器的 justify 上：两颗 Chip 的 class 必须逐字相同，这是「平权」的物理保障；
+              ⚠️ 排布只写在父容器的 justify 上：两颗 Chip 的 class 必须逐字相同，这是「平权」的物理保障；
                  也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，打破 Tab 与朗读顺序。 */}
           <div className={`flex items-center gap-2 mt-3 ${
-            props.practiceVariant === 'text' ? 'justify-end' : 'justify-between'
+            props.practiceVariant === 'text' ? 'justify-end' : 'justify-center'
           }`}>
             {props.practiceVariant === 'text' ? (
               <button
@@ -183,7 +185,6 @@ export default function MatchedQuestionCard(props: Props) {
                 className="min-h-[44px] inline-flex items-center gap-1 px-1 text-[0.8125rem] font-medium text-v2-text-secondary active:opacity-60"
               >
                 {ANALYZE_LABEL}
-                <ArrowRight size={12} />
               </button>
             ) : (
               <>
@@ -195,7 +196,6 @@ export default function MatchedQuestionCard(props: Props) {
                   className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
                 >
                   {ANALYZE_LABEL}
-                  <ArrowRight size={12} />
                 </Chip>
                 <Chip
                   variant="gradient"
@@ -204,7 +204,6 @@ export default function MatchedQuestionCard(props: Props) {
                   className="px-3 py-1.5 min-h-[44px] flex-shrink-0"
                 >
                   {PRACTICE_LABEL}
-                  <ArrowRight size={12} />
                 </Chip>
               </>
             )}

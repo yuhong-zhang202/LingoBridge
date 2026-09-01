@@ -141,7 +141,7 @@ export default function RestructureMobile({
                 loading={isSaving}
                 className="flex items-center justify-center gap-1.5 w-full px-6 py-3 rounded-full text-[0.875rem] font-medium mb-3"
               >
-                {isSaving ? '保存中…' : qid ? '开始分析 →' : '开始匹配题目 →'}
+                {isSaving ? '保存中…' : qid ? '开始分析' : '开始匹配题目'}
               </GradientButton>
               <button
                 className="w-full flex items-center justify-center gap-1.5 text-[0.8125rem] text-v2-text-muted active:opacity-70 transition-opacity"
