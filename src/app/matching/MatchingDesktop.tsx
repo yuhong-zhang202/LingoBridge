@@ -148,7 +148,7 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
           {/* 推荐提示：与移动端 MatchedQuestionCard 同款（两处是各自独立实现，靠人肉同步，改一处必改另一处）。
               2026-09-01 产品方拍板由绿色 Tag 胶囊改为纯文字 + 小 ✨，并连带收回卡内 —— 理由见移动端注释。 */}
           {recommended && (
-            <p className="flex items-center gap-1 text-[0.75rem] text-v2-text-secondary mb-2">
+            <p className="flex items-center gap-1 text-[0.6875rem] text-v2-text-secondary mb-2">
               <Sparkles size={12} className="text-brand-primary flex-shrink-0" />
               试试这道题吧
             </p>
@@ -245,21 +245,20 @@ function DetailPane(props: {
       </div>
       {/* data-detail-actions：桌面 Enter/→ 把焦点送进这个操作区（见下方键盘 effect），必须挂在这个容器上
           （挪到内层 wrapper 会让 Enter 送焦点静默失效）。
-          【2026-09-01 产品方真机后拍板】常规态两颗平权按钮由「贴两端」（justify-between）改为
-          「紧挨着作为一组居中」（justify-center）—— 两端分置让它们看起来像两件不相干的事，
-          居中成组才读得出「同一层级的两个入口，挑一个」。gap-3 此时决定两颗之间的距离，别删。
-          低相关态只有一颗文字按钮 —— 无条件 center 会把它从右推到中、与今天不同，所以 lowTone 仍走 justify-end。
+          低相关态只有一颗文字按钮 —— 无条件 between 会把它从右推到左、与今天不同，所以 lowTone 仍走 justify-end。
           排布只写在父容器上：两颗按钮的 class 必须逐字相同（不许给左颗加 mr-auto，那会让两串 class
           首次分叉）；也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，
           一次性打破 Tab 顺序、读屏朗读顺序，并让 Enter 送来的焦点落到右颗。 */}
-      {/* gap-44（176px）不是随手选的：产品方要求两颗之间隔「约 1.5 个按钮宽」。
-          按钮实测宽约 114px（px-7 两侧 + 4 个 15px 汉字），1.5 倍 ≈ 171px，gap-44 是最接近的档。
-          用 rem 制的 gap-44 而非 gap-[171px]：字体档放大时按钮会变宽，固定 px 的间距不会跟着长，
-          比例就跑掉了（与本文件 Part 筛选槽那条 rem 教训同源）。
-          余量核算：1024px 视口下底栏可用约 520px，两颗约 228px + 176px = 404px，尚余 116px；
-          特大字体档（1.15）下约 464px，仍在 520px 内，不换行。 */}
-      <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-7 py-5 flex items-center gap-44 ${
-        props.lowTone ? 'justify-end' : 'justify-center'
+      {/* 排布沿革（三次拍板，别再来回改）：justify-between 贴两端 → 产品方判「像两件不相干的事」
+          改 justify-center + gap-44 → 产品方再判「还要更开、要一左一右、但别贴边框」⇒ 现状。
+          做法：回到 justify-between（一左一右、随面板宽自适应，比固定 gap 稳），
+          底栏横向内边距由 px-7 加到 px-10（40px）—— 这 40px 就是「距离卡片边框保留的那点间距」。
+          ⚠️ 代价据实记：px-7 时左颗左缘正好与上方 PartTag / 题面左缘同一条垂直线，
+             加到 px-10 后错开 12px，少了一条对齐线。若真机觉得对齐比留白重要，改回 px-7 即可。
+          ⚠️ 不用 gap 控制间距了：justify-between 下 gap 只在两颗快贴上时兜底，
+             留 gap-3 防窄面板 + 特大字体档下相撞。 */}
+      <div data-detail-actions className={`shrink-0 border-t border-black/[0.05] px-10 py-5 flex items-center gap-3 ${
+        props.lowTone ? 'justify-end' : 'justify-between'
       }`}>
         {props.lowTone ? (
           <button

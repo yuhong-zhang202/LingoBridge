@@ -4,7 +4,7 @@
  *
  *   【为什么补这份】这个组件此前**整个零测试覆盖**，而它身上压着三条只靠注释维系的约定，
  *   全都是「改错了页面照常渲染、tsc 与既有测试全绿」的那种：
- *   ① 排布：常规态 justify-center（2026-09-01 产品方拍板，由 justify-between 改），
+ *   ① 排布：常规态 justify-between（一左一右；2026-09-01 三次拍板后的终态，沿革见组件注释），
  *      低相关（practiceVariant='text'）态仍是 justify-end；
  *   ② 平权：两颗 Chip 的 class 串必须**逐字相同** —— 差异只许写在父容器的 justify 上。
  *      谁给左颗加个 mr-auto，两串就分叉、"平权"名存实亡；
@@ -66,13 +66,13 @@ describe('取证：MatchedQuestionCard 动作行', () => {
     return m[1]
   }
 
-  it('① 常规态（chip）动作行 = justify-center', () => {
-    expect(actionRowClass(chipHtml)).toContain('justify-center')
-    expect(actionRowClass(chipHtml)).not.toContain('justify-between')
+  it('① 常规态（chip）动作行 = justify-between', () => {
+    expect(actionRowClass(chipHtml)).toContain('justify-between')
+    expect(actionRowClass(chipHtml)).not.toContain('justify-center')
   })
 
-  it('① 常规态 practiceVariant 省略（undefined）时也是 justify-center，没走错分支', () => {
-    expect(actionRowClass(undefHtml)).toContain('justify-center')
+  it('① 常规态 practiceVariant 省略（undefined）时也是 justify-between，没走错分支', () => {
+    expect(actionRowClass(undefHtml)).toContain('justify-between')
     // 两颗按钮都在 —— 真值判断走错分支的话这里只会剩一颗文本钮
     expect(undefHtml).toContain('题目分析')
     expect(undefHtml).toContain('开始练习')
@@ -82,14 +82,17 @@ describe('取证：MatchedQuestionCard 动作行', () => {
     expect(actionRowClass(textHtml)).toContain('justify-end')
   })
 
-  it('② 移动端间距钉在 gap-20：再往上调会在特大字体档溢出卡片（本行无 flex-wrap）', () => {
-    // 产品方要「隔约 1.5 个按钮宽」，桌面按此取 gap-44；移动端 Chip 只约 72px 宽，
-    // 同样 1.5 倍是 108px，但 375px 屏卡内可用仅约 299px —— 特大字体档（1.15）下
-    // 两颗涨到约 166px、间距涨到约 124px，合计 290px 只剩 4px 余量。
-    // 本行【没有 flex-wrap】且 Chip 是 flex-shrink-0：一旦超宽就是直接溢出卡片，不是换行。
-    // 故取 gap-20（80px，约 1.1 倍）留 36px 余量。改这个值前先重算这笔账。
-    expect(actionRowClass(chipHtml)).toContain('gap-20')
-    expect(actionRowClass(chipHtml)).not.toContain('flex-wrap')
+  it('② 间距由容器宽度决定，gap 只是防撞兜底 —— 不许改回「固定大 gap」', () => {
+    // 【为什么钉这条】上一版曾用 justify-center + 固定大 gap 来拉开两颗，那个做法在
+    // 移动端有真实溢出风险：375px 屏卡内可用约 299px，特大字体档（1.15）下两颗 Chip
+    // 涨到约 166px，若 gap 也按比例涨到约 124px，合计 290px 只剩 4px 余量；
+    // 而本行【没有 flex-wrap】、Chip 又是 flex-shrink-0 —— 一旦超宽就是直接溢出卡片，不是换行。
+    // 改成 justify-between 后间距「有多少宽用多少」，永远撑不破，这个隐患随之消失。
+    // ⇒ 谁要是再把它改回固定大 gap，请先重算上面这笔账。
+    const cls = actionRowClass(chipHtml)
+    expect(cls).not.toContain('flex-wrap')
+    // gap 必须是小值兜底（个位数档）：gap-10 起就说明有人又在用 gap 控距离了
+    expect(cls).toMatch(/gap-[1-9](?!\d)/)
   })
 
   it('③ 推荐提示已改为纯文字 + ✨，不再是绿色 Tag 胶囊、也不再骑边', () => {

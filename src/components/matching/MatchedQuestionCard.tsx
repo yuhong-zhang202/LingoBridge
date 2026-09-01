@@ -2,7 +2,7 @@
  * @module   MatchedQuestionCard
  * @desc     匹配页单题卡片（移动端）— 复用现有视觉，数据来自真实匹配结果。
  *           动作行是【两个平权入口】：「题目分析」（跳 /analysis）与「开始练习」（直达 /practice），
- *           同款渐变胶囊、不分主次、紧挨着作为一组居中（差异只写在父容器的 justify 上，两颗按钮 class 逐字相同）；
+ *           同款渐变胶囊、不分主次、一左一右分置（差异只写在父容器的 justify 上，两颗按钮 class 逐字相同）；
  *           低相关态（practiceVariant='text'）只保留文本级分析入口，练习入口在类型上就不存在（见 ActionProps）。
  *           「存对子」只有一条途径：右上角三态书签按钮（无条件渲染、可聚焦、可点）。三态：存中
  *           （spinner + aria-live 播报）/ 已存 / 未存。失败由外壳 Toast 呈现、回未存态。
@@ -154,7 +154,7 @@ export default function MatchedQuestionCard(props: Props) {
                  颜色只给 ✨ 图标，既有 HomeDesktop 的同款用法。
               回到内容流后不再需要 sr-only 兜底：它本来就是为「视觉标签在卡外、aria-hidden」配的。 */}
           {recommended && (
-            <p className="flex items-center gap-1 text-[0.75rem] text-v2-text-secondary mb-2">
+            <p className="flex items-center gap-1 text-[0.6875rem] text-v2-text-secondary mb-2">
               <Sparkles size={12} className="text-brand-primary flex-shrink-0" />
               试试这道题吧
             </p>
@@ -176,24 +176,24 @@ export default function MatchedQuestionCard(props: Props) {
           {zhText && <p className="text-[0.75rem] text-v2-text-muted mt-0.5">{zhText}</p>}
 
           {/* 动作行：两个入口【平权】—— 同一款渐变胶囊、同一组内边距，不分主次。
-              【2026-09-01 产品方真机后拍板】由「左右分置」（justify-between）改为「紧挨着作为一组居中」
-                 （justify-center）：两端分置让它们看起来像两件不相干的事，居中成组才读得出
-                 「同一层级的两个入口，挑一个」。gap-2 此时决定两颗之间的距离，别删。
+              【排布沿革，2026-09-01 一天内三次拍板，别再来回改】
+                ① justify-between 贴两端 → 判「像两件不相干的事」
+                ② justify-center + 固定 gap 成组居中 → 判「还要更开、要一左一右、但别贴边框」
+                ③ 回到 justify-between，两端落在内容区 p-4 的内边距上 —— 那 16px 就是留给边框的间距。
+              gap-2 现在只作「快贴上时」的兜底，不再决定两颗的距离（距离由容器宽度决定）。
               e.stopPropagation() 不能省：卡片本体是 role="button"，不阻止冒泡会连带触发选中切换。
               ⚠️ 判别式必须写 `=== 'text'`，绝不能写真值判断：practiceVariant 在 'chip' 形态下是可选的、
                  实际常常是 undefined，写成 `props.practiceVariant ? …` 会让常规态整个走错分支。
                  （桌面 DetailPane 的 lowTone 是布尔可以真值判断 —— 两端形似而不神似，照抄必翻车。）
               ⚠️ 排布只写在父容器的 justify 上：两颗 Chip 的 class 必须逐字相同，这是「平权」的物理保障；
                  也不用 flex-row-reverse / order-*，那会让 DOM 顺序 ≠ 视觉顺序，打破 Tab 与朗读顺序。 */}
-          {/* ⚠️ 间距【刻意小于桌面的比例】。产品方要的是「隔约 1.5 个按钮宽」，桌面按钮约 114px
-              故取 gap-44(176px)；移动端 Chip 只有约 72px 宽，同样 1.5 倍是 108px ——
-              但 375px 屏卡内可用仅约 299px，特大字体档(1.15)下两颗涨到约 166px、
-              间距涨到约 124px，合计 290px，只剩 4px 余量；而本行【没有 flex-wrap】、
-              Chip 又是 flex-shrink-0，一旦超宽就是直接溢出卡片、不是换行。
-              故取 gap-20(80px，约 1.1 倍)：特大档合计约 258px，留 36px 余量。
-              真机若觉得还能再拉开，往上调 gap-24(96px) 仍安全，gap-28 起就贴边了。 */}
-          <div className={`flex items-center gap-20 mt-3 ${
-            props.practiceVariant === 'text' ? 'justify-end' : 'justify-center'
+          {/* 与桌面同步：justify-between（一左一右），两端落在内容区 p-4 的内边距上 ——
+              那 16px 就是「距离卡片边框保留的间距」。
+              ⚠️ 改回 justify-between 顺带消掉了上一版 gap-20 的溢出隐患：
+                 固定 gap 在特大字体档下会把两颗顶出卡片（本行无 flex-wrap、Chip 又是 flex-shrink-0），
+                 而 justify-between 是「有多少宽用多少」，永远撑不破。gap-2 只作快贴上时的兜底。 */}
+          <div className={`flex items-center gap-2 mt-3 ${
+            props.practiceVariant === 'text' ? 'justify-end' : 'justify-between'
           }`}>
             {props.practiceVariant === 'text' ? (
               <button
