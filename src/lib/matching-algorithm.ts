@@ -27,20 +27,19 @@ const MAPPING_CONFIG: MatchingAlgorithmConfig = {
 
 const SCHEME3_CONFIG: MatchingAlgorithmConfig = {
   algo: 'scheme3_enhanced_key',
-  // 可信 Key 资产接入并冻结前不赋予 v7.6/v7.7 身份；ready=false 会在接口入口阻断全部流量。
-  version: 'key-asset-pending-v0',
-  snapshotKey: 'scheme3_enhanced_key:key-asset-pending-v0',
-  ready: false,
+  version: 'scheme3-enhanced-key-r3-2026-09-02',
+  snapshotKey: 'scheme3_enhanced_key:scheme3-enhanced-key-r3-2026-09-02',
+  ready: true,
 }
 
 /**
- * 解析 MATCHING_ALGO；未配置时保持线上 Mapping，任何近似值都拒绝。
+ * 解析 MATCHING_ALGO；未配置时默认方案三，只有显式 mapping 才进入紧急回滚 arm。
  * @param  raw  环境变量原值
  * @returns     对应的算法配置
  * @throws      非法值会抛错，调用方必须显式阻断请求
  */
 export function matchingAlgorithmConfig(raw: string | undefined): MatchingAlgorithmConfig {
-  if (raw === undefined || raw === '') return MAPPING_CONFIG
+  if (raw === undefined || raw === '') return SCHEME3_CONFIG
   if (raw === 'mapping') return MAPPING_CONFIG
   if (raw === 'scheme3_enhanced_key') return SCHEME3_CONFIG
   throw new Error(`非法 MATCHING_ALGO：${raw}`)

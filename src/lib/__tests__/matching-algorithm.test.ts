@@ -46,9 +46,13 @@ function resultFixture(): FunnelMatchResult {
 }
 
 describe('MATCHING_ALGO 解析与隔离', () => {
-  test('未配置或显式 mapping 都选择 Mapping', () => {
-    expect(matchingAlgorithmConfig(undefined).algo).toBe('mapping')
-    expect(matchingAlgorithmConfig('').algo).toBe('mapping')
+  test('未配置默认方案三，只有显式 mapping 进入紧急回滚', () => {
+    expect(matchingAlgorithmConfig(undefined)).toEqual(expect.objectContaining({
+      algo: 'scheme3_enhanced_key',
+      version: 'scheme3-enhanced-key-r3-2026-09-02',
+      ready: true,
+    }))
+    expect(matchingAlgorithmConfig('').algo).toBe('scheme3_enhanced_key')
     expect(matchingAlgorithmConfig('mapping').algo).toBe('mapping')
   })
 
@@ -63,7 +67,7 @@ describe('MATCHING_ALGO 解析与隔离', () => {
     expect(mapping.snapshotKey).not.toBe(scheme3.snapshotKey)
     expect(isMatchingSnapshotCompatible(mapping.version, mapping)).toBe(true)
     expect(isMatchingSnapshotCompatible(mapping.version, scheme3)).toBe(false)
-    expect(matchingAlgorithmBlockReason(scheme3)).not.toBeNull()
+    expect(matchingAlgorithmBlockReason(scheme3)).toBeNull()
   })
 })
 

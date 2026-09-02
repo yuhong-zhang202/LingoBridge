@@ -11,7 +11,7 @@
  * @created  2026-07-18
  */
 jest.mock('server-only', () => ({}))
-jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true } }))
+jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true, matchingAlgoRaw: 'mapping' } }))
 jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 jest.mock('@/lib/events', () => ({ logEvent: jest.fn() }))
 jest.mock('@/lib/raw-log-context', () => ({ runWithRawLogContext: (_ctx: unknown, fn: () => unknown) => fn() }))

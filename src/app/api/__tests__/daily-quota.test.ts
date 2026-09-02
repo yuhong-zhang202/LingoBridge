@@ -66,6 +66,7 @@ import { getCorpusByIdServer, bumpDailyUsageServer, bumpAnonRestructureTodayServ
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { env } from '@/lib/env-server'
 import {
   ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
   ANON_ANALYSIS_LIMIT, REG_ANALYSIS_DAILY_LIMIT,
@@ -152,6 +153,7 @@ function asUser(isAnonymous: boolean): void {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'mapping'
   asUser(false)
   ;(assertCorpusOwner as jest.Mock).mockResolvedValue(undefined)
   mockGetCorpus.mockResolvedValue(CLEANED)
@@ -166,14 +168,14 @@ beforeEach(() => {
   mockBumpAnonRestructure.mockResolvedValue(1)
   mockBumpDaily.mockResolvedValue(1)
 
-  // matching 的 persistMatches 走真实代码，给最小可链式 stub
-  const corpusMaybeSingle = jest.fn().mockResolvedValue({ data: { user_id: 'u1' }, error: null })
+  // matching 的 persistMatches 走真实代码，给原子替换 RPC 最小 stub。
   mockGetSupabase.mockReturnValue({
-    from: (table: string) =>
-      table === 'corpus_question_matches'
-        ? { upsert: jest.fn().mockResolvedValue({ error: null }) }
-        : { select: () => ({ eq: () => ({ maybeSingle: corpusMaybeSingle }) }) },
+    rpc: jest.fn().mockResolvedValue({ error: null }),
   } as never)
+})
+
+afterEach(() => {
+  delete (env as { matchingAlgoRaw?: string }).matchingAlgoRaw
 })
 
 describe('每日次数熔断 · 匿名超额 → 402 且未触达 AI', () => {

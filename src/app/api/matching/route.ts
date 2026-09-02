@@ -7,14 +7,20 @@
  *           存档解决的是【已经跑完之后】的重复；【同时在跑】的重复由 matching-inflight 的进程内单飞兜（2026-08-12）：
  *           快照的读与写之间没有锁，第二个并发请求读档必然未命中 → 生产实测 3.1% 的语料跑了两趟。单飞只包住
  *           「真花钱的那一段」（runMatchOnce 内的 matchByStory），鉴权/同意/归属/熔断/计次一律各请求各过一遍，
- *           读档命中路径一步都不进单飞。搭车成功的请求 servedFrom='joined'：不记 usage、不写档、不刷反查表。
+ *           读档命中路径一步都不进单飞，但会用存档同步反查表自愈。搭车成功的请求 servedFrom='joined'：
+ *           不记 usage、不写档、不重复刷反查表。
  * @author   LingoBridge
  * @created  2026-06-03
  */
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 import { logErr } from '@/lib/log'
-import { matchByStory, type FunnelMatchResult } from '@/services/matching'
+import { matchByStory, type FunnelMatchResult, type MatchUsageSink } from '@/services/matching'
+import {
+  matchByStoryScheme3Production,
+  preloadScheme3ProductionAssets,
+} from '@/services/scheme3-matching'
+import type { Scheme3UsageSink } from '@/services/scheme3-matching'
 import { logApiUsage, qwenPlusCostCny } from '@/lib/api-logger'
 import { errorLogMeta, errorKindMeta } from '@/types/errors'
 import type { LLMUsage } from '@/lib/llm'
@@ -59,44 +65,56 @@ import {
  */
 type ServedFrom = 'fresh' | 'cache' | 'joined'
 
+/**
+ * 按已解析 arm 选择唯一执行器；方案三失败时直接上抛，禁止自动转调 Mapping。
+ * @param  cleanedText  整理后的中文故事
+ * @param  algorithm    当前请求冻结的算法 arm
+ * @param  usage        模型用量与流式回调
+ * @returns             所选 arm 的匹配结果
+ */
+async function runConfiguredMatch(
+  cleanedText: string,
+  algorithm: MatchingAlgorithmConfig,
+  mappingUsage: MatchUsageSink,
+  scheme3Usage: Scheme3UsageSink,
+): Promise<FunnelMatchResult> {
+  if (algorithm.algo === 'scheme3_enhanced_key') {
+    return matchByStoryScheme3Production(cleanedText, scheme3Usage)
+  }
+  return matchByStory(cleanedText, mappingUsage)
+}
+
 /** 故事正文 → sha256 十六进制哈希，作为存档失效判定（正文一字未变则命中读档、不重算）。 */
 function storyHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex')
 }
 
 /**
- * 把匹配结果落库：对每个匹配题 upsert 一行（corpus_id,question_id 冲突即更新）。
- * 使用 service_role client，user_id 取自 corpus 行；调用方需 catch，写库失败不阻断匹配返回。
+ * 通过 service_role-only RPC 原子替换该语料全部自动 high/mid，chosen 永久保留。
+ * user_id 由 RPC 锁定父 corpus 后派生；调用方需 catch，写库失败不阻断匹配返回。
  */
 async function persistMatches(corpusId: string, result: FunnelMatchResult): Promise<void> {
   const supabase = getSupabaseServer()
-  const { data: corpusRow, error: cErr } = await supabase
-    .from('corpus')
-    .select('user_id')
-    .eq('id', corpusId)
-    .maybeSingle()
-  if (cErr) throw cErr
-  const userId = (corpusRow as { user_id: string } | null)?.user_id
-  if (!userId) return
-
-  const rows = result.questions
+  const matches = result.questions
     .map((q) => ({ q, level: levelForScore(q.relevanceScore) }))
     .filter((x): x is { q: typeof x.q; level: 'high' | 'mid' } => x.level !== null)
-    .map((x) => ({ user_id: userId, corpus_id: corpusId, question_id: x.q.id, match_level: x.level }))
-  if (rows.length === 0) return
-
-  const { error } = await supabase
-    .from('corpus_question_matches')
-    .upsert(rows, { onConflict: 'corpus_id,question_id' })
+    .map((x) => ({ question_id: x.q.id, match_level: x.level }))
+  // 空数组也必须进 RPC：它代表「清掉该语料此前所有自动匹配」，不能被当成无操作。
+  const { error } = await supabase.rpc('replace_auto_corpus_question_matches', {
+    p_corpus_id: corpusId,
+    p_matches: matches,
+  })
   if (error) throw error
 }
 
 /**
- * 把萃取(必发) + 重排(仅有候选题时发)两条 qwen-plus usage 记账推入 afterTasks。
+ * 把当前 arm 的模型 usage 推入 afterTasks：Mapping 记萃取+重排；方案三只记 qwen-plus Ranking，
+ * Embedding 的真实 tokens/latency 作为独立 metadata 转发，绝不冒充 Mapping 萃取。
+ * Embedding 单价与看板 service 尚未获冻结，故当前明确标 `embedding_cost_untracked=true`，ready 前必须补齐。
  * handleBuffered 与 handleStreaming 共用同一份，杜绝计费估算/字段两路分叉（此前为逐字复制、易只改一路）。
  * 估算兜底（模型没吐 usage 时）：萃取 = 语料字数×0.8+1200 / 输出100；
  *   重排 = 语料字数×0.8 + 候选题干字数×0.5 + 2000 / 输出 候选数×40。
- * latency_ms 走 matchByStory 内部【分段实测】(extractionMs/rankingMs)，非请求总耗时——
+ * latency_ms 走各 arm 内部【分段实测】，非请求总耗时——
  *   2026-07-20 修正：此前两条都写请求总耗时、把 matching 耗时虚报约一倍，看板须按该时点断开口径。
  * ⚠️ is_anonymous 自 2026-08-07 起补写（此前两条都漏传、落库为 NULL，让看板「匿名 vs 登录成本占比」
  *   两侧都漏算这部分成本）。只修【将来】的数据：历史行仍是 NULL、不追溯改写；看板对历史 NULL 行的处理
@@ -108,17 +126,19 @@ async function persistMatches(corpusId: string, result: FunnelMatchResult): Prom
  */
 function pushMatchUsageLogs(
   afterTasks: Promise<unknown>[],
-  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string; isQa: boolean },
+  a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; embeddingUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; embeddingMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string; isQa: boolean },
 ): void {
-  const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'extraction', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  if (a.result.matchingAlgo === 'mapping') {
+    const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'extraction', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  }
   if (a.result.questions.length > 0) {
     const candidateChars = a.result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
     const rkUsage: LLMUsage = a.rankingUsage ?? {
       promptTokens: Math.round(a.cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
       completionTokens: a.result.questions.length * 40,
     }
-    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate', ...(a.result.matchingAlgo === 'scheme3_enhanced_key' ? { embedding_prompt_tokens: a.embeddingUsage?.promptTokens ?? null, embedding_completion_tokens: a.embeddingUsage?.completionTokens ?? null, embedding_latency_ms: a.embeddingMs, embedding_cost_untracked: true } : {}) } }))
   }
 }
 
@@ -231,8 +251,9 @@ async function handleBuffered(req: Request, algorithm: MatchingAlgorithmConfig):
     // 全部先「发出去」再统一 await：见下方 Promise.all 处的错误处理纪律说明。
     const afterTasks: Promise<unknown>[] = []
     if (cached) {
-      // 读档命中：直接用存档结果，不跑模型、不刷 corpus_question_matches 反查表、不记 usage（无模型调用=无成本）。
+      // 读档命中仍同步反查表：迁移清理或历史写失败后，用户重访即可从快照自愈；不跑模型、不记 usage。
       result = cached
+      afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
     } else {
       // 全局预算熔断：今日（东八区）全站 AI 花费触线 → 匿名一律拒新调用，注册用户不受影响。
       // 与下面的计次同在 `!cached` 分支内、且在它之前：读档命中零成本不该被拦，被熔断拦下的也不该扣次数。
@@ -261,8 +282,10 @@ async function handleBuffered(req: Request, algorithm: MatchingAlgorithmConfig):
       // 各自都是「请求总耗时」，与本日之后的「单次模型调用耗时」不是同一个量，看趋势图时
       // 必须按这个时间点断开，别把口径修正误读成「性能突然变好了一半」。
       let extractionUsage: LLMUsage | null = null
+      let embeddingUsage: LLMUsage | null = null
       let rankingUsage: LLMUsage | null = null
       let extractionMs = 0
+      let embeddingMs = 0
       let rankingMs = 0
       // 单飞只包住这一段（真花钱的那趟）。onMeta/onItem 照传：本路自己不发帧，但同一趟可能有个
       // 流式请求搭在上面，它要靠这两个回调拿增量帧。leader=false 即「搭车成功」，模型一次没调。
@@ -270,34 +293,40 @@ async function handleBuffered(req: Request, algorithm: MatchingAlgorithmConfig):
         matchRunKey(corpusId, hash, algorithm.snapshotKey),
         {},
         (emit) => runWithRawLogContext({ userId, corpusId }, async () =>
-          attachMatchingAlgorithm(await matchByStory(cleanedText, {
+          attachMatchingAlgorithm(await runConfiguredMatch(cleanedText, algorithm, {
             onExtraction: (u) => { extractionUsage = u },
             onRanking: (u) => { rankingUsage = u },
             onExtractionLatency: (ms) => { extractionMs = ms },
             onRankingLatency: (ms) => { rankingMs = ms },
             onMeta: emit.onMeta,
             onItem: emit.onItem,
+          }, {
+            onEmbedding: (u) => { embeddingUsage = u },
+            onRanking: (u) => { rankingUsage = u },
+            onEmbeddingLatency: (ms) => { embeddingMs = ms },
+            onRankingLatency: (ms) => { rankingMs = ms },
           }), algorithm),
         ),
       )
       result = runResult
 
       if (leader) {
-        // 持久化匹配结果供反查；写库失败不阻断匹配返回（.catch 必须留着：台账 115 记过它曾静默失败很久）
-        afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
-        // 写档：整份结果 + story_hash + algo_version；写档失败不阻断匹配返回（下次重访再补写）。
+        // 先替换反查表，再写快照：若反查写失败却先冻住快照，后续重访会永久读档、没有机会自愈。
+        // 两步均不阻断用户响应；persist 失败时只留日志且明确跳过 snapshot。
         // 机制①重排整体降级（rankingDegraded：候选存在但重排一分没产出）不写档——降级=瞬时失败，
         // 冻进快照会让前端降级态的「重试」命中降级档、永不重跑重排，重试形同虚设。跳过写档后，重试重发
         // /api/matching 即未命中→重新跑重排。该守卫只影响机制①这个零频分支，正常结果的写档行为一字不变。
-        if (!result.rankingDegraded) {
-          afterTasks.push(
-            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
-              .catch((e) => logErr('[matching snapshot upsert]', e)),
-          )
-        }
+        afterTasks.push(
+          persistMatches(corpusId, result)
+            .then(() => result.rankingDegraded
+              ? undefined
+              : upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
+                .catch((e) => logErr('[matching snapshot upsert]', e)))
+            .catch((e) => logErr('[matching persist]', e)),
+        )
 
         // 萃取(必发) + 重排(有候选才发)两条 usage 记账（估算兜底/字段/口径见 pushMatchUsageLogs；与流式路共用同一份）。
-        pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa: isQaRequest(req, userId) })
+        pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, embeddingUsage, rankingUsage, extractionMs, embeddingMs, rankingMs, userId, isAnonymous, corpusId, isQa: isQaRequest(req, userId) })
       } else {
         // 搭车成功：模型一次没调，这些全归 leader 做。
         // 记账绝不能补一份（那是记一笔没花的钱）；留档/写快照由 leader 用同一份结果落地，重复写只是白费往返。
@@ -325,7 +354,7 @@ async function handleBuffered(req: Request, algorithm: MatchingAlgorithmConfig):
     // 串行时香港节点到 Supabase 每次 150–300ms、六次白吃 1–2 秒；并行后墙钟≈最慢的那一次。
     //
     // 错误处理纪律：每个任务在 push 前【各自 catch】，所以 Promise.all 收到的永远是 fulfilled ——
-    // 1) persistMatches 的 .catch(logErr) 一字未动，静默失败仍会留 error 证据（台账 115）；
+    // 1) persistMatches 失败仍会留 error 证据（台账 115），并阻断依赖它的 snapshot 写入；
     // 2) 任何一个失败都不会中断 Promise.all 的等待，其余任务照样跑完（这正是不用 rejection 的原因）；
     // 3) 两条 logApiUsage（extraction/ranking）并行发出，但都在这里被 await，仍是「都写」而非「写一条」。
     //    它们原先的先后顺序不承载任何语义（各自独立一行，metadata.phase 自带区分）；
@@ -487,7 +516,10 @@ async function handleStreaming(req: Request, algorithm: MatchingAlgorithmConfig)
               const visible = matchingQuestionForClient(q, algorithm)
               if (visible) safeEnqueue(sseFrame('question', visible))
             }
-            await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(cached, 'cache') })
+            await Promise.all([
+              persistMatches(corpusId, cached).catch((e) => logErr('[matching persist]', e)),
+              logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(cached, 'cache') }),
+            ])
             const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache', algorithm)
             safeEnqueue(sseFrame('done', dto))
             safeClose()
@@ -496,8 +528,10 @@ async function handleStreaming(req: Request, algorithm: MatchingAlgorithmConfig)
 
           // 未命中：边跑边发帧。萃取/重排 usage + 分段耗时口径与 handleBuffered 一字不变，仅把落库/记账挪到流结束后。
           let extractionUsage: LLMUsage | null = null
+          let embeddingUsage: LLMUsage | null = null
           let rankingUsage: LLMUsage | null = null
           let extractionMs = 0
+          let embeddingMs = 0
           let rankingMs = 0
           // 单飞（进程内、按 corpusId+storyHash）：同一条语料在飞时不发第二趟模型调用。
           // 本路把「发帧」当订阅口交给单飞：自己是 leader 时帧由自己这趟产出，搭车时由 leader 那趟扇出
@@ -512,13 +546,18 @@ async function handleStreaming(req: Request, algorithm: MatchingAlgorithmConfig)
               },
             },
             (emit) => runWithRawLogContext({ userId, corpusId }, async () =>
-              attachMatchingAlgorithm(await matchByStory(cleanedText, {
+              attachMatchingAlgorithm(await runConfiguredMatch(cleanedText, algorithm, {
                 onExtraction: (u) => { extractionUsage = u },
                 onRanking: (u) => { rankingUsage = u },
                 onExtractionLatency: (ms) => { extractionMs = ms },
                 onRankingLatency: (ms) => { rankingMs = ms },
                 onMeta: emit.onMeta,
                 onItem: emit.onItem,
+              }, {
+                onEmbedding: (u) => { embeddingUsage = u },
+                onRanking: (u) => { rankingUsage = u },
+                onEmbeddingLatency: (ms) => { embeddingMs = ms },
+                onRankingLatency: (ms) => { rankingMs = ms },
               }), algorithm),
             ),
           )
@@ -529,16 +568,17 @@ async function handleStreaming(req: Request, algorithm: MatchingAlgorithmConfig)
           const afterTasks: Promise<unknown>[] = []
           const servedFrom: ServedFrom = leader ? 'fresh' : 'joined'
           if (leader) {
-            afterTasks.push(persistMatches(corpusId, result).catch((e) => logErr('[matching persist]', e)))
             // 机制①降级不写档（与 handleBuffered 同守卫）：冻进快照会让前端降级态的「重试」命中降级档、
             // 永不重跑重排。跳过后重试重发即未命中→重新跑重排。只影响零频降级分支，正常写档不变。
-            if (!result.rankingDegraded) {
-              afterTasks.push(
-                upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
-                  .catch((e) => logErr('[matching snapshot upsert]', e)),
-              )
-            }
-            pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, rankingUsage, extractionMs, rankingMs, userId, isAnonymous, corpusId, isQa })
+            afterTasks.push(
+              persistMatches(corpusId, result)
+                .then(() => result.rankingDegraded
+                  ? undefined
+                  : upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
+                    .catch((e) => logErr('[matching snapshot upsert]', e)))
+                .catch((e) => logErr('[matching persist]', e)),
+            )
+            pushMatchUsageLogs(afterTasks, { cleanedText, result, extractionUsage, embeddingUsage, rankingUsage, extractionMs, embeddingMs, rankingMs, userId, isAnonymous, corpusId, isQa })
           }
           afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, servedFrom) }))
           await Promise.all(afterTasks)
@@ -588,6 +628,18 @@ export async function POST(req: Request): Promise<Response> {
   const blocked = matchingAlgorithmBlockReason(algorithm)
   if (blocked) {
     return NextResponse.json({ error: blocked, code: 'MATCHING_ALGO_NOT_READY' }, { status: 503 })
+  }
+  if (algorithm.algo === 'scheme3_enhanced_key') {
+    try {
+      // P0：先验真资产，再碰鉴权/DB/额度/模型；正式执行复用加载器内的成功缓存。
+      await preloadScheme3ProductionAssets()
+    } catch (error) {
+      logErr('[matching scheme3 assets]', error)
+      return NextResponse.json({
+        error: '方案三生产资产缺失或校验失败',
+        code: 'MATCHING_ALGO_NOT_READY',
+      }, { status: 503 })
+    }
   }
   const wantsBuffered = new URL(req.url).searchParams.get('stream') === '0'
   return wantsBuffered ? handleBuffered(req, algorithm) : handleStreaming(req, algorithm)

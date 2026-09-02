@@ -63,7 +63,12 @@ jest.mock('@/services/pronounce',     () => ({ generatePronunciationTip: jest.fn
 jest.mock('@/lib/audio/transcode',    () => ({ transcodeToWav: jest.fn() }))
 
 // —— 其余只为让 import 与前置读取跑得通的替身 ——
-jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: false, ankiDrainSecret: '', qaTrafficToken: '' } }))
+jest.mock('@/lib/env-server', () => ({ env: {
+  matchSnapshotEnabled: false,
+  matchingAlgoRaw: 'mapping',
+  ankiDrainSecret: '',
+  qaTrafficToken: '',
+} }))
 jest.mock('@/lib/supabase-server', () => ({ getSupabaseServer: jest.fn() }))
 jest.mock('@/lib/db/match-snapshots', () => ({ getMatchSnapshotServer: jest.fn(() => Promise.resolve(null)), upsertMatchSnapshotServer: jest.fn() }))
 jest.mock('@/lib/db/anki-cards-server', () => ({ getBoundQuestionIds: jest.fn(() => Promise.resolve([])) }))

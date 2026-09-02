@@ -77,10 +77,14 @@ export const env = {
   matchSnapshotEnabled: process.env.MATCH_SNAPSHOT_ENABLED !== '0',
 
   /**
-   * 匹配算法 arm 原值。解析与合法值闭集在 matching-algorithm.ts，未配置默认 Mapping；
-   * 已知但尚未就绪的方案三会在 API 入口 503 fail-closed，非法值同样不会静默回退。
+   * 匹配算法 arm 原值。解析与合法值闭集在 matching-algorithm.ts，未配置默认方案三；
+   * 只有显式 mapping 才紧急回滚，非法值不会静默回退。
    */
   matchingAlgoRaw: process.env.MATCHING_ALGO,
+
+  /** 方案三冻结生产 Manifest；默认读取随Git发布的资产，绝不依赖/private/tmp。 */
+  scheme3ManifestPath: process.env.SCHEME3_MANIFEST_PATH
+    ?? `${process.cwd()}/src/assets/scheme3/manifest.json`,
 
   /**
    * 同意审计痕迹的哈希盐（服务端专用，切勿加 NEXT_PUBLIC_）。

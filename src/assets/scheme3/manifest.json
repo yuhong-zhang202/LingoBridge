@@ -1,0 +1,6 @@
+{
+  "schema": "lingobridge.scheme3.production-manifest.v1",
+  "algorithm_version": "scheme3-enhanced-key-r3-2026-09-02",
+  "asset_file": "scheme3-production-assets.json",
+  "asset_sha256": "2e3972274c2e38265bf406c90c9ab05c17c0a9c07a26ef262563330a464fe3ed"
+}

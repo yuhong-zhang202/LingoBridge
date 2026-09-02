@@ -9,7 +9,7 @@
  *           降级批次留下的假 high 行还在。
  *
  *           支点选择：走真实的 persistMatches（不 mock @/lib/match-level），只 stub Supabase client，
- *           断言 upsert 收到的行。这样无论是 levelForScore 被改回历史形态，还是有人在 persistMatches
+ *           断言原子替换 RPC 收到的行。这样无论是 levelForScore 被改回历史形态，还是有人在 persistMatches
  *           里重新内联一个 `?? 100`，都会红。
  * @author   LingoBridge
  * @created  2026-08-08
@@ -51,6 +51,7 @@ import { requireUserAllowAnon, assertCorpusOwner } from '@/lib/api-auth'
 import { logEvent } from '@/lib/events'
 import { logApiUsage } from '@/lib/api-logger'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import { env } from '@/lib/env-server'
 
 const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchByStory>
 const mockGetSnapshot    = getMatchSnapshotServer as jest.MockedFunction<typeof getMatchSnapshotServer>
@@ -66,7 +67,7 @@ const mockGetSupabase    = getSupabaseServer as jest.MockedFunction<typeof getSu
 const CLEANED = '上周末我去公园散步，待了很久就放松下来了。'
 
 /** 落库行的形状（persistMatches 写进 corpus_question_matches 的字段集） */
-interface MatchRow { user_id: string; corpus_id: string; question_id: string; match_level: string }
+interface MatchRow { question_id: string; match_level: string }
 
 /** 造一道候选题；score 传 undefined = 重排没给出分数（降级 / 漏题） */
 function makeQuestion(id: string, score: number | undefined): FunnelMatchResult['questions'][number] {
@@ -99,16 +100,20 @@ function makeReq(): Request {
   })
 }
 
-/** corpus_question_matches 的 upsert 探针 */
-let cqmUpsert: jest.Mock
+/** corpus_question_matches 原子替换 RPC 探针 */
+let cqmRpc: jest.Mock
 
 /** 取本次请求写进 corpus_question_matches 的所有行（没写过则空数组） */
 function writtenRows(): MatchRow[] {
-  return cqmUpsert.mock.calls.flatMap((call) => call[0] as MatchRow[])
+  return cqmRpc.mock.calls.flatMap((call) => {
+    const args = call[1] as { p_matches: MatchRow[] }
+    return args.p_matches
+  })
 }
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'mapping'
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
   mockAssertOwner.mockResolvedValue(undefined)
   mockBumpDaily.mockResolvedValue(1)
@@ -118,18 +123,16 @@ beforeEach(() => {
   mockLogEvent.mockResolvedValue(undefined)
   mockLogApiUsage.mockResolvedValue(undefined)
 
-  cqmUpsert = jest.fn().mockResolvedValue({ error: null })
-  const corpusMaybeSingle = jest.fn().mockResolvedValue({ data: { user_id: 'u1' }, error: null })
-  mockGetSupabase.mockReturnValue({
-    from: (table: string) => {
-      if (table === 'corpus_question_matches') return { upsert: cqmUpsert }
-      return { select: () => ({ eq: () => ({ maybeSingle: corpusMaybeSingle }) }) }
-    },
-  } as never)
+  cqmRpc = jest.fn().mockResolvedValue({ error: null })
+  mockGetSupabase.mockReturnValue({ rpc: cqmRpc } as never)
+})
+
+afterEach(() => {
+  delete (env as { matchingAlgoRaw?: string }).matchingAlgoRaw
 })
 
 describe('落库档位【行为】重排降级时，一行假 high 都不许写进 corpus_question_matches', () => {
-  it('全批候选无分数（重排整体降级的真实形态）→ 根本不发 upsert', async () => {
+  it('全批候选无分数（重排整体降级的真实形态）→ 仍以空数组清理旧自动行', async () => {
     mockMatchByStory.mockResolvedValue(
       makeResult([makeQuestion('q1', undefined), makeQuestion('q2', undefined), makeQuestion('q3', undefined)], true),
     )
@@ -137,7 +140,10 @@ describe('落库档位【行为】重排降级时，一行假 high 都不许写�
     await POST(makeReq())
 
     expect(writtenRows()).toEqual([])
-    expect(cqmUpsert).not.toHaveBeenCalled()
+    expect(cqmRpc).toHaveBeenCalledWith('replace_auto_corpus_question_matches', {
+      p_corpus_id: 'c1',
+      p_matches: [],
+    })
   })
 
   it('有分与无分混在一批 → 只写有分且达线的那些，无分的一律不落库（不是「先当 high 写进去再说」）', async () => {
@@ -158,6 +164,9 @@ describe('落库档位【行为】重排降级时，一行假 high 都不许写�
     expect(rows.find((r) => r.question_id === 'q-mid')?.match_level).toBe('mid')
     // 显式再钉一次事故本身：无分候选绝不能以任何档位、尤其不能以 high 出现在写库行里
     expect(rows.some((r) => r.question_id === 'q-none')).toBe(false)
-    expect(rows.every((r) => r.user_id === 'u1' && r.corpus_id === 'c1')).toBe(true)
+    expect(cqmRpc).toHaveBeenCalledWith('replace_auto_corpus_question_matches', {
+      p_corpus_id: 'c1',
+      p_matches: rows,
+    })
   })
 })

@@ -12,6 +12,10 @@ import { createHash } from 'crypto'
 jest.mock('server-only', () => ({}))
 jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true, qaTrafficToken: '' } }))
 jest.mock('@/services/matching', () => ({ matchByStory: jest.fn() }))
+jest.mock('@/services/scheme3-matching', () => ({
+  matchByStoryScheme3Production: jest.fn(),
+  preloadScheme3ProductionAssets: jest.fn(),
+}))
 jest.mock('@/lib/db/match-snapshots', () => ({
   getMatchSnapshotServer: jest.fn(),
   upsertMatchSnapshotServer: jest.fn(),
@@ -43,6 +47,10 @@ jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 import { POST } from '@/app/api/matching/route'
 import { env } from '@/lib/env-server'
 import { matchByStory, type FunnelMatchResult } from '@/services/matching'
+import {
+  matchByStoryScheme3Production,
+  preloadScheme3ProductionAssets,
+} from '@/services/scheme3-matching'
 import { getMatchSnapshotServer, upsertMatchSnapshotServer } from '@/lib/db/match-snapshots'
 import { getCorpusByIdServer, bumpDailyUsageServer } from '@/lib/db/corpus-server'
 import { getBoundQuestionIds } from '@/lib/db/anki-cards-server'
@@ -56,6 +64,8 @@ import { __resetMatchInflightForTest } from '@/lib/matching-inflight'
 import { matchingAlgorithmConfig } from '@/lib/matching-algorithm'
 
 const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchByStory>
+const mockMatchByScheme3 = matchByStoryScheme3Production as jest.MockedFunction<typeof matchByStoryScheme3Production>
+const mockPreloadScheme3 = preloadScheme3ProductionAssets as jest.MockedFunction<typeof preloadScheme3ProductionAssets>
 const mockGetSnapshot    = getMatchSnapshotServer as jest.MockedFunction<typeof getMatchSnapshotServer>
 const mockUpsertSnapshot = upsertMatchSnapshotServer as jest.MockedFunction<typeof upsertMatchSnapshotServer>
 const mockGetCorpus      = getCorpusByIdServer as jest.MockedFunction<typeof getCorpusByIdServer>
@@ -127,15 +137,16 @@ async function readSSE(res: Response): Promise<{ event: string; data: unknown }[
   return frames
 }
 
-/** corpus_question_matches 的 upsert stub —— 断言「读档命中不刷反查表」的探针 */
-let cqmUpsert: jest.Mock
+/** 原子替换 RPC 探针。 */
+let cqmRpc: jest.Mock
 
 beforeEach(() => {
   jest.clearAllMocks()
   // 单飞是进程内状态：用例之间必须清，否则上一条用例没跑完的那趟会被下一条搭上（假绿）
   __resetMatchInflightForTest()
   ;(env as { matchSnapshotEnabled: boolean }).matchSnapshotEnabled = true
-  ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = undefined
+  // 本文件覆盖的是既有 Mapping 缓存/计费行为；默认值已切方案三，故紧急回滚 arm 必须显式钉住。
+  ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'mapping'
 
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
   mockAssertOwner.mockResolvedValue(undefined)
@@ -146,17 +157,33 @@ beforeEach(() => {
   mockLogEvent.mockResolvedValue(undefined)
   mockLogApiUsage.mockResolvedValue(undefined)
   mockMatchByStory.mockResolvedValue(makeResult('fresh'))
+  mockPreloadScheme3.mockResolvedValue({} as Awaited<ReturnType<typeof preloadScheme3ProductionAssets>>)
   mockGetBoundQids.mockResolvedValue(new Set<string>())
 
-  // persistMatches 走真实代码，直接用 getSupabaseServer；给它一个可链式调用的最小 stub。
-  cqmUpsert = jest.fn().mockResolvedValue({ error: null })
-  const corpusMaybeSingle = jest.fn().mockResolvedValue({ data: { user_id: 'u1' }, error: null })
-  mockGetSupabase.mockReturnValue({
-    from: (table: string) => {
-      if (table === 'corpus_question_matches') return { upsert: cqmUpsert }
-      return { select: () => ({ eq: () => ({ maybeSingle: corpusMaybeSingle }) }) }
-    },
-  } as never)
+  cqmRpc = jest.fn().mockResolvedValue({ error: null })
+  mockGetSupabase.mockReturnValue({ rpc: cqmRpc } as never)
+})
+
+describe('方案三生产资产入口前置闸', () => {
+  test('资产缺失或损坏时返回明确503，且零鉴权、DB、额度与模型调用', async () => {
+    ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'scheme3_enhanced_key'
+    mockPreloadScheme3.mockRejectedValueOnce(new Error('资产 SHA 不匹配'))
+
+    const response = await POST(makeReq())
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({
+      error: '方案三生产资产缺失或校验失败',
+      code: 'MATCHING_ALGO_NOT_READY',
+    })
+    expect(mockRequireUser).not.toHaveBeenCalled()
+    expect(mockGetCorpus).not.toHaveBeenCalled()
+    expect(mockGetSnapshot).not.toHaveBeenCalled()
+    expect(mockBumpDaily).not.toHaveBeenCalled()
+    expect(mockGetSupabase).not.toHaveBeenCalled()
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+    expect(mockMatchByScheme3).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST /api/matching · 算法开关 fail-closed', () => {
@@ -172,20 +199,10 @@ describe('POST /api/matching · 算法开关 fail-closed', () => {
     expect(mockMatchByStory).not.toHaveBeenCalled()
   })
 
-  test('方案三资产未冻结时返回 503，且不调用模型', async () => {
-    ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'scheme3_enhanced_key'
-
-    const res = await POST(makeReq())
-
-    expect(res.status).toBe(503)
-    expect((await res.json()) as unknown).toEqual(expect.objectContaining({ code: 'MATCHING_ALGO_NOT_READY' }))
-    expect(mockMatchByStory).not.toHaveBeenCalled()
-    expect(mockGetSnapshot).not.toHaveBeenCalled()
-  })
 })
 
 describe('POST /api/matching · 匹配存档缓存逻辑', () => {
-  test('1. 命中读档：存档 + hash 一致 + algoVersion 一致 → 返回存档、不调 matchByStory、不刷反查表、不记 usage', async () => {
+  test('1. 命中读档：返回存档、不调模型，并用存档同步反查表自愈', async () => {
     const cached = makeResult('cache')
     mockGetSnapshot.mockResolvedValue({ result: cached, storyHash: HASH, algoVersion: RANKING_ALGO_VERSION })
 
@@ -194,9 +211,12 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
 
     // 核心不变式：命中时模型零调用
     expect(mockMatchByStory).not.toHaveBeenCalled()
-    // 不写快照、不刷 corpus_question_matches 反查表、不记 usage
+    // 不重复写快照；反查表必须同步一次，以修复历史写失败或迁移清理后的缺口。
     expect(mockUpsertSnapshot).not.toHaveBeenCalled()
-    expect(cqmUpsert).not.toHaveBeenCalled()
+    expect(cqmRpc).toHaveBeenCalledWith('replace_auto_corpus_question_matches', {
+      p_corpus_id: 'c1',
+      p_matches: [{ question_id: 'q-cache', match_level: 'high' }],
+    })
     expect(mockLogApiUsage).not.toHaveBeenCalled()
     // 读档命中零模型成本 → 不该扣每日配额（否则用户重看已匹配结果会被白扣次数）
     expect(mockBumpDaily).not.toHaveBeenCalled()
@@ -221,6 +241,7 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: MAPPING_SNAPSHOT_KEY }),
     )
+    expect(cqmRpc.mock.invocationCallOrder[0]).toBeLessThan(mockUpsertSnapshot.mock.invocationCallOrder[0])
     expect(body.servedFrom).toBe('fresh')
     expect(body.matchingAlgo).toBe('mapping')
     expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
@@ -305,16 +326,16 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
    * persistMatches 曾静默失败很久（台账 115），它的 .catch(logErr) 必须还在；
    * 且一个任务失败不许拖垮其余——两条 usage 账、写档、埋点都得照写，响应照常 200。
    */
-  test('9. 并行后置任务：persistMatches 失败被吞并留证，其余任务与响应均不受影响', async () => {
-    cqmUpsert.mockResolvedValue({ error: { message: 'boom' } })
+  test('9. persistMatches 失败被吞并留证，响应/记账/埋点不受影响，但不得写快照', async () => {
+    cqmRpc.mockResolvedValue({ error: { message: 'boom' } })
 
     const res = await POST(makeReq())
 
     expect(res.status).toBe(200)
     // 失败留证（绝不静默）
     expect(logErr).toHaveBeenCalledWith('[matching persist]', expect.anything())
-    // 其余后置任务一个不少
-    expect(mockUpsertSnapshot).toHaveBeenCalled()
+    // 快照必须依赖反查写成功；否则重访会永久命中坏档、失去自愈机会。
+    expect(mockUpsertSnapshot).not.toHaveBeenCalled()
     expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
     expect(mockLogEvent).toHaveBeenCalled()
   })
@@ -463,7 +484,7 @@ describe('POST /api/matching · 默认流式 SSE', () => {
     expect(mockUpsertSnapshot).toHaveBeenCalled()
   })
 
-  test('S2. 快照命中：走 SSE 一帧 meta + question + done(cache)，不调 matchByStory、不记 usage、不刷反查表', async () => {
+  test('S2. 快照命中：走 SSE 并同步反查表，不调模型、不记 usage', async () => {
     const cached = makeResult('cache')
     mockGetSnapshot.mockResolvedValue({ result: cached, storyHash: HASH, algoVersion: RANKING_ALGO_VERSION })
 
@@ -472,7 +493,10 @@ describe('POST /api/matching · 默认流式 SSE', () => {
 
     expect(mockMatchByStory).not.toHaveBeenCalled()
     expect(mockLogApiUsage).not.toHaveBeenCalled()
-    expect(cqmUpsert).not.toHaveBeenCalled()
+    expect(cqmRpc).toHaveBeenCalledWith('replace_auto_corpus_question_matches', {
+      p_corpus_id: 'c1',
+      p_matches: [{ question_id: 'q-cache', match_level: 'high' }],
+    })
     expect(mockBumpDaily).not.toHaveBeenCalled()
     expect(frames[0].event).toBe('meta')
     const done = frames[frames.length - 1]
@@ -482,6 +506,29 @@ describe('POST /api/matching · 默认流式 SSE', () => {
     expect(mockLogEvent).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'match.result', props: expect.objectContaining({ served_from: 'cache' }) }),
     )
+  })
+
+  test('S2b. 流式 fresh 的反查替换失败：仍发done成功响应，但不写快照', async () => {
+    cqmRpc.mockResolvedValue({ error: { message: 'boom' } })
+    mockMatchByStory.mockImplementation(async (_text, usage) => {
+      const result = makeResult('fresh')
+      usage?.onMeta?.({
+        primary: result.primary,
+        secondary: result.secondary,
+        matchedViaSecondary: false,
+        matchedViaNeighbor: false,
+        candidateCount: result.questions.length,
+      })
+      for (const question of result.questions) usage?.onItem?.(question)
+      return result
+    })
+
+    const response = await POST(makeStreamReq())
+    const frames = await readSSE(response)
+
+    expect(frames[frames.length - 1].event).toBe('done')
+    expect(logErr).toHaveBeenCalledWith('[matching persist]', expect.anything())
+    expect(mockUpsertSnapshot).not.toHaveBeenCalled()
   })
 
   test('S3. matchByStory 抛错（开流后）：发 error 帧让前端降级，且记一条 status=error·phase=matching 账', async () => {
@@ -630,7 +677,7 @@ describe('POST /api/matching · 同语料并发单飞', () => {
     expect(mockLogApiUsage).toHaveBeenCalledTimes(2)
     // 留档/写档也只做一次（同一份结果写两遍只是白费往返）
     expect(mockUpsertSnapshot).toHaveBeenCalledTimes(1)
-    expect(cqmUpsert).toHaveBeenCalledTimes(1)
+    expect(cqmRpc).toHaveBeenCalledTimes(1)
     // 埋点两个请求各发一条，但只有 leader 那条是 fresh —— 离线口径按 fresh 算分布，不会把同一趟数两遍
     const servedFroms = mockLogEvent.mock.calls.map(([a]) => (a.props as { served_from: string }).served_from)
     expect(servedFroms.sort()).toEqual(['fresh', 'joined'])

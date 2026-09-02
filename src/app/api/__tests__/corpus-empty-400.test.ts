@@ -23,7 +23,11 @@
 jest.mock('server-only', () => ({}))
 jest.mock('@/lib/log', () => ({ logErr: jest.fn() }))
 jest.mock('@/lib/events', () => ({ logEvent: jest.fn(() => Promise.resolve()) }))
-jest.mock('@/lib/env-server', () => ({ env: { matchSnapshotEnabled: true, qaTrafficToken: '' } }))
+jest.mock('@/lib/env-server', () => ({ env: {
+  matchSnapshotEnabled: true,
+  matchingAlgoRaw: 'mapping',
+  qaTrafficToken: '',
+} }))
 jest.mock('@/services/matching', () => ({ matchByStory: jest.fn() }))
 jest.mock('@/lib/db/match-snapshots', () => ({
   getMatchSnapshotServer: jest.fn(() => Promise.resolve(null)),
