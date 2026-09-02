@@ -161,7 +161,10 @@ export default function MatchedQuestionCard(props: Props) {
           )}
           <div className="flex items-center gap-2 mb-2.5 pr-9">
             <PartTag label={`Part ${question.part}`} />
-            <Tag variant="green" label={question.dimension} />
+            {/* ⚠️ 这里原有一枚 <Tag variant="green" label={question.dimension} />，2026-09-02 产品方真机后拍板删除：
+                方案三上线后 services/scheme3-matching.ts 构造候选题时把每题的 dimension 写死成 ''
+                （不再逐题挂观察点），该标签在生产恒为一枚无字绿胶囊。类型上 dimension 仍是必填的
+                DimensionLabel，字段与服务层不动 —— 将来若重新逐题挂观察点，把这枚标签加回来即可。 */}
             {question.is_new && <Tag variant="green" label="新题" />}
             {showSwitchTag && !isPrimaryMatch && !isHighMatch && (
               // 文字色由 brand-primary-dark 改 v2-text-secondary：前者压 brand-primary/10 底约 3.86:1，

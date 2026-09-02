@@ -155,7 +155,9 @@ function QuestionRow({ q, isHigh, selected, recommended, showSwitchTag = true, o
           )}
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             <PartTag label={`Part ${q.part}`} />
-            <Tag variant="green" label={q.dimension} />
+            {/* ⚠️ 这里原有一枚 <Tag variant="green" label={q.dimension} />，2026-09-02 产品方真机后拍板删除：
+                方案三上线后 services/scheme3-matching.ts 把每题的 dimension 写死成 ''，该标签在生产
+                恒为一枚无字绿胶囊。字段与服务层不动，将来重新逐题挂观察点时可加回。 */}
             {q.is_new && <Tag variant="green" label="新题" />}
             {needSwitch && (
               // 文字色由 brand-primary-dark 改 v2-text-secondary：前者压 brand-primary/10 底约 3.86:1，
@@ -202,15 +204,13 @@ function DetailPane(props: {
   const enText = q.part === 2 ? (q.cue_card_title ?? q.question_text) : q.question_text
   const zhText = q.part === 2 ? (q.cue_card_title_zh ?? '') : (q.question_text_zh ?? '')
   const tier = tierOf(q.relevanceScore)
-  // matched_point 可能是观察点 code（如 EMO_04）——含小写/中文才当可读名展示，否则只留维度，不露 code
-  const obs = /[a-z一-鿿]/.test(q.matched_point) ? q.matched_point : null
   return (
     // 详情=内容高的阅读卡（在 flex-col 右栏内自然取内容高、不被拉满、消除空洞）；长文案才封顶 max-h 卡内滚动、CTA 常驻
     <Card className="max-h-full flex flex-col overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto px-7 py-6">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <PartTag label={`Part ${q.part}`} />
-          <Tag variant="green" label={q.dimension} />
+          {/* 同上：恒空的 dimension 绿标签已于 2026-09-02 删除，理由见列表卡那处注释 */}
           {q.is_new && <Tag variant="green" label="新题" />}
           <span className="ml-auto flex items-center gap-1.5">
             {/* 低相关档不渲染徽标：同一句判断已由下方「不够贴合」标题承担（产品方 2026-08-15 拍板）。
@@ -223,19 +223,18 @@ function DetailPane(props: {
         <p className="text-[1.25rem] font-bold text-v2-text-primary leading-snug mb-1.5">{enText}</p>
         {zhText && <p className="text-[0.875rem] text-v2-text-muted mb-6">{zhText}</p>}
 
-        <div className="border-t border-black/[0.05] pt-5">
-          <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">识别维度{obs ? ' · 观察点' : ''}</p>
-          <p className="text-[0.875rem] text-v2-text-secondary leading-relaxed">{q.dimension}{obs ? ` · ${obs}` : ''}</p>
-        </div>
-
+        {/* ⚠️ 这里原有一个「识别维度 · 观察点」信息区块，2026-09-02 与上述绿标签一并删除：
+            它读的 q.dimension / q.matched_point 同样被方案三写死成 ''，线上恒为
+            「一行小标题 + 一行空正文」。下方 relevanceReason 块因此接替成首个分隔块，
+            mt-5 一并去掉 —— 保持它与题面之间的间距和改动前的识别维度块一致。 */}
         {q.relevanceReason && (
-          <div className="mt-5 border-t border-black/[0.05] pt-5">
+          <div className="border-t border-black/[0.05] pt-5">
             {/* 标题按档切：低相关时只显示「不够贴合」，其他档位显示中性的「说明」。
                 正文仍用同一个 relevanceReason（重排对低分题照样给 reason，不需要新数据）。
                 ⚠️【产品方拍板】低相关档标题为「不够贴合」，
                    同时右上角那枚同名 TierBadge 不再渲染 —— 此前两处同时出现同一句判断，
                    右上角一枚徽标 + 下方标题，说的是同一件事，读起来像被强调了两遍。
-                   现在只保留下方这一处，右上角留给 Part / 维度 / 新题 这些客观标签。 */}
+                   现在只保留下方这一处，右上角留给 Part / 新题 这些客观标签。 */}
             <p className="text-[0.6875rem] font-semibold tracking-[0.04em] text-v2-text-muted mb-1.5">
               {relevanceSectionTitle(tier)}
             </p>
