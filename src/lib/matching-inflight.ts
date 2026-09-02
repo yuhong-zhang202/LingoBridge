@@ -16,11 +16,12 @@
  *           两个订阅者，故带一个回放缓冲（晚到者先补齐已发生的，再续收后续增量）——
  *           与客户端的 analysis-inflight「晚订阅者回放」是同一套思路。
  *
- *           【键为什么是 corpusId + storyHash，而不是只有 corpusId】
+ *           【键为什么是 corpusId + storyHash + algorithmKey，而不是只有 corpusId】
  *           正文若在两次请求之间被改写（用户重新整理故事），两个请求的 cleanedText 就不是同一份，
  *           只按 corpusId 复用会把 A 的结果当成 B 的结果、并按 B 的 hash 写进快照 —— 存档内容与
  *           story_hash 从此对不上，且这种脏档会被后续读档命中、长期返回错的题。加 hash 天然隔离，
- *           且不损失任何去重效果（真并发的两个请求读到的必是同一份正文）。
+ *           且不损失任何去重效果（真并发的两个请求读到的必是同一份正文）。algorithmKey 再隔离算法
+ *           arm 与版本，防止滚动发布期间 Mapping 与方案三共享同一趟在飞结果。
  *
  *           【失败语义：跟着 leader 一起失败，不各自重跑】
  *             · 匹配失败的绝大多数原因是上游 qwen 抖动/超时/限流，此时「follower 自己再跑一次」正好在
@@ -80,13 +81,14 @@ interface Run {
 const runs = new Map<string, Run>()
 
 /**
- * 单飞键：语料 id + 正文哈希（为什么带哈希见模块顶注）。
+ * 单飞键：语料 id + 正文哈希 + 算法 arm/version（为什么都要带见模块顶注）。
  * @param corpusId   语料 id
  * @param storyHash  整理后正文的 sha256（与写快照用的是同一个值）
+ * @param algorithmKey  匹配算法 arm/version 键
  * @returns          单飞表的键
  */
-export function matchRunKey(corpusId: string, storyHash: string): string {
-  return `${corpusId}::${storyHash}`
+export function matchRunKey(corpusId: string, storyHash: string, algorithmKey: string): string {
+  return `${corpusId}::${storyHash}::${algorithmKey}`
 }
 
 /**

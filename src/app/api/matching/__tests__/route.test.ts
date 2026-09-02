@@ -53,6 +53,7 @@ import { getSupabaseServer } from '@/lib/supabase-server'
 import { logErr } from '@/lib/log'
 import { RANKING_ALGO_VERSION } from '@/lib/constants'
 import { __resetMatchInflightForTest } from '@/lib/matching-inflight'
+import { matchingAlgorithmConfig } from '@/lib/matching-algorithm'
 
 const mockMatchByStory   = matchByStory as jest.MockedFunction<typeof matchByStory>
 const mockGetSnapshot    = getMatchSnapshotServer as jest.MockedFunction<typeof getMatchSnapshotServer>
@@ -69,6 +70,7 @@ const mockGetBoundQids    = getBoundQuestionIds as jest.MockedFunction<typeof ge
 // —— 桩数据 ——
 const CLEANED = '上周末我去公园散步，待了很久就放松下来了。'
 const HASH = createHash('sha256').update(CLEANED, 'utf8').digest('hex')
+const MAPPING_SNAPSHOT_KEY = matchingAlgorithmConfig('mapping').snapshotKey
 
 /** 造一份最小合法 FunnelMatchResult（tag 标明来自存档还是新算，便于断言返回体来源） */
 function makeResult(tag: string): FunnelMatchResult {
@@ -133,6 +135,7 @@ beforeEach(() => {
   // 单飞是进程内状态：用例之间必须清，否则上一条用例没跑完的那趟会被下一条搭上（假绿）
   __resetMatchInflightForTest()
   ;(env as { matchSnapshotEnabled: boolean }).matchSnapshotEnabled = true
+  ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = undefined
 
   mockRequireUser.mockResolvedValue({ userId: 'u1', isAnonymous: false })
   mockAssertOwner.mockResolvedValue(undefined)
@@ -154,6 +157,31 @@ beforeEach(() => {
       return { select: () => ({ eq: () => ({ maybeSingle: corpusMaybeSingle }) }) }
     },
   } as never)
+})
+
+describe('POST /api/matching · 算法开关 fail-closed', () => {
+  test('非法 MATCHING_ALGO 返回 503，且不进入鉴权、数据库或模型链路', async () => {
+    ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'enhanced'
+
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(503)
+    expect((await res.json()) as unknown).toEqual(expect.objectContaining({ code: 'MATCHING_ALGO_INVALID' }))
+    expect(mockRequireUser).not.toHaveBeenCalled()
+    expect(mockGetCorpus).not.toHaveBeenCalled()
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+  })
+
+  test('方案三资产未冻结时返回 503，且不调用模型', async () => {
+    ;(env as { matchingAlgoRaw?: string }).matchingAlgoRaw = 'scheme3_enhanced_key'
+
+    const res = await POST(makeReq())
+
+    expect(res.status).toBe(503)
+    expect((await res.json()) as unknown).toEqual(expect.objectContaining({ code: 'MATCHING_ALGO_NOT_READY' }))
+    expect(mockMatchByStory).not.toHaveBeenCalled()
+    expect(mockGetSnapshot).not.toHaveBeenCalled()
+  })
 })
 
 describe('POST /api/matching · 匹配存档缓存逻辑', () => {
@@ -191,9 +219,10 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     // matchByStory 现在带 usage sink（第二个参数），断言仍以 cleanedText 起手
     expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED, expect.any(Object))
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
+      expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: MAPPING_SNAPSHOT_KEY }),
     )
     expect(body.servedFrom).toBe('fresh')
+    expect(body.matchingAlgo).toBe('mapping')
     expect(body.questions.map((q) => q.id)).toEqual(['q-fresh'])
     expect(mockLogEvent).toHaveBeenCalledWith(
       expect.objectContaining({ props: expect.objectContaining({ served_from: 'fresh' }) }),
@@ -315,7 +344,7 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
 
     expect(mockMatchByStory).toHaveBeenCalledWith(CLEANED, expect.any(Object))
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({ storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
+      expect.objectContaining({ storyHash: HASH, algoVersion: MAPPING_SNAPSHOT_KEY }),
     )
     expect(body.servedFrom).toBe('fresh')
   })
@@ -357,7 +386,7 @@ describe('POST /api/matching · 匹配存档缓存逻辑', () => {
     const res2 = await POST(makeReq())
     expect(res2.status).toBe(200)
     expect(mockUpsertSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: RANKING_ALGO_VERSION }),
+      expect.objectContaining({ corpusId: 'c1', userId: 'u1', storyHash: HASH, algoVersion: MAPPING_SNAPSHOT_KEY }),
     )
   })
 

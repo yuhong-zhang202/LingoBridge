@@ -34,12 +34,21 @@ import { logEvent } from '@/lib/events'
 import { MATCH_RESULT_CANDIDATES_MAX, type MatchResultCandidate } from '@/lib/event-schema'
 import { isQaRequest } from '@/lib/qa-traffic'
 import {
-  SCORE_MID, RANKING_ALGO_VERSION,
+  SCORE_MID,
   ANON_MATCHING_LIMIT, REG_MATCHING_DAILY_LIMIT,
 } from '@/lib/constants'
 import { env } from '@/lib/env-server'
 import { requireGlobalBudget } from '@/lib/global-budget-breaker'
 import { runMatchOnce, matchRunKey } from '@/lib/matching-inflight'
+import {
+  attachMatchingAlgorithm,
+  isMatchingSnapshotCompatible,
+  matchingAlgorithmBlockReason,
+  matchingAlgorithmConfig,
+  matchingQuestionForClient,
+  matchingResultForClient,
+  type MatchingAlgorithmConfig,
+} from '@/lib/matching-algorithm'
 
 /**
  * 本次结果的来源：
@@ -102,14 +111,14 @@ function pushMatchUsageLogs(
   a: { cleanedText: string; result: FunnelMatchResult; extractionUsage: LLMUsage | null; rankingUsage: LLMUsage | null; extractionMs: number; rankingMs: number; userId: string; isAnonymous: boolean; corpusId: string; isQa: boolean },
 ): void {
   const exUsage: LLMUsage = a.extractionUsage ?? { promptTokens: Math.round(a.cleanedText.length * 0.8 + 1200), completionTokens: 100 }
-  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'extraction', prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
+  afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: exUsage.promptTokens + exUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(exUsage.promptTokens, exUsage.completionTokens), latency_ms: a.extractionMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'extraction', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: exUsage.promptTokens, completion_tokens: exUsage.completionTokens, cost_source: a.extractionUsage ? 'actual' : 'estimate' } }))
   if (a.result.questions.length > 0) {
     const candidateChars = a.result.questions.reduce((n, q) => n + q.question_text.length + (q.question_text_zh?.length ?? 0), 0)
     const rkUsage: LLMUsage = a.rankingUsage ?? {
       promptTokens: Math.round(a.cleanedText.length * 0.8 + candidateChars * 0.5 + 2000),
       completionTokens: a.result.questions.length * 40,
     }
-    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
+    afterTasks.push(logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: rkUsage.promptTokens + rkUsage.completionTokens, usage_unit: 'tokens', estimated_cost_cny: qwenPlusCostCny(rkUsage.promptTokens, rkUsage.completionTokens), latency_ms: a.rankingMs, status: 'success', user_id: a.userId, is_anonymous: a.isAnonymous, is_qa: a.isQa, corpus_id: a.corpusId, metadata: { phase: 'ranking', matching_algo: a.result.matchingAlgo, matching_algo_version: a.result.matchingAlgoVersion, prompt_tokens: rkUsage.promptTokens, completion_tokens: rkUsage.completionTokens, candidate_count: a.result.questions.length, cost_source: a.rankingUsage ? 'actual' : 'estimate' } }))
   }
 }
 
@@ -152,6 +161,8 @@ function matchResultEventProps(result: FunnelMatchResult, servedFrom: ServedFrom
     visibleCount: result.questions.filter((q) => q.relevanceScore != null && q.relevanceScore >= SCORE_MID).length,
     unscoredCount: result.questions.filter((q) => q.relevanceScore == null).length,
     served_from: servedFrom,
+    matching_algo: result.matchingAlgo ?? null,
+    matching_algo_version: result.matchingAlgoVersion ?? null,
     // 按分降序、未打分（null）垫底；sort 稳定 ⇒ 同分保持 matchByStory 的既有次序（isPrimaryMatch → part），
     // 即本数组的顺序就是用户看到的顺序。上限只是安全阀，当前题库（最大 91）永不触发。
     candidates: result.questions
@@ -171,7 +182,7 @@ function matchResultEventProps(result: FunnelMatchResult, servedFrom: ServedFrom
  * 作为流式 SSE 的降级目标：`?stream=0`（前端读流失败/上游不支持流式时重发）走此路，返回普通 JSON。
  * 快照命中/matches/计费/埋点的职责与字段全部保持原样。
  */
-async function handleBuffered(req: Request): Promise<NextResponse> {
+async function handleBuffered(req: Request, algorithm: MatchingAlgorithmConfig): Promise<NextResponse> {
   const t0 = Date.now()
   // 失败记账用的归属 + QA 标记：userId/isAnonymous 声明在 try 内、catch 读不到，故在此暂存一份
   // （写法对齐 transcribe 的 attribution）。失败行同样烧过钱，既要能归到人、也要能被剔除自测流量。
@@ -209,7 +220,9 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     // 匹配存档：命中即冻结返回、不跑模型。命中判定 = 开关开 且 存档存在 且 story_hash 一致 且 algo_version 一致。
     // env.matchSnapshotEnabled=false（MATCH_SNAPSHOT_ENABLED=0）时永远未命中 → 回退到每次重算的旧行为（回滚开关）。
     const cached: FunnelMatchResult | null =
-      snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
+      snap && snap.storyHash === hash && isMatchingSnapshotCompatible(snap.algoVersion, algorithm)
+        ? attachMatchingAlgorithm(snap.result, algorithm)
+        : null
 
     let result: FunnelMatchResult
     // 非 const：搭上别人在飞那趟（单飞 follower）时改判 'joined'，见下方 leader 分支
@@ -254,17 +267,17 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
       // 单飞只包住这一段（真花钱的那趟）。onMeta/onItem 照传：本路自己不发帧，但同一趟可能有个
       // 流式请求搭在上面，它要靠这两个回调拿增量帧。leader=false 即「搭车成功」，模型一次没调。
       const { result: runResult, leader } = await runMatchOnce(
-        matchRunKey(corpusId, hash),
+        matchRunKey(corpusId, hash, algorithm.snapshotKey),
         {},
-        (emit) => runWithRawLogContext({ userId, corpusId }, () =>
-          matchByStory(cleanedText, {
+        (emit) => runWithRawLogContext({ userId, corpusId }, async () =>
+          attachMatchingAlgorithm(await matchByStory(cleanedText, {
             onExtraction: (u) => { extractionUsage = u },
             onRanking: (u) => { rankingUsage = u },
             onExtractionLatency: (ms) => { extractionMs = ms },
             onRankingLatency: (ms) => { rankingMs = ms },
             onMeta: emit.onMeta,
             onItem: emit.onItem,
-          }),
+          }), algorithm),
         ),
       )
       result = runResult
@@ -278,7 +291,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
         // /api/matching 即未命中→重新跑重排。该守卫只影响机制①这个零频分支，正常结果的写档行为一字不变。
         if (!result.rankingDegraded) {
           afterTasks.push(
-            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+            upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
               .catch((e) => logErr('[matching snapshot upsert]', e)),
           )
         }
@@ -332,10 +345,11 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
         logErr('[matching ankiSaved]', e)
       }
     }
-    const questionsWithSaved = result.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
+    const clientResult = matchingResultForClient(result, algorithm)
+    const questionsWithSaved = clientResult.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
 
     // 响应 DTO 附 servedFrom（在 route 包一层，不改 matchByStory 的 service 返回契约）：前端可据此区分冻结档/新算。
-    return NextResponse.json({ ...result, questions: questionsWithSaved, servedFrom })
+    return NextResponse.json({ ...clientResult, questions: questionsWithSaved, servedFrom })
   } catch (e) {
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
@@ -344,7 +358,7 @@ async function handleBuffered(req: Request): Promise<NextResponse> {
     // 仍好过掉进空 metadata 的 other 桶）。此处只接系统故障（入参校验在前面已 400 早退），不补 error_kind。
     // 归属三字段（user_id/is_anonymous/is_qa）自 2026-08-07 起补写：此前失败行完全无归属，
     // 既进不了「按用户成本」、也剔不掉自测流量。只补归属，不碰任何计费/错误处理口径。
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', matching_algo: algorithm.algo, matching_algo_version: algorithm.version, ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[matching API]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
@@ -372,6 +386,7 @@ async function buildStreamDto(
   userId: string,
   isAnonymous: boolean,
   servedFrom: ServedFrom,
+  algorithm: MatchingAlgorithmConfig,
 ): Promise<unknown> {
   let savedIds = new Set<string>()
   if (!isAnonymous && result.questions.length > 0) {
@@ -381,8 +396,9 @@ async function buildStreamDto(
       logErr('[matching ankiSaved]', e)
     }
   }
-  const questionsWithSaved = result.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
-  return { ...result, questions: questionsWithSaved, servedFrom }
+  const clientResult = matchingResultForClient(result, algorithm)
+  const questionsWithSaved = clientResult.questions.map((q) => ({ ...q, ankiSaved: savedIds.has(q.id) }))
+  return { ...clientResult, questions: questionsWithSaved, servedFrom }
 }
 
 /**
@@ -391,7 +407,7 @@ async function buildStreamDto(
  * 职责/字段一字不变），最后发 done。开流【前】的配额/同意闸与 handleBuffered 同口径（超额/未同意直接 JSON 早退，
  * 不开流不计费）；开流【后】异常发 error 帧让前端降级到 ?stream=0。
  */
-async function handleStreaming(req: Request): Promise<Response> {
+async function handleStreaming(req: Request, algorithm: MatchingAlgorithmConfig): Promise<Response> {
   const t0 = Date.now()
   // 同 handleBuffered：开流前异常的失败记账要能拿到归属 + QA 标记（userId 在 try 内、外层 catch 读不到）。
   let attribution: { userId: string; isAnonymous: boolean } | null = null
@@ -416,7 +432,9 @@ async function handleStreaming(req: Request): Promise<Response> {
     if (!cleanedText) return NextResponse.json({ error: '语料无正文或不存在', code: CORPUS_EMPTY_CODE }, { status: 400 })
     const hash = storyHash(cleanedText)
     const cached: FunnelMatchResult | null =
-      snap && snap.storyHash === hash && snap.algoVersion === RANKING_ALGO_VERSION ? snap.result : null
+      snap && snap.storyHash === hash && isMatchingSnapshotCompatible(snap.algoVersion, algorithm)
+        ? attachMatchingAlgorithm(snap.result, algorithm)
+        : null
     const flowId = req.headers.get('x-flow-id')
     // QA 标记在开流【前】算好、闭包带入：两处 match.result 埋点都在 start(controller) 回调里，
     // 回调内重复调用没有收益（isQaRequest 是纯函数，结果不会变）。
@@ -465,9 +483,12 @@ async function handleStreaming(req: Request): Promise<Response> {
               matchedViaNeighbor: cached.matchedViaNeighbor,
               candidateCount: cached.questions.length,
             }))
-            for (const q of cached.questions) safeEnqueue(sseFrame('question', q))
+            for (const q of cached.questions) {
+              const visible = matchingQuestionForClient(q, algorithm)
+              if (visible) safeEnqueue(sseFrame('question', visible))
+            }
             await logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(cached, 'cache') })
-            const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache')
+            const dto = await buildStreamDto(cached, userId, isAnonymous, 'cache', algorithm)
             safeEnqueue(sseFrame('done', dto))
             safeClose()
             return
@@ -482,20 +503,23 @@ async function handleStreaming(req: Request): Promise<Response> {
           // 本路把「发帧」当订阅口交给单飞：自己是 leader 时帧由自己这趟产出，搭车时由 leader 那趟扇出
           // （晚到者先回放已发生的 meta/question，再续收后续增量），故两种角色下前端看到的帧序完全一致。
           const { result, leader } = await runMatchOnce(
-            matchRunKey(corpusId, hash),
+            matchRunKey(corpusId, hash, algorithm.snapshotKey),
             {
               onMeta: (meta) => safeEnqueue(sseFrame('meta', meta)),
-              onItem: (q) => safeEnqueue(sseFrame('question', q)),
+              onItem: (q) => {
+                const visible = matchingQuestionForClient(q, algorithm)
+                if (visible) safeEnqueue(sseFrame('question', visible))
+              },
             },
-            (emit) => runWithRawLogContext({ userId, corpusId }, () =>
-              matchByStory(cleanedText, {
+            (emit) => runWithRawLogContext({ userId, corpusId }, async () =>
+              attachMatchingAlgorithm(await matchByStory(cleanedText, {
                 onExtraction: (u) => { extractionUsage = u },
                 onRanking: (u) => { rankingUsage = u },
                 onExtractionLatency: (ms) => { extractionMs = ms },
                 onRankingLatency: (ms) => { rankingMs = ms },
                 onMeta: emit.onMeta,
                 onItem: emit.onItem,
-              }),
+              }), algorithm),
             ),
           )
 
@@ -510,7 +534,7 @@ async function handleStreaming(req: Request): Promise<Response> {
             // 永不重跑重排。跳过后重试重发即未命中→重新跑重排。只影响零频降级分支，正常写档不变。
             if (!result.rankingDegraded) {
               afterTasks.push(
-                upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: RANKING_ALGO_VERSION })
+                upsertMatchSnapshotServer({ corpusId, userId, result, storyHash: hash, algoVersion: algorithm.snapshotKey })
                   .catch((e) => logErr('[matching snapshot upsert]', e)),
               )
             }
@@ -519,12 +543,12 @@ async function handleStreaming(req: Request): Promise<Response> {
           afterTasks.push(logEvent({ event: 'match.result', flowId, storyId: corpusId, userId, isQa, props: matchResultEventProps(result, servedFrom) }))
           await Promise.all(afterTasks)
 
-          const dto = await buildStreamDto(result, userId, isAnonymous, servedFrom)
+          const dto = await buildStreamDto(result, userId, isAnonymous, servedFrom, algorithm)
           safeEnqueue(sseFrame('done', dto))
           safeClose()
         } catch (e) {
           // 开流后异常：记一条 error 账（与 handleBuffered catch 同口径）+ 发 error 帧让前端降级到 ?stream=0。
-          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', user_id: userId, is_anonymous: isAnonymous, is_qa: isQa, metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
+          await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', user_id: userId, is_anonymous: isAnonymous, is_qa: isQa, metadata: { phase: 'matching', matching_algo: algorithm.algo, matching_algo_version: algorithm.version, ...errorLogMeta(e), ...errorKindMeta(e) } }).catch(() => {})
           logErr('[matching API stream]', e)
           try {
             safeEnqueue(sseFrame('error', { error: '匹配失败' }))
@@ -543,7 +567,7 @@ async function handleStreaming(req: Request): Promise<Response> {
     // 开流前异常（鉴权/同意/入参/存档读取/配额）：返回普通 JSON。前端据状态（402/403/429）处理，或降级重发 ?stream=0。
     const authRes = authErrorResponse(e)
     if (authRes) return authRes
-    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', ...errorLogMeta(e), ...errorKindMeta(e) } })
+    await logApiUsage({ service: 'qwen_plus', endpoint: 'dashscope/v1/chat/completions', usage_amount: 0, usage_unit: 'tokens', estimated_cost_cny: 0, latency_ms: Date.now() - t0, status: 'error', ...(attribution ? { user_id: attribution.userId, is_anonymous: attribution.isAnonymous } : {}), is_qa: isQaRequest(req, attribution?.userId), metadata: { phase: 'matching', matching_algo: algorithm.algo, matching_algo_version: algorithm.version, ...errorLogMeta(e), ...errorKindMeta(e) } })
     logErr('[matching API stream pre]', e)
     return NextResponse.json({ error: '匹配失败' }, { status: 500 })
   }
@@ -554,6 +578,17 @@ async function handleStreaming(req: Request): Promise<Response> {
  * 作为前端读流失败/上游不支持流式时的降级目标。两路的快照/matches/计费职责与字段完全一致。
  */
 export async function POST(req: Request): Promise<Response> {
+  let algorithm: MatchingAlgorithmConfig
+  try {
+    algorithm = matchingAlgorithmConfig(env.matchingAlgoRaw)
+  } catch (error) {
+    logErr('[matching config]', error)
+    return NextResponse.json({ error: '匹配算法配置无效', code: 'MATCHING_ALGO_INVALID' }, { status: 503 })
+  }
+  const blocked = matchingAlgorithmBlockReason(algorithm)
+  if (blocked) {
+    return NextResponse.json({ error: blocked, code: 'MATCHING_ALGO_NOT_READY' }, { status: 503 })
+  }
   const wantsBuffered = new URL(req.url).searchParams.get('stream') === '0'
-  return wantsBuffered ? handleBuffered(req) : handleStreaming(req)
+  return wantsBuffered ? handleBuffered(req, algorithm) : handleStreaming(req, algorithm)
 }

@@ -77,6 +77,12 @@ export const env = {
   matchSnapshotEnabled: process.env.MATCH_SNAPSHOT_ENABLED !== '0',
 
   /**
+   * 匹配算法 arm 原值。解析与合法值闭集在 matching-algorithm.ts，未配置默认 Mapping；
+   * 已知但尚未就绪的方案三会在 API 入口 503 fail-closed，非法值同样不会静默回退。
+   */
+  matchingAlgoRaw: process.env.MATCHING_ALGO,
+
+  /**
    * 同意审计痕迹的哈希盐（服务端专用，切勿加 NEXT_PUBLIC_）。
    *
    * 删号时先往 consent_audit 写一条去标识化痕迹（见 migration 0025），其中 email_hash =

@@ -68,7 +68,7 @@ describe('matching-inflight · 单飞命根', () => {
   test('同键并发两次：真正干活的那趟只跑一次，两边拿同一份结果，角色一 leader 一搭车', async () => {
     const gate = deferred<FunnelMatchResult>()
     const start = jest.fn(() => gate.promise)
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
 
     const p1 = runMatchOnce(key, {}, start)
     const p2 = runMatchOnce(key, {}, start)
@@ -91,8 +91,8 @@ describe('matching-inflight · 单飞命根', () => {
     const s1 = jest.fn(() => g1.promise)
     const s2 = jest.fn(() => g2.promise)
 
-    const p1 = runMatchOnce(matchRunKey('c1', 'h1'), {}, s1)
-    const p2 = runMatchOnce(matchRunKey('c2', 'h1'), {}, s2)
+    const p1 = runMatchOnce(matchRunKey('c1', 'h1', 'mapping:v1'), {}, s1)
+    const p2 = runMatchOnce(matchRunKey('c2', 'h1', 'mapping:v1'), {}, s2)
     await tick()
 
     expect(s1).toHaveBeenCalledTimes(1)
@@ -110,8 +110,8 @@ describe('matching-inflight · 单飞命根', () => {
   test('同一 corpusId 但正文变了（hash 不同）→ 不同键，绝不复用别人的结果', async () => {
     const s1 = jest.fn(async () => makeResult('old'))
     const s2 = jest.fn(async () => makeResult('new'))
-    const p1 = runMatchOnce(matchRunKey('c1', 'hash-old'), {}, s1)
-    const p2 = runMatchOnce(matchRunKey('c1', 'hash-new'), {}, s2)
+    const p1 = runMatchOnce(matchRunKey('c1', 'hash-old', 'mapping:v1'), {}, s1)
+    const p2 = runMatchOnce(matchRunKey('c1', 'hash-new', 'mapping:v1'), {}, s2)
     const [a, b] = await Promise.all([p1, p2])
 
     expect(a.result.questions[0].id).toBe('q-old')
@@ -123,7 +123,7 @@ describe('matching-inflight · 单飞命根', () => {
   test('第一趟失败：搭车者跟着失败（不各自重跑），且槽位清干净——下一次是全新一趟', async () => {
     const gate = deferred<FunnelMatchResult>()
     const failing = jest.fn(() => gate.promise)
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
 
     const p1 = runMatchOnce(key, {}, failing)
     const p2 = runMatchOnce(key, {}, failing)
@@ -143,7 +143,7 @@ describe('matching-inflight · 单飞命根', () => {
   })
 
   test('成功后槽位同样清干净：下一次请求重新跑（不会拿到上一趟的陈旧 Promise）', async () => {
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
     const s1 = jest.fn(async () => makeResult('first'))
     const s2 = jest.fn(async () => makeResult('second'))
 
@@ -158,7 +158,7 @@ describe('matching-inflight · 事件扇出与回放', () => {
     const gate = deferred<void>()
     const leaderRec = recorder()
     const followerRec = recorder()
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
 
     const start = (emit: MatchRunEvents): Promise<FunnelMatchResult> => (async () => {
       emit.onMeta?.(META)              // follower 加入【之前】就发生
@@ -183,7 +183,7 @@ describe('matching-inflight · 事件扇出与回放', () => {
   })
 
   test('搭车者的回调抛错（断连的 SSE）不许拖垮整趟，leader 照常跑完收帧', async () => {
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
     const leaderRec = recorder()
     const boom: MatchRunEvents = {
       onMeta: () => { throw new Error('客户端已断连') },
@@ -209,7 +209,7 @@ describe('matching-inflight · 事件扇出与回放', () => {
   })
 
   test('回放缓冲存的是拷贝：leader 之后就地改题对象，晚到者回放到的仍是发出那一刻的值', async () => {
-    const key = matchRunKey('c1', 'h1')
+    const key = matchRunKey('c1', 'h1', 'mapping:v1')
     const q = makeQuestion('q1')
     const gate = deferred<void>()
     const start = (emit: MatchRunEvents): Promise<FunnelMatchResult> => (async () => {

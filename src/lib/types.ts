@@ -255,6 +255,10 @@ export interface FunnelMatchedQuestion {
 
 /** matchByStory 的完整结果：主/副观察点 + 三层漏斗召回题 + 各层命中标记。 */
 export interface FunnelMatchResult {
+  /** 实际产出本结果的匹配算法 arm；旧快照没有该字段，API 读档时会补齐。 */
+  matchingAlgo?: 'mapping' | 'scheme3_enhanced_key'
+  /** arm 内部版本；与 matchingAlgo 一起用于结果审计，旧快照没有该字段。 */
+  matchingAlgoVersion?: string
   primary: MatchedPoint | null
   secondary: MatchedPoint | null
   questions: FunnelMatchedQuestion[]
