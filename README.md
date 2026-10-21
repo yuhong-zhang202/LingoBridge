@@ -2,6 +2,9 @@
 
 > 用真实生活故事练雅思口语，而不是先编故事、再背答案。
 
+**Live Demo:** [lingobridge.zeabur.app](https://lingobridge.zeabur.app/)  
+**GitHub:** [yuhong-zhang202/LingoBridge](https://github.com/yuhong-zhang202/LingoBridge)
+
 LingoBridge 是一个 **AI Native 雅思口语练习产品**。用户可以用中文文字或录音输入自己的真实经历，系统将内容整理成可复用的故事素材，匹配真正能够回答的雅思口语题，再进入题目分析、对话练习与反馈。
 
 项目从真实备考痛点出发：题库很大，很多学习方式要求用户先“编一套故事”再反复背诵。LingoBridge 反过来做——**先从用户已经拥有的真实经历出发，再寻找能回答的题目。**
@@ -175,7 +178,7 @@ npm run build
 
 ## Status
 
-项目已完成从 0→1 的产品上线与内测，目前仍在持续优化匹配质量、Evaluation 与用户体验。
+项目已完成从 0→1 的产品上线与内测，目前仍在持续优化匹配质量、Evaluation 与用户体验。线上体验：[https://lingobridge.zeabur.app/](https://lingobridge.zeabur.app/)
 
 ---
 
